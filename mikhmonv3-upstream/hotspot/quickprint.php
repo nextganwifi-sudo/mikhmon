@@ -29,7 +29,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-	<h3><i class=" fa fa-print"></i> <?= $_quick_print ?> &nbsp;&nbsp; | &nbsp;&nbsp;<a class="pointer" onclick="location.href='./?hotspot=list-quick-print&session=<?= $session ?>';"  title="Quick Print List"><i class="fa fa-list"></i> List</a></h3>
+	<h3><i class=" fa fa-print"></i> <?= $_quick_print ?> <?php if (hasResellerPermission('manage_quickprint')) { ?>&nbsp;&nbsp; | &nbsp;&nbsp;<a class="pointer" onclick="location.href='./?hotspot=list-quick-print&session=<?= $session ?>';"  title="Quick Print List"><i class="fa fa-list"></i> List</a><?php } ?></h3>
 </div>
 <div class="card-body">
 <div class="overflow" style="max-height: 80vh">	

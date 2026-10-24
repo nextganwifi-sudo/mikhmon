@@ -83,9 +83,15 @@ if (!isset($_SESSION["mikhmon"])) {
         if ($counttuser == 0) {
           echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "</script>";
         } ?>
+         <?php if (hasResellerPermission('add_user')) { ?>
          &nbsp; | &nbsp; <a href="./?hotspot-user=add&session=<?= $session; ?>" title="Add User"><i class="fa fa-user-plus"></i> <?= $_add ?></a>
+         <?php } ?>
+         <?php if (hasResellerPermission('generate_voucher')) { ?>
         &nbsp; | &nbsp; <a href="./?hotspot-user=generate&session=<?= $session; ?>" title="Generate User"><i class="fa fa-users"></i> <?= $_generate ?></a>
+         <?php } ?>
+         <?php if (hasResellerPermission('export_users')) { ?>
          &nbsp; | &nbsp; <a href="<?= str_replace("=users", "=export-users", $url); ?>&export=script" title="Download User List as Mikrotik Script"><i class="fa fa-download"></i> Script</a>&nbsp; | &nbsp; <a href="<?= str_replace("=users", "=export-users", $url); ?>&export=csv" title="Download User List as CSV"><i class="fa fa-download"></i> CSV</a>
+         <?php } ?>
         </span>  &nbsp;
         <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> <?= $_processing ?> </i></small>
     </h3>
@@ -143,11 +149,13 @@ if (!isset($_SESSION["mikhmon"])) {
   </div>
  
   <div class="col-6">
+    <?php if (hasResellerPermission('delete_user')) { ?>
     <?php if ($comm != "") { ?>
   <button class="btn bg-red" onclick="if(confirm('Are you sure to delete username by comment (<?= $comm; ?>)?')){loadpage('./?remove-hotspot-user-by-comment=<?= $comm; ?>&session=<?= $session; ?>');loader();}else{}" title="Remove user by comment <?= $comm; ?>">  <i class="fa fa-trash"></i> <?= $_by_comment ?></button>
     <?php ; }else if ($exp == "1"){ ?>
   <button class="btn bg-red" onclick="if(confirm('Are you sure to delete users?')){loadpage('./?remove-hotspot-user-expired=1&session=<?= $session; ?>');loader();}else{}" title="Remove user expired">  <i class="fa fa-trash"></i> Expired Users</button>
       <?php } ?>
+    <?php } ?>
   <script>
     function printV(a,b){
     var comm = document.getElementById('comment').value;
@@ -165,9 +173,11 @@ if (!isset($_SESSION["mikhmon"])) {
       win.focus();
     }}
   </script>
+  <?php if (hasResellerPermission('print_voucher')) { ?>
   <button class="btn bg-primary" title='Print' onclick="printV('qr','no');"><i class="fa fa-print"></i> <?= $_print_default ?></button>
   <button class="btn bg-primary" title='Print QR' onclick="printV('qr','yes');"><i class="fa fa-print"></i> <?= $_print_qr ?></button>
   <button class="btn bg-primary" title='Print Small'onclick="printV('small','yes');"><i class="fa fa-print"></i> <?= $_print_small ?></button>
+  <?php } ?>
   </div>
 </div>
 <div class="overflow mr-t-10 box-bordered" style="max-height: 75vh">
@@ -217,15 +227,21 @@ for ($i = 0; $i < $TotalReg; $i++) {
 
   echo "<tr>";
   ?>
-  <td style='text-align:center;'>  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+  <td style='text-align:center;'>
+  <?php if (hasResellerPermission('delete_user')) { ?>
+  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <?php } ?>
   <?php
-  if ($udisabled == "true") {
-    $uriprocess = "'./?enable-hotspot-user=" . $uid . "&session=" . $session."'";
-    echo '<span class="text-warning pointer" title="Enable User ' . $uname . '"  onclick="loadpage('.$uriprocess.')"><i class="fa fa-lock "></i></span></td>';
-  } else {
-    $uriprocess = "'./?disable-hotspot-user=" . $uid . "&session=" . $session."'";
-    echo '<span class="pointer" title="Disable User ' . $uname . '"  onclick="loadpage('.$uriprocess.')"><i class="fa fa-unlock "></i></span></td>';
+  if (hasResellerPermission('enable_disable_user')) {
+    if ($udisabled == "true") {
+      $uriprocess = "'./?enable-hotspot-user=" . $uid . "&session=" . $session."'";
+      echo '<span class="text-warning pointer" title="Enable User ' . $uname . '"  onclick="loadpage('.$uriprocess.')"><i class="fa fa-lock "></i></span>';
+    } else {
+      $uriprocess = "'./?disable-hotspot-user=" . $uid . "&session=" . $session."'";
+      echo '<span class="pointer" title="Disable User ' . $uname . '"  onclick="loadpage('.$uriprocess.')"><i class="fa fa-unlock "></i></span>';
+    }
   }
+  echo '</td>';
   echo "<td>" . $userver . "</td>";
   if ($uname == $upass) {
     $usermode = "vc";
@@ -234,8 +250,16 @@ for ($i = 0; $i < $TotalReg; $i++) {
   }
   $popup = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=no&session=" . $session . "','_blank','width=320,height=550').print();";
   $popupQR = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=yes&session=" . $session . "','_blank','width=320,height=550').print();";
-  echo "<td><a title='Open User " . $uname . "' href=./?hotspot-user=" . $uid . "&session=" . $session . "><i class='fa fa-edit'></i> " . $uname . " </a>";
-  echo '</td><td class"text-center"><a title="Print ' . $uname . '" href="' . $popup . '"><i class="fa fa-print"></i></a> &nbsp <a title="Print ' . $uname . '" href="' . $popupQR . '"><i class="fa fa-qrcode"></i> </a></td>';
+  if (hasResellerPermission('edit_user')) {
+    echo "<td><a title='Open User " . $uname . "' href=./?hotspot-user=" . $uid . "&session=" . $session . "><i class='fa fa-edit'></i> " . $uname . " </a></td>";
+  } else {
+    echo "<td>" . $uname . "</td>";
+  }
+  echo '<td class="text-center">';
+  if (hasResellerPermission('print_voucher')) {
+    echo '<a title="Print ' . $uname . '" href="' . $popup . '"><i class="fa fa-print"></i></a> &nbsp <a title="Print ' . $uname . '" href="' . $popupQR . '"><i class="fa fa-qrcode"></i> </a>';
+  }
+  echo '</td>';
   echo "<td>" . $uprofile . "</td>";
   echo "<td style=' text-align:left'>" . $umacadd . "</td>";
   echo "<td style=' text-align:right'>" . $uuptime . "</td>";

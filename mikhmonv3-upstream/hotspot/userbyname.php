@@ -307,16 +307,24 @@ include('./voucher/printbt.php');
       echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . $session . "'><i class='fa fa-close'></i> ".$_close."</a>";
     }
     ?>
+    <?php if (hasResellerPermission('edit_user')) { ?>
     <button type="submit" name="save" class="btn bg-primary" > <i class="fa fa-save"></i> <?= $_save ?></button>
+    <?php } ?>
+    <?php if (hasResellerPermission('delete_user')) { ?>
     <div class="btn bg-danger"  onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></div>
+    <?php } ?>
+    <?php if (hasResellerPermission('print_voucher')) { ?>
     <a class="btn bg-secondary"  title="Print" href="javascript:window.open('./voucher/print.php?user=<?= $usermode . "-" . $uname; ?>&qr=no&session=<?= $session; ?>','_blank','width=310,height=450').print();"> <i class="fa fa-print"></i> <?= $_print ?></a>
     <a class="btn bg-info"  title="Print QR" href="javascript:window.open('./voucher/print.php?user=<?= $usermode . "-" . $uname; ?>&qr=yes&session=<?= $session; ?>','_blank','width=310,height=450').print();"> <i class="fa fa-qrcode"></i> <?= $_print_qr ?></a>
-    <?php if ($utimelimit == "1s" || $utimelimit == "00:00:01") {
+    <?php } ?>
+    <?php if (hasResellerPermission('enable_disable_user') && ($utimelimit == "1s" || $utimelimit == "00:00:01")) {
       echo '<a class="btn bg-info"  href="./?reset-hotspot-user=' . $uid . '&session=' . $session . '"> <i class="fa fa-retweet"></i> Reset</a>';
     } ?>
+    <?php if (hasResellerPermission('print_voucher')) { ?>
     <a id="shareWA" class="btn bg-green" title="Share WhatsApp" href="whatsapp://send?text=<?= $shareWA; ?>"> <i class="fa fa-whatsapp"></i> <?= $_share ?></a>
     <!--<div id="shareWA" class="btn bg-blue printBT" title="Print Bluetooth"><i class="fa fa-bluetooth"></i> <?= $_print ?> BT</div>-->
-    <div id="shareWA" class="btn bg-blue" onclick="sendToQuickPrinterChrome()" title="Print Bluetooth"><i class="fa fa-bluetooth"></i> <?= $_print ?> BT</div><br>
+    <div id="shareWA" class="btn bg-blue" onclick="sendToQuickPrinterChrome()" title="Print Bluetooth"><i class="fa fa-bluetooth"></i> <?= $_print ?> BT</div>
+    <?php } ?><br>
   </div>
 <table class="table">
   <tr>

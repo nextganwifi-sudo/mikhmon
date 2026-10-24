@@ -32,12 +32,20 @@ $session = $_GET['session'];
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:./admin.php?id=login");
 } elseif (empty($session)) {
-  echo "<script>window.location='./admin.php?id=sessions'</script>";
+  if (isset($_GET['hotspot']) && $_GET['hotspot'] === 'about') {
+    echo "<script>window.location='./admin.php?id=about'</script>";
+  } else {
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
+  }
 } else {
   include_once('./include/ros_version.php');
   include_once('./include/reseller_acl.php');
   if (!canAccessRouterSession($session)) {
-    echo "<script>alert('Access Denied: Router session is not assigned to this reseller account.');window.location='./admin.php?id=sessions'</script>";
+    if (isset($_GET['hotspot']) && $_GET['hotspot'] === 'about') {
+      echo "<script>window.location='./admin.php?id=about'</script>";
+    } else {
+      echo "<script>window.location='./admin.php?id=sessions'</script>";
+    }
     exit;
   }
   $_SESSION["$session"] = $session;
@@ -152,7 +160,7 @@ if (!isset($_SESSION["mikhmon"])) {
 // resellers management
   elseif ($hotspot == "resellers") {
     if (!isMikhmonAdmin()) {
-      echo "<script>alert('Access Denied: Only Administrator can manage Resellers.');window.location='" . $defRedirect . "'</script>";
+      echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
     include_once('./settings/resellers.php');
@@ -399,7 +407,7 @@ elseif ($removeexpiredhotspotuser != "") {
 
 // template editor
   elseif ($hotspot == "template-editor") {
-    if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('preview_assigned_template')) {
+    if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template')) {
       requireResellerPermission('edit_own_template', $defRedirect);
     }
     include_once('./settings/vouchereditor.php');
@@ -584,19 +592,31 @@ elseif ($ppp == "edit-profile") {
 
 <?php
 if ($hotspot == "dashboard" || substr(end(explode("/", $url)), 0, 8) == "?session") {
-  echo '<script>
-    $("#r_3").load("./dashboard/aload.php?session=' . $session . '&load=logs #r_3");  
+  $canSeeLogs = hasResellerPermission('view_logs');
+  $canSeeHotspotBox = (hasResellerPermission('view_active') || hasResellerPermission('view_users') || hasResellerPermission('add_user') || hasResellerPermission('generate_voucher'));
+  $canSeeReport = hasResellerPermission('view_report');
+  echo '<script>';
+  if ($canSeeLogs) {
+    echo '
+    $("#r_3").load("./dashboard/aload.php?session=' . $session . '&load=logs #r_3");';
+  }
+  echo '
     var interval1 = "' . ($areload * 1000) . '";
     var dashboard = setInterval(function() {
       
-    $("#r_1").load("./dashboard/aload.php?session=' . $session . '&load=sysresource #r_1"); 
-    $("#r_2").load("./dashboard/aload.php?session=' . $session . '&load=hotspot #r_2"); 
-    $("#r_3").load("./dashboard/aload.php?session=' . $session . '&load=logs #r_3"); 
-    
+    $("#r_1").load("./dashboard/aload.php?session=' . $session . '&load=sysresource #r_1"); ';
+  if ($canSeeHotspotBox) {
+    echo '
+    $("#r_2").load("./dashboard/aload.php?session=' . $session . '&load=hotspot #r_2"); ';
+  }
+  if ($canSeeLogs) {
+    echo '
+    $("#r_3").load("./dashboard/aload.php?session=' . $session . '&load=logs #r_3"); ';
+  }
+  echo '
   }, interval1);
-
 ';
-if ($livereport == "enable" || $livereport == "") {
+if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
   if($_SESSION[$session.'sdate'] != $_SESSION[$session.'idhr']){
     $_SESSION[$session.'totalHr'] = "0";
     echo '$("#r_4").load("./report/livereport.php?session=' . $session . ' #r_4");';
@@ -614,7 +634,7 @@ if ($livereport == "enable" || $livereport == "") {
   function cancelPage(){
     window.stop();
     clearInterval(dashboard);';
-    if ($livereport == "enable" || $livereport == "") {
+    if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
     echo '
     clearInterval(livereport);';
     }

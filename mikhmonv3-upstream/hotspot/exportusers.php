@@ -60,7 +60,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-    <h3><i class="fa fa-users"></i> Export Hotspot Users | <strong class="pointer" onclick="exportTableToCSV('export-user-hotspot-mikhmon-<?= date("Y-m-d"); ?>.<?php if ($_GET['export'] == "csv") {
+    <h3><i class="fa fa-users"></i> Export Hotspot Users | <strong class="pointer" onclick="exportTableToCSV('export-user-hotspot-nextgan-<?= date("Y-m-d"); ?>.<?php if ($_GET['export'] == "csv") {
                                                                                                                                                                   echo "csv";
                                                                                                                                                                 } else {
                                                                                                                                                                   echo "txt";

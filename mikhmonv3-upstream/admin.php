@@ -98,7 +98,8 @@ if ($id == "login" || substr($url, -1) == "p") {
 } elseif (!isset($_SESSION["mikhmon"])) {
   echo "<script>window.location='./admin.php?id=login'</script>";
 } elseif (!empty($session) && $session !== "new" && !canAccessRouterSession($session)) {
-  echo "<script>alert('Access Denied: Router session is not assigned to this reseller account.');window.location='./admin.php?id=sessions'</script>";
+  echo "<script>window.location='./admin.php?id=sessions'</script>";
+  exit;
 } elseif (substr($url, -1) == "/" || substr($url, -4) == ".php") {
   echo "<script>window.location='./admin.php?id=sessions'</script>";
 
@@ -116,7 +117,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     </script>';*/
 } elseif ($id == "resellers") {
   if (!isMikhmonAdmin()) {
-    echo "<script>alert('Access Denied: Only Administrator can manage Resellers.');window.location='./admin.php?id=sessions'</script>";
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
   }
   include_once('./include/menu.php');
@@ -140,14 +141,15 @@ if ($id == "login" || substr($url, -1) == "p") {
   $API->debug = false;
   if ($API->connect($iphost, $userhost, decrypt($passwdhost))){
     $_SESSION["connect"] = "<b class='text-green'>Connected</b>";
-    echo "<script>window.location='./?session=" . $session . "'</script>";
+    $targetAfterConnect = getResellerDefaultFallbackUrl($session);
+    echo "<script>window.location='" . $targetAfterConnect . "'</script>";
   } else {
     $_SESSION["connect"] = "<b class='text-red'>Not Connected</b>";
     $nl = '\n';
     if ($currency == in_array($currency, $cekindo['indo'])) {
-      echo "<script>alert('Mikhmon not connected!".$nl."Silakan periksa kembali IP, User, Password dan port API harus enable.".$nl."Jika menggunakan koneksi VPN, pastikan VPN tersebut terkoneksi.')</script>";
+      echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Silakan periksa kembali IP, User, Password dan port API harus enable.".$nl."Jika menggunakan koneksi VPN, pastikan VPN tersebut terkoneksi.')</script>";
     }else{
-      echo "<script>alert('Mikhmon not connected!".$nl."Please check the IP, User, Password and port API must be enabled.')</script>";
+      echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Please check the IP, User, Password and port API must be enabled.')</script>";
     }
     if($c == "settings"){
       echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";
@@ -198,7 +200,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   }
   echo "<script>window.location='./admin.php?id=uplogo&session=" . $session . "'</script>";
 } elseif ($id == "editor"  && !empty($session)) {
-  if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('preview_assigned_template')) {
+  if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template')) {
     requireResellerPermission('edit_own_template', './admin.php?id=sessions');
   }
   include_once('./include/menu.php');

@@ -1,19 +1,7 @@
 <?php
 /*
- *  Copyright (C) 2018 Laksamadi Guko.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  NextGan WiFi Solution
+ *  Hotspot & Reseller Management System for MikroTik RouterOS (v6 & v7)
  */
 session_start();
 // hide all error
@@ -23,72 +11,68 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 }
 ?>
-<style>
-.iFWrapper {
-	position: relative;
-	padding-bottom: 56.25%; /* 16:9 */
-	padding-top: 25px;
-	height: 0;
-}
-.iFWrapper iframe {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-  height: 100%;
-  border :none;
-}
-</style>
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3><i class="fa fa-info-circle"></i> About</h3>
+        <h3><i class="fa fa-info-circle"></i> About NextGan WiFi Solution</h3>
       </div>
       <div class="card-body">
-        <h3>NextGan WiFi Solution <span style="font-size:14px; font-weight:normal;">(Based on MIKHMON V<?= $_SESSION['v']; ?>)</span></h3>
-<p>
-  Aplikasi ini dipersembahkan untuk pengusaha hotspot di manapun Anda berada.
-  Semoga makin sukses.
-</p>
-<p>
-  <ul>
-    <li>
-      Author : Laksamadi Guko
-    </li>
-    <li>
-      Licence : <a href="https://github.com/laksa19/mikhmonv2/blob/master/LICENSE">GPLv2</a>
-    </li>
-    <li>
-      API Class : <a href="https://github.com/BenMenking/routeros-api">routeros-api</a>
-    </li>
-    <li>
-      Website : <a href="https://laksa19.github.io">laksa19.github.io</a>
-    </li>
-    <li>
-      Facebook : <a href="https://fb.com/laksamadi">fb.com/laksamadi</a>
-    </li>
-  </ul>
-</p>
-<p>
-  Terima kasih untuk semua yang telah mendukung pengembangan MIKHMON.
-</p>
-<div>
-    <i>Copyright &copy; <i> 2018 Laksamadi Guko</i></i>
-</div>
-</div>
-</div>
-</div>
-<div class="col-12">
-<div class="card">
-  <div class="card-header">
-  <h3><i class="fa fa-info-circle"></i> Changelog</h3>
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+          <img src="./img/favicon.png?v=nextgan" alt="NextGan WiFi Solution" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:2px solid #20a8d8;" />
+          <div>
+            <h3 style="margin:0 0 5px 0; font-weight:bold;">NextGan WiFi Solution</h3>
+            <span style="font-size:13px; opacity:0.85;">Advanced MikroTik Hotspot, Voucher &amp; Multi-Reseller Management System (V<?= htmlspecialchars(isset($_SESSION['v']) ? $_SESSION['v'] : '3.20'); ?>)</span>
+          </div>
+        </div>
+        <p>
+          <b>NextGan WiFi Solution</b> হলো আধুনিক ও পূর্ণাঙ্গ MikroTik Hotspot এবং WiFi Voucher ম্যানেজমেন্ট সফটওয়্যার। এটি ছোট-বড় সকল ওয়াইফাই হটস্পট ব্যবসায়ী এবং আইএসপি (ISP) উদ্যোক্তাদের জন্য বিশেষভাবে তৈরি করা হয়েছে।
+        </p>
+        <p>
+          <ul>
+            <li><b>Software Name :</b> NextGan WiFi Solution</li>
+            <li><b>Edition :</b> Enterprise Hotspot &amp; Reseller Edition (V<?= htmlspecialchars(isset($_SESSION['v']) ? $_SESSION['v'] : '3.20'); ?>)</li>
+            <li><b>RouterOS Compatibility :</b> MikroTik RouterOS v6.x &amp; v7.x Dual-Stack Support</li>
+            <li><b>Core Engine :</b> RouterOS API with Universal Expiration &amp; Sales Reporting</li>
+            <li><b>Platform :</b> Standalone Windows Server &amp; Web Hosting Ready</li>
+          </ul>
+        </p>
+        <p>
+          <b>NextGan WiFi Solution</b> ব্যবহার করার জন্য আপনাকে অসংখ্য ধন্যবাদ। আপনার হটস্পট ব্যবসার উত্তরোত্তর সাফল্য কামনা করি।
+        </p>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(150,150,150,0.2);">
+          <i>Copyright &copy; <?= date('Y'); ?> <b>NextGan WiFi Solution</b>. All Rights Reserved.</i>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="card-body">
-  <div class="iFWrapper">
-    <iframe src="https://laksa19.github.io/mikhmonv3" ></iframe>
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fa fa-star"></i> NextGan WiFi Solution — Key Features &amp; Capabilities</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-6">
+            <h4 style="margin-top:0;"><i class="fa fa-check-circle text-green"></i> Hotspot &amp; RouterOS Management</h4>
+            <ul>
+              <li><b>RouterOS v6 &amp; v7 Universal Support:</b> স্বয়ংক্রিয়ভাবে RouterOS v6 এবং v7 ডিটেক্ট করে ইউজার এক্সপায়ারেশন ও সেলস রিপোর্ট স্ক্রিপ্ট পরিচালনা করে।</li>
+              <li><b>Fast Voucher Generation &amp; Print:</b> এক ক্লিকে শত শত হটস্পট ভাউচার তৈরি, QR Code সহ প্রিন্ট, কাস্টম ও থার্মাল (Small) প্রিন্টিং সুবিধা।</li>
+              <li><b>Real-Time Traffic &amp; Active Monitor:</b> লাইভ ইন্টারফেস ট্রাফিক গ্রাফ, অ্যাক্টিভ ইউজার মনিটরিং, হোস্ট এবং আইপি বাইন্ডিং কন্ট্রোল।</li>
+              <li><b>Automated Selling Report:</b> দৈনিক ও মাসিক ভাউচার বিক্রির পূর্ণাঙ্গ হিসাব এবং CSV রিপোর্ট এক্সপোর্ট।</li>
+            </ul>
+          </div>
+          <div class="col-6">
+            <h4 style="margin-top:0;"><i class="fa fa-shield text-blue"></i> Advanced Multi-Reseller &amp; Security</h4>
+            <ul>
+              <li><b>Granular Reseller Permission System:</b> প্রতিটি রিসেলারের জন্য আলাদা পারমিশন গ্রুপ অথবা কাস্টম পারমিশন নির্ধারণ করার সুবিধা।</li>
+              <li><b>Smart UI Auto-Hiding:</b> রিসেলারের যে অপশনগুলোর পারমিশন দেওয়া নেই, সাইডবার মেনু, ড্যাশবোর্ড কার্ড এবং ভেতরের অ্যাকশন বাটন থেকে সেগুলো স্বয়ংক্রিয়ভাবে হাইড থাকে।</li>
+              <li><b>Reseller Custom Voucher &amp; Logo:</b> প্রতিটি রিসেলারের জন্য নিজস্ব ভাউচার টেমপ্লেট ও কাস্টম লোগো অ্যাসাইন করার সুবিধা।</li>
+              <li><b>1-Click Standalone Server Package:</b> সরাসরি অ্যাডমিন প্যানেল থেকে রেডিমেড পোর্টেবল Windows Server জিপ ডাউনলোড ও রান করার সুবিধা।</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  </div>
-</div>
-</div>
 </div>

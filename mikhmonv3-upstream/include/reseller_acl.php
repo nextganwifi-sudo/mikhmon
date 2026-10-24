@@ -14,6 +14,24 @@ if (isset($_SERVER["REQUEST_URI"]) && substr($_SERVER["REQUEST_URI"], -16) == "r
     exit;
 }
 
+if (!defined('JSON_PRETTY_PRINT')) {
+    define('JSON_PRETTY_PRINT', 128);
+}
+if (!defined('PASSWORD_DEFAULT')) {
+    define('PASSWORD_DEFAULT', 1);
+}
+if (!function_exists('password_hash')) {
+    function password_hash($password, $algo) {
+        $salt = substr(str_replace('+', '.', base64_encode(md5(uniqid(mt_rand(), true), true))), 0, 22);
+        return crypt((string)$password, '$2y$10$' . $salt);
+    }
+}
+if (!function_exists('password_verify')) {
+    function password_verify($password, $hash) {
+        return crypt((string)$password, (string)$hash) === (string)$hash;
+    }
+}
+
 /**
  * Organized 9-category permission registry across all Mikhmon modules, templates, and admin operations.
  */
@@ -737,6 +755,9 @@ function hasResellerPermission($permKey) {
     if (!syncActiveResellerSession()) {
         return false;
     }
+    if ($permKey === 'about' || $permKey === 'view_about') {
+        return true;
+    }
     if (isMikhmonAdmin()) {
         return true;
     }
@@ -921,14 +942,83 @@ function removeResellerCustomLogo($resellerId) {
 }
 
 /**
- * Enforce permission server-side and render native Access Denied card if unauthorized
+ * Determine the first permitted landing URL for a reseller on a given router session (or sessions list).
+ */
+function getResellerDefaultFallbackUrl($session = '') {
+    $safeSession = trim((string)$session);
+    if ($safeSession !== '' && canAccessRouterSession($safeSession)) {
+        if (hasResellerPermission('view_dashboard')) {
+            return './?session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_users')) {
+            return './?hotspot=users&profile=all&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('generate_voucher')) {
+            return './?hotspot-user=generate&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('add_user')) {
+            return './?hotspot-user=add&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('print_voucher')) {
+            return './?hotspot=quick-print&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_profiles')) {
+            return './?hotspot=user-profiles&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_active')) {
+            return './?hotspot=active&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_hosts')) {
+            return './?hotspot=hosts&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_ipbinding')) {
+            return './?hotspot=ipbinding&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_cookies')) {
+            return './?hotspot=cookies&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_report')) {
+            return './?report=selling&idbl=' . strtolower(date("M")) . date("Y") . '&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_logs')) {
+            return './?hotspot=log&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_traffic')) {
+            return './?interface=traffic-monitor&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_dhcp')) {
+            return './?hotspot=dhcp-leases&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('view_scheduler')) {
+            return './?system=scheduler&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('edit_own_template')) {
+            return './?hotspot=template-editor&template=default&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('save_own_template')) {
+            return './?hotspot=uplogo&session=' . urlencode($safeSession);
+        }
+        return './?hotspot=about&session=' . urlencode($safeSession);
+    }
+    return './admin.php?id=sessions';
+}
+
+/**
+ * Enforce permission server-side and silently redirect to an authorized page if unauthorized
  */
 function requireResellerPermission($permKey, $redirectUrl = './admin.php?id=sessions') {
     if (!hasResellerPermission($permKey)) {
-        $flatLabels = getFlatMikhmonPermissionLabels();
-        $label = isset($flatLabels[$permKey]) ? $flatLabels[$permKey] : $permKey;
-        $thm = isset($_SESSION['theme']) && $_SESSION['theme'] !== '' ? $_SESSION['theme'] : 'dark';
-        echo '<div class="row"><div class="col-6"><div class="card"><div class="card-header"><h3><i class="fa fa-ban text-danger"></i> Access Denied</h3></div><div class="card-body"><p>Your reseller account (<b>' . htmlspecialchars(isset($_SESSION['mikhmon']) ? $_SESSION['mikhmon'] : '', ENT_QUOTES) . '</b>) does not have permission for this operation: <b>' . htmlspecialchars($label, ENT_QUOTES) . '</b> (<code>' . htmlspecialchars($permKey, ENT_QUOTES) . '</code>).</p><a class="btn bg-primary" href="' . htmlspecialchars($redirectUrl, ENT_QUOTES) . '"><i class="fa fa-arrow-left"></i> Back</a></div></div></div></div></div></div><script src="./js/mikhmon-ui.' . htmlspecialchars($thm, ENT_QUOTES) . '.min.js"></script><script src="./js/mikhmon.js"></script></body></html>';
+        $sess = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
+        if ($sess !== '' && canAccessRouterSession($sess)) {
+            $fallback = getResellerDefaultFallbackUrl($sess);
+            if (($redirectUrl === './?session=' . $sess || $redirectUrl === './admin.php?id=sessions') && !hasResellerPermission('view_dashboard')) {
+                $redirectUrl = $fallback;
+            }
+        }
+        if (!headers_sent()) {
+            header('Location: ' . $redirectUrl);
+        }
+        echo "<script>window.location='" . htmlspecialchars($redirectUrl, ENT_QUOTES) . "'</script>";
         exit;
     }
 }

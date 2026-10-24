@@ -104,7 +104,11 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	$uriprocess = "'./?remove-host=" . $id . "&session=" . $session . "'";
 
 	echo "<tr>";
-	echo "<td style='text-align:center;'><span class='pointer'  title='Remove " . $maca . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-minus-square text-danger'></i></span></td>";
+	echo "<td style='text-align:center;'>";
+	if (hasResellerPermission('manage_hosts')) {
+		echo "<span class='pointer'  title='Remove " . $maca . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-minus-square text-danger'></i></span>";
+	}
+	echo "</td>";
 	echo "<td style='text-align:center;'>";
 	if ($hosts['authorized'] == "true" && $hosts['DHCP'] == "true") {
 		echo "<b class='text-success' title='A - authorized, H - DHCP'>A H</b>";

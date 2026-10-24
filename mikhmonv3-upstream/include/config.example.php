@@ -12,6 +12,7 @@
  *    the administrator username/password and configure your MikroTik RouterOS 6.x / 7.x sessions.
  */
 if(substr($_SERVER["REQUEST_URI"], -10) == "config.php"){header("Location:./");}; 
+if(!isset($data) || !is_array($data)){$data = array();}
 $data['mikhmon'] = array ('1'=>'mikhmon<|<mikhmon','mikhmon>|>aWNlbA==');
 // Example RouterOS Session (replace with your MikroTik Router IP, API user, and encrypted password via Admin UI):
-// $data['Router1'] = array ('1'=>'Router1!192.168.88.1','Router1@|@admin','Router1#|#aWNlbA==','Router1%NextGan-Hotspot','Router1^hotspot.example.net','Router1&Rp','Router1*10','Router1(1','Router1)','Router1=10','Router1@!@enable');
+// $data['Router1'] = array ('1'=>'Router1!192.168.88.1','Router1@|@admin','Router1#|#aWNlbA==','Router1%NextGan-Hotspot','Router1^hotspot.example.net','Router1&Rp','Router1*10','Router1(1','Router1)','Router1=10','MikroTik-ROS7@!@enable');

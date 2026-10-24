@@ -27,7 +27,7 @@ session_start();
     </div>
     <div class="card-body">
       <div class="text-center pd-5">
-        <img src="img/favicon.png" alt="NextGan WiFi Solution Logo">
+        <img src="img/favicon.png?v=nextgan" alt="NextGan WiFi Solution Logo" style="width:96px; height:96px; border-radius:50%; object-fit:cover;">
       </div>
       <div class="text-center">
       <span style="font-size: 23px; margin: 10px; font-weight: bold;">NextGan WiFi Solution</span>

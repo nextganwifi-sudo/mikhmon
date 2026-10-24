@@ -217,12 +217,12 @@ if($idleto != "disable"){
   <div class="menu text-center align-middle card-header" style="border-radius:0;"><h3 id="MikhmonSession"><?= $session; ?></h3></div>
   <a class="connect menu <?= $shome; ?>" id="<?= $session; ?>&c=settings"><i class='fa fa-tachometer'></i> <?= $_dashboard ?></a>
   <?php if (hasResellerPermission('manage_router_settings')) { ?>
-  <a  href="./admin.php?id=settings&session=<?= $session; ?>" class="menu <?= $ssettings; ?>" title="Mikhmon Settings"><i class='fa fa-gear'></i> <?= $_session_settings ?></a>
+  <a  href="./admin.php?id=settings&session=<?= $session; ?>" class="menu <?= $ssettings; ?>" title="NextGan WiFi Solution Settings"><i class='fa fa-gear'></i> <?= $_session_settings ?></a>
   <?php } ?>
   <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template')) { ?>
   <a href="./admin.php?id=uplogo&session=<?= $session; ?>" class="menu <?= $suplogo; ?>"><i class="fa fa-upload "></i> <?= $_upload_logo ?></a>
   <?php } ?>
-  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template') || hasResellerPermission('preview_assigned_template')) { ?>
+  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template')) { ?>
   <a href="./admin.php?id=editor&template=default&session=<?= $session; ?>" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= $_template_editor ?></a>
   <?php } ?>
   <div class="menu spa"></div>
@@ -305,6 +305,7 @@ include('./info.php');
   <a href="./?session=<?= $session; ?>" class="menu <?= $shome; ?>"><i class="fa fa-dashboard"></i> <?= $_dashboard ?></a>
   <?php } ?>
   <!--hotspot-->
+  <?php if (hasResellerPermission('view_users') || hasResellerPermission('add_user') || hasResellerPermission('generate_voucher') || hasResellerPermission('view_profiles') || hasResellerPermission('add_profile') || hasResellerPermission('view_active') || hasResellerPermission('view_hosts') || hasResellerPermission('view_ipbinding') || hasResellerPermission('view_cookies')) { ?>
   <div class="dropdown-btn <?= $susers . $suserprof . $sactive . $shosts . $sipbind . $scookies; ?>"><i class="fa fa-wifi"></i> Hotspot
     <i class="fa fa-caret-down"></i>
   </div>
@@ -357,6 +358,7 @@ include('./info.php');
    <a href="./?hotspot=cookies&session=<?= $session; ?>" class="menu <?= $scookies; ?>"><i class=" fa fa-hourglass"></i> <?= $_hotspot_cookies ?></a>
   <?php } ?>
   </div>
+  <?php } ?>
   <!--quick print-->
   <?php if (hasResellerPermission('print_voucher')) { ?>
   <a href="./?hotspot=quick-print&session=<?= $session; ?>" class="menu <?= $squick; ?>"> <i class="fa fa-print"></i> <?= $_quick_print ?> </a>
@@ -415,8 +417,10 @@ include('./info.php');
   <a href="./admin.php?id=settings&session=<?= $session; ?>" class="menu "> <i class="fa fa-gear "></i> <?= $_session_settings ?> </a>
   <?php } ?>
   <a href="./admin.php?id=sessions" class="menu "> <i class="fa fa-gear "></i> <?= $_admin_settings ?> </a>
-  <?php if (hasResellerPermission('manage_router_settings')) { ?>
+  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template')) { ?>
   <a href="./?hotspot=uplogo&session=<?= $session; ?>" class="menu <?= $uplogo; ?>"> <i class="fa fa-upload "></i> <?= $_upload_logo ?> </a>
+  <?php } ?>
+  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template')) { ?>
   <a href="./?hotspot=template-editor&template=default&session=<?= $session; ?>" class="menu <?= $teditor; ?>"> <i class="fa fa-edit "></i> <?= $_template_editor ?> </a>          
   <?php } ?>
   </div>

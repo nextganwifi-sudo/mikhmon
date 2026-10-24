@@ -108,7 +108,7 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
 		<title>Voucher-<?= $hotspotname . "-" . $getuprofile . "-" . $id; ?></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<meta http-equiv="pragma" content="no-cache" />
-    <link rel="icon" href="../img/favicon.png" />
+    <link rel="icon" type="image/png" href="../img/favicon.png?v=nextgan" />
     <script src="../js/qrious.min.js"></script>
 		<style>
 body {

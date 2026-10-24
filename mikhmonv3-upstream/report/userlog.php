@@ -101,7 +101,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	<div>
 		<div style="padding-bottom: 5px; padding-top: 5px; display: table-row;">	   
 		  <input id="filterTable" type="text" class="form-control" style="float:left; margin-top: 6px; max-width: 150px;" placeholder="Search..">&nbsp;
-		  <button class="btn bg-primary " onclick="exportTableToCSV('user-log-mikhmon-<?= $filedownload; ?>.csv')" title="Download user log"><i class="fa fa-download"></i> CSV</button>
+		  <button class="btn bg-primary " onclick="exportTableToCSV('user-log-nextgan-<?= $filedownload; ?>.csv')" title="Download user log"><i class="fa fa-download"></i> CSV</button>
 		  <button class="btn bg-primary " onclick="location.href='./?report=userlog&session=<?= $session; ?>';" title="Reload all data"><i class="fa fa-search"></i> <?= $_all ?></button>
 		</div>
 		<div class="input-group mr-b-10">  

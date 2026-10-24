@@ -109,7 +109,8 @@ if (!isset($_SESSION["mikhmon"])) {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>.:: MIKHMON <?= $hotspotname; ?> ::.</title>
+		<title>.:: NextGan WiFi Solution <?= $hotspotname; ?> ::.</title>
+		<link rel="icon" type="image/png" href="../img/favicon.png?v=nextgan" />
 		<meta charset="utf-8">
 		<meta http-equiv="cache-control" content="private" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">

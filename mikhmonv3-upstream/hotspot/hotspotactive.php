@@ -29,6 +29,8 @@ if (!isset($_SESSION["mikhmon"])) {
 // load config
 	include('../include/config.php');
 	include('../include/readcfg.php');
+	include_once('../include/reseller_acl.php');
+	include_once('./include/reseller_acl.php');
 	
 // lang
   include('../include/lang.php');
@@ -114,9 +116,17 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	$comment = $hotspotactive['comment'];
 	$uriprocess = "'./?remove-user-active=" . $id . "&session=" . $session . "'";
 	echo "<tr>";
-	echo "<td style='text-align:center;'><span class='pointer'  title='Remove " . $user . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-minus-square text-danger'></i></span></td>";
+	echo "<td style='text-align:center;'>";
+	if (hasResellerPermission('disconnect_active')) {
+		echo "<span class='pointer'  title='Remove " . $user . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-minus-square text-danger'></i></span>";
+	}
+	echo "</td>";
 	echo "<td><a  title='filter " . $server . "' href='./?hotspot=active&server=" . $server . "&session=" . $session . "'><i class='fa fa-server'></i> " . $server . "</a></td>";
-	echo "<td><a title='Open User " . $user . "' href=./?hotspot-user=" . $user . "&session=" . $session . "><i class='fa fa-edit'></i> " . $user . "</a></td>";
+	if (hasResellerPermission('edit_user')) {
+		echo "<td><a title='Open User " . $user . "' href=./?hotspot-user=" . $user . "&session=" . $session . "><i class='fa fa-edit'></i> " . $user . "</a></td>";
+	} else {
+		echo "<td>" . $user . "</td>";
+	}
 	echo "<td>" . $address . "</td>";
 	echo "<td>" . $mac . "</td>";
 	echo "<td style='text-align:right;'>" . $uptime . "</td>";

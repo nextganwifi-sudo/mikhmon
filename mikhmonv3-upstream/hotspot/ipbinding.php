@@ -78,16 +78,19 @@ for ($i = 0; $i < $TotalReg; $i++) {
 
 	echo "<tr>";
 	?>
-  	<td style='text-align:center;'><i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete (<?= $maca; ?>)?')){loadpage('./?remove-ip-binding=<?= $id . '&mac=' . $maca . '&addr=' . $addr; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $maca; ?>'></i>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+  	<td style='text-align:center;'>
+  	<?php if (hasResellerPermission('manage_ipbinding')) { ?>
+  	<i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete (<?= $maca; ?>)?')){loadpage('./?remove-ip-binding=<?= $id . '&mac=' . $maca . '&addr=' . $addr; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $maca; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   	<?php
-
 		if ($bdisabled == "true") {
 			$uriprocess = "'./?enable-ip-binding=" . $id . "&session=" . $session . "'";
-			echo "<span class='text-warning btnsmall pointer' title='Enable Binding " . $addr . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-lock'></span></td>";
+			echo "<span class='text-warning btnsmall pointer' title='Enable Binding " . $addr . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-lock'></i></span>";
 		} else {
 			$uriprocess = "'./?disable-ip-binding=" . $id . "&session=" . $session . "'";
-			echo "<span title='Disable Binding " . $addr . "' class='btnsmall pointer' onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></span></td>";
+			echo "<span title='Disable Binding " . $addr . "' class='btnsmall pointer' onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></i></span>";
 		}
+	}
+	echo "</td>";
 		echo "<td style='text-align:center;'>";
 		if ($binding['bypassed'] == "true") {
 			echo "<b style='color:#0091EA;'>P</b>";

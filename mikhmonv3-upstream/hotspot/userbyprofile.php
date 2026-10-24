@@ -52,7 +52,9 @@ if (!isset($_SESSION["mikhmon"])) {
                 ?></h3>
 
               <a title="Open User by profile all" href="./?hotspot=users&profile=all&session=<?= $session; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></a>&nbsp;
+              <?php if (hasResellerPermission('generate_voucher')) { ?>
               <a title="Generate User by profile <?= $pname; ?>" href="./?hotspot-user=generate&session=<?= $session; ?>"><i class="fa fa-users"></i> <?= $_generate ?></a>&nbsp;
+              <?php } ?>
               </div>
             </div>
             
@@ -84,7 +86,9 @@ for ($i = 0; $i < $TotalReg; $i++) {
                 ?></h3>
 
               <a title="Open User by profile <?= $pname; ?>" href="./?hotspot=users&profile=<?= $pname; ?>&session=<?= $session; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></a>&nbsp;
+              <?php if (hasResellerPermission('generate_voucher')) { ?>
               <a title="Generate User by profile <?= $pname; ?>" href="./?hotspot-user=generate&genprof=<?= $pname; ?>&session=<?= $session; ?>"><i class="fa fa-users"></i> <?= $_generate ?></a>&nbsp;
+              <?php } ?>
               </div>
             </div>
             

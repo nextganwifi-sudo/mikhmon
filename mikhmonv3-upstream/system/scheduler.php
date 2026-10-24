@@ -81,16 +81,19 @@ for ($i = 0; $i < $TotalReg; $i++) {
 
 	echo "<tr>";
 	?>
-  	<td style='text-align:center;'><i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete scheduler (<?= $name; ?>)?')){loadpage('./?remove-scheduler=<?= $id; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $name; ?>'></i>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+  	<td style='text-align:center;'>
+  	<?php if (hasResellerPermission('manage_scheduler')) { ?>
+  	<i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete scheduler (<?= $name; ?>)?')){loadpage('./?remove-scheduler=<?= $id; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $name; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   	<?php
-
 		if ($disabled == "true") {
 			$uriprocess = "'./?enable-scheduler=" . $id . "&session=" . $session . "'";
-			echo "<span class='text-warning pointer' title='Enable Scheduler " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-lock '></i></span></td>";
+			echo "<span class='text-warning pointer' title='Enable Scheduler " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-lock '></i></span>";
 		} else {
 			$uriprocess = "'./?disable-scheduler=" . $id . "&session=" . $session . "'";
-			echo "<span  class='pointer' title='Disable Scheduler " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></i></span></td>";
+			echo "<span  class='pointer' title='Disable Scheduler " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></i></span>";
 		}
+	}
+	echo "</td>";
 		echo "<td>" . $name . "</td>";
 		echo "<td>" . $startd . "</td>";
 		echo "<td>" . $startt . "</td>";

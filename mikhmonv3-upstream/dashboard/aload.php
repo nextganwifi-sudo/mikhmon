@@ -140,9 +140,11 @@ include('../lang/'.$langid.'.php');
   ?>
     
             <div id="r_2" class="card">
+              <?php if (hasResellerPermission('view_active') || hasResellerPermission('view_users') || hasResellerPermission('add_user') || hasResellerPermission('generate_voucher')) { ?>
               <div class="card-header"><h3><i class="fa fa-wifi"></i> Hotspot</h3></div>
                 <div class="card-body">
                   <div class="row">
+                    <?php if (hasResellerPermission('view_active')) { ?>
                     <div class="col-3 col-box-6">
                       <div class="box bg-blue bmh-75">
                         <a href="./?hotspot=active&session=<?= $session; ?>">
@@ -155,6 +157,8 @@ include('../lang/'.$langid.'.php');
                         </a>
                       </div>
                     </div>
+                    <?php } ?>
+                    <?php if (hasResellerPermission('view_users')) { ?>
                     <div class="col-3 col-box-6">
                     <div class="box bg-green bmh-75">
                       <a href="./?hotspot=users&profile=all&session=<?= $session; ?>">
@@ -167,6 +171,8 @@ include('../lang/'.$langid.'.php');
                       </a>
                     </div>
                   </div>
+                  <?php } ?>
+                  <?php if (hasResellerPermission('add_user')) { ?>
                   <div class="col-3 col-box-6">
                     <div class="box bg-yellow bmh-75">
                       <a href="./?hotspot-user=add&session=<?= $session; ?>">
@@ -181,6 +187,8 @@ include('../lang/'.$langid.'.php');
                       </a>
                     </div>
                   </div>
+                  <?php } ?>
+                  <?php if (hasResellerPermission('generate_voucher')) { ?>
                   <div class="col-3 col-box-6">
                     <div class="box bg-red bmh-75">
                       <a href="./?hotspot-user=generate&session=<?= $session; ?>">
@@ -195,13 +203,18 @@ include('../lang/'.$langid.'.php');
                     </a>
                   </div>
                 </div>
+                <?php } ?>
               </div>
             </div>
+          <?php } ?>
           </div>
           </div>
 
 <?php 
 } else if ($load == "logs") {
+  if (!hasResellerPermission('view_logs')) {
+    exit;
+  }
 
   $API->connect($iphost, $userhost, decrypt($passwdhost));
 

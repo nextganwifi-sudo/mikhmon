@@ -29,7 +29,6 @@ $mtheme = array(
     "blue",
     "green",
     "pink",
-    
 );
 $theme_color = array(
     "#3a4149",
@@ -52,17 +51,18 @@ if (empty($gettheme)) {
         $gen = '<?php $theme="' . $gettheme . '"; $themecolor="'.$getthemecolor.'";?>';
         $stheme = './include/theme.php';
         $handle = fopen($stheme, 'w') or die('Cannot open file:  ' . $stheme);
-        $data = $gen;
-        fwrite($handle, $data);
+        fwrite($handle, $gen);
+        fclose($handle);
         $_SESSION['theme'] = $gettheme;
         $_SESSION['themecolor'] = $getthemecolor;
         echo '<center><div style="padding-top:10%;"><i class="fa fa-circle-o-notch fa-spin" style="font-size:40px"></i></div><h3>Load '.$gettheme.' theme...</h3></center>';
         echo "<script>window.location='" . $url2 . "'</script>";
-        
+        exit;
     } else {
         include_once('./include/headhtml.php');
         echo '<center><div style="padding-top:10%;"><i class="fa fa-circle-o-notch fa-spin" style="font-size:40px"></i></div><h3>'.$gettheme.' theme not found...</h3></center>';
         echo "<script>window.location='" . $url2 . "'</script>";
+        exit;
     }
 }
 
