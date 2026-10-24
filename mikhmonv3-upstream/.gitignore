@@ -1,0 +1,22 @@
+# NextGan WiFi Solution (Mikhmon v3.20) .gitignore
+# Ignore sensitive local environment and runtime files
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.bak
+
+# Runtime Reseller Uploads (keep directory structure and .htaccess/.gitkeep tracked)
+uploads/reseller-logos/*
+!uploads/reseller-logos/.gitkeep
+!uploads/reseller-logos/.htaccess
+uploads/reseller-templates/*/*.bak.php
+!uploads/reseller-templates/.gitkeep
+!uploads/reseller-templates/.htaccess
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

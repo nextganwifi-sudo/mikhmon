@@ -1,0 +1,972 @@
+import net from 'net';
+import http from 'http';
+import { spawn, ChildProcess } from 'child_process';
+import path from 'path';
+
+// ============================================================================
+// 1. MIKROTIK ROUTEROS BINARY API PROTOCOL ENCODER / DECODER (TCP PORT 8728)
+//    Used by Mikhmon's unmodified lib/routeros_api.class.php
+// ============================================================================
+
+function encodeLength(len: number): Buffer {
+  if (len < 0x80) {
+    return Buffer.from([len]);
+  } else if (len < 0x4000) {
+    len |= 0x8000;
+    return Buffer.from([(len >> 8) & 0xff, len & 0xff]);
+  } else if (len < 0x200000) {
+    len |= 0xc00000;
+    return Buffer.from([(len >> 16) & 0xff, (len >> 8) & 0xff, len & 0xff]);
+  } else if (len < 0x10000000) {
+    len |= 0xe0000000;
+    return Buffer.from([
+      (len >> 24) & 0xff,
+      (len >> 16) & 0xff,
+      (len >> 8) & 0xff,
+      len & 0xff,
+    ]);
+  } else {
+    return Buffer.from([
+      0xf0,
+      (len >> 24) & 0xff,
+      (len >> 16) & 0xff,
+      (len >> 8) & 0xff,
+      len & 0xff,
+    ]);
+  }
+}
+
+function encodeWord(word: string): Buffer {
+  const strBuf = Buffer.from(word, 'utf8');
+  return Buffer.concat([encodeLength(strBuf.length), strBuf]);
+}
+
+function sendSentence(socket: net.Socket, words: string[]) {
+  const buffers = words.map((w) => encodeWord(w));
+  buffers.push(Buffer.from([0x00])); // empty word terminates sentence
+  socket.write(Buffer.concat(buffers));
+}
+
+function sendRowsAndDone(socket: net.Socket, rows: Record<string, string>[]) {
+  for (const row of rows) {
+    const words = ['!re'];
+    for (const [k, v] of Object.entries(row)) {
+      if (v !== undefined && v !== null) {
+        words.push(`=${k}=${v}`);
+      }
+    }
+    sendSentence(socket, words);
+  }
+  sendSentence(socket, ['!done']);
+}
+
+// ============================================================================
+// 2. ROUTEROS 6.x & 7.x STATEFUL VIRTUAL ROUTERS FOR MIKHMON PHP ENGINE
+// ============================================================================
+
+interface RouterState {
+  id: string;
+  identity: string;
+  version: string;
+  major: 6 | 7;
+  boardName: string;
+  model: string;
+  cpuLoad: string;
+  freeMemory: string;
+  totalMemory: string;
+  freeHdd: string;
+  totalHdd: string;
+  uptime: string;
+  profiles: Record<string, string>[];
+  users: Record<string, string>[];
+  active: Record<string, string>[];
+  hosts: Record<string, string>[];
+  schedulers: Record<string, string>[];
+  scripts: Record<string, string>[];
+  logs: Record<string, string>[];
+  interfaces: Record<string, string>[];
+  ipBindings: Record<string, string>[];
+  cookies: Record<string, string>[];
+  dhcpLeases: Record<string, string>[];
+  queues: Record<string, string>[];
+  pools: Record<string, string>[];
+  hotspots: Record<string, string>[];
+  loggingRules: Record<string, string>[];
+  pppSecrets: Record<string, string>[];
+  pppProfiles: Record<string, string>[];
+  pppActive: Record<string, string>[];
+  nextIdCounter: number;
+}
+
+function getFormattedClockDate(major: 6 | 7): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  if (major === 7) {
+    return `${y}-${m}-${d}`;
+  }
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  return `${months[now.getMonth()]}/${d}/${y}`;
+}
+
+function getFormattedClockTime(): string {
+  const now = new Date();
+  return [
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0'),
+  ].join(':');
+}
+
+function buildUniversalOnLogin(expmode: string, validity: string, price: string, sprice: string, getlock: string): string {
+  let mode = '';
+  if (expmode === 'rem') mode = 'N';
+  else if (expmode === 'ntf') mode = 'X';
+  else if (expmode === 'remc') mode = 'N';
+  else if (expmode === 'ntfc') mode = 'X';
+
+  const recordPart =
+    expmode === 'remc' || expmode === 'ntfc'
+      ? `; :local sname ("$date-|-$time-|-$user-|-" . "${price}" . "-|-$address-|-$mac-|-` +
+        `${validity}-|-` +
+        '$profile-|-$comment"); :if ([:len [/system script find where name=$sname]] = 0) do={ /system script add name=$sname owner=$mowner source="$date" comment=mikhmon }'
+      : '';
+
+  const lockPart =
+    getlock === 'Enable'
+      ? '; [:local mac $"mac-address"; /ip hotspot user set mac-address=$mac [find where name=$user]]'
+      : '';
+
+  return (
+    `:put (",${expmode},${price},${validity},${sprice},,${getlock},"); {:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local mac $"mac-address"; :local intons [ /system scheduler get [ /system scheduler find where name="$profile" ] interval ]; :local expd ( [ :totime $date ] + $intons ); :local expstr [ :tostr $expd ]; :local exp ""; :local mowner ""; :if ([:pick $expstr 4 5] = "-") do={ :set exp ([:pick $expstr 0 10] . " " . $time); :set mowner ([:pick $date 5 7] . [:pick $date 0 4]); } else={ :local year [:pick $date 7 11]; :local month [:pick $date 0 3]; :set exp ([:pick $expstr 0 6] . "/" . $year . " " . $time); :set mowner ($month . $year); }; /ip hotspot user set comment="$exp ${mode}" [find where name="$user"]` +
+    recordPart +
+    lockPart +
+    ' }}'
+  );
+}
+
+function buildUniversalSchedulerOnEvent(profileName: string, expmode: string): string {
+  const actionBlock =
+    expmode === 'ntf' || expmode === 'ntfc'
+      ? ':do { /ip hotspot user set limit-uptime=1s [find where .id=$i] } on-error={ /ip hotspot user set limit-uptime=00:00:01 [find where .id=$i] }; /ip hotspot active remove [find where user=$user];'
+      : '/ip hotspot user remove [find where .id=$i]; /ip hotspot active remove [find where user=$user];';
+
+  return (
+    `:local dateint do={:local d [ :tostr $1 ]; :if ([:pick $d 4 5] = "-") do={ :local yyyy [:pick $d 0 4]; :local mm [:pick $d 5 7]; :local dd [:pick $d 8 10]; :return [:tonum ("$yyyy$mm$dd")]; }; :local montharray ( "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" ); :local days [ : pick $d 4 6 ]; :local month [ : pick $d 0 3 ]; :local year [ : pick $d 7 11 ]; :local monthint ([ :find $montharray $month]); :local monthnum ($monthint + 1); :if ($monthnum < 10) do={ :set monthnum ("0" . [:tostr $monthnum]); } else={ :set monthnum [:tostr $monthnum]; }; :return [:tonum ("$year$monthnum$days")]; }; :local timeint do={ :local hours [ : pick $1 0 2 ]; :local minutes [ : pick $1 3 5 ]; :return ($hours * 60 + $minutes) ; }; :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local today [$dateint $date] ; :local curtime [$timeint $time] ; :foreach i in [ /ip hotspot user find where profile="${profileName}" ] do={ :local comment [ /ip hotspot user get $i comment]; :local name [ /ip hotspot user get $i name]; :local gettime ""; :if ([:pick $comment 4 5] = "-") do={ :set gettime [:pick $comment 11 19]; } else={ :if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={ :set gettime [:pick $comment 12 20]; }; }; :if ($gettime != "") do={ :local expd [$dateint $comment] ; :local expt [$timeint $gettime] ; :if ( (($expd < $today) and ($expd > 0)) or (($expd = $today) and ($expt < $curtime)) ) do={ :local user $name; ${actionBlock} } } }`
+  );
+}
+
+function createInitialRouterState(
+  id: string,
+  identity: string,
+  version: string,
+  major: 6 | 7,
+  boardName: string,
+  model: string
+): RouterState {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const mon = months[now.getMonth()];
+
+  const activeExpComment =
+    major === 7
+      ? `${y}-${m}-${String(Math.min(28, now.getDate() + 1)).padStart(2, '0')} 18:30:00 X`
+      : `${mon}/${String(Math.min(28, now.getDate() + 1)).padStart(2, '0')}/${y} 18:30:00 X`;
+
+  const expiredNoticeComment =
+    major === 7 ? `2025-01-10 09:15:00 X` : `jan/10/2025 09:15:00 X`;
+
+  return {
+    id,
+    identity,
+    version,
+    major,
+    boardName,
+    model,
+    cpuLoad: major === 7 ? '6' : '9',
+    freeMemory: '214958080',
+    totalMemory: '268435456',
+    freeHdd: '12582912',
+    totalHdd: '16777216',
+    uptime: major === 7 ? '14d 06:42:19' : '42d 11:08:54',
+    nextIdCounter: 100,
+    profiles: [
+      {
+        '.id': '*0',
+        name: 'default',
+        'shared-users': '1',
+        'rate-limit': '',
+        'on-login': '',
+        'address-pool': 'none',
+        'status-autorefresh': '1m',
+        'transparent-proxy': 'no',
+      },
+      {
+        '.id': '*1',
+        name: '1Day-5K',
+        'shared-users': '1',
+        'rate-limit': '5M/5M',
+        'address-pool': 'hs-pool-1',
+        'status-autorefresh': '1m',
+        'transparent-proxy': 'no',
+        'on-login': buildUniversalOnLogin('remc', '1d', '5000', '5000', 'Enable'),
+      },
+      {
+        '.id': '*2',
+        name: '7Days-25K',
+        'shared-users': '1',
+        'rate-limit': '10M/10M',
+        'address-pool': 'hs-pool-1',
+        'status-autorefresh': '1m',
+        'transparent-proxy': 'no',
+        'on-login': buildUniversalOnLogin('ntfc', '7d', '25000', '25000', 'Enable'),
+      },
+      {
+        '.id': '*3',
+        name: '30Days-VIP',
+        'shared-users': '2',
+        'rate-limit': '20M/20M',
+        'address-pool': 'hs-pool-1',
+        'status-autorefresh': '1m',
+        'transparent-proxy': 'no',
+        'on-login': buildUniversalOnLogin('remc', '30d', '100000', '100000', 'Disable'),
+      },
+      {
+        '.id': '*4',
+        name: '3Hours-3K',
+        'shared-users': '1',
+        'rate-limit': '3M/3M',
+        'address-pool': 'hs-pool-1',
+        'status-autorefresh': '1m',
+        'transparent-proxy': 'no',
+        // Legacy ROS6-only on-login script so user can test "Sync ROS6/ROS7 Expiry" migration!
+        'on-login': `:put (",ntfc,3000,3h,3000,,Disable,"); {:local date [ /system clock get date ];:local year [ :pick $date 7 11 ];:local month [ :pick $date 0 3 ];:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ /sys sch add name="$user" disable=no start-date=$date interval="3h"; :delay 2s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pic $exp 0 6]; :local t [:pic $exp 7 15]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp X" [find where name="$user"];}; /sys sch remove [find where name="$user"]; }}`,
+      },
+    ],
+    schedulers: [
+      {
+        '.id': '*10',
+        name: '1Day-5K',
+        'start-date': major === 7 ? `${y}-${m}-${d}` : `${mon}/${d}/${y}`,
+        'start-time': '01:15:00',
+        interval: '00:02:00',
+        'on-event': buildUniversalSchedulerOnEvent('1Day-5K', 'remc'),
+        comment: 'Monitor Profile 1Day-5K',
+        disabled: 'false',
+        'next-run': '00:01:45',
+      },
+      {
+        '.id': '*11',
+        name: '7Days-25K',
+        'start-date': major === 7 ? `${y}-${m}-${d}` : `${mon}/${d}/${y}`,
+        'start-time': '01:20:00',
+        interval: '00:02:00',
+        'on-event': buildUniversalSchedulerOnEvent('7Days-25K', 'ntfc'),
+        comment: 'Monitor Profile 7Days-25K',
+        disabled: 'false',
+        'next-run': '00:01:50',
+      },
+      {
+        '.id': '*12',
+        name: '30Days-VIP',
+        'start-date': major === 7 ? `${y}-${m}-${d}` : `${mon}/${d}/${y}`,
+        'start-time': '01:25:00',
+        interval: '00:02:00',
+        'on-event': buildUniversalSchedulerOnEvent('30Days-VIP', 'remc'),
+        comment: 'Monitor Profile 30Days-VIP',
+        disabled: 'false',
+        'next-run': '00:01:55',
+      },
+    ],
+    users: [
+      {
+        '.id': '*1',
+        name: 'default-trial',
+        profile: 'default',
+        uptime: '00:00:00',
+        'bytes-in': '0',
+        'bytes-out': '0',
+        disabled: 'false',
+        comment: '',
+      },
+      {
+        '.id': '*2',
+        name: 'vc8821',
+        password: '8821',
+        profile: '1Day-5K',
+        uptime: '03:14:22',
+        'limit-uptime': '1d',
+        'bytes-in': '48291040',
+        'bytes-out': '289104210',
+        disabled: 'false',
+        'mac-address': 'C8:5B:76:3A:11:04',
+        comment: activeExpComment,
+      },
+      {
+        '.id': '*3',
+        name: 'vc9914',
+        password: '9914',
+        profile: '7Days-25K',
+        uptime: '00:00:01',
+        'limit-uptime': major === 7 ? '00:00:01' : '1s',
+        'bytes-in': '19402100',
+        'bytes-out': '84920112',
+        disabled: 'false',
+        'mac-address': 'D4:6E:0E:91:22:7B',
+        comment: expiredNoticeComment,
+      },
+      {
+        '.id': '*4',
+        name: 'vc4410',
+        password: '4410',
+        profile: '1Day-5K',
+        uptime: '00:00:00',
+        'limit-uptime': '1d',
+        'bytes-in': '0',
+        'bytes-out': '0',
+        disabled: 'false',
+        comment: 'vc-412-03.26.26-KioskUtara [1d]',
+      },
+      {
+        '.id': '*5',
+        name: 'vc4411',
+        password: '4411',
+        profile: '1Day-5K',
+        uptime: '00:00:00',
+        'limit-uptime': '1d',
+        'bytes-in': '0',
+        'bytes-out': '0',
+        disabled: 'false',
+        comment: 'vc-412-03.26.26-KioskUtara [1d]',
+      },
+      {
+        '.id': '*6',
+        name: 'vip7701',
+        password: '7701',
+        profile: '30Days-VIP',
+        uptime: '2d 05:19:40',
+        'limit-uptime': '30d',
+        'bytes-in': '512940100',
+        'bytes-out': '2849102400',
+        disabled: 'false',
+        'mac-address': 'F0:18:98:4C:82:19',
+        comment: activeExpComment,
+      },
+    ],
+    active: [
+      {
+        '.id': '*21',
+        server: 'hotspot1',
+        user: 'vc8821',
+        address: '192.168.50.104',
+        'mac-address': 'C8:5B:76:3A:11:04',
+        'login-by': 'http-chap',
+        uptime: '03:14:22',
+        'session-time-left': '20:45:38',
+        'idle-time': '00:00:02',
+        'bytes-in': '48291040',
+        'bytes-out': '289104210',
+        comment: activeExpComment,
+      },
+      {
+        '.id': '*22',
+        server: 'hotspot1',
+        user: 'vip7701',
+        address: '192.168.50.119',
+        'mac-address': 'F0:18:98:4C:82:19',
+        'login-by': 'cookie',
+        uptime: '05:19:40',
+        'session-time-left': '27d 18:40:20',
+        'idle-time': '00:00:00',
+        'bytes-in': '512940100',
+        'bytes-out': '2849102400',
+        comment: activeExpComment,
+      },
+    ],
+    hosts: [
+      {
+        '.id': '*31',
+        'mac-address': 'C8:5B:76:3A:11:04',
+        address: '192.168.50.104',
+        'to-address': '192.168.50.104',
+        server: 'hotspot1',
+        authorized: 'true',
+        bypassed: 'false',
+        comment: activeExpComment,
+      },
+      {
+        '.id': '*32',
+        'mac-address': 'F0:18:98:4C:82:19',
+        address: '192.168.50.119',
+        'to-address': '192.168.50.119',
+        server: 'hotspot1',
+        authorized: 'true',
+        bypassed: 'false',
+        comment: activeExpComment,
+      },
+    ],
+    scripts: [
+      // Pre-populated Selling Report scripts in BOTH ROS7 (YYYY-MM-DD) and ROS6 (mmm/dd/yyyy) formats!
+      {
+        '.id': '*41',
+        name: `${y}-${m}-${d}-|-08:15:22-|-vc8821-|-5000-|-192.168.50.104-|-C8:5B:76:3A:11:04-|-1d-|-1Day-5K-|-vc-101`,
+        owner: `${m}${y}`,
+        source: `${y}-${m}-${d}`,
+        comment: 'mikhmon',
+      },
+      {
+        '.id': '*42',
+        name: `${y}-${m}-${d}-|-09:42:10-|-vip7701-|-100000-|-192.168.50.119-|-F0:18:98:4C:82:19-|-30d-|-30Days-VIP-|-vc-102`,
+        owner: `${m}${y}`,
+        source: `${y}-${m}-${d}`,
+        comment: 'mikhmon',
+      },
+      {
+        '.id': '*43',
+        name: `${mon}/${d}/${y}-|-10:05:49-|-vc9914-|-25000-|-192.168.50.112-|-D4:6E:0E:91:22:7B-|-7d-|-7Days-25K-|-vc-103`,
+        owner: `${mon}${y}`,
+        source: `${mon}/${d}/${y}`,
+        comment: 'mikhmon',
+      },
+    ],
+    logs: [
+      {
+        '.id': '*51',
+        time: '08:15:22',
+        topics: 'hotspot,info,debug',
+        message: `vc8821 (192.168.50.104): logged in`,
+      },
+      {
+        '.id': '*52',
+        time: '09:42:10',
+        topics: 'hotspot,info,debug',
+        message: `vip7701 (192.168.50.119): logged in`,
+      },
+      {
+        '.id': '*53',
+        time: '10:05:49',
+        topics: 'hotspot,info,debug',
+        message: `vc9914 (192.168.50.112): trying to log in by http-chap`,
+      },
+      {
+        '.id': '*54',
+        time: '10:06:01',
+        topics: 'hotspot,info,debug',
+        message: `vc9914 (192.168.50.112): login failed: reached limit-uptime (${major === 7 ? '00:00:01' : '1s'})`,
+      },
+    ],
+    interfaces: [
+      { '.id': '*1', name: 'ether1-ISP', type: 'ether', 'rx-byte': '4910294810', 'tx-byte': '892019402', running: 'true', disabled: 'false' },
+      { '.id': '*2', name: 'ether2-Hotspot', type: 'ether', 'rx-byte': '892019402', 'tx-byte': '4910294810', running: 'true', disabled: 'false' },
+      { '.id': '*3', name: 'wlan1-Hotspot', type: 'wlan', 'rx-byte': '391029400', 'tx-byte': '1920491020', running: 'true', disabled: 'false' },
+    ],
+    ipBindings: [
+      { '.id': '*61', 'mac-address': '00:1A:2B:3C:4D:5E', address: '192.168.50.10', 'to-address': '192.168.50.10', server: 'all', type: 'bypassed', comment: 'AP-Lobby', disabled: 'false' },
+    ],
+    cookies: [
+      { '.id': '*71', user: 'vip7701', 'mac-address': 'F0:18:98:4C:82:19', 'expires-in': '2d 18:40:20' },
+    ],
+    dhcpLeases: [
+      { '.id': '*81', address: '192.168.50.104', 'mac-address': 'C8:5B:76:3A:11:04', 'host-name': 'Android-Device', server: 'dhcp-hs', status: 'bound' },
+      { '.id': '*82', address: '192.168.50.119', 'mac-address': 'F0:18:98:4C:82:19', 'host-name': 'MacBook-Pro', server: 'dhcp-hs', status: 'bound' },
+    ],
+    queues: [
+      { '.id': '*91', name: '<hotspot-vc8821>', target: '192.168.50.104/32', 'max-limit': '5000000/5000000', dynamic: 'true' },
+    ],
+    pools: [
+      { '.id': '*1', name: 'hs-pool-1', ranges: '192.168.50.10-192.168.50.254' },
+    ],
+    hotspots: [
+      { '.id': '*1', name: 'hotspot1', interface: 'ether2-Hotspot', 'address-pool': 'hs-pool-1', profile: 'hsprof1' },
+    ],
+    loggingRules: [
+      { '.id': '*1', topics: 'hotspot,info,debug', prefix: '->', action: 'disk' },
+    ],
+    pppSecrets: [],
+    pppProfiles: [{ '.id': '*1', name: 'default' }],
+    pppActive: [],
+  };
+}
+
+const routers: Record<string, RouterState> = {
+  '127.0.0.1': createInitialRouterState(
+    'MikroTik-ROS7',
+    'MikroTik-ROS7-Core',
+    '7.15.3 (stable)',
+    7,
+    'RB5009UG+S+',
+    'RB5009UG+S+IN'
+  ),
+  '127.0.0.2': createInitialRouterState(
+    'MikroTik-ROS6',
+    'MikroTik-ROS6-Branch',
+    '6.49.13 (long-term)',
+    6,
+    'hEX RB750Gr3',
+    'RB750Gr3'
+  ),
+};
+
+function parseCommandParams(words: string[]): {
+  cmd: string;
+  queries: Record<string, string>;
+  attrs: Record<string, string>;
+  proplist: string[] | null;
+  countOnly: boolean;
+} {
+  const cmd = words[0] || '';
+  const queries: Record<string, string> = {};
+  const attrs: Record<string, string> = {};
+  let proplist: string[] | null = null;
+  let countOnly = false;
+
+  for (let i = 1; i < words.length; i++) {
+    const w = words[i];
+    if (w.startsWith('?')) {
+      const rest = w.slice(1);
+      const eqIdx = rest.indexOf('=');
+      if (eqIdx !== -1) {
+        const k = rest.slice(0, eqIdx).replace(/^-/, '');
+        const v = rest.slice(eqIdx + 1);
+        queries[k] = v;
+      }
+    } else if (w.startsWith('=')) {
+      const rest = w.slice(1);
+      const eqIdx = rest.indexOf('=');
+      if (eqIdx !== -1) {
+        const k = rest.slice(0, eqIdx);
+        const v = rest.slice(eqIdx + 1);
+        if (k === '.proplist') {
+          proplist = v.split(',').map((s) => s.trim());
+        } else if (k === 'count-only') {
+          countOnly = true;
+        } else {
+          attrs[k] = v;
+        }
+      } else if (rest === 'count-only') {
+        countOnly = true;
+      }
+    }
+  }
+  return { cmd, queries, attrs, proplist, countOnly };
+}
+
+function filterCollection(
+  items: Record<string, string>[],
+  queries: Record<string, string>
+): Record<string, string>[] {
+  if (Object.keys(queries).length === 0) return items;
+  return items.filter((item) => {
+    for (const [k, v] of Object.entries(queries)) {
+      if ((item[k] || '') !== v) return false;
+    }
+    return true;
+  });
+}
+
+function handleCollectionCommand(
+  socket: net.Socket,
+  state: RouterState,
+  collection: Record<string, string>[],
+  action: string,
+  queries: Record<string, string>,
+  attrs: Record<string, string>,
+  countOnly: boolean
+) {
+  if (action === 'print') {
+    const matched = filterCollection(collection, queries);
+    if (countOnly) {
+      sendSentence(socket, ['!done', `=ret=${matched.length}`]);
+    } else {
+      sendRowsAndDone(socket, matched);
+    }
+    return;
+  }
+
+  if (action === 'add') {
+    const newId = `*${++state.nextIdCounter}`;
+    const newItem: Record<string, string> = { '.id': newId, ...attrs };
+    if (newItem.disabled === 'no') newItem.disabled = 'false';
+    if (newItem.disabled === 'yes') newItem.disabled = 'true';
+    collection.push(newItem);
+    sendSentence(socket, ['!done', `=ret=${newId}`]);
+    return;
+  }
+
+  if (action === 'set') {
+    const targetId = attrs['.id'] || attrs['numbers'];
+    for (const item of collection) {
+      if (item['.id'] === targetId || item.name === targetId) {
+        for (const [k, v] of Object.entries(attrs)) {
+          if (k === '.id' || k === 'numbers') continue;
+          if (k === 'disabled') {
+            item.disabled = v === 'yes' || v === 'true' ? 'true' : 'false';
+          } else {
+            item[k] = v;
+          }
+        }
+      }
+    }
+    sendSentence(socket, ['!done']);
+    return;
+  }
+
+  if (action === 'remove') {
+    const targetId = attrs['.id'] || attrs['numbers'];
+    const idx = collection.findIndex((item) => item['.id'] === targetId || item.name === targetId);
+    if (idx !== -1) {
+      collection.splice(idx, 1);
+    }
+    sendSentence(socket, ['!done']);
+    return;
+  }
+
+  if (action === 'reset-counters') {
+    const targetId = attrs['.id'] || attrs['numbers'];
+    for (const item of collection) {
+      if (!targetId || item['.id'] === targetId) {
+        item.uptime = '00:00:00';
+        item['bytes-in'] = '0';
+        item['bytes-out'] = '0';
+      }
+    }
+    sendSentence(socket, ['!done']);
+    return;
+  }
+
+  sendSentence(socket, ['!done']);
+}
+
+function handleRouterSentence(socket: net.Socket, state: RouterState, words: string[]) {
+  if (words.length === 0) return;
+  const { cmd, queries, attrs, countOnly } = parseCommandParams(words);
+
+  if (cmd === '/login') {
+    // Support both ROS 6.43+ direct login and challenge-response fallback
+    sendSentence(socket, ['!done']);
+    return;
+  }
+
+  if (cmd === '/system/identity/print') {
+    sendRowsAndDone(socket, [{ name: state.identity }]);
+    return;
+  }
+
+  if (cmd === '/system/clock/print') {
+    sendRowsAndDone(socket, [
+      {
+        time: getFormattedClockTime(),
+        date: getFormattedClockDate(state.major),
+        'time-zone-autodetect': 'true',
+        'time-zone-name': 'Asia/Jakarta',
+        'gmt-offset': '+07:00',
+      },
+    ]);
+    return;
+  }
+
+  if (cmd === '/system/resource/print') {
+    sendRowsAndDone(socket, [
+      {
+        uptime: state.uptime,
+        version: state.version,
+        'build-time': state.major === 7 ? '2024-07-24 11:20:00' : 'May/14/2024 09:11:00',
+        'free-memory': state.freeMemory,
+        'total-memory': state.totalMemory,
+        cpu: 'ARM64',
+        'cpu-count': '4',
+        'cpu-frequency': '1400',
+        'cpu-load': state.cpuLoad,
+        'free-hdd-space': state.freeHdd,
+        'total-hdd-space': state.totalHdd,
+        'architecture-name': state.major === 7 ? 'arm64' : 'mmips',
+        'board-name': state.boardName,
+        platform: 'MikroTik',
+      },
+    ]);
+    return;
+  }
+
+  if (cmd === '/system/routerboard/print') {
+    sendRowsAndDone(socket, [
+      {
+        routerboard: 'true',
+        model: state.model,
+        'serial-number': state.major === 7 ? 'HE8092K114B' : '9A2108F991C',
+        'firmware-type': '70x0',
+        'factory-firmware': state.major === 7 ? '7.8' : '6.45',
+        'current-firmware': state.major === 7 ? '7.15.3' : '6.49.13',
+        'upgrade-firmware': state.major === 7 ? '7.15.3' : '6.49.13',
+      },
+    ]);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/user/profile/')) {
+    const action = cmd.replace('/ip/hotspot/user/profile/', '');
+    handleCollectionCommand(socket, state, state.profiles, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/user/')) {
+    const action = cmd.replace('/ip/hotspot/user/', '');
+    handleCollectionCommand(socket, state, state.users, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/active/')) {
+    const action = cmd.replace('/ip/hotspot/active/', '');
+    handleCollectionCommand(socket, state, state.active, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/host/')) {
+    const action = cmd.replace('/ip/hotspot/host/', '');
+    handleCollectionCommand(socket, state, state.hosts, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/ip-binding/')) {
+    const action = cmd.replace('/ip/hotspot/ip-binding/', '');
+    handleCollectionCommand(socket, state, state.ipBindings, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/cookie/')) {
+    const action = cmd.replace('/ip/hotspot/cookie/', '');
+    handleCollectionCommand(socket, state, state.cookies, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/hotspot/')) {
+    const action = cmd.replace('/ip/hotspot/', '');
+    handleCollectionCommand(socket, state, state.hotspots, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/system/scheduler/')) {
+    const action = cmd.replace('/system/scheduler/', '');
+    handleCollectionCommand(socket, state, state.schedulers, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/system/script/')) {
+    const action = cmd.replace('/system/script/', '');
+    handleCollectionCommand(socket, state, state.scripts, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/system/logging/')) {
+    const action = cmd.replace('/system/logging/', '');
+    handleCollectionCommand(socket, state, state.loggingRules, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd === '/log/print') {
+    sendRowsAndDone(socket, state.logs);
+    return;
+  }
+
+  if (cmd.startsWith('/interface/monitor-traffic')) {
+    const rxBps = String(1840000 + Math.floor(Math.random() * 450000));
+    const txBps = String(6420000 + Math.floor(Math.random() * 950000));
+    sendRowsAndDone(socket, [
+      {
+        name: attrs.interface || 'ether1-ISP',
+        'rx-bits-per-second': rxBps,
+        'tx-bits-per-second': txBps,
+        'rx-packets-per-second': '340',
+        'tx-packets-per-second': '790',
+      },
+    ]);
+    return;
+  }
+
+  if (cmd.startsWith('/interface/')) {
+    const action = cmd.replace('/interface/', '');
+    handleCollectionCommand(socket, state, state.interfaces, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/dhcp-server/lease/')) {
+    const action = cmd.replace('/ip/dhcp-server/lease/', '');
+    handleCollectionCommand(socket, state, state.dhcpLeases, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/queue/simple/')) {
+    const action = cmd.replace('/queue/simple/', '');
+    handleCollectionCommand(socket, state, state.queues, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ip/pool/')) {
+    const action = cmd.replace('/ip/pool/', '');
+    handleCollectionCommand(socket, state, state.pools, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ppp/secret/')) {
+    const action = cmd.replace('/ppp/secret/', '');
+    handleCollectionCommand(socket, state, state.pppSecrets, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ppp/profile/')) {
+    const action = cmd.replace('/ppp/profile/', '');
+    handleCollectionCommand(socket, state, state.pppProfiles, action, queries, attrs, countOnly);
+    return;
+  }
+
+  if (cmd.startsWith('/ppp/active/')) {
+    const action = cmd.replace('/ppp/active/', '');
+    handleCollectionCommand(socket, state, state.pppActive, action, queries, attrs, countOnly);
+    return;
+  }
+
+  // Fallback for any other command
+  sendSentence(socket, ['!done']);
+}
+
+function startRouterOsTcpServer(hostIp: string, state: RouterState) {
+  const server = net.createServer((socket) => {
+    let buffer = Buffer.alloc(0);
+    let currentWords: string[] = [];
+
+    socket.on('data', (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+
+      while (buffer.length > 0) {
+        const b0 = buffer[0];
+        let wordLen = 0;
+        let headerBytes = 1;
+
+        if ((b0 & 0x80) === 0x00) {
+          wordLen = b0;
+          headerBytes = 1;
+        } else if ((b0 & 0xc0) === 0x80) {
+          if (buffer.length < 2) return;
+          wordLen = ((b0 & ~0xc0) << 8) | buffer[1];
+          headerBytes = 2;
+        } else if ((b0 & 0xe0) === 0xc0) {
+          if (buffer.length < 3) return;
+          wordLen = ((b0 & ~0xe0) << 16) | (buffer[1] << 8) | buffer[2];
+          headerBytes = 3;
+        } else if ((b0 & 0xf0) === 0xe0) {
+          if (buffer.length < 4) return;
+          wordLen = ((b0 & ~0xf0) << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
+          headerBytes = 4;
+        } else {
+          if (buffer.length < 5) return;
+          wordLen = (buffer[1] << 24) | (buffer[2] << 16) | (buffer[3] << 8) | buffer[4];
+          headerBytes = 5;
+        }
+
+        if (buffer.length < headerBytes + wordLen) {
+          return; // wait for more bytes
+        }
+
+        const word = buffer.slice(headerBytes, headerBytes + wordLen).toString('utf8');
+        buffer = buffer.slice(headerBytes + wordLen);
+
+        if (wordLen === 0) {
+          const sentence = currentWords;
+          currentWords = [];
+          if (sentence.length > 0) {
+            handleRouterSentence(socket, state, sentence);
+          }
+        } else {
+          currentWords.push(word);
+        }
+      }
+    });
+
+    socket.on('error', () => {
+      // ignore client disconnect errors
+    });
+  });
+
+  server.listen(8728, hostIp, () => {
+    console.log(`[RouterOS Binary API] Listening on ${hostIp}:8728 (${state.identity} - RouterOS ${state.version})`);
+  });
+}
+
+// ============================================================================
+// 3. START ORIGINAL MIKHMON v3 PHP APPLICATION + PORT 3000 REVERSE PROXY
+// ============================================================================
+
+const PHP_PORT = 8081;
+const PORT = 3000;
+const MIKHMON_DOCROOT = path.resolve(process.cwd(), 'mikhmonv3-upstream');
+
+let phpProcess: ChildProcess | null = null;
+
+function startPhpServer() {
+  phpProcess = spawn(
+    'php',
+    ['-d', 'display_errors=0', '-d', 'error_reporting=0', '-S', `127.0.0.1:${PHP_PORT}`, '-t', MIKHMON_DOCROOT],
+    {
+      cwd: MIKHMON_DOCROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  );
+
+  phpProcess.on('exit', (code) => {
+    console.log(`[PHP Server] exited with code ${code}, restarting in 500ms...`);
+    setTimeout(startPhpServer, 500);
+  });
+}
+
+startRouterOsTcpServer('127.0.0.1', routers['127.0.0.1']);
+startRouterOsTcpServer('127.0.0.2', routers['127.0.0.2']);
+startPhpServer();
+
+const proxyServer = http.createServer((req, res) => {
+  const isHttpsForwarded =
+    req.headers['x-forwarded-proto'] === 'https' ||
+    (typeof req.headers.referer === 'string' && req.headers.referer.startsWith('https://'));
+
+  const options: http.RequestOptions = {
+    hostname: '127.0.0.1',
+    port: PHP_PORT,
+    path: req.url || '/',
+    method: req.method,
+    headers: {
+      ...req.headers,
+      host: req.headers.host || `localhost:${PORT}`,
+    },
+  };
+
+  const proxyReq = http.request(options, (proxyRes) => {
+    const headers = { ...proxyRes.headers };
+
+    // Rewrite Set-Cookie in HTTPS iframe environment so PHPSESSID works across origins
+    if (isHttpsForwarded && headers['set-cookie']) {
+      const rawCookies = Array.isArray(headers['set-cookie'])
+        ? headers['set-cookie']
+        : [headers['set-cookie']];
+      headers['set-cookie'] = rawCookies.map((cookie) => {
+        let updated = cookie.replace(/;\s*SameSite=[^;]*/gi, '').replace(/;\s*Secure/gi, '');
+        return `${updated}; SameSite=None; Secure`;
+      });
+    }
+
+    res.writeHead(proxyRes.statusCode || 200, headers);
+    proxyRes.pipe(res, { end: true });
+  });
+
+  proxyReq.on('error', (err) => {
+    res.writeHead(502, { 'Content-Type': 'text/plain' });
+    res.end(`Mikhmon PHP Engine starting... (${err.message})`);
+  });
+
+  req.pipe(proxyReq, { end: true });
+});
+
+proxyServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Mikhmon v3 Server] Original PHP Application running at http://0.0.0.0:${PORT}`);
+});

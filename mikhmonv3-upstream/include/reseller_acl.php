@@ -1,0 +1,935 @@
+<?php
+/*
+ *  Copyright (C) 2018 Laksamadi Guko.
+ *  NextGan WiFi Solution — Mikhmon Safe Extension (Reseller RBAC, Permission Groups, Templates & Logos)
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ */
+
+if (isset($_SERVER["REQUEST_URI"]) && substr($_SERVER["REQUEST_URI"], -16) == "reseller_acl.php") {
+    header("Location:./");
+    exit;
+}
+
+/**
+ * Organized 9-category permission registry across all Mikhmon modules, templates, and admin operations.
+ */
+function getAllMikhmonPermissionCategories() {
+    return array(
+        'Hotspot Users & Vouchers' => array(
+            'view_dashboard'      => 'View Dashboard & System Resource',
+            'view_users'          => 'View Hotspot Users & Voucher Lists',
+            'add_user'            => 'Add Single Hotspot User',
+            'generate_voucher'    => 'Generate Batch Vouchers',
+            'edit_user'           => 'View & Edit Hotspot User Details',
+            'delete_user'         => 'Delete Hotspot Users (Single / Comment / Expired)',
+            'enable_disable_user' => 'Enable, Disable & Reset Hotspot Users',
+            'print_voucher'       => 'Print Vouchers (Default / QR / Small / BT / Quick Print)',
+            'manage_quickprint'   => 'Manage Quick Print Packages',
+            'export_users'        => 'Export Hotspot Users (Script / CSV)',
+        ),
+        'Hotspot Profiles & Active Sessions' => array(
+            'view_profiles'       => 'View Hotspot User Profiles',
+            'add_profile'         => 'Add Hotspot User Profile',
+            'edit_profile'        => 'Edit Hotspot User Profile & Sync ROS6/ROS7 Scripts',
+            'delete_profile'      => 'Delete Hotspot User Profile',
+            'view_active'         => 'View Hotspot Active Sessions',
+            'disconnect_active'   => 'Disconnect Active Hotspot User',
+        ),
+        'Network Management' => array(
+            'view_hosts'          => 'View Hotspot Hosts',
+            'manage_hosts'        => 'Remove Hosts & Make IP Bindings',
+            'view_ipbinding'      => 'View Hotspot IP Bindings',
+            'manage_ipbinding'    => 'Add, Enable, Disable & Remove IP Bindings',
+            'view_cookies'        => 'View Hotspot Cookies',
+            'delete_cookies'      => 'Delete Hotspot Cookies',
+            'view_dhcp'           => 'View DHCP Leases',
+        ),
+        'Logs, Reports & Monitoring' => array(
+            'view_logs'           => 'View Hotspot Log & User Log',
+            'view_report'         => 'View & Print Selling Reports & Live Report',
+            'export_report'       => 'Export Selling Report (CSV)',
+            'delete_report'       => 'Delete Selling Report Records',
+            'view_traffic'        => 'View Interface Traffic Monitor',
+        ),
+        'Router Management' => array(
+            'view_scheduler'         => 'View System Scheduler',
+            'manage_scheduler'       => 'Enable, Disable & Remove System Schedulers',
+            'reboot_shutdown'        => 'Reboot & Shutdown Router',
+            'manage_router_settings' => 'Modify Router Session Settings & Upload Logo',
+        ),
+        'PPP and Other Network Services' => array(
+            'view_ppp'            => 'View PPP Secrets, Profiles & Active',
+            'manage_ppp'          => 'Add, Edit, Enable, Disable & Remove PPP Items',
+        ),
+        'Template Management' => array(
+            'use_assigned_template'     => 'Use Assigned Template',
+            'preview_assigned_template' => 'Preview Assigned Template',
+            'edit_own_template'         => 'Edit Own Assigned Template',
+            'save_own_template'         => 'Save Own Template',
+            'publish_own_template'      => 'Publish Own Template',
+            'restore_own_template'      => 'Restore Own Template Version',
+            'assign_template'           => 'Assign or Change Template (Protected Admin-Only)',
+            'manage_global_templates'   => 'Manage Global Templates (Protected Admin-Only)',
+        ),
+        'Reseller Management' => array(
+            'view_resellers'      => 'View Reseller Accounts (Protected Admin-Only)',
+            'manage_resellers'    => 'Create, Edit & Delete Resellers (Protected Admin-Only)',
+        ),
+        'Administrator-only Operations' => array(
+            'manage_admin_account'     => 'Manage Main Administrator Account & Password (Protected)',
+            'manage_permission_groups' => 'Manage Permission Group Definitions (Protected)',
+            'manage_global_security'   => 'Manage Global Security & System Configuration (Protected)',
+        ),
+    );
+}
+
+/**
+ * List of protected administrator-only permission keys that ordinary resellers can NEVER be granted,
+ * even in Full or Custom mode.
+ */
+function getProtectedAdminOnlyPermissions() {
+    return array(
+        'assign_template',
+        'manage_global_templates',
+        'view_resellers',
+        'manage_resellers',
+        'manage_admin_account',
+        'manage_permission_groups',
+        'manage_global_security',
+    );
+}
+
+/**
+ * Check if a permission key is a protected Administrator-only operation.
+ */
+function isProtectedAdminPermission($permKey) {
+    return in_array($permKey, getProtectedAdminOnlyPermissions(), true);
+}
+
+/**
+ * Complete catalog of granular permissions (returns categorized map for UI and flat lookup support).
+ */
+function getAllMikhmonPermissionDefinitions() {
+    return getAllMikhmonPermissionCategories();
+}
+
+/**
+ * Return flat map of all permission keys => label
+ */
+function getFlatMikhmonPermissionLabels() {
+    $flat = array();
+    foreach (getAllMikhmonPermissionCategories() as $cat => $items) {
+        foreach ($items as $k => $label) {
+            $flat[$k] = $label;
+        }
+    }
+    return $flat;
+}
+
+/**
+ * Return flat map of all permission keys => default boolean value
+ */
+function getDefaultPermissionMap($defaultVal = false) {
+    $map = array();
+    foreach (getAllMikhmonPermissionCategories() as $group => $items) {
+        foreach ($items as $key => $label) {
+            if ($defaultVal && isProtectedAdminPermission($key)) {
+                $map[$key] = true;
+            } else {
+                $map[$key] = (bool)$defaultVal;
+            }
+        }
+    }
+    return $map;
+}
+
+/**
+ * Strip protected administrator-only permissions from any reseller permission map.
+ */
+function sanitizeResellerPermissions($permMap) {
+    $clean = getDefaultPermissionMap(false);
+    if (is_array($permMap)) {
+        // Legacy key aliases
+        if (!empty($permMap['add_single_user'])) $permMap['add_user'] = true;
+        if (!empty($permMap['view_reports'])) $permMap['view_report'] = true;
+        if (!empty($permMap['delete_reports'])) $permMap['delete_report'] = true;
+        if (!empty($permMap['remove_host'])) $permMap['manage_hosts'] = true;
+        if (!empty($permMap['remove_cookie'])) $permMap['delete_cookies'] = true;
+        if (!empty($permMap['manage_template_logo'])) {
+            $permMap['edit_own_template'] = true;
+            $permMap['save_own_template'] = true;
+        }
+        foreach ($clean as $k => $v) {
+            if (isProtectedAdminPermission($k)) {
+                $clean[$k] = false;
+            } else {
+                $clean[$k] = !empty($permMap[$k]);
+            }
+        }
+    }
+    return $clean;
+}
+
+/**
+ * Built-in default permission group definitions for Read, Write, and Full modes.
+ */
+function getDefaultPermissionGroupDefinitions() {
+    $readKeys = array(
+        'view_dashboard',
+        'view_users',
+        'view_profiles',
+        'view_active',
+        'view_hosts',
+        'view_ipbinding',
+        'view_cookies',
+        'view_dhcp',
+        'view_logs',
+        'view_report',
+        'view_traffic',
+        'view_scheduler',
+        'view_ppp',
+        'use_assigned_template',
+        'preview_assigned_template',
+    );
+
+    $writeKeys = array_merge($readKeys, array(
+        'add_user',
+        'generate_voucher',
+        'edit_user',
+        'enable_disable_user',
+        'print_voucher',
+        'manage_quickprint',
+        'export_users',
+        'export_report',
+        'edit_own_template',
+        'save_own_template',
+    ));
+
+    $readMap = getDefaultPermissionMap(false);
+    foreach ($readKeys as $rk) {
+        $readMap[$rk] = true;
+    }
+
+    $writeMap = getDefaultPermissionMap(false);
+    foreach ($writeKeys as $wk) {
+        $writeMap[$wk] = true;
+    }
+
+    $fullMap = getDefaultPermissionMap(false);
+    foreach ($fullMap as $fk => $fv) {
+        if (!isProtectedAdminPermission($fk)) {
+            $fullMap[$fk] = true;
+        }
+    }
+
+    return array(
+        'Read'  => sanitizeResellerPermissions($readMap),
+        'Write' => sanitizeResellerPermissions($writeMap),
+        'Full'  => sanitizeResellerPermissions($fullMap),
+    );
+}
+
+/**
+ * Path to permission groups storage file
+ */
+function getPermissionGroupsStoragePath() {
+    return __DIR__ . '/permission_groups.json';
+}
+
+/**
+ * Load administrator-configurable Read, Write, and Full permission group definitions.
+ */
+function loadPermissionGroups() {
+    $defaults = getDefaultPermissionGroupDefinitions();
+    $path = getPermissionGroupsStoragePath();
+    if (!file_exists($path)) {
+        @file_put_contents($path, json_encode($defaults, JSON_PRETTY_PRINT));
+        return $defaults;
+    }
+    $raw = @file_get_contents($path);
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return $defaults;
+    }
+    $result = array();
+    foreach (array('Read', 'Write', 'Full') as $mode) {
+        if (isset($decoded[$mode]) && is_array($decoded[$mode])) {
+            $result[$mode] = sanitizeResellerPermissions(array_merge($defaults[$mode], $decoded[$mode]));
+        } else {
+            $result[$mode] = $defaults[$mode];
+        }
+    }
+    return $result;
+}
+
+/**
+ * Save administrator-configured Read, Write, and Full permission groups.
+ */
+function savePermissionGroups($groups) {
+    $defaults = getDefaultPermissionGroupDefinitions();
+    $toSave = array();
+    foreach (array('Read', 'Write', 'Full') as $mode) {
+        $src = isset($groups[$mode]) && is_array($groups[$mode]) ? $groups[$mode] : $defaults[$mode];
+        $toSave[$mode] = sanitizeResellerPermissions($src);
+    }
+    return @file_put_contents(getPermissionGroupsStoragePath(), json_encode($toSave, JSON_PRETTY_PRINT)) !== false;
+}
+
+/**
+ * Standard Reseller permission preset (Write mode equivalent)
+ */
+function getStandardSellerPermissions() {
+    $groups = loadPermissionGroups();
+    return $groups['Write'];
+}
+
+/**
+ * Resolve effective permissions for a reseller record based on permission_mode (Read, Write, Full, Custom)
+ */
+function resolveEffectiveResellerPermissions($reseller) {
+    $mode = isset($reseller['permission_mode']) ? trim((string)$reseller['permission_mode']) : 'Custom';
+    $groups = loadPermissionGroups();
+    if ($mode === 'Read' || $mode === 'Write' || $mode === 'Full') {
+        return $groups[$mode];
+    }
+    $rawPerms = isset($reseller['permissions']) && is_array($reseller['permissions']) ? $reseller['permissions'] : getStandardSellerPermissions();
+    return sanitizeResellerPermissions($rawPerms);
+}
+
+/**
+ * Parse all configured router session names from include/config.php
+ */
+function getConfiguredRouterSessions($configFilePath = null) {
+    if ($configFilePath === null) {
+        $configFilePath = __DIR__ . '/config.php';
+    }
+    if (!file_exists($configFilePath)) {
+        return array();
+    }
+    $routers = array();
+    foreach (file($configFilePath) as $line) {
+        $parts = explode("'", $line);
+        if (isset($parts[1])) {
+            $sesname = trim($parts[1]);
+            if ($sesname !== '' && $sesname !== 'mikhmon' && strpos($line, '$data[') !== false) {
+                $routers[$sesname] = $sesname;
+            }
+        }
+    }
+    return array_values($routers);
+}
+
+/**
+ * Path to resellers storage file
+ */
+function getResellersStoragePath() {
+    return __DIR__ . '/resellers.json';
+}
+
+/**
+ * Ensure runtime upload directories exist with protective index.php and .htaccess files
+ */
+function ensureResellerRuntimeDirectories() {
+    $baseRoot = dirname(__DIR__);
+    $dirs = array(
+        $baseRoot . '/uploads',
+        $baseRoot . '/uploads/reseller-logos',
+        $baseRoot . '/uploads/reseller-templates',
+        $baseRoot . '/images',
+    );
+    foreach ($dirs as $d) {
+        if (!is_dir($d)) {
+            @mkdir($d, 0755, true);
+        }
+        $idxFile = $d . '/index.php';
+        if (!file_exists($idxFile)) {
+            @file_put_contents($idxFile, "<?php header('Location:../'); exit; ?>\n");
+        }
+    }
+    $htaccess = $baseRoot . '/uploads/.htaccess';
+    if (!file_exists($htaccess)) {
+        @file_put_contents($htaccess, "Options -Indexes\n<FilesMatch \"\\.(php|phtml|phar|cgi|pl|sh)$\">\n  Deny from all\n</FilesMatch>\n");
+    }
+}
+
+/**
+ * Ensure a reseller's template directory has initialized template files
+ */
+function ensureResellerTemplateFiles($resellerId) {
+    $safeId = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$resellerId);
+    if ($safeId === '') {
+        return false;
+    }
+    ensureResellerRuntimeDirectories();
+    $baseRoot = dirname(__DIR__);
+    $tplDir = $baseRoot . '/uploads/reseller-templates/' . $safeId;
+    if (!is_dir($tplDir)) {
+        @mkdir($tplDir, 0755, true);
+    }
+    $variants = array(
+        'template.php'         => $baseRoot . '/voucher/default.php',
+        'template-thermal.php' => $baseRoot . '/voucher/default-thermal.php',
+        'template-small.php'   => $baseRoot . '/voucher/default-small.php',
+    );
+    foreach ($variants as $targetName => $sourceDefault) {
+        $targetPath = $tplDir . '/' . $targetName;
+        if (!file_exists($targetPath) && file_exists($sourceDefault)) {
+            @copy($sourceDefault, $targetPath);
+        }
+        $draftPath = $tplDir . '/' . str_replace('.php', '.draft.php', $targetName);
+        if (!file_exists($draftPath) && file_exists($targetPath)) {
+            @copy($targetPath, $draftPath);
+        }
+        $bakPath = $tplDir . '/' . str_replace('.php', '.bak.php', $targetName);
+        if (!file_exists($bakPath) && file_exists($targetPath)) {
+            @copy($targetPath, $bakPath);
+        }
+    }
+    return true;
+}
+
+/**
+ * Load all configured resellers from include/resellers.json with backward-compatible schema migration
+ */
+function loadResellers() {
+    ensureResellerRuntimeDirectories();
+    $path = getResellersStoragePath();
+    $groups = loadPermissionGroups();
+
+    if (!file_exists($path)) {
+        $defaultRouters = getConfiguredRouterSessions();
+        $r1 = isset($defaultRouters[0]) ? array($defaultRouters[0]) : array('MikroTik-ROS7');
+        $r2 = isset($defaultRouters[1]) ? array($defaultRouters[1]) : array('MikroTik-ROS6');
+
+        $writeCustomNoDelete = $groups['Write'];
+        $writeCustomNoDelete['delete_user'] = false;
+
+        $seed = array(
+            array(
+                'id' => '101',
+                'legacy_ids' => array('res_kiosk_utara', 'reseller_1'),
+                'username' => 'kiosk_utara',
+                'name' => 'Kiosk Utara Cellular',
+                'password_hash' => password_hash('kiosk123', PASSWORD_DEFAULT),
+                'password_enc' => function_exists('encrypt') ? encrypt('kiosk123') : base64_encode('kiosk123'),
+                'status' => 'active',
+                'permission_mode' => 'Write',
+                'template_code' => 'NGW-001',
+                'assigned_template' => 'default',
+                'template_status' => 'active',
+                'logo_filename' => '',
+                'allowed_routers' => $r1,
+                'permissions' => $writeCustomNoDelete,
+                'created_at' => '2026-10-20 09:00:00',
+            ),
+            array(
+                'id' => '102',
+                'legacy_ids' => array('res_mitra_selatan', 'reseller_2'),
+                'username' => 'mitra_selatan',
+                'name' => 'Mitra Selatan Net',
+                'password_hash' => password_hash('mitra123', PASSWORD_DEFAULT),
+                'password_enc' => function_exists('encrypt') ? encrypt('mitra123') : base64_encode('mitra123'),
+                'status' => 'active',
+                'permission_mode' => 'Full',
+                'template_code' => 'NGW-002',
+                'assigned_template' => 'thermal',
+                'template_status' => 'active',
+                'logo_filename' => '',
+                'allowed_routers' => $r2,
+                'permissions' => $groups['Full'],
+                'created_at' => '2026-10-21 11:30:00',
+            ),
+            array(
+                'id' => '103',
+                'legacy_ids' => array('res_counter_timur', 'reseller_3'),
+                'username' => 'counter_timur',
+                'name' => 'Counter Timur Voucher',
+                'password_hash' => password_hash('timur123', PASSWORD_DEFAULT),
+                'password_enc' => function_exists('encrypt') ? encrypt('timur123') : base64_encode('timur123'),
+                'status' => 'active',
+                'permission_mode' => 'Read',
+                'template_code' => 'NGW-003',
+                'assigned_template' => 'small',
+                'template_status' => 'active',
+                'logo_filename' => '',
+                'allowed_routers' => $r1,
+                'permissions' => $groups['Read'],
+                'created_at' => '2026-10-22 14:15:00',
+            ),
+        );
+        foreach ($seed as $sr) {
+            ensureResellerTemplateFiles($sr['id']);
+        }
+        @file_put_contents($path, json_encode($seed, JSON_PRETTY_PRINT));
+        return $seed;
+    }
+
+    $raw = @file_get_contents($path);
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return array();
+    }
+
+    $needsSave = false;
+    foreach ($decoded as $idx => $res) {
+        // Backward-compatible ID normalization: preserve stable numeric IDs (101, 102, ...) while keeping legacy_ids
+        $currId = isset($res['id']) ? (string)$res['id'] : (string)(101 + $idx);
+        if (!isset($res['legacy_ids']) || !is_array($res['legacy_ids'])) {
+            $res['legacy_ids'] = array();
+        }
+        if ($currId === 'res_kiosk_utara' || $currId === 'reseller_1') {
+            $res['legacy_ids'] = array_values(array_unique(array_merge($res['legacy_ids'], array($currId, 'res_kiosk_utara', 'reseller_1'))));
+            $res['id'] = '101';
+            $needsSave = true;
+        } elseif ($currId === 'res_mitra_selatan' || $currId === 'reseller_2') {
+            $res['legacy_ids'] = array_values(array_unique(array_merge($res['legacy_ids'], array($currId, 'res_mitra_selatan', 'reseller_2'))));
+            $res['id'] = '102';
+            $needsSave = true;
+        } elseif ($currId === '') {
+            $res['id'] = (string)(101 + $idx);
+            $needsSave = true;
+        }
+
+        if (empty($res['permission_mode']) || !in_array($res['permission_mode'], array('Read', 'Write', 'Full', 'Custom'), true)) {
+            $res['permission_mode'] = 'Custom';
+            $needsSave = true;
+        }
+        if (empty($res['template_code'])) {
+            $numCode = is_numeric($res['id']) ? ((int)$res['id'] - 100) : ($idx + 1);
+            if ($numCode < 1) $numCode = $idx + 1;
+            $res['template_code'] = sprintf('NGW-%03d', $numCode);
+            $needsSave = true;
+        }
+        if (empty($res['assigned_template']) || !in_array($res['assigned_template'], array('default', 'thermal', 'small'), true)) {
+            $res['assigned_template'] = 'default';
+            $needsSave = true;
+        }
+        if (empty($res['template_status']) || !in_array($res['template_status'], array('active', 'inactive'), true)) {
+            $res['template_status'] = 'active';
+            $needsSave = true;
+        }
+        if (!isset($res['logo_filename'])) {
+            $res['logo_filename'] = '';
+            $needsSave = true;
+        }
+
+        $perms = isset($res['permissions']) && is_array($res['permissions']) ? $res['permissions'] : getStandardSellerPermissions();
+        if (!isset($perms['use_assigned_template'])) {
+            $perms['use_assigned_template'] = true;
+        }
+        if (!isset($perms['preview_assigned_template'])) {
+            $perms['preview_assigned_template'] = true;
+        }
+        $res['permissions'] = sanitizeResellerPermissions($perms);
+        ensureResellerTemplateFiles($res['id']);
+        $decoded[$idx] = $res;
+    }
+
+    if ($needsSave) {
+        @file_put_contents($path, json_encode(array_values($decoded), JSON_PRETTY_PRINT));
+    }
+    return $decoded;
+}
+
+/**
+ * Find a reseller record by internal ID, legacy ID, or username.
+ */
+function findResellerByIdOrUsername($identifier) {
+    $identifier = trim((string)$identifier);
+    if ($identifier === '') {
+        return null;
+    }
+    foreach (loadResellers() as $r) {
+        if ((string)$r['id'] === $identifier || (isset($r['username']) && $r['username'] === $identifier)) {
+            return $r;
+        }
+        if (isset($r['legacy_ids']) && is_array($r['legacy_ids']) && in_array($identifier, $r['legacy_ids'], true)) {
+            return $r;
+        }
+    }
+    return null;
+}
+
+/**
+ * Generate the next sequential numeric reseller ID (101, 102, 103...)
+ */
+function getNextResellerId($resellers) {
+    $maxId = 100;
+    foreach ($resellers as $r) {
+        if (isset($r['id']) && is_numeric($r['id'])) {
+            $val = (int)$r['id'];
+            if ($val > $maxId) {
+                $maxId = $val;
+            }
+        }
+    }
+    return (string)($maxId + 1);
+}
+
+/**
+ * Save resellers array to include/resellers.json
+ */
+function saveResellers($resellers) {
+    $path = getResellersStoragePath();
+    return @file_put_contents($path, json_encode(array_values($resellers), JSON_PRETTY_PRINT)) !== false;
+}
+
+/**
+ * Verify password against a reseller record
+ */
+function verifyResellerPassword($reseller, $plainPassword) {
+    if (!empty($reseller['password_hash']) && password_verify($plainPassword, $reseller['password_hash'])) {
+        return true;
+    }
+    if (!empty($reseller['password_enc']) && function_exists('decrypt')) {
+        if (decrypt($reseller['password_enc']) === $plainPassword) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Authenticate user as Admin or Reseller
+ */
+function authenticateMikhmonUser($username, $password, $useradm, $passadm_decrypted) {
+    $username = trim((string)$username);
+    $password = (string)$password;
+
+    if ($username === $useradm && $password === $passadm_decrypted) {
+        return array(
+            'authenticated' => true,
+            'role' => 'admin',
+            'id' => 'admin',
+            'username' => $username,
+            'name' => 'Administrator',
+            'permission_mode' => 'Admin',
+            'template_code' => 'GLOBAL',
+            'assigned_template' => 'default',
+            'template_status' => 'active',
+            'logo_filename' => '',
+            'allowed_routers' => array('*'),
+            'permissions' => getDefaultPermissionMap(true),
+        );
+    }
+
+    $resellers = loadResellers();
+    foreach ($resellers as $reseller) {
+        if (isset($reseller['username']) && $reseller['username'] === $username) {
+            if (!isset($reseller['status']) || $reseller['status'] !== 'active') {
+                return array(
+                    'authenticated' => false,
+                    'error' => 'Reseller account is deactivated.',
+                );
+            }
+            if (verifyResellerPassword($reseller, $password)) {
+                $effectivePerms = resolveEffectiveResellerPermissions($reseller);
+                return array(
+                    'authenticated' => true,
+                    'role' => 'reseller',
+                    'id' => (string)$reseller['id'],
+                    'username' => $reseller['username'],
+                    'name' => isset($reseller['name']) ? $reseller['name'] : $reseller['username'],
+                    'permission_mode' => isset($reseller['permission_mode']) ? $reseller['permission_mode'] : 'Custom',
+                    'template_code' => isset($reseller['template_code']) ? $reseller['template_code'] : 'NGW-001',
+                    'assigned_template' => isset($reseller['assigned_template']) ? $reseller['assigned_template'] : 'default',
+                    'template_status' => isset($reseller['template_status']) ? $reseller['template_status'] : 'active',
+                    'logo_filename' => isset($reseller['logo_filename']) ? $reseller['logo_filename'] : '',
+                    'allowed_routers' => isset($reseller['allowed_routers']) && is_array($reseller['allowed_routers']) ? $reseller['allowed_routers'] : array(),
+                    'permissions' => $effectivePerms,
+                );
+            }
+        }
+    }
+
+    return array('authenticated' => false);
+}
+
+/**
+ * Refresh active reseller session permissions, template assignment, logo, and router assignments
+ * from disk on every request using stable internal reseller ID (with username fallback).
+ */
+function syncActiveResellerSession() {
+    if (!isset($_SESSION['mikhmon_role']) || $_SESSION['mikhmon_role'] !== 'reseller') {
+        return true;
+    }
+    $resId = isset($_SESSION['mikhmon_reseller_id']) ? trim((string)$_SESSION['mikhmon_reseller_id']) : '';
+    $uname = isset($_SESSION['mikhmon']) ? trim((string)$_SESSION['mikhmon']) : '';
+    $resellers = loadResellers();
+    foreach ($resellers as $r) {
+        $matchById = ($resId !== '' && (string)$r['id'] === $resId);
+        $matchByLegacy = ($resId !== '' && isset($r['legacy_ids']) && is_array($r['legacy_ids']) && in_array($resId, $r['legacy_ids'], true));
+        $matchByUser = ($resId === '' && $uname !== '' && isset($r['username']) && $r['username'] === $uname);
+        if ($matchById || $matchByLegacy || $matchByUser) {
+            if (!isset($r['status']) || $r['status'] !== 'active') {
+                session_destroy();
+                return false;
+            }
+            $_SESSION['mikhmon'] = $r['username'];
+            $_SESSION['mikhmon_reseller_id'] = (string)$r['id'];
+            $_SESSION['mikhmon_permission_mode'] = isset($r['permission_mode']) ? $r['permission_mode'] : 'Custom';
+            $_SESSION['mikhmon_template_code'] = isset($r['template_code']) ? $r['template_code'] : 'NGW-001';
+            $_SESSION['mikhmon_assigned_template'] = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
+            $_SESSION['mikhmon_template_status'] = isset($r['template_status']) ? $r['template_status'] : 'active';
+            $_SESSION['mikhmon_logo_filename'] = isset($r['logo_filename']) ? $r['logo_filename'] : '';
+            $_SESSION['mikhmon_routers'] = isset($r['allowed_routers']) ? $r['allowed_routers'] : array();
+            $_SESSION['mikhmon_permissions'] = resolveEffectiveResellerPermissions($r);
+            return true;
+        }
+    }
+    session_destroy();
+    return false;
+}
+
+/**
+ * Get the authenticated reseller record (or null if Admin/unauthenticated)
+ */
+function getCurrentResellerRecord() {
+    if (isMikhmonAdmin()) {
+        return null;
+    }
+    if (!syncActiveResellerSession()) {
+        return null;
+    }
+    $resId = isset($_SESSION['mikhmon_reseller_id']) ? (string)$_SESSION['mikhmon_reseller_id'] : '';
+    if ($resId !== '') {
+        return findResellerByIdOrUsername($resId);
+    }
+    $uname = isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : '';
+    return findResellerByIdOrUsername($uname);
+}
+
+/**
+ * Check if current user is Administrator
+ */
+function isMikhmonAdmin() {
+    if (!isset($_SESSION['mikhmon'])) {
+        return false;
+    }
+    return !isset($_SESSION['mikhmon_role']) || $_SESSION['mikhmon_role'] === 'admin';
+}
+
+/**
+ * Verify if current session user can access a router session
+ */
+function canAccessRouterSession($sessionName) {
+    if (empty($sessionName)) {
+        return false;
+    }
+    if (!syncActiveResellerSession()) {
+        return false;
+    }
+    if (isMikhmonAdmin()) {
+        return true;
+    }
+    $allowed = isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers']) ? $_SESSION['mikhmon_routers'] : array();
+    return in_array('*', $allowed, true) || in_array($sessionName, $allowed, true);
+}
+
+/**
+ * Verify if current session user has a specific granular permission
+ */
+function hasResellerPermission($permKey) {
+    if (!syncActiveResellerSession()) {
+        return false;
+    }
+    if (isMikhmonAdmin()) {
+        return true;
+    }
+    if (isProtectedAdminPermission($permKey)) {
+        return false;
+    }
+    // Alias support
+    if ($permKey === 'remove_host') $permKey = 'manage_hosts';
+    if ($permKey === 'remove_cookie') $permKey = 'delete_cookies';
+    if ($permKey === 'manage_template_logo') $permKey = 'edit_own_template';
+
+    $perms = isset($_SESSION['mikhmon_permissions']) && is_array($_SESSION['mikhmon_permissions']) ? $_SESSION['mikhmon_permissions'] : array();
+    return !empty($perms[$permKey]);
+}
+
+/**
+ * Resolve logo path for voucher printing / preview / header according to recommended asset resolution order:
+ * 1. Authenticated reseller's explicitly assigned logo (uploads/reseller-logos/{id}/{logo_filename})
+ * 2. Logo assigned to that reseller's template (uploads/reseller-templates/{id}/logo.png)
+ * 3. Session-specific default logo (img/logo-{session}.png)
+ * 4. Application-wide default logo (img/logo.png)
+ */
+function resolveActiveVoucherLogo($session, $relativePrefix = '../', $withCacheBust = true, $overrideResellerId = null) {
+    $baseRoot = dirname(__DIR__);
+    $cacheSuffix = $withCacheBust ? ('?t=' . str_replace(' ', '_', date('Y-m-d H:i:s'))) : '';
+
+    $reseller = getCurrentResellerRecord();
+    if ($reseller === null && isMikhmonAdmin() && !empty($overrideResellerId)) {
+        $reseller = findResellerByIdOrUsername($overrideResellerId);
+    }
+    if ($reseller !== null) {
+        $safeId = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$reseller['id']);
+        $logoFile = isset($reseller['logo_filename']) ? basename((string)$reseller['logo_filename']) : '';
+        if ($safeId !== '' && $logoFile !== '') {
+            $absAssigned = $baseRoot . '/uploads/reseller-logos/' . $safeId . '/' . $logoFile;
+            if (is_file($absAssigned) && @getimagesize($absAssigned) !== false) {
+                return $relativePrefix . 'uploads/reseller-logos/' . $safeId . '/' . $logoFile . $cacheSuffix;
+            }
+        }
+        if ($safeId !== '') {
+            $absTplLogo = $baseRoot . '/uploads/reseller-templates/' . $safeId . '/logo.png';
+            if (is_file($absTplLogo) && @getimagesize($absTplLogo) !== false) {
+                return $relativePrefix . 'uploads/reseller-templates/' . $safeId . '/logo.png' . $cacheSuffix;
+            }
+        }
+    }
+
+    $safeSession = basename((string)$session);
+    if ($safeSession !== '' && is_file($baseRoot . '/img/logo-' . $safeSession . '.png')) {
+        return $relativePrefix . 'img/logo-' . $safeSession . '.png' . $cacheSuffix;
+    }
+
+    return $relativePrefix . 'img/logo.png' . $cacheSuffix;
+}
+
+/**
+ * Resolve voucher template filesystem path for voucher/print.php and voucher/vpreview.php
+ * Ensures each reseller automatically loads their own assigned/published template without affecting global files.
+ */
+function resolveActiveVoucherTemplatePath($requestedVariant = 'default', $overrideResellerId = null) {
+    $baseRoot = dirname(__DIR__);
+    $reseller = getCurrentResellerRecord();
+    $isAdminPreview = false;
+    if ($reseller === null && isMikhmonAdmin() && !empty($overrideResellerId)) {
+        $reseller = findResellerByIdOrUsername($overrideResellerId);
+        $isAdminPreview = true;
+    }
+
+    $variantMap = array(
+        'default'  => 'template.php',
+        'thermal'  => 'template-thermal.php',
+        'small'    => 'template-small.php',
+    );
+
+    if ($reseller !== null) {
+        $safeId = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$reseller['id']);
+        $tplStatus = isset($reseller['template_status']) ? $reseller['template_status'] : 'active';
+        $canUse = $isAdminPreview ? true : (hasResellerPermission('use_assigned_template') || hasResellerPermission('preview_assigned_template'));
+
+        if ($safeId !== '' && $tplStatus === 'active' && $canUse) {
+            $effectiveVariant = $requestedVariant;
+            if ($requestedVariant === 'assigned' && !empty($reseller['assigned_template']) && isset($variantMap[$reseller['assigned_template']])) {
+                $effectiveVariant = $reseller['assigned_template'];
+            }
+            $fileName = isset($variantMap[$effectiveVariant]) ? $variantMap[$effectiveVariant] : 'template.php';
+            ensureResellerTemplateFiles($safeId);
+            $resellerTplPath = $baseRoot . '/uploads/reseller-templates/' . $safeId . '/' . $fileName;
+            if (is_file($resellerTplPath) && is_readable($resellerTplPath)) {
+                return $resellerTplPath;
+            }
+        }
+    }
+
+    $fallbackVariant = ($requestedVariant === 'assigned') ? 'default' : $requestedVariant;
+    $fallbackFile = isset($variantMap[$fallbackVariant]) ? $variantMap[$fallbackVariant] : 'template.php';
+    return $baseRoot . '/voucher/' . $fallbackFile;
+}
+
+/**
+ * Validate and store a reseller-specific logo upload safely inside uploads/reseller-logos/{reseller_id}/
+ */
+function handleResellerLogoUpload($resellerId, $fileInput) {
+    $safeId = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$resellerId);
+    if ($safeId === '') {
+        return array('ok' => false, 'error' => 'Invalid reseller ID.');
+    }
+    if (!isset($fileInput['tmp_name']) || !is_uploaded_file($fileInput['tmp_name'])) {
+        return array('ok' => false, 'error' => 'No valid uploaded file received.');
+    }
+    if ($fileInput['size'] > 2 * 1024 * 1024) {
+        return array('ok' => false, 'error' => 'Logo file exceeds maximum size of 2 MB.');
+    }
+
+    $imgInfo = @getimagesize($fileInput['tmp_name']);
+    if ($imgInfo === false) {
+        return array('ok' => false, 'error' => 'Uploaded file is not a valid image.');
+    }
+    $width = (int)$imgInfo[0];
+    $height = (int)$imgInfo[1];
+    $imgType = (int)$imgInfo[2];
+
+    if ($width < 10 || $height < 10 || $width > 2400 || $height > 2400) {
+        return array('ok' => false, 'error' => 'Image dimensions must be between 10x10 and 2400x2400 pixels.');
+    }
+
+    $allowedTypes = array(
+        IMAGETYPE_PNG  => 'png',
+        IMAGETYPE_JPEG => 'jpg',
+    );
+    if (defined('IMAGETYPE_WEBP')) {
+        $allowedTypes[IMAGETYPE_WEBP] = 'webp';
+    }
+    if (!isset($allowedTypes[$imgType])) {
+        return array('ok' => false, 'error' => 'Only PNG, JPEG, and WebP images are supported.');
+    }
+
+    $ext = $allowedTypes[$imgType];
+    ensureResellerRuntimeDirectories();
+    $baseRoot = dirname(__DIR__);
+    $targetDir = $baseRoot . '/uploads/reseller-logos/' . $safeId;
+    if (!is_dir($targetDir)) {
+        @mkdir($targetDir, 0755, true);
+    }
+    // Remove previous logo files for this reseller
+    foreach (glob($targetDir . '/logo.*') as $oldFile) {
+        if (is_file($oldFile)) {
+            @unlink($oldFile);
+        }
+    }
+    $safeFilename = 'logo.' . $ext;
+    $destPath = $targetDir . '/' . $safeFilename;
+    if (!@move_uploaded_file($fileInput['tmp_name'], $destPath)) {
+        return array('ok' => false, 'error' => 'Failed to save uploaded logo on server.');
+    }
+    return array('ok' => true, 'filename' => $safeFilename);
+}
+
+/**
+ * Remove a reseller's custom uploaded logo and revert to default logo fallback
+ */
+function removeResellerCustomLogo($resellerId) {
+    $safeId = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$resellerId);
+    if ($safeId === '') {
+        return false;
+    }
+    $baseRoot = dirname(__DIR__);
+    $targetDir = $baseRoot . '/uploads/reseller-logos/' . $safeId;
+    if (is_dir($targetDir)) {
+        foreach (glob($targetDir . '/logo.*') as $oldFile) {
+            if (is_file($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+    }
+    $resellers = loadResellers();
+    foreach ($resellers as $idx => $r) {
+        if ((string)$r['id'] === $safeId) {
+            $resellers[$idx]['logo_filename'] = '';
+        }
+    }
+    return saveResellers($resellers);
+}
+
+/**
+ * Enforce permission server-side and render native Access Denied card if unauthorized
+ */
+function requireResellerPermission($permKey, $redirectUrl = './admin.php?id=sessions') {
+    if (!hasResellerPermission($permKey)) {
+        $flatLabels = getFlatMikhmonPermissionLabels();
+        $label = isset($flatLabels[$permKey]) ? $flatLabels[$permKey] : $permKey;
+        $thm = isset($_SESSION['theme']) && $_SESSION['theme'] !== '' ? $_SESSION['theme'] : 'dark';
+        echo '<div class="row"><div class="col-6"><div class="card"><div class="card-header"><h3><i class="fa fa-ban text-danger"></i> Access Denied</h3></div><div class="card-body"><p>Your reseller account (<b>' . htmlspecialchars(isset($_SESSION['mikhmon']) ? $_SESSION['mikhmon'] : '', ENT_QUOTES) . '</b>) does not have permission for this operation: <b>' . htmlspecialchars($label, ENT_QUOTES) . '</b> (<code>' . htmlspecialchars($permKey, ENT_QUOTES) . '</code>).</p><a class="btn bg-primary" href="' . htmlspecialchars($redirectUrl, ENT_QUOTES) . '"><i class="fa fa-arrow-left"></i> Back</a></div></div></div></div></div></div><script src="./js/mikhmon-ui.' . htmlspecialchars($thm, ENT_QUOTES) . '.min.js"></script><script src="./js/mikhmon.js"></script></body></html>';
+        exit;
+    }
+}
+?>
