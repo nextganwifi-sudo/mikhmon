@@ -44,14 +44,16 @@ if (!isset($_SESSION["mikhmon"])) {
 	$timezone = $gettimezone[0]['time-zone-name'];
 	date_default_timezone_set($timezone);
 
+	$apiReady = (!empty($API->connected) || $API->connect($iphost, $userhost, decrypt($passwdhost)));
+
 	if (isset($remdata)) {
 		requireResellerPermission('delete_report', './?report=selling&session=' . $session);
 		if (strlen($idhr) > "0") {
-			if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
+			if ($apiReady) {
 				removeMikhmonReportScripts($API, $idhr, '');
 			}
 		} elseif (strlen($idbl) > "0") {
-			if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
+			if ($apiReady) {
 				removeMikhmonReportScripts($API, '', $idbl);
 			}
 		}
@@ -64,7 +66,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$fprefix = "";
 	}
 	if (strlen($idhr) > "0") {
-		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
+		if ($apiReady) {
 			$getData = queryMikhmonReportScripts($API, $idhr, '');
 			$TotalReg = count($getData);
 		}
@@ -72,7 +74,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shf = "hidden";
 		$shd = "inline-block";
 	} elseif (strlen($idbl) > "0") {
-		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
+		if ($apiReady) {
 			$getData = queryMikhmonReportScripts($API, '', $idbl);
 			$TotalReg = count($getData);
 		}
@@ -80,7 +82,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shf = "hidden";
 		$shd = "inline-block";
 	} elseif ($idhr == "" || $idbl == "") {
-		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
+		if ($apiReady) {
 			$getData = queryMikhmonReportScripts($API, '', '');
 			$TotalReg = count($getData);
 		}

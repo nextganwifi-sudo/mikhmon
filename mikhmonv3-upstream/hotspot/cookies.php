@@ -23,11 +23,8 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 
 	$getcookies = $API->comm("/ip/hotspot/cookie/print");
-	$TotalReg = count($getcookies);
-
-	$countcookies = $API->comm("/ip/hotspot/cookie/print", array(
-		"count-only" => "",
-	));
+	$TotalReg = is_array($getcookies) ? count($getcookies) : 0;
+	$countcookies = $TotalReg;
 
 }
 ?>

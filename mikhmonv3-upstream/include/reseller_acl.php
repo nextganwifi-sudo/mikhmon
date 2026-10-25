@@ -74,9 +74,11 @@ function getAllMikhmonPermissionCategories() {
             'delete_report'       => 'Delete Selling Report Records',
             'view_traffic'        => 'View Interface Traffic Monitor',
         ),
+        'System Scheduler' => array(
+            'view_scheduler'         => 'View System Scheduler (Menu & List)',
+            'manage_scheduler'       => 'Manage System Scheduler (Enable, Disable & Remove)',
+        ),
         'Router Management' => array(
-            'view_scheduler'         => 'View System Scheduler',
-            'manage_scheduler'       => 'Enable, Disable & Remove System Schedulers',
             'reboot_shutdown'        => 'Reboot & Shutdown Router',
             'manage_router_settings' => 'Modify Router Session Settings & Upload Logo',
         ),
@@ -209,7 +211,6 @@ function getDefaultPermissionGroupDefinitions() {
         'view_logs',
         'view_report',
         'view_traffic',
-        'view_scheduler',
         'view_ppp',
         'use_assigned_template',
         'preview_assigned_template',
@@ -241,7 +242,7 @@ function getDefaultPermissionGroupDefinitions() {
 
     $fullMap = getDefaultPermissionMap(false);
     foreach ($fullMap as $fk => $fv) {
-        if (!isProtectedAdminPermission($fk)) {
+        if (!isProtectedAdminPermission($fk) && $fk !== 'view_scheduler' && $fk !== 'manage_scheduler') {
             $fullMap[$fk] = true;
         }
     }
@@ -267,16 +268,21 @@ function getPermissionGroupsStoragePath() {
 /**
  * Load administrator-configurable Read, Write, and Full permission group definitions.
  */
-function loadPermissionGroups() {
+function loadPermissionGroups($forceReload = false) {
+    if (!$forceReload && isset($GLOBALS['NGW_CACHE_PERM_GROUPS']) && is_array($GLOBALS['NGW_CACHE_PERM_GROUPS'])) {
+        return $GLOBALS['NGW_CACHE_PERM_GROUPS'];
+    }
     $defaults = getDefaultPermissionGroupDefinitions();
     $path = getPermissionGroupsStoragePath();
     if (!file_exists($path)) {
         @file_put_contents($path, json_encode($defaults, JSON_PRETTY_PRINT));
+        $GLOBALS['NGW_CACHE_PERM_GROUPS'] = $defaults;
         return $defaults;
     }
     $raw = @file_get_contents($path);
     $decoded = json_decode($raw, true);
     if (!is_array($decoded)) {
+        $GLOBALS['NGW_CACHE_PERM_GROUPS'] = $defaults;
         return $defaults;
     }
     $result = array();
@@ -287,6 +293,7 @@ function loadPermissionGroups() {
             $result[$mode] = $defaults[$mode];
         }
     }
+    $GLOBALS['NGW_CACHE_PERM_GROUPS'] = $result;
     return $result;
 }
 
@@ -300,7 +307,10 @@ function savePermissionGroups($groups) {
         $src = isset($groups[$mode]) && is_array($groups[$mode]) ? $groups[$mode] : $defaults[$mode];
         $toSave[$mode] = sanitizeResellerPermissions($src);
     }
-    return @file_put_contents(getPermissionGroupsStoragePath(), json_encode($toSave, JSON_PRETTY_PRINT)) !== false;
+    $ok = @file_put_contents(getPermissionGroupsStoragePath(), json_encode($toSave, JSON_PRETTY_PRINT)) !== false;
+    $GLOBALS['NGW_CACHE_PERM_GROUPS'] = $toSave;
+    unset($GLOBALS['NGW_RESELLER_SYNCED']);
+    return $ok;
 }
 
 /**
@@ -419,7 +429,10 @@ function ensureResellerTemplateFiles($resellerId) {
 /**
  * Load all configured resellers from include/resellers.json with backward-compatible schema migration
  */
-function loadResellers() {
+function loadResellers($forceReload = false) {
+    if (!$forceReload && isset($GLOBALS['NGW_CACHE_RESELLERS']) && is_array($GLOBALS['NGW_CACHE_RESELLERS'])) {
+        return $GLOBALS['NGW_CACHE_RESELLERS'];
+    }
     ensureResellerRuntimeDirectories();
     $path = getResellersStoragePath();
     $groups = loadPermissionGroups();
@@ -558,6 +571,7 @@ function loadResellers() {
     if ($needsSave) {
         @file_put_contents($path, json_encode(array_values($decoded), JSON_PRETTY_PRINT));
     }
+    $GLOBALS['NGW_CACHE_RESELLERS'] = $decoded;
     return $decoded;
 }
 
@@ -601,7 +615,11 @@ function getNextResellerId($resellers) {
  */
 function saveResellers($resellers) {
     $path = getResellersStoragePath();
-    return @file_put_contents($path, json_encode(array_values($resellers), JSON_PRETTY_PRINT)) !== false;
+    $cleanList = array_values($resellers);
+    $ok = @file_put_contents($path, json_encode($cleanList, JSON_PRETTY_PRINT)) !== false;
+    $GLOBALS['NGW_CACHE_RESELLERS'] = $cleanList;
+    unset($GLOBALS['NGW_RESELLER_SYNCED']);
+    return $ok;
 }
 
 /**
@@ -620,19 +638,113 @@ function verifyResellerPassword($reseller, $plainPassword) {
 }
 
 /**
- * Authenticate user as Admin or Reseller
+ * Path to backup/secondary administrator credentials file
+ */
+function getBackupAdminStoragePath() {
+    return dirname(__FILE__) . '/backup_admin.json';
+}
+
+/**
+ * Load Secondary / Backup Admin credentials
+ */
+function getBackupAdminCredentials() {
+    $path = getBackupAdminStoragePath();
+    $default = array(
+        'username' => '',
+        'password_enc' => '',
+        'password' => '',
+    );
+    if (!is_file($path)) {
+        return $default;
+    }
+    $raw = @file_get_contents($path);
+    $decoded = @json_decode((string)$raw, true);
+    if (!is_array($decoded)) {
+        return $default;
+    }
+    $u = isset($decoded['username']) ? trim((string)$decoded['username']) : '';
+    $pEnc = isset($decoded['password_enc']) ? (string)$decoded['password_enc'] : '';
+    $pPlain = '';
+    if ($pEnc !== '' && function_exists('decrypt')) {
+        $pPlain = (string)decrypt($pEnc);
+    } elseif (isset($decoded['password'])) {
+        $pPlain = (string)$decoded['password'];
+    }
+    return array(
+        'username' => $u,
+        'password_enc' => $pEnc,
+        'password' => $pPlain,
+    );
+}
+
+/**
+ * Save Secondary / Backup Admin credentials
+ */
+function saveBackupAdminCredentials($username2, $plainPassword2) {
+    $username2 = trim((string)$username2);
+    $plainPassword2 = (string)$plainPassword2;
+    $pEnc = '';
+    if ($plainPassword2 !== '' && function_exists('encrypt')) {
+        $pEnc = encrypt($plainPassword2);
+    }
+    $data = array(
+        'username' => $username2,
+        'password_enc' => $pEnc,
+        'updated_at' => date('Y-m-d H:i:s'),
+    );
+    return @file_put_contents(getBackupAdminStoragePath(), json_encode($data, JSON_PRETTY_PRINT)) !== false;
+}
+
+/**
+ * Enforce 5-minute (300 seconds) server-side inactivity timeout on page navigations
+ */
+function enforceMikhmonSessionSecurity($isLoginOrLogout = false) {
+    if ($isLoginOrLogout || !isset($_SESSION["mikhmon"])) {
+        return;
+    }
+    if (!empty($_SESSION['mikhmon_login_handshake'])) {
+        $GLOBALS['NGW_LOGIN_HANDSHAKE'] = true;
+        unset($_SESSION['mikhmon_login_handshake']);
+    }
+    $timeoutSeconds = 300; // 5 minutes
+    $now = time();
+    if (isset($_SESSION['mikhmon_last_activity'])) {
+        $elapsed = $now - (int)$_SESSION['mikhmon_last_activity'];
+        if ($elapsed > $timeoutSeconds) {
+            $_SESSION = array();
+            @session_unset();
+            @session_destroy();
+            echo "<script>try{sessionStorage.removeItem('ngw_tab_auth');sessionStorage.removeItem('ngw_last_act');}catch(e){} window.location='./admin.php?id=login';</script>";
+            exit;
+        }
+    }
+    $_SESSION['mikhmon_last_activity'] = $now;
+}
+
+/**
+ * Authenticate user as Primary Admin, Backup/Secondary Admin, or Reseller
  */
 function authenticateMikhmonUser($username, $password, $useradm, $passadm_decrypted) {
     $username = trim((string)$username);
     $password = (string)$password;
 
-    if ($username === $useradm && $password === $passadm_decrypted) {
+    $isPrimaryAdmin = ($username !== '' && $username === $useradm && $password === $passadm_decrypted);
+    $backupAdmin = getBackupAdminCredentials();
+    $isBackupAdmin = (
+        !$isPrimaryAdmin &&
+        $backupAdmin['username'] !== '' &&
+        $backupAdmin['password'] !== '' &&
+        $username === $backupAdmin['username'] &&
+        $password === $backupAdmin['password']
+    );
+
+    if ($isPrimaryAdmin || $isBackupAdmin) {
         return array(
             'authenticated' => true,
             'role' => 'admin',
             'id' => 'admin',
             'username' => $username,
-            'name' => 'Administrator',
+            'name' => $isBackupAdmin ? 'Backup Administrator' : 'Administrator',
             'permission_mode' => 'Admin',
             'template_code' => 'GLOBAL',
             'assigned_template' => 'default',
@@ -683,6 +795,9 @@ function syncActiveResellerSession() {
     if (!isset($_SESSION['mikhmon_role']) || $_SESSION['mikhmon_role'] !== 'reseller') {
         return true;
     }
+    if (!empty($GLOBALS['NGW_RESELLER_SYNCED'])) {
+        return $GLOBALS['NGW_RESELLER_SYNC_RESULT'];
+    }
     $resId = isset($_SESSION['mikhmon_reseller_id']) ? trim((string)$_SESSION['mikhmon_reseller_id']) : '';
     $uname = isset($_SESSION['mikhmon']) ? trim((string)$_SESSION['mikhmon']) : '';
     $resellers = loadResellers();
@@ -693,6 +808,8 @@ function syncActiveResellerSession() {
         if ($matchById || $matchByLegacy || $matchByUser) {
             if (!isset($r['status']) || $r['status'] !== 'active') {
                 session_destroy();
+                $GLOBALS['NGW_RESELLER_SYNCED'] = true;
+                $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = false;
                 return false;
             }
             $_SESSION['mikhmon'] = $r['username'];
@@ -704,10 +821,14 @@ function syncActiveResellerSession() {
             $_SESSION['mikhmon_logo_filename'] = isset($r['logo_filename']) ? $r['logo_filename'] : '';
             $_SESSION['mikhmon_routers'] = isset($r['allowed_routers']) ? $r['allowed_routers'] : array();
             $_SESSION['mikhmon_permissions'] = resolveEffectiveResellerPermissions($r);
+            $GLOBALS['NGW_RESELLER_SYNCED'] = true;
+            $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = true;
             return true;
         }
     }
     session_destroy();
+    $GLOBALS['NGW_RESELLER_SYNCED'] = true;
+    $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = false;
     return false;
 }
 

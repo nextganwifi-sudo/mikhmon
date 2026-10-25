@@ -72,6 +72,7 @@ include_once('./lib/routeros_api.class.php');
 include_once('./lib/formatbytesbites.php');
 include_once('./include/ros_version.php');
 include_once('./include/reseller_acl.php');
+enforceMikhmonSessionSecurity($id == "login" || $id == "logout" || substr($url, -1) == "p");
 ?>
     
 <?php
@@ -91,62 +92,86 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon_logo_filename"] = isset($auth['logo_filename']) ? $auth['logo_filename'] : '';
       $_SESSION["mikhmon_routers"] = $auth['allowed_routers'];
       $_SESSION["mikhmon_permissions"] = $auth['permissions'];
+      $_SESSION["mikhmon_last_activity"] = time();
+      $_SESSION["mikhmon_login_handshake"] = 1;
+      session_write_close();
       if (isResetOnlyReseller()) {
-        echo "<script>window.location='./admin.php?id=reset-voucher'</script>";
+        echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=reset-voucher'</script>";
       } else {
-        echo "<script>window.location='./admin.php?id=sessions'</script>";
+        echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=sessions'</script>";
       }
+      exit;
     } else {
       $errText = isset($auth['error']) ? $auth['error'] : 'Invalid username or password.';
       $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
     }
   }
   
-
+  session_write_close();
   include_once('./include/login.php');
 } elseif (!isset($_SESSION["mikhmon"])) {
+  session_write_close();
   echo "<script>window.location='./admin.php?id=login'</script>";
+} elseif ($id == "return-to-admin" && !empty($_SESSION['mikhmon_impersonator_admin'])) {
+  $admUser = $_SESSION['mikhmon_impersonator_admin'];
+  unset($_SESSION['mikhmon_impersonator_admin']);
+  $_SESSION["mikhmon"] = $admUser;
+  $_SESSION["mikhmon_role"] = 'admin';
+  $_SESSION["mikhmon_reseller_id"] = 'admin';
+  $_SESSION["mikhmon_permission_mode"] = 'Admin';
+  $_SESSION["mikhmon_template_code"] = 'GLOBAL';
+  $_SESSION["mikhmon_assigned_template"] = 'default';
+  $_SESSION["mikhmon_logo_filename"] = '';
+  $_SESSION["mikhmon_routers"] = array('*');
+  $_SESSION["mikhmon_permissions"] = getDefaultPermissionMap(true);
+  $_SESSION["mikhmon_last_activity"] = time();
+  $_SESSION["mikhmon_login_handshake"] = 1;
+  session_write_close();
+  echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=resellers'</script>";
+  exit;
 } elseif (isResetOnlyReseller() && $id !== "reset-voucher" && $id !== "logout") {
+  session_write_close();
   echo "<script>window.location='./admin.php?id=reset-voucher'</script>";
   exit;
 } elseif ($id == "reset-voucher") {
   requireResellerPermission('reset_voucher', './admin.php?id=sessions');
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./hotspot/resetvoucher.php');
 } elseif (!empty($session) && $session !== "new" && !canAccessRouterSession($session)) {
+  session_write_close();
   echo "<script>window.location='./admin.php?id=sessions'</script>";
   exit;
 } elseif (substr($url, -1) == "/" || substr($url, -4) == ".php") {
+  session_write_close();
   echo "<script>window.location='./admin.php?id=sessions'</script>";
 
 } elseif ($id == "sessions") {
   $_SESSION["connect"] = "";
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./settings/sessions.php');
-  /*echo '
-  <script type="text/javascript">
-    document.getElementById("sessname").onkeypress = function(e) {
-    var chr = String.fromCharCode(e.which);
-    if (" _!@#$%^&*()+=;|?,~".indexOf(chr) >= 0)
-        return false;
-    };
-    </script>';*/
 } elseif ($id == "resellers") {
   if (!isMikhmonAdmin()) {
+    session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
   }
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./settings/resellers.php');
 } elseif ($id == "admin-settings") {
   if (!isMikhmonAdmin()) {
+    session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
   }
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./settings/admin_settings.php');
 } elseif ($id == "system-update") {
   if (!isMikhmonAdmin()) {
+    session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
   }
@@ -200,16 +225,20 @@ if ($id == "login" || substr($url, -1) == "p") {
     requireResellerPermission('edit_own_template', './admin.php?id=sessions');
   }
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./settings/uplogo.php');
 } elseif ($id == "reboot"  && !empty($session)) {
   requireResellerPermission('reboot_shutdown', './?session=' . $session);
+  session_write_close();
   include_once('./process/reboot.php');
 } elseif ($id == "shutdown"  && !empty($session)) {
   requireResellerPermission('reboot_shutdown', './?session=' . $session);
+  session_write_close();
   include_once('./process/shutdown.php');
 } elseif ($id == "remove-session" && $session != "") {
   requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
   include_once('./include/menu.php');
+  session_write_close();
   $fc = file("./include/config.php" );
   $f = fopen("./include/config.php", "w");
   $q = "'";
@@ -222,15 +251,19 @@ if ($id == "login" || substr($url, -1) == "p") {
   echo "<script>window.location='./admin.php?id=sessions'</script>";
 } elseif ($id == "about") {
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./include/about.php');
 } elseif ($id == "logout") {
   include_once('./include/menu.php');
   echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Logout...</b>";
-  session_destroy();
-  echo "<script>window.location='./admin.php?id=login'</script>";
+  $_SESSION = array();
+  @session_unset();
+  @session_destroy();
+  echo "<script>try{sessionStorage.clear();}catch(e){} window.location='./admin.php?id=login'</script>";
 } elseif ($id == "remove-logo" && $logo != ""  && !empty($session)) {
   requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
   include_once('./include/menu.php');
+  session_write_close();
   $logopath = "./img/";
   $remlogo = $logopath . basename($logo);
   if (is_file($remlogo)) {
@@ -242,15 +275,17 @@ if ($id == "login" || substr($url, -1) == "p") {
     requireResellerPermission('edit_own_template', './admin.php?id=sessions');
   }
   include_once('./include/menu.php');
+  session_write_close();
   include_once('./settings/vouchereditor.php');
 } elseif (empty($id)) {
+  session_write_close();
   echo "<script>window.location='./admin.php?id=sessions'</script>";
 } elseif(in_array($id, $ids) && empty($session)){
+  session_write_close();
 	echo "<script>window.location='./admin.php?id=sessions'</script>";
 }
 ?>
 <script src="js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="js/mikhmon.js?t=<?= str_replace(" ","_",date("Y-m-d H:i:s")); ?>"></script>
-<?php include('./include/info.php'); ?>
+<script src="js/mikhmon.js?v=ngw2.2"></script>
 </body>
 </html>

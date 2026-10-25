@@ -51,19 +51,12 @@ if (!isset($_SESSION["mikhmon"])) {
 
 	if ($serveractive != "") {
 		$gethotspotactive = $API->comm("/ip/hotspot/active/print", array("?server" => "" . $serveractive . ""));
-		$TotalReg = count($gethotspotactive);
-
-		$counthotspotactive = $API->comm("/ip/hotspot/active/print", array(
-			"count-only" => "", "?server" => "" . $serveractive . ""
-		));
-
+		$TotalReg = is_array($gethotspotactive) ? count($gethotspotactive) : 0;
+		$counthotspotactive = $TotalReg;
 	} else {
 		$gethotspotactive = $API->comm("/ip/hotspot/active/print");
-		$TotalReg = count($gethotspotactive);
-
-		$counthotspotactive = $API->comm("/ip/hotspot/active/print", array(
-			"count-only" => "",
-		));
+		$TotalReg = is_array($gethotspotactive) ? count($gethotspotactive) : 0;
+		$counthotspotactive = $TotalReg;
 	}
 }
 ?>

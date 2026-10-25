@@ -23,11 +23,8 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 
 	$getlease = $API->comm("/ip/dhcp-server/lease/print");
-	$TotalReg = count($getlease);
-
-	$countlease = $API->comm("/ip/dhcp-server/lease/print", array(
-		"count-only" => "",
-	));
+	$TotalReg = is_array($getlease) ? count($getlease) : 0;
+	$countlease = $TotalReg;
 
 }
 ?>

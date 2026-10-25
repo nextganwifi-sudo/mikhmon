@@ -23,11 +23,8 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 
 	$getbinding = $API->comm("/ip/hotspot/ip-binding/print");
-	$TotalReg = count($getbinding);
-
-	$countbinding = $API->comm("/ip/hotspot/ip-binding/print", array(
-		"count-only" => "",
-	));
+	$TotalReg = is_array($getbinding) ? count($getbinding) : 0;
+	$countbinding = $TotalReg;
 }
 
 ?>

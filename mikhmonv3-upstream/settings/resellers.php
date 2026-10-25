@@ -32,6 +32,42 @@ $resellers = loadResellers();
 $msg = "";
 $activeView = isset($_GET['view']) && $_GET['view'] === 'groups' ? 'groups' : 'resellers';
 
+// 1-Click Login as Reseller (Admin Impersonation)
+if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
+    $targetResellerId = trim((string)$_GET['login-as-reseller']);
+    $targetReseller = findResellerByIdOrUsername($targetResellerId);
+    if ($targetReseller) {
+        @session_start();
+        $adminUsername = isset($_SESSION['mikhmon']) ? $_SESSION['mikhmon'] : $useradm;
+        $_SESSION['mikhmon_impersonator_admin'] = $adminUsername;
+        $effectivePerms = resolveEffectiveResellerPermissions($targetReseller);
+        $_SESSION["mikhmon"] = $targetReseller['username'];
+        $_SESSION["mikhmon_role"] = 'reseller';
+        $_SESSION["mikhmon_reseller_id"] = (string)$targetReseller['id'];
+        $_SESSION["mikhmon_permission_mode"] = isset($targetReseller['permission_mode']) ? $targetReseller['permission_mode'] : 'Custom';
+        $_SESSION["mikhmon_template_code"] = isset($targetReseller['template_code']) ? $targetReseller['template_code'] : 'NGW-001';
+        $_SESSION["mikhmon_assigned_template"] = isset($targetReseller['assigned_template']) ? $targetReseller['assigned_template'] : 'default';
+        $_SESSION["mikhmon_logo_filename"] = isset($targetReseller['logo_filename']) ? $targetReseller['logo_filename'] : '';
+        $_SESSION["mikhmon_routers"] = isset($targetReseller['allowed_routers']) && is_array($targetReseller['allowed_routers']) ? $targetReseller['allowed_routers'] : array();
+        $_SESSION["mikhmon_permissions"] = $effectivePerms;
+        $_SESSION["mikhmon_last_activity"] = time();
+        $_SESSION["mikhmon_login_handshake"] = 1;
+        $isResetOnly = isResetOnlyReseller();
+        $allowedR = $_SESSION["mikhmon_routers"];
+        session_write_close();
+        if ($isResetOnly) {
+            $firstR = !empty($allowedR) ? $allowedR[0] : '';
+            $redir = $firstR !== '' ? './admin.php?id=reset-voucher&session=' . urlencode($firstR) : './admin.php?id=reset-voucher';
+        } elseif (!empty($session) && in_array($session, $allowedR, true)) {
+            $redir = getResellerDefaultFallbackUrl($session);
+        } else {
+            $redir = './admin.php?id=sessions';
+        }
+        echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='" . $redir . "';</script>";
+        exit;
+    }
+}
+
 // Toggle active / disabled
 if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
     $tid = $_GET['toggle-reseller'];
@@ -73,7 +109,14 @@ if (isset($_POST['save_permission_groups'])) {
         $updatedGroups[$gMode] = sanitizeResellerPermissions($gMap);
     }
     if (savePermissionGroups($updatedGroups)) {
-        $permGroups = loadPermissionGroups();
+        $permGroups = loadPermissionGroups(true);
+        foreach ($resellers as $rIdx => $rRow) {
+            $rMode = isset($rRow['permission_mode']) ? $rRow['permission_mode'] : 'Custom';
+            if (isset($permGroups[$rMode])) {
+                $resellers[$rIdx]['permissions'] = $permGroups[$rMode];
+            }
+        }
+        saveResellers($resellers);
         $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups updated successfully.</div>";
     }
 }
@@ -83,7 +126,14 @@ if (isset($_POST['reset_permission_groups'])) {
     $activeView = 'groups';
     $defs = getDefaultPermissionGroupDefinitions();
     savePermissionGroups($defs);
-    $permGroups = loadPermissionGroups();
+    $permGroups = loadPermissionGroups(true);
+    foreach ($resellers as $rIdx => $rRow) {
+        $rMode = isset($rRow['permission_mode']) ? $rRow['permission_mode'] : 'Custom';
+        if (isset($permGroups[$rMode])) {
+            $resellers[$rIdx]['permissions'] = $permGroups[$rMode];
+        }
+    }
+    saveResellers($resellers);
     $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-refresh'></i> Permission Groups restored to default settings.</div>";
 }
 
@@ -407,12 +457,13 @@ function setPermPreset(mode) {
     var boxes = document.querySelectorAll('.perm-checkbox');
     for (var i = 0; i < boxes.length; i++) {
         if (boxes[i].disabled) continue;
+        var pk = boxes[i].getAttribute('data-perm');
         if (mode === 'all') {
-            boxes[i].checked = true;
+            boxes[i].checked = (pk !== 'view_scheduler' && pk !== 'manage_scheduler');
         } else if (mode === 'none') {
             boxes[i].checked = false;
         } else if (mode === 'reset_only') {
-            boxes[i].checked = (boxes[i].getAttribute('data-perm') === 'reset_voucher');
+            boxes[i].checked = (pk === 'reset_voucher');
         }
     }
 }
@@ -606,12 +657,13 @@ function closeResellerDetailsModal() {
                         <th><?= $_name ?></th>
                         <th>Mode</th>
                         <th>Routers</th>
+                        <th class="text-center"><?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?></th>
                         <th><?= isset($_status) ? $_status : 'Status' ?></th>
                       </tr>
                     </thead>
                     <tbody>
                       <?php if (empty($resellers)) { ?>
-                        <tr><td colspan="6" class="text-center">No reseller accounts configured.</td></tr>
+                        <tr><td colspan="7" class="text-center">No reseller accounts configured.</td></tr>
                       <?php } else {
                         foreach ($resellers as $r) {
                           $rId = (string)$r['id'];
@@ -629,6 +681,9 @@ function closeResellerDetailsModal() {
                                 <i class="fa fa-ellipsis-v"></i>
                               </button>
                               <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu">
+                                <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>">
+                                  <i class="fa fa-sign-in text-green"></i> <?= htmlspecialchars(isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller'); ?>
+                                </a>
                                 <a href="javascript:void(0)" onclick="openResellerDetailsModal('<?= htmlspecialchars($rId, ENT_QUOTES); ?>')">
                                   <i class="fa fa-info-circle text-info"></i> <?= htmlspecialchars(isset($_details_label) ? $_details_label : 'Details'); ?>
                                 </a>
@@ -654,6 +709,11 @@ function closeResellerDetailsModal() {
                           <td><?= htmlspecialchars($r['name']); ?></td>
                           <td><span class="pd-2p5 radius-3 bg-primary"><?= htmlspecialchars($rModeBadge); ?></span></td>
                           <td><?= htmlspecialchars($rRouters); ?></td>
+                          <td class="text-center">
+                            <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>" class="btn bg-green pd-2p5 radius-3" style="padding: 3px 10px; font-weight: bold; font-size: 12px; text-decoration: none; display: inline-block;" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
+                              <i class="fa fa-sign-in"></i> <?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?>
+                            </a>
+                          </td>
                           <td><?= $statusBadge; ?></td>
                         </tr>
                       <?php } } ?>

@@ -91,11 +91,9 @@ if (!isset($_SESSION["mikhmon"])) {
 
 // get user profile
 	$getprofile = $API->comm("/ip/hotspot/user/profile/print");
-	$TotalReg = count($getprofile);
+	$TotalReg = is_array($getprofile) ? count($getprofile) : 0;
 // count user profile
-	$countprofile = $API->comm("/ip/hotspot/user/profile/print", array(
-		"count-only" => "",
-	));
+	$countprofile = $TotalReg;
 }
 ?>
 <div class="row">

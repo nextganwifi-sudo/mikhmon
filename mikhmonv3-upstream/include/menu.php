@@ -177,13 +177,88 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 }
 
-if($idleto != "disable"){
-  $didleto = 'display:block;';
-}else{
-  $didleto = 'display:none;';
+$idleto = "5";
+$didleto = 'display:block;';
+$ngwHandshake = !empty($GLOBALS['NGW_LOGIN_HANDSHAKE']) || !empty($_SESSION['mikhmon_login_handshake']);
+if (!empty($_SESSION['mikhmon_login_handshake'])) {
+  unset($_SESSION['mikhmon_login_handshake']);
 }
+$isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
 ?>
 <span style="display:none;" id="idto"><?= $idleto ;?></span>
+<?php if (!$isLogoutReq) { ?>
+<script>
+(function(){
+  var MAX_IDLE_MS = 300000; // 5 minutes (300,000 ms)
+  var isHandshake = <?= $ngwHandshake ? 'true' : 'false'; ?>;
+  var logoutUrl = './admin.php?id=logout';
+  try {
+    if (isHandshake) {
+      sessionStorage.setItem('ngw_tab_auth', '1');
+      sessionStorage.setItem('ngw_last_act', String(Date.now()));
+    } else {
+      var tabAuth = sessionStorage.getItem('ngw_tab_auth');
+      if (tabAuth !== '1') {
+        window.location.replace(logoutUrl);
+        return;
+      }
+      var prevAct = parseInt(sessionStorage.getItem('ngw_last_act') || '0', 10);
+      if (prevAct > 0 && (Date.now() - prevAct) > MAX_IDLE_MS) {
+        sessionStorage.removeItem('ngw_tab_auth');
+        sessionStorage.removeItem('ngw_last_act');
+        window.location.replace(logoutUrl);
+        return;
+      }
+      sessionStorage.setItem('ngw_last_act', String(Date.now()));
+    }
+  } catch (e) {}
+
+  var lastActTs = Date.now();
+  function recordUserActivity() {
+    var now = Date.now();
+    if ((now - lastActTs) > MAX_IDLE_MS) {
+      triggerAutoLogout();
+      return;
+    }
+    lastActTs = now;
+    try {
+      sessionStorage.setItem('ngw_last_act', String(now));
+    } catch (e) {}
+  }
+
+  function triggerAutoLogout() {
+    try {
+      sessionStorage.removeItem('ngw_tab_auth');
+      sessionStorage.removeItem('ngw_last_act');
+    } catch (e) {}
+    window.location.replace(logoutUrl);
+  }
+
+  function checkIdleExpiration() {
+    var storedTs = lastActTs;
+    try {
+      var s = parseInt(sessionStorage.getItem('ngw_last_act') || '0', 10);
+      if (s > storedTs) storedTs = s;
+    } catch (e) {}
+    if ((Date.now() - storedTs) >= MAX_IDLE_MS) {
+      triggerAutoLogout();
+    }
+  }
+
+  var events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+  for (var i = 0; i < events.length; i++) {
+    window.addEventListener(events[i], recordUserActivity, { passive: true });
+  }
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      checkIdleExpiration();
+    }
+  });
+  window.addEventListener('focus', checkIdleExpiration);
+  setInterval(checkIdleExpiration, 2000);
+})();
+</script>
+<?php } ?>
 
 
 <?php if ($id != "") { ?>
@@ -221,6 +296,9 @@ if($idleto != "disable"){
 <?php } ?>
 </div>
  <div class="navbar-right">
+  <?php if (!empty($_SESSION['mikhmon_impersonator_admin'])) { ?>
+  <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
+  <?php } ?>
   <a id="logout" href="./admin.php?id=logout" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
   <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
@@ -244,13 +322,14 @@ if($idleto != "disable"){
       }
     ?>
   </select>
-  <a title="Idle Timeout" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
+  <a title="Idle Timeout (5m)" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
 </div>
 </div>
 
 <div id="sidenav" class="sidenav">
 <?php if (isResetOnlyReseller()) { ?>
   <a href="./admin.php?id=reset-voucher" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
+  <a href="./admin.php?id=logout" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
 <?php } else { ?>
 <?php if (($id == "settings" && $session == "new") || $id == "settings" && $router == "new") {
 }else if ($id == "settings" || $id == "editor"|| $id == "uplogo" || $id == "connect"){
@@ -282,6 +361,7 @@ if($idleto != "disable"){
   <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
   <?php } ?>
   <a href="./admin.php?id=about" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
+  <a href="./admin.php?id=logout" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
 <?php } ?>
 </div>
 
@@ -304,7 +384,6 @@ $(document).ready(function(){
 <div id="notify"><div class="message"></div></div>
 <div id="temp"></div>
 <?php 
-include('./info.php');
 } else { ?>
 
 <div id="navbar" class="navbar">
@@ -340,6 +419,9 @@ include('./info.php');
 <?php } ?>
 </div>
  <div class="navbar-right">
+  <?php if (!empty($_SESSION['mikhmon_impersonator_admin'])) { ?>
+  <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
+  <?php } ?>
   <a id="logout" href="./?hotspot=logout&session=<?= $session; ?>" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
   <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
@@ -380,13 +462,14 @@ include('./info.php');
       ?>
     
   </select>
-  <a title="Idle Timeout" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
+  <a title="Idle Timeout (5m)" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
 </div>
 </div>
 
 <div id="sidenav" class="sidenav">
   <?php if (isResetOnlyReseller()) { ?>
   <a href="./admin.php?id=reset-voucher&session=<?= urlencode($session); ?>" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
+  <a href="./?hotspot=logout&session=<?= $session; ?>" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
   <?php } else { ?>
   <div class="menu text-center align-middle card-header" style="border-radius:0;"><h3><?= $identity; ?></h3></div>
   <?php if (hasResellerPermission('view_dashboard')) { ?>
@@ -524,6 +607,8 @@ include('./info.php');
   </div>
   <!--about-->
   <a href="./?hotspot=about&session=<?= $session; ?>" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
+  <!--logout-->
+  <a href="./?hotspot=logout&session=<?= $session; ?>" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
   <?php } ?>
 </div>
 <script>
@@ -545,26 +630,37 @@ $(document).ready(function(){
 <div id="notify"><div class="message"></div></div>
 <div id="temp"></div>
 <?php 
-include('./include/info.php');
 } ?>
 <?php if (isMikhmonAdmin()) { ?>
 <script>
 (function(){
   var metricsInFlight = false;
+  var metricsXhr = null;
+  var metricsInterval = null;
+  var pageUnloading = false;
+
+  window.addEventListener('beforeunload', function(){
+    pageUnloading = true;
+    if (metricsInterval) clearInterval(metricsInterval);
+    if (metricsXhr && metricsXhr.readyState !== 4) {
+      try { metricsXhr.abort(); } catch(e) {}
+    }
+  });
+
   function pickBarColor(pct) {
     if (pct >= 85) return '#f85149';
     if (pct >= 61) return '#f0ad4e';
     return '#2ea043';
   }
   function updateServerMetricsBar() {
-    if (!window.jQuery || metricsInFlight) return;
+    if (pageUnloading || !window.jQuery || metricsInFlight) return;
     metricsInFlight = true;
-    $.ajax({
+    metricsXhr = $.ajax({
       url: './status/server_metrics.php',
       dataType: 'json',
       timeout: 2500,
       success: function(res) {
-        if (!res || !res.ok) return;
+        if (pageUnloading || !res || !res.ok) return;
         var cpu = Math.max(1, Math.min(100, parseInt(res.cpu, 10) || 1));
         var ram = Math.max(1, Math.min(100, parseInt(res.ram, 10) || 1));
         var cpuCol = pickBarColor(cpu);
@@ -584,12 +680,13 @@ include('./include/info.php');
       },
       complete: function() {
         metricsInFlight = false;
+        metricsXhr = null;
       }
     });
   }
   $(document).ready(function(){
     updateServerMetricsBar();
-    setInterval(updateServerMetricsBar, 1000);
+    metricsInterval = setInterval(updateServerMetricsBar, 1000);
   });
 })();
 </script>

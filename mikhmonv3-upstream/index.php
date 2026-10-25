@@ -40,11 +40,14 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
   include_once('./include/ros_version.php');
   include_once('./include/reseller_acl.php');
+  enforceMikhmonSessionSecurity(isset($_GET['hotspot']) && $_GET['hotspot'] === 'logout');
   if (isResetOnlyReseller() && (!isset($_GET['hotspot']) || ($_GET['hotspot'] !== 'reset-voucher' && $_GET['hotspot'] !== 'logout'))) {
+    session_write_close();
     echo "<script>window.location='./admin.php?id=reset-voucher&session=" . urlencode($session) . "'</script>";
     exit;
   }
   if (!canAccessRouterSession($session)) {
+    session_write_close();
     if (isResetOnlyReseller()) {
       echo "<script>window.location='./admin.php?id=reset-voucher'</script>";
     } elseif (isset($_GET['hotspot']) && $_GET['hotspot'] === 'about') {
@@ -91,29 +94,6 @@ if (!isset($_SESSION["mikhmon"])) {
     $themecolor = $_SESSION['themecolor'];
   }
 
-// routeros api
-  include_once('./lib/routeros_api.class.php');
-  include_once('./lib/formatbytesbites.php');
-  $API = new RouterosAPI();
-  $API->debug = false;
-  $localOnlyHotspotPages = array('resellers', 'system-update', 'admin-settings', 'template-editor', 'uplogo', 'about', 'logout', 'reset-voucher');
-  $curHotspotReq = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
-  if (!in_array($curHotspotReq, $localOnlyHotspotPages, true)) {
-    $API->connect($iphost, $userhost, decrypt($passwdhost));
-    if (!empty($_SESSION[$session . '_identity'])) {
-      $identity = $_SESSION[$session . '_identity'];
-    } else {
-      $getidentity = $API->comm("/system/identity/print");
-      $identity = isset($getidentity[0]['name']) ? $getidentity[0]['name'] : $hotspotname;
-      if (!empty($identity)) {
-        $_SESSION[$session . '_identity'] = $identity;
-      }
-    }
-  } else {
-    $identity = !empty($_SESSION[$session . '_identity']) ? $_SESSION[$session . '_identity'] : $hotspotname;
-  }
-  
-
 // get variable
   $hotspot = $_GET['hotspot'];
   $hotspotuser = $_GET['hotspot-user'];
@@ -155,10 +135,75 @@ if (!isset($_SESSION["mikhmon"])) {
   $removereport = $_GET['remove-report'];
   $minterface = $_GET['interface'];
 
+  // Pre-update navigation session state before releasing the session file lock
+  if ($hotspot == "dashboard" || substr(explode("=", $url)[0], -9) == "/?session") {
+    $_SESSION['ubn'] = "";
+  } elseif ($hotspot == "add-user") {
+    $_SESSION['hua'] = "";
+  } elseif ($hotspot == "users" && $prof == "all") {
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "";
+  } elseif ($hotspot == "users" && $prof != "") {
+    $_SESSION['ubp'] = $prof;
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "";
+  } elseif ($hotspot == "users" && $comm != "") {
+    $_SESSION['ubc'] = $comm;
+    $_SESSION['hua'] = "";
+    $_SESSION['ubp'] = "";
+    $_SESSION['vcr'] = "";
+  } elseif ($hotspot == "users-by-profile") {
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "active";
+  } elseif (substr((string)$hotspotuser, 0, 1) == "*") {
+    $_SESSION['ubn'] = $hotspotuser;
+    $_SESSION['hua'] = "";
+  } elseif ($hotspotuser != "" && $hotspotuser != "add" && $hotspotuser != "generate") {
+    $_SESSION['ubn'] = $hotspotuser;
+  } elseif ($hotspot == "active") {
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "hotspotactive";
+    $_SESSION['ubc'] = "";
+  }
 
   $pagehotspot = array('users','hosts','ipbinding','cookies','log','dhcp-leases');
   $pageppp = array('secrets','profiles','active',);
   $pagereport = array('userlog','selling');
+
+  // CRITICAL FOR FAST NAVIGATION: Release PHP session file lock before connecting
+  // to remote MikroTik RouterOS API so rapid page switching never blocks!
+  if ($hotspot !== "logout") {
+    session_write_close();
+  }
+
+// routeros api
+  include_once('./lib/routeros_api.class.php');
+  include_once('./lib/formatbytesbites.php');
+  $API = new RouterosAPI();
+  $API->debug = false;
+  $localOnlyHotspotPages = array('resellers', 'system-update', 'admin-settings', 'template-editor', 'uplogo', 'about', 'logout', 'reset-voucher');
+  $curHotspotReq = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
+  if (!in_array($curHotspotReq, $localOnlyHotspotPages, true)) {
+    $API->connect($iphost, $userhost, decrypt($passwdhost));
+    if (!empty($_SESSION[$session . '_identity'])) {
+      $identity = $_SESSION[$session . '_identity'];
+    } else {
+      $getidentity = $API->comm("/system/identity/print");
+      $identity = isset($getidentity[0]['name']) ? $getidentity[0]['name'] : $hotspotname;
+      if (!empty($identity)) {
+        @session_start();
+        $_SESSION[$session . '_identity'] = $identity;
+        session_write_close();
+      }
+    }
+  } else {
+    $identity = !empty($_SESSION[$session . '_identity']) ? $_SESSION[$session . '_identity'] : $hotspotname;
+  }
 
   include_once('./include/headhtml.php');
 
@@ -178,8 +223,10 @@ if (!isset($_SESSION["mikhmon"])) {
   if ($hotspot == "logout") {
     echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Logout...</b>";
 
-    session_destroy();
-    echo "<script>sessionStorage.clear();</script>";
+    $_SESSION = array();
+    @session_unset();
+    @session_destroy();
+    echo "<script>try{sessionStorage.clear();}catch(e){}</script>";
     echo "<script>window.location='./admin.php?id=login'</script>";
   }
 // reset voucher
@@ -631,10 +678,15 @@ elseif ($ppp == "edit-profile") {
 </div>
 </div>
 </div>
+<?php
+$needsHighcharts = ($hotspot == "dashboard" || substr(end(explode("/", $url)), 0, 8) == "?session" || $minterface == "traffic-monitor");
+if ($needsHighcharts) {
+?>
 <script src="./js/highcharts/highcharts.js"></script>
 <script src="./js/highcharts/themes/hc.<?= $theme; ?>.js"></script>
+<?php } ?>
 <script src="./js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="./js/mikhmon.js?t=<?= str_replace(" ","_",date("Y-m-d H:i:s")); ?>"></script>
+<script src="./js/mikhmon.js?v=ngw2.2"></script>
 
 <?php
 if ($hotspot == "dashboard" || substr(end(explode("/", $url)), 0, 8) == "?session") {
@@ -686,6 +738,14 @@ if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
     }
   echo '
     }
+  window.addEventListener("beforeunload", function(){
+    clearInterval(dashboard);';
+    if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
+    echo '
+    clearInterval(livereport);';
+    }
+  echo '
+  });
 </script>';
 
 } elseif ($hotspot == "active" && $serveractive != "") {

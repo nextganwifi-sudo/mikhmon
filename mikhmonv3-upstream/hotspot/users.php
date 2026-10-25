@@ -26,22 +26,15 @@ if (!isset($_SESSION["mikhmon"])) {
 
   if ($prof == "all") {
     $getuser = $API->comm("/ip/hotspot/user/print");
-    $TotalReg = count($getuser);
-
-    $counttuser = $API->comm("/ip/hotspot/user/print", array(
-      "count-only" => ""
-    ));
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
 
   } elseif ($prof != "all") {
     $getuser = $API->comm("/ip/hotspot/user/print", array(
       "?profile" => "$prof",
     ));
-    $TotalReg = count($getuser);
-
-    $counttuser = $API->comm("/ip/hotspot/user/print", array(
-      "count-only" => "",
-      "?profile" => "$prof",
-    ));
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
 
   }
   if ($comm != "") {
@@ -49,12 +42,8 @@ if (!isset($_SESSION["mikhmon"])) {
       "?comment" => "$comm",
     //"?uptime" => "00:00:00"
     ));
-    $TotalReg = count($getuser);
-
-    $counttuser = $API->comm("/ip/hotspot/user/print", array(
-      "count-only" => "",
-      "?comment" => "$comm",
-    ));
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
     
   }
   $exp = $_GET['exp'];
@@ -66,10 +55,11 @@ if (!isset($_SESSION["mikhmon"])) {
       "?limit-uptime" => "00:00:01",
     ));
     $getuser = array_merge(is_array($getuser6) ? $getuser6 : array(), is_array($getuser7) ? $getuser7 : array());
-    $counttuser = count($getuser);
+    $TotalReg = count($getuser);
+    $counttuser = $TotalReg;
   }
   $getprofile = $API->comm("/ip/hotspot/user/profile/print");
-  $TotalReg2 = count($getprofile);
+  $TotalReg2 = is_array($getprofile) ? count($getprofile) : 0;
 }
 ?>
 
@@ -80,8 +70,8 @@ if (!isset($_SESSION["mikhmon"])) {
     <h3><i class="fa fa-users"></i> <?= $_users ?>
       <span style="font-size: 14px">
         <?php
-        if ($counttuser == 0) {
-          echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "</script>";
+        if ($counttuser == 0 && $prof != "all" && $prof != "") {
+          echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
         } ?>
          <?php if (hasResellerPermission('add_user')) { ?>
          &nbsp; | &nbsp; <a href="./?hotspot-user=add&session=<?= $session; ?>" title="Add User"><i class="fa fa-user-plus"></i> <?= $_add ?></a>

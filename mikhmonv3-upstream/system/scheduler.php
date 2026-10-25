@@ -22,12 +22,12 @@ if (!isset($_SESSION["mikhmon"])) {
 	header("Location:../admin.php?id=login");
 } else {
 
-	$getsch = $API->comm("/system/scheduler/print");
-	$TotalReg = count($getsch);
+	include_once('./include/reseller_acl.php');
+	requireResellerPermission('view_scheduler', './?session=' . $session);
 
-	$countsch = $API->comm("/system/scheduler/print", array(
-		"count-only" => "",
-	));
+	$getsch = $API->comm("/system/scheduler/print");
+	$TotalReg = is_array($getsch) ? count($getsch) : 0;
+	$countsch = $TotalReg;
 
 }
 ?>

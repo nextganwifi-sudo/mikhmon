@@ -16,9 +16,15 @@ if (!isMikhmonAdmin()) {
   exit;
 }
 
+$backupAdm = getBackupAdminCredentials();
+$useradm2 = isset($backupAdm['username']) ? $backupAdm['username'] : '';
+$passadm2_plain = isset($backupAdm['password']) ? $backupAdm['password'] : '';
+
 if (isset($_POST['save'])) {
-  $suseradm = ($_POST['useradm']);
+  $suseradm = trim((string)$_POST['useradm']);
   $spassadm = encrypt($_POST['passadm']);
+  $suseradm2 = isset($_POST['useradm2']) ? trim((string)$_POST['useradm2']) : '';
+  $spassadm2_plain = isset($_POST['passadm2']) ? (string)$_POST['passadm2'] : '';
   $qrbt = ($_POST['qrbt']);
 
   $cari = array('1' => "mikhmon<|<$useradm", "mikhmon>|>$passadm");
@@ -31,12 +37,14 @@ if (isset($_POST['save'])) {
     file_put_contents("./include/config.php", "$newcontent");
   }
 
+  saveBackupAdminCredentials($suseradm2, $spassadm2_plain);
+
   $gen = '<?php $qrbt="' . $qrbt . '";?>';
   $key = './include/quickbt.php';
   $handle = fopen($key, 'w') or die('Cannot open file:  ' . $key);
   fwrite($handle, $gen);
   fclose($handle);
-  echo "<script>window.location='./admin.php?id=admin-settings'</script>";
+  echo "<script>window.location='./admin.php?id=admin-settings&saved=1'</script>";
   exit;
 }
 ?>
@@ -59,21 +67,55 @@ if (isset($_POST['save'])) {
           <h3 class="card-title"><i class="fa fa-gear"></i> <?= htmlspecialchars(isset($_settings) ? $_settings : 'Settings'); ?></h3>
         </div>
         <div class="card-body">
+          <?php if (isset($_GET['saved']) && $_GET['saved'] == '1') { ?>
+          <div style="padding:8px 12px; margin-bottom:10px; border-radius:4px; background:rgba(46,160,67,0.18); border:1px solid #2ea043; color:#2ea043; font-weight:bold;">
+            <i class="fa fa-check-circle"></i> <?= htmlspecialchars(isset($_admin_settings_saved) ? $_admin_settings_saved : 'Admin settings saved successfully!'); ?>
+          </div>
+          <?php } ?>
           <table class="table table-sm">
             <tr>
-              <td class="align-middle"><?= $_user_name ?> </td>
-              <td><input class="form-control" id="useradm" type="text" size="10" name="useradm" title="User Admin" value="<?= htmlspecialchars($useradm); ?>" required="1"/></td>
+              <td colspan="2" style="padding-top:6px; padding-bottom:4px; font-weight:bold; color:#3c8dbc;">
+                <i class="fa fa-user-secret"></i> <?= htmlspecialchars(isset($_primary_admin_title) ? $_primary_admin_title : 'Primary Admin Account'); ?>
+              </td>
             </tr>
             <tr>
-              <td class="align-middle"><?= $_password ?> </td>
+              <td class="align-middle"><?= $_user_name ?> (1)</td>
+              <td><input class="form-control" id="useradm" type="text" size="10" name="useradm" title="Primary Admin Username" value="<?= htmlspecialchars($useradm); ?>" required="1"/></td>
+            </tr>
+            <tr>
+              <td class="align-middle"><?= $_password ?> (1)</td>
               <td>
                 <div class="input-group">
                   <div class="input-group-11 col-box-10">
-                    <input class="group-item group-item-l" id="passadm" type="password" size="10" name="passadm" title="Password Admin" value="<?= htmlspecialchars(decrypt($passadm)); ?>" required="1"/>
+                    <input class="group-item group-item-l" id="passadm" type="password" size="10" name="passadm" title="Primary Admin Password" value="<?= htmlspecialchars(decrypt($passadm)); ?>" required="1"/>
                   </div>
                   <div class="input-group-1 col-box-2">
                     <div class="group-item group-item-r pd-2p5 text-center align-middle">
                       <input title="Show/Hide Password" type="checkbox" onclick="Pass('passadm')">
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding-top:10px; padding-bottom:4px; font-weight:bold; color:#2ea043;">
+                <i class="fa fa-shield"></i> <?= htmlspecialchars(isset($_backup_admin_title) ? $_backup_admin_title : 'Backup / Secondary Admin (Security Recovery)'); ?>
+              </td>
+            </tr>
+            <tr>
+              <td class="align-middle"><?= $_user_name ?> (2)</td>
+              <td><input class="form-control" id="useradm2" type="text" size="10" name="useradm2" placeholder="<?= htmlspecialchars(isset($_backup_user_placeholder) ? $_backup_user_placeholder : 'Second Admin Username'); ?>" title="Secondary / Backup Admin Username" value="<?= htmlspecialchars($useradm2); ?>"/></td>
+            </tr>
+            <tr>
+              <td class="align-middle"><?= $_password ?> (2)</td>
+              <td>
+                <div class="input-group">
+                  <div class="input-group-11 col-box-10">
+                    <input class="group-item group-item-l" id="passadm2" type="password" size="10" name="passadm2" placeholder="<?= htmlspecialchars(isset($_backup_pass_placeholder) ? $_backup_pass_placeholder : 'Second Admin Password'); ?>" title="Secondary / Backup Admin Password" value="<?= htmlspecialchars($passadm2_plain); ?>"/>
+                  </div>
+                  <div class="input-group-1 col-box-2">
+                    <div class="group-item group-item-r pd-2p5 text-center align-middle">
+                      <input title="Show/Hide Password" type="checkbox" onclick="Pass('passadm2')">
                     </div>
                   </div>
                 </div>

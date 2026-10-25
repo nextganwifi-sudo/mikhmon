@@ -108,6 +108,7 @@ function collectProtectedDataFiles($rootDir) {
     $protectedFiles = array();
     $fixedRelPaths = array(
         'include/config.php',
+        'include/backup_admin.json',
         'include/resellers.json',
         'include/permission_groups.json',
         'include/quickbt.php',

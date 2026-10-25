@@ -24,6 +24,26 @@ if (!isset($_SESSION["mikhmon"])) {
 // array color
   $color = array('1' => 'bg-blue', 'bg-indigo', 'bg-purple', 'bg-pink', 'bg-red', 'bg-yellow', 'bg-green', 'bg-teal', 'bg-cyan', 'bg-grey', 'bg-light-blue');
 
+// Single-pass user & profile fetch (eliminates N+1 RouterOS API calls per profile)
+  $allUsers = $API->comm("/ip/hotspot/user/print");
+  if (!is_array($allUsers)) {
+    $allUsers = array();
+  }
+  $profileUserCounts = array();
+  $totalUsersCount = 0;
+  foreach ($allUsers as $uRow) {
+    if (isset($uRow['name']) && $uRow['name'] === 'default-trial') {
+      continue;
+    }
+    $totalUsersCount++;
+    $uProf = isset($uRow['profile']) ? (string)$uRow['profile'] : '';
+    if ($uProf !== '') {
+      if (!isset($profileUserCounts[$uProf])) {
+        $profileUserCounts[$uProf] = 0;
+      }
+      $profileUserCounts[$uProf]++;
+    }
+  }
   ?>
 <div class="row">
 <div class="col-12">
@@ -38,12 +58,12 @@ if (!isset($_SESSION["mikhmon"])) {
         <div class="box bmh-75 box-bordered <?= $color[rand(1, 11)]; ?>">
           <div class="box-group">
             <div class="box-group-icon">
-              <a title='Open User by profile <?= $pname; ?>'  href='./?hotspot=users&profile=all&session=<?= $session; ?>'>
+              <a title='Open User by profile all'  href='./?hotspot=users&profile=all&session=<?= $session; ?>'>
               <i class="fa fa-ticket"></i></a>
             </div>
               <div class="box-group-area">
                 <h3 >Profile : all<br>
-                <?php $countuser = $API->comm("/ip/hotspot/user/print", array("count-only" => ""));
+                <?php $countuser = $totalUsersCount;
                 if ($countuser < 2) {
                   echo $countuser . " Item";
                 } elseif ($countuser > 1) {
@@ -53,7 +73,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
               <a title="Open User by profile all" href="./?hotspot=users&profile=all&session=<?= $session; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></a>&nbsp;
               <?php if (hasResellerPermission('generate_voucher')) { ?>
-              <a title="Generate User by profile <?= $pname; ?>" href="./?hotspot-user=generate&session=<?= $session; ?>"><i class="fa fa-users"></i> <?= $_generate ?></a>&nbsp;
+              <a title="Generate User" href="./?hotspot-user=generate&session=<?= $session; ?>"><i class="fa fa-users"></i> <?= $_generate ?></a>&nbsp;
               <?php } ?>
               </div>
             </div>
@@ -63,7 +83,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <?php
 // get user profile
 $getprofile = $API->comm("/ip/hotspot/user/profile/print");
-$TotalReg = count($getprofile);
+$TotalReg = is_array($getprofile) ? count($getprofile) : 0;
 for ($i = 0; $i < $TotalReg; $i++) {
   $profiledetalis = $getprofile[$i];
   $pname = $profiledetalis['name'];
@@ -77,7 +97,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
             </div>
               <div class="box-group-area">
                 <h3 >Profile : <?= $pname; ?><br>
-                <?php	$countuser = $API->comm("/ip/hotspot/user/print", array("count-only" => "", "?profile" => "$pname", ));
+                <?php	$countuser = isset($profileUserCounts[$pname]) ? $profileUserCounts[$pname] : 0;
                 if ($countuser < 2) {
                   echo $countuser . " Item";
                 } elseif ($countuser > 1) {
