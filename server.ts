@@ -1,6 +1,6 @@
 import net from 'net';
 import http from 'http';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, execSync, ChildProcess } from 'child_process';
 import path from 'path';
 
 // ============================================================================
@@ -430,6 +430,13 @@ function createInitialRouterState(
         name: `${mon}/${d}/${y}-|-10:05:49-|-vc9914-|-25000-|-192.168.50.112-|-D4:6E:0E:91:22:7B-|-7d-|-7Days-25K-|-vc-103`,
         owner: `${mon}${y}`,
         source: `${mon}/${d}/${y}`,
+        comment: 'mikhmon',
+      },
+      {
+        '.id': '*44',
+        name: `jan/09/2025-|-09:15:00-|-vc5500-|-5000-|-192.168.50.145-|-A4:83:E7:2B:99:1C-|-1d-|-1Day-5K-|-${expiredNoticeComment}`,
+        owner: `jan2025`,
+        source: `jan/09/2025`,
         comment: 'mikhmon',
       },
     ],
@@ -890,6 +897,10 @@ function startRouterOsTcpServer(hostIp: string, state: RouterState) {
     });
   });
 
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    console.error(`[RouterOS Binary API] Warning on ${hostIp}:8728:`, err.message);
+  });
+
   server.listen(8728, hostIp, () => {
     console.log(`[RouterOS Binary API] Listening on ${hostIp}:8728 (${state.identity} - RouterOS ${state.version})`);
   });
@@ -904,8 +915,48 @@ const PORT = 3000;
 const MIKHMON_DOCROOT = path.resolve(process.cwd(), 'mikhmonv3-upstream');
 
 let phpProcess: ChildProcess | null = null;
+let isInstallingPhp = false;
+
+function hasPhpBinary(): boolean {
+  try {
+    execSync('which php', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensurePhpAndStartServer() {
+  if (hasPhpBinary()) {
+    startPhpServer();
+    return;
+  }
+  if (isInstallingPhp) return;
+  isInstallingPhp = true;
+  console.log('[PHP Server] php-cli not found, auto-installing php-cli...');
+  const installer = spawn(
+    'sh',
+    [
+      '-c',
+      'DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" php-cli',
+    ],
+    { stdio: 'inherit' }
+  );
+  installer.on('error', (err) => {
+    console.error('[PHP Server] Installer error:', err.message);
+    isInstallingPhp = false;
+  });
+  installer.on('exit', () => {
+    isInstallingPhp = false;
+    startPhpServer();
+  });
+}
 
 function startPhpServer() {
+  if (!hasPhpBinary()) {
+    ensurePhpAndStartServer();
+    return;
+  }
   phpProcess = spawn(
     'php',
     ['-d', 'display_errors=0', '-d', 'error_reporting=0', '-S', `127.0.0.1:${PHP_PORT}`, '-t', MIKHMON_DOCROOT],
@@ -915,6 +966,10 @@ function startPhpServer() {
     }
   );
 
+  phpProcess.on('error', (err) => {
+    console.error(`[PHP Server] spawn error: ${err.message}`);
+  });
+
   phpProcess.on('exit', (code) => {
     console.log(`[PHP Server] exited with code ${code}, restarting in 500ms...`);
     setTimeout(startPhpServer, 500);
@@ -923,7 +978,7 @@ function startPhpServer() {
 
 startRouterOsTcpServer('127.0.0.1', routers['127.0.0.1']);
 startRouterOsTcpServer('127.0.0.2', routers['127.0.0.2']);
-startPhpServer();
+ensurePhpAndStartServer();
 
 const proxyServer = http.createServer((req, res) => {
   const isHttpsForwarded =
@@ -965,6 +1020,10 @@ const proxyServer = http.createServer((req, res) => {
   });
 
   req.pipe(proxyReq, { end: true });
+});
+
+proxyServer.on('error', (err: NodeJS.ErrnoException) => {
+  console.error(`[Mikhmon v3 Server] Proxy error:`, err.message);
 });
 
 proxyServer.listen(PORT, '0.0.0.0', () => {

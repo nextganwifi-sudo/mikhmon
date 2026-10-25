@@ -324,5 +324,140 @@ function countUsedHotspotVouchers($users) {
     }
     return $usedCount;
 }
+
+/**
+ * Convert RouterOS validity string (e.g. "1d", "7d", "30d", "12h", "2w1d", "02:30:00") into seconds.
+ */
+function parseRouterOSValiditySeconds($validityStr) {
+    $v = strtolower(trim((string)$validityStr));
+    if ($v === '' || $v === '0' || $v === 'none') {
+        return 0;
+    }
+    $total = 0;
+    if (preg_match('/(\d+)\s*w/', $v, $m)) {
+        $total += ((int)$m[1]) * 7 * 86400;
+    }
+    if (preg_match('/(\d+)\s*d/', $v, $m)) {
+        $total += ((int)$m[1]) * 86400;
+    }
+    if (preg_match('/(\d+)\s*h/', $v, $m)) {
+        $total += ((int)$m[1]) * 3600;
+    }
+    if (preg_match('/(\d+)\s*m(?!s)/', $v, $m)) {
+        $total += ((int)$m[1]) * 60;
+    }
+    if (preg_match('/(\d+)\s*s/', $v, $m)) {
+        $total += (int)$m[1];
+    }
+    if (preg_match('/(\d{1,2}):(\d{2}):(\d{2})/', $v, $m)) {
+        $total += ((int)$m[1]) * 3600 + ((int)$m[2]) * 60 + ((int)$m[3]);
+    }
+    if ($total === 0 && is_numeric($v)) {
+        $total = ((int)$v) * 86400;
+    }
+    return $total;
+}
+
+/**
+ * Calculate calendar expiry date & time from a router script record's login date, time, validity, and comment.
+ */
+function calculateExpiryFromRecordParts($loginDateStr, $loginTimeStr, $validityStr, $recordComment = '') {
+    $parsedComment = parseExpiryFromComment($recordComment);
+    if (!empty($parsedComment['is_expiry'])) {
+        return array(
+            'has_expiry' => true,
+            'iso_datetime' => $parsedComment['iso_datetime'],
+            'legacy_datetime' => $parsedComment['legacy_datetime'],
+            'display_datetime' => $parsedComment['iso_datetime'] . ' (' . $parsedComment['legacy_datetime'] . ')',
+            'source' => 'comment'
+        );
+    }
+
+    $dInfo = parseRouterOSDate($loginDateStr);
+    $timeClean = trim((string)$loginTimeStr);
+    if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $timeClean)) {
+        $timeClean = '00:00:00';
+    }
+
+    if ($dInfo['valid']) {
+        $loginTs = strtotime($dInfo['iso'] . ' ' . $timeClean);
+        $valSec = parseRouterOSValiditySeconds($validityStr);
+        if ($loginTs !== false && $valSec > 0) {
+            $expTs = $loginTs + $valSec;
+            $isoExp = date('Y-m-d H:i:s', $expTs);
+            $legExp = strtolower(date('M/d/Y', $expTs)) . ' ' . date('H:i:s', $expTs);
+            return array(
+                'has_expiry' => true,
+                'iso_datetime' => $isoExp,
+                'legacy_datetime' => $legExp,
+                'display_datetime' => $isoExp . ' (' . $legExp . ')',
+                'source' => 'calculated'
+            );
+        }
+    }
+
+    return array(
+        'has_expiry' => false,
+        'iso_datetime' => '',
+        'legacy_datetime' => '',
+        'display_datetime' => $recordComment !== '' ? $recordComment : 'N/A',
+        'source' => 'none'
+    );
+}
+
+/**
+ * Search Mikhmon /system/script records (comment="mikhmon") for a specific voucher code, MAC address, or IP,
+ * even after the voucher has expired and been removed from /ip/hotspot/user.
+ */
+function findVoucherRecordsInScripts($API, $searchQuery) {
+    $q = strtolower(trim((string)$searchQuery));
+    if ($q === '') {
+        return array();
+    }
+    $qMacNorm = str_replace('-', ':', $q);
+    $allScripts = queryMikhmonReportScripts($API);
+    $matches = array();
+    foreach ($allScripts as $row) {
+        $rawName = isset($row['name']) ? (string)$row['name'] : '';
+        $parts = explode("-|-", $rawName);
+        if (count($parts) >= 3) {
+            $loginDate = isset($parts[0]) ? trim($parts[0]) : '';
+            $loginTime = isset($parts[1]) ? trim($parts[1]) : '';
+            $recUser   = isset($parts[2]) ? trim($parts[2]) : '';
+            $price     = isset($parts[3]) ? trim($parts[3]) : '';
+            $ip        = isset($parts[4]) ? trim($parts[4]) : '';
+            $mac       = isset($parts[5]) ? trim($parts[5]) : '';
+            $validity  = isset($parts[6]) ? trim($parts[6]) : '';
+            $profile   = isset($parts[7]) ? trim($parts[7]) : '';
+            $comment   = isset($parts[8]) ? trim($parts[8]) : '';
+
+            $macNorm = str_replace('-', ':', strtolower($mac));
+            if (strtolower($recUser) === $q || ($macNorm !== '' && $macNorm === $qMacNorm) || ($ip !== '' && strtolower($ip) === $q)) {
+                $parsedDate = parseRouterOSDate($loginDate);
+                $loginIso = ($parsedDate['valid'] ? $parsedDate['iso'] : $loginDate) . ($loginTime !== '' ? ' ' . $loginTime : '');
+                $expCalc = calculateExpiryFromRecordParts($loginDate, $loginTime, $validity, $comment);
+
+                $matches[] = array(
+                    'id'               => isset($row['.id']) ? $row['.id'] : '',
+                    'voucher'          => $recUser,
+                    'login_date'       => $loginDate,
+                    'login_time'       => $loginTime,
+                    'login_datetime'   => $loginIso,
+                    'price'            => $price,
+                    'ip'               => $ip,
+                    'mac'              => $mac,
+                    'validity'         => $validity,
+                    'profile'          => $profile,
+                    'comment'          => $comment,
+                    'has_expiry'       => $expCalc['has_expiry'],
+                    'expiry_iso'       => $expCalc['iso_datetime'],
+                    'expiry_legacy'    => $expCalc['legacy_datetime'],
+                    'expiry_display'   => $expCalc['display_datetime'],
+                );
+            }
+        }
+    }
+    return $matches;
+}
 ?>
 

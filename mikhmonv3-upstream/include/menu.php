@@ -142,7 +142,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $sabout = "active";
   } elseif ($hotspot == "resellers" || $id == "resellers") {
     $sresellers = "active";
-    $mpage = "Reseller";
+    $mpage = isset($_reseller) ? $_reseller : "Reseller";
   } elseif ($id == "sessions" || $id == "remove" || $router == "new") {
     $ssesslist = "active";
     $mpage = $_admin_settings;
@@ -161,6 +161,14 @@ if (!isset($_SESSION["mikhmon"])) {
   } elseif ($id == "editor") {
     $seditor = "active";
     $mpage = $_template_editor;
+  } elseif ($hotspot == "reset-voucher" || $id == "reset-voucher") {
+    $sresetvoucher = "active";
+    $mpage = isset($_reset_voucher) ? $_reset_voucher : "Reset Voucher";
+  } elseif ($hotspot == "system-update" || $id == "system-update") {
+    $ssysupdate = "active";
+    $ssett = "active";
+    $settmenu = "menu-open";
+    $mpage = isset($_system_update) ? $_system_update : "System Update & VPS";
   }
 }
 
@@ -211,6 +219,9 @@ if($idleto != "disable"){
 </div>
 
 <div id="sidenav" class="sidenav">
+<?php if (isResetOnlyReseller()) { ?>
+  <a href="./admin.php?id=reset-voucher" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
+<?php } else { ?>
 <?php if (($id == "settings" && $session == "new") || $id == "settings" && $router == "new") {
 }else if ($id == "settings" || $id == "editor"|| $id == "uplogo" || $id == "connect"){
 ?>  
@@ -229,14 +240,18 @@ if($idleto != "disable"){
 <?php 
 } ?>  
   <a href="./admin.php?id=sessions" class="menu <?= $ssesslist; ?>"><i class="fa fa-gear"></i> <?= $_admin_settings ?></a>
+  <?php if (hasResellerPermission('reset_voucher')) { ?>
+  <a href="./admin.php?id=reset-voucher<?= !empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : ''; ?>" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
+  <?php } ?>
   <?php if (hasResellerPermission('manage_router_settings')) { ?>
   <a href="./admin.php?id=settings&router=new-<?= rand(1111,9999) ?>" class="menu <?= $snsettings ?>"><i class="fa fa-plus"></i> <?= $_add_router ?></a>
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
-  <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> Reseller</a>
+  <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
+  <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update & VPS'; ?></a>
   <?php } ?>
   <a href="./admin.php?id=about" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
-
+<?php } ?>
 </div>
 
 <script>
@@ -278,6 +293,20 @@ include('./info.php');
     }
     ?>
   </select>
+  <select class="slang ses text-right mr-t-10 pd-5">
+    <option> <?= $language ?></option>
+    <?php 
+      $fileList = glob('lang/*');
+      foreach($fileList as $filename){
+        if(is_file($filename)){
+          $filename = substr(explode("/",$filename)[1],0,-4);
+          if($filename == "isocodelang"){}else{
+            echo '<option value="'.$url.'&setlang=' . $filename . '">'. $isocodelang[$filename]. '</option>'; 
+         }   
+        }
+      }
+    ?>
+  </select>
   <select class="connect optfa ses text-right mr-t-10 pd-5">
     <option id="MikhmonSession" value="<?= $session; ?>"><?= $hotspotname; ?></option>
       <?php
@@ -300,6 +329,9 @@ include('./info.php');
 </div>
 
 <div id="sidenav" class="sidenav">
+  <?php if (isResetOnlyReseller()) { ?>
+  <a href="./admin.php?id=reset-voucher&session=<?= urlencode($session); ?>" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
+  <?php } else { ?>
   <div class="menu text-center align-middle card-header" style="border-radius:0;"><h3><?= $identity; ?></h3></div>
   <?php if (hasResellerPermission('view_dashboard')) { ?>
   <a href="./?session=<?= $session; ?>" class="menu <?= $shome; ?>"><i class="fa fa-dashboard"></i> <?= $_dashboard ?></a>
@@ -367,6 +399,10 @@ include('./info.php');
   <?php if (hasResellerPermission('view_users')) { ?>
   <a href="./?hotspot=users-by-profile&session=<?= $session; ?>" class="menu <?= $susersbp; ?>"> <i class="fa fa-ticket"></i> <?= $_vouchers ?> </a>
   <?php } ?>
+  <!--reset voucher-->
+  <?php if (hasResellerPermission('reset_voucher')) { ?>
+  <a href="./?hotspot=reset-voucher&session=<?= $session; ?>" class="menu <?= $sresetvoucher; ?>"> <i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?> </a>
+  <?php } ?>
    <!--log-->
   <?php if (hasResellerPermission('view_logs')) { ?>
   <div class="dropdown-btn <?= $log; ?>"><i class=" fa fa-align-justify"></i> <?= $_log ?>
@@ -406,7 +442,7 @@ include('./info.php');
   <?php } ?>
   <!--reseller-->
   <?php if (isMikhmonAdmin()) { ?>
-  <a href="./?hotspot=resellers&session=<?= $session; ?>" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> Reseller</a>
+  <a href="./?hotspot=resellers&session=<?= $session; ?>" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
   <?php } ?>
   <!--settings-->
   <div class="dropdown-btn <?= $ssett; ?>"><i class=" fa fa-gear"></i> <?= $_settings ?> 
@@ -423,10 +459,13 @@ include('./info.php');
   <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template')) { ?>
   <a href="./?hotspot=template-editor&template=default&session=<?= $session; ?>" class="menu <?= $teditor; ?>"> <i class="fa fa-edit "></i> <?= $_template_editor ?> </a>          
   <?php } ?>
+  <?php if (isMikhmonAdmin()) { ?>
+  <a href="./?hotspot=system-update&session=<?= $session; ?>" class="menu <?= $ssysupdate; ?>"> <i class="fa fa-cloud-upload "></i> <?= isset($_system_update) ? $_system_update : 'System Update & VPS'; ?> </a>
+  <?php } ?>
   </div>
   <!--about-->
   <a href="./?hotspot=about&session=<?= $session; ?>" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
-
+  <?php } ?>
 </div>
 <script>
 $(document).ready(function(){
@@ -436,6 +475,10 @@ $(document).ready(function(){
   });
   $(".stheme").change(function(){
     notify("<?= $_loading_theme ?>");
+    stheme(this.value)
+  });
+  $(".slang").change(function(){
+    notify("<?= $_loading ?>");
     stheme(this.value)
   });
 });

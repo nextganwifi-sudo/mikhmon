@@ -231,6 +231,10 @@ textarea{
 								<?php } ?>
 								<a class="btn bg-green" href="<?= $popup?>" title="View voucher with Logo"><i class="fa fa-image"></i> </a>
 								<a class="btn bg-green" href="<?= $popupQR?>" title="View voucher with QR"><i class="fa fa-qrcode"></i> </a>
+								<?php
+									$uplogoLinkBase = (isset($_GET['hotspot']) && $_GET['hotspot'] === 'template-editor') ? './?hotspot=uplogo' : './admin.php?id=uplogo';
+								?>
+								<a class="btn bg-purple" href="<?= $uplogoLinkBase . '&session=' . urlencode($session) . $resQuerySuffix; ?>" title="Upload Logo for <?= $targetReseller ? htmlspecialchars($targetReseller['name']) : 'Global Session'; ?>"><i class="fa fa-upload"></i> Logo</a>
 								</div>
 								<div class="col-7 pd-t-5 pd-b-5 col-box-12">
 								<div class="input-group">

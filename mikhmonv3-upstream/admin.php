@@ -40,7 +40,10 @@ $ids = array(
 // lang
 include('./lang/isocodelang.php');
 include('./include/lang.php');
-include('./lang/'.$langid.'.php');
+include('./lang/en.php');
+if ($langid !== 'en' && is_file('./lang/'.$langid.'.php')) {
+  include('./lang/'.$langid.'.php');
+}
 
 // quick bt
 include('./include/quickbt.php');
@@ -86,7 +89,11 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon_logo_filename"] = isset($auth['logo_filename']) ? $auth['logo_filename'] : '';
       $_SESSION["mikhmon_routers"] = $auth['allowed_routers'];
       $_SESSION["mikhmon_permissions"] = $auth['permissions'];
-      echo "<script>window.location='./admin.php?id=sessions'</script>";
+      if (isResetOnlyReseller()) {
+        echo "<script>window.location='./admin.php?id=reset-voucher'</script>";
+      } else {
+        echo "<script>window.location='./admin.php?id=sessions'</script>";
+      }
     } else {
       $errText = isset($auth['error']) ? $auth['error'] : 'Invalid username or password.';
       $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
@@ -97,6 +104,13 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./include/login.php');
 } elseif (!isset($_SESSION["mikhmon"])) {
   echo "<script>window.location='./admin.php?id=login'</script>";
+} elseif (isResetOnlyReseller() && $id !== "reset-voucher" && $id !== "logout") {
+  echo "<script>window.location='./admin.php?id=reset-voucher'</script>";
+  exit;
+} elseif ($id == "reset-voucher") {
+  requireResellerPermission('reset_voucher', './admin.php?id=sessions');
+  include_once('./include/menu.php');
+  include_once('./hotspot/resetvoucher.php');
 } elseif (!empty($session) && $session !== "new" && !canAccessRouterSession($session)) {
   echo "<script>window.location='./admin.php?id=sessions'</script>";
   exit;
@@ -122,6 +136,15 @@ if ($id == "login" || substr($url, -1) == "p") {
   }
   include_once('./include/menu.php');
   include_once('./settings/resellers.php');
+} elseif ($id == "system-update") {
+  if (!isMikhmonAdmin()) {
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
+    exit;
+  }
+  if (!isset($_GET['download_action'])) {
+    include_once('./include/menu.php');
+  }
+  include_once('./settings/system_update.php');
 } elseif ($id == "settings" && !empty($session) || $id == "settings" && !empty($router)) {
   requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
   include_once('./include/menu.php');
@@ -146,10 +169,11 @@ if ($id == "login" || substr($url, -1) == "p") {
   } else {
     $_SESSION["connect"] = "<b class='text-red'>Not Connected</b>";
     $nl = '\n';
+    $portHint = (strpos($iphost, 'ssh://') === 0) ? 'SSH (port 22)' : 'API (port 8728)';
     if ($currency == in_array($currency, $cekindo['indo'])) {
-      echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Silakan periksa kembali IP, User, Password dan port API harus enable.".$nl."Jika menggunakan koneksi VPN, pastikan VPN tersebut terkoneksi.')</script>";
+      echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Silakan periksa kembali IP, User, Password dan port ".$portHint." harus enable.')</script>";
     }else{
-      echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Please check the IP, User, Password and port API must be enabled.')</script>";
+      echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Please check the IP, Username, Password and ensure MikroTik ".$portHint." is enabled.')</script>";
     }
     if($c == "settings"){
       echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";

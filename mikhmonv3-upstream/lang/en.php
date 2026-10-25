@@ -206,3 +206,91 @@ $_delete_report = '
 		        <li>It is recommended to download '.$_user_log.' first. </li>
 		      </ul>
 ';
+
+// Reset Voucher, Reseller & Extended UI Labels (English Default)
+$_reset_voucher = "Reset Voucher";
+$_reseller = "Reseller";
+$_select_server = "Select Server";
+$_check_voucher = "Check Voucher";
+$_enable = "Enable";
+$_disable = "Disable";
+$_check_expiry_date = "Check Expiry Date";
+$_voucher_search_placeholder = "Voucher Code / Username / Password / MAC Address";
+$_voucher_details = "Voucher Details";
+$_removed_voucher_record = "Removed Voucher Record";
+$_status = "Status";
+$_ip_address = "IP Address";
+$_mac_address = "MAC Address";
+$_data_usage = "Data Usage";
+$_expiry_date = "Expiry Date";
+$_first_login_time = "First Login Time";
+$_last_ip_mac = "Last IP & MAC";
+$_not_bound = "Not Bound";
+$_active_tag = "Active";
+$_last_known_tag = "Last Known";
+$_status_disabled = "Disabled";
+$_status_expired = "Expired";
+$_status_active_online = "Active / Online";
+$_status_enabled = "Enabled";
+$_status_unused = "Unused / Enabled";
+$_status_removed_from_server = "Expired & Removed from Server";
+$_not_activated_yet = "Voucher has not been logged in / activated yet";
+$_rv_err_select_server = "Please select an authorized server.";
+$_rv_err_enter_code = "Please enter a Voucher Code, Username, Password, or MAC Address.";
+$_rv_err_conn_failed = "Could not connect to server:";
+$_rv_no_server_assigned = "No server (Hotspot) is assigned to your account. Please contact the Administrator.";
+$_rv_voucher_prefix = "Voucher";
+$_rv_msg_reset_ok = "has been reset successfully (MAC, Active Session & Cookie removed, Uptime & Data Counters reset).";
+$_rv_msg_enable_ok = "has been enabled successfully.";
+$_rv_msg_disable_ok = "has been disabled and active session disconnected.";
+$_rv_msg_found_ok = "was found on the server. View full details and action buttons below.";
+$_rv_msg_expiry_shown = "expiry date is displayed below.";
+$_rv_msg_removed_expiry_shown = "expired and was removed from the server. View its recorded expiry date below.";
+$_rv_msg_removed_found = "expired and was removed from the server (found in server records). Click Check Expiry Date below to view its expiration date.";
+$_rv_msg_not_found = "No voucher, user, password, or MAC address matching your search was found on server";
+
+// About & Standalone Server Download Labels (English Default)
+$_about_subtitle = "Advanced MikroTik Hotspot, Voucher & Multi-Reseller Management System";
+$_about_desc = "<b>NextGan WiFi Solution</b> is a modern and complete MikroTik Hotspot and WiFi Voucher Management Software designed for WiFi hotspot operators and ISP entrepreneurs.";
+$_about_thanks = "Thank you for using <b>NextGan WiFi Solution</b>. Wishing continued success for your hotspot business.";
+$_about_feat_title = "NextGan WiFi Solution — Key Features & Capabilities";
+$_about_f1 = "Automatically detects RouterOS v6 and v7 to manage user expiration and sales report scripts.";
+$_about_f2 = "Generate hundreds of hotspot vouchers in one click with QR Code, Custom, and Thermal (Small) printing.";
+$_about_f3 = "Live interface traffic graphs, active user monitoring, hosts, and IP binding control.";
+$_about_f4 = "Complete daily and monthly voucher sales accounting with CSV report export.";
+$_about_f5 = "Assign dedicated permission groups or custom granular permissions for each reseller.";
+$_about_f6 = "Sidebar menus, dashboard cards, and action buttons automatically hide unauthorized options.";
+$_about_f7 = "Assign custom voucher templates and custom logos for each reseller account.";
+$_about_f8 = "Download and run the ready-made portable Windows Server ZIP directly from the admin panel.";
+$_srv_dl_title = "Download Complete Standalone Mikhmon Server (with MikhmonServer.exe)";
+$_srv_dl_desc = "Click the button below to download the complete ready-made portable server including <b><code>MikhmonServer.exe</code> + PHP Server + NextGan WiFi Solution</b>:";
+$_srv_dl_btn = "Download Complete Mikhmon Server (.zip)";
+$_srv_dl_step1 = "Click the green button above to download <code>Mikhmon-Server-NextGan-Complete.zip</code>.";
+$_srv_dl_step2 = "Right-click the downloaded ZIP file and select <b>Extract All / Extract Here</b> to open the <b><code>Mikhmon Server</code></b> folder.";
+$_srv_dl_step3 = "Double-click <b><code>MikhmonServer.exe</code></b> inside the folder — the server will start automatically (green indicator), then click <b>Open</b> to launch in your browser.";
+
+// VPS Hosting, Safe Auto-Updater & MikroTik SSH Mode Labels (English Default)
+$_system_update = "System Update & VPS";
+$_sys_update_title = "VPS Hosting, Custom Domain & 1-Click Safe Update Center";
+$_safe_update_box_title = "1-Click Zero-Data-Loss Safe Update (AI Studio to VPS)";
+$_safe_update_box_desc = "Update your live VPS software whenever you make changes in AI Studio. All <b>Routers, Resellers, Passwords, Custom HTML Templates, and Logos</b> are strictly locked and preserved.";
+$_safe_zip_title = "Method 1: Upload Update ZIP from AI Studio (Recommended)";
+$_safe_zip_hint = "Download the ZIP from AI Studio (or Server ZIP) and upload it here. Only code files will be updated; your live data will never be overwritten.";
+$_btn_apply_zip_update = "Apply Safe Update";
+$_safe_git_title = "Method 2: 1-Click Git Pull Safe Update";
+$_safe_git_hint = "If your VPS is connected to GitHub, click below to automatically back up your data, pull the latest code changes, and restore all live data.";
+$_btn_git_pull_update = "Git Safe Update";
+$_protected_data_title = "Protected Data Locklist & 1-Click Backup";
+$_btn_dl_data_backup = "Download Data Backup (.zip)";
+$_btn_save_snapshot = "Save Snapshot on Server";
+$_btn_restore_backup = "Restore Data ZIP";
+$_guide_reseller_tpl_title = "1. How to Edit Each Reseller's HTML Template & Logo on VPS";
+$_guide_reseller_tpl_1 = "<b>Edit Individual Reseller HTML Code:</b> Open <b>Template Editor</b> (or click the <code>&lt;/&gt;</code> code icon next to any reseller in <b>Reseller Management</b>). At the top-right dropdown (<code>Scope</code>), select the Reseller (e.g. <code>#101 reseller1</code>), choose <code>Default</code>, <code>Thermal</code>, or <code>Small</code>, edit the HTML code, and click <b>Save</b> &amp; <b>Publish</b>.";
+$_guide_reseller_tpl_2 = "<b>Upload Individual Reseller Logo:</b> Open <b>Upload Logo</b> (or click the image icon next to any reseller in <b>Reseller Management</b>). Select the Reseller from the <b>Target Scope</b> dropdown, choose their PNG/JPG/WebP logo file, and click <b>Upload</b>.";
+$_guide_reseller_tpl_3 = "<b>Automatic Isolation:</b> Each reseller's HTML templates are stored in <code>uploads/reseller-templates/{id}/</code> and logos in <code>uploads/reseller-logos/{id}/</code>. Whenever that reseller prints vouchers, their own HTML code and logo are used automatically.";
+$_guide_vps_domain_title = "2. How to Host on LightNode VPS with Your Custom Domain";
+$_guide_vps_step_1 = "<b>Point Domain DNS to LightNode VPS IP:</b> In your domain DNS panel (Cloudflare / Namecheap / GoDaddy), add an <b>A Record</b> for <code>@</code> pointing to your LightNode VPS Public IP, and an <b>A Record</b> for <code>www</code> pointing to the same Public IP.";
+$_guide_vps_step_2 = "<b>Upload &amp; Run 1-Command Auto-Installer on Ubuntu/Debian VPS:</b> SSH into your LightNode VPS as <code>root</code>, upload the application folder to <code>/var/www/nextgan-wifi</code>, and run:";
+$_conn_mode_api_tip = "Default API Connection (Port 8728)";
+$_conn_mode_ssh_tip = "SSH Connection (Port 22 - Connect with SSH Username & Password only)";
+$_select_reseller_scope = "Target Scope";

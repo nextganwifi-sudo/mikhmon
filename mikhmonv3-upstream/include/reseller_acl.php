@@ -45,6 +45,7 @@ function getAllMikhmonPermissionCategories() {
             'edit_user'           => 'View & Edit Hotspot User Details',
             'delete_user'         => 'Delete Hotspot Users (Single / Comment / Expired)',
             'enable_disable_user' => 'Enable, Disable & Reset Hotspot Users',
+            'reset_voucher'       => 'Reset Voucher (Reset, Enable, Disable & Check Expiry)',
             'print_voucher'       => 'Print Vouchers (Default / QR / Small / BT / Quick Print)',
             'manage_quickprint'   => 'Manage Quick Print Packages',
             'export_users'        => 'Export Hotspot Users (Script / CSV)',
@@ -219,6 +220,7 @@ function getDefaultPermissionGroupDefinitions() {
         'generate_voucher',
         'edit_user',
         'enable_disable_user',
+        'reset_voucher',
         'print_voucher',
         'manage_quickprint',
         'export_users',
@@ -244,10 +246,14 @@ function getDefaultPermissionGroupDefinitions() {
         }
     }
 
+    $resetOnlyMap = getDefaultPermissionMap(false);
+    $resetOnlyMap['reset_voucher'] = true;
+
     return array(
-        'Read'  => sanitizeResellerPermissions($readMap),
-        'Write' => sanitizeResellerPermissions($writeMap),
-        'Full'  => sanitizeResellerPermissions($fullMap),
+        'Read'          => sanitizeResellerPermissions($readMap),
+        'Write'         => sanitizeResellerPermissions($writeMap),
+        'Full'          => sanitizeResellerPermissions($fullMap),
+        'Reset Voucher' => sanitizeResellerPermissions($resetOnlyMap),
     );
 }
 
@@ -274,7 +280,7 @@ function loadPermissionGroups() {
         return $defaults;
     }
     $result = array();
-    foreach (array('Read', 'Write', 'Full') as $mode) {
+    foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $mode) {
         if (isset($decoded[$mode]) && is_array($decoded[$mode])) {
             $result[$mode] = sanitizeResellerPermissions(array_merge($defaults[$mode], $decoded[$mode]));
         } else {
@@ -285,12 +291,12 @@ function loadPermissionGroups() {
 }
 
 /**
- * Save administrator-configured Read, Write, and Full permission groups.
+ * Save administrator-configured Read, Write, Full, and Reset Voucher permission groups.
  */
 function savePermissionGroups($groups) {
     $defaults = getDefaultPermissionGroupDefinitions();
     $toSave = array();
-    foreach (array('Read', 'Write', 'Full') as $mode) {
+    foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $mode) {
         $src = isset($groups[$mode]) && is_array($groups[$mode]) ? $groups[$mode] : $defaults[$mode];
         $toSave[$mode] = sanitizeResellerPermissions($src);
     }
@@ -306,12 +312,12 @@ function getStandardSellerPermissions() {
 }
 
 /**
- * Resolve effective permissions for a reseller record based on permission_mode (Read, Write, Full, Custom)
+ * Resolve effective permissions for a reseller record based on permission_mode (Read, Write, Full, Reset Voucher, Custom)
  */
 function resolveEffectiveResellerPermissions($reseller) {
     $mode = isset($reseller['permission_mode']) ? trim((string)$reseller['permission_mode']) : 'Custom';
     $groups = loadPermissionGroups();
-    if ($mode === 'Read' || $mode === 'Write' || $mode === 'Full') {
+    if ($mode === 'Read' || $mode === 'Write' || $mode === 'Full' || $mode === 'Reset Voucher') {
         return $groups[$mode];
     }
     $rawPerms = isset($reseller['permissions']) && is_array($reseller['permissions']) ? $reseller['permissions'] : getStandardSellerPermissions();
@@ -512,7 +518,7 @@ function loadResellers() {
             $needsSave = true;
         }
 
-        if (empty($res['permission_mode']) || !in_array($res['permission_mode'], array('Read', 'Write', 'Full', 'Custom'), true)) {
+        if (empty($res['permission_mode']) || !in_array($res['permission_mode'], array('Read', 'Write', 'Full', 'Reset Voucher', 'Custom'), true)) {
             $res['permission_mode'] = 'Custom';
             $needsSave = true;
         }
@@ -536,11 +542,13 @@ function loadResellers() {
         }
 
         $perms = isset($res['permissions']) && is_array($res['permissions']) ? $res['permissions'] : getStandardSellerPermissions();
-        if (!isset($perms['use_assigned_template'])) {
-            $perms['use_assigned_template'] = true;
-        }
-        if (!isset($perms['preview_assigned_template'])) {
-            $perms['preview_assigned_template'] = true;
+        if ($res['permission_mode'] !== 'Reset Voucher') {
+            if (!isset($perms['use_assigned_template'])) {
+                $perms['use_assigned_template'] = true;
+            }
+            if (!isset($perms['preview_assigned_template'])) {
+                $perms['preview_assigned_template'] = true;
+            }
         }
         $res['permissions'] = sanitizeResellerPermissions($perms);
         ensureResellerTemplateFiles($res['id']);
@@ -942,10 +950,80 @@ function removeResellerCustomLogo($resellerId) {
 }
 
 /**
+ * Check if the logged-in reseller ONLY has the Reset Voucher permission (and no other operational menu/view permissions).
+ * When true, the reseller is strictly isolated to the Reset Voucher interface.
+ */
+function isResetOnlyReseller() {
+    if (!isset($_SESSION['mikhmon']) || isMikhmonAdmin()) {
+        return false;
+    }
+    if (!syncActiveResellerSession()) {
+        return false;
+    }
+    if (!hasResellerPermission('reset_voucher')) {
+        return false;
+    }
+    $mode = isset($_SESSION['mikhmon_permission_mode']) ? trim((string)$_SESSION['mikhmon_permission_mode']) : '';
+    if ($mode === 'Reset Voucher') {
+        return true;
+    }
+    $otherOperationalKeys = array(
+        'view_dashboard',
+        'view_users',
+        'add_user',
+        'generate_voucher',
+        'edit_user',
+        'delete_user',
+        'enable_disable_user',
+        'print_voucher',
+        'manage_quickprint',
+        'export_users',
+        'view_profiles',
+        'add_profile',
+        'edit_profile',
+        'delete_profile',
+        'view_active',
+        'disconnect_active',
+        'view_hosts',
+        'manage_hosts',
+        'view_ipbinding',
+        'manage_ipbinding',
+        'view_cookies',
+        'delete_cookies',
+        'view_dhcp',
+        'view_logs',
+        'view_report',
+        'export_report',
+        'delete_report',
+        'view_traffic',
+        'view_scheduler',
+        'manage_scheduler',
+        'reboot_shutdown',
+        'manage_router_settings',
+        'view_ppp',
+        'manage_ppp',
+        'edit_own_template',
+        'save_own_template',
+        'publish_own_template',
+        'restore_own_template',
+    );
+    $perms = isset($_SESSION['mikhmon_permissions']) && is_array($_SESSION['mikhmon_permissions']) ? $_SESSION['mikhmon_permissions'] : array();
+    foreach ($otherOperationalKeys as $k) {
+        if (!empty($perms[$k])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Determine the first permitted landing URL for a reseller on a given router session (or sessions list).
  */
 function getResellerDefaultFallbackUrl($session = '') {
     $safeSession = trim((string)$session);
+    if (isResetOnlyReseller()) {
+        return './admin.php?id=reset-voucher' . ($safeSession !== '' && canAccessRouterSession($safeSession) ? '&session=' . urlencode($safeSession) : '');
+    }
     if ($safeSession !== '' && canAccessRouterSession($safeSession)) {
         if (hasResellerPermission('view_dashboard')) {
             return './?session=' . urlencode($safeSession);
@@ -958,6 +1036,9 @@ function getResellerDefaultFallbackUrl($session = '') {
         }
         if (hasResellerPermission('add_user')) {
             return './?hotspot-user=add&session=' . urlencode($safeSession);
+        }
+        if (hasResellerPermission('reset_voucher')) {
+            return './?hotspot=reset-voucher&session=' . urlencode($safeSession);
         }
         if (hasResellerPermission('print_voucher')) {
             return './?hotspot=quick-print&session=' . urlencode($safeSession);
@@ -1008,11 +1089,15 @@ function getResellerDefaultFallbackUrl($session = '') {
  */
 function requireResellerPermission($permKey, $redirectUrl = './admin.php?id=sessions') {
     if (!hasResellerPermission($permKey)) {
-        $sess = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
-        if ($sess !== '' && canAccessRouterSession($sess)) {
-            $fallback = getResellerDefaultFallbackUrl($sess);
-            if (($redirectUrl === './?session=' . $sess || $redirectUrl === './admin.php?id=sessions') && !hasResellerPermission('view_dashboard')) {
-                $redirectUrl = $fallback;
+        if (isResetOnlyReseller()) {
+            $redirectUrl = './admin.php?id=reset-voucher';
+        } else {
+            $sess = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
+            if ($sess !== '' && canAccessRouterSession($sess)) {
+                $fallback = getResellerDefaultFallbackUrl($sess);
+                if (($redirectUrl === './?session=' . $sess || $redirectUrl === './admin.php?id=sessions') && !hasResellerPermission('view_dashboard')) {
+                    $redirectUrl = $fallback;
+                }
             }
         }
         if (!headers_sent()) {

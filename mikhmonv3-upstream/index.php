@@ -40,8 +40,14 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
   include_once('./include/ros_version.php');
   include_once('./include/reseller_acl.php');
+  if (isResetOnlyReseller() && (!isset($_GET['hotspot']) || ($_GET['hotspot'] !== 'reset-voucher' && $_GET['hotspot'] !== 'logout'))) {
+    echo "<script>window.location='./admin.php?id=reset-voucher&session=" . urlencode($session) . "'</script>";
+    exit;
+  }
   if (!canAccessRouterSession($session)) {
-    if (isset($_GET['hotspot']) && $_GET['hotspot'] === 'about') {
+    if (isResetOnlyReseller()) {
+      echo "<script>window.location='./admin.php?id=reset-voucher'</script>";
+    } elseif (isset($_GET['hotspot']) && $_GET['hotspot'] === 'about') {
       echo "<script>window.location='./admin.php?id=about'</script>";
     } else {
       echo "<script>window.location='./admin.php?id=sessions'</script>";
@@ -57,8 +63,12 @@ if (!isset($_SESSION["mikhmon"])) {
   date_default_timezone_set($_SESSION['timezone']);
 
 // lang
+  include('./lang/isocodelang.php');
   include('./include/lang.php');
-  include('./lang/'.$langid.'.php');
+  include('./lang/en.php');
+  if ($langid !== 'en' && is_file('./lang/'.$langid.'.php')) {
+    include('./lang/'.$langid.'.php');
+  }
 
 // quick bt
   include('./include/quickbt.php');
@@ -70,6 +80,7 @@ if (!isset($_SESSION["mikhmon"])) {
 // theme  
   include('./include/theme.php');
   include('./settings/settheme.php');
+  include('./settings/setlang.php');
   if ($_SESSION['theme'] == "") {
     $theme = $theme;
     $themecolor = $themecolor;
@@ -157,6 +168,11 @@ if (!isset($_SESSION["mikhmon"])) {
     echo "<script>sessionStorage.clear();</script>";
     echo "<script>window.location='./admin.php?id=login'</script>";
   }
+// reset voucher
+  elseif ($hotspot == "reset-voucher") {
+    requireResellerPermission('reset_voucher', $defRedirect);
+    include_once('./hotspot/resetvoucher.php');
+  }
 // resellers management
   elseif ($hotspot == "resellers") {
     if (!isMikhmonAdmin()) {
@@ -164,6 +180,14 @@ if (!isset($_SESSION["mikhmon"])) {
       exit;
     }
     include_once('./settings/resellers.php');
+  }
+// system update & vps center
+  elseif ($hotspot == "system-update") {
+    if (!isMikhmonAdmin()) {
+      echo "<script>window.location='" . $defRedirect . "'</script>";
+      exit;
+    }
+    include_once('./settings/system_update.php');
   }
 // redirect to home
   elseif (substr(explode("=", $url)[0],-9) == "/?session") {

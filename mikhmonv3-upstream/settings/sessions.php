@@ -100,8 +100,12 @@ if (!isset($_SESSION["mikhmon"])) {
                                 
                                   <div class="box-group-area">
                                     <span>
+                                      <?php
+                                        $rIpRaw = explode('!', $data[$value][1])[1];
+                                        $rIsSsh = (strpos($rIpRaw, 'ssh://') === 0);
+                                      ?>
                                       <?= $_hotspot_name ?> : <?= explode('%', $data[$value][4])[1]; ?><br>
-                                      <?= $_session_name ?> : <?= $value; ?><br>
+                                      <?= $_session_name ?> : <?= $value; ?> <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(0,0,0,0.35); color:#fff; font-weight:bold;"><?= $rIsSsh ? 'SSH' : 'API'; ?></span><br>
                                       <span class="connect pointer"  id="<?= $value; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
                                       <?php if (hasResellerPermission('manage_router_settings')) { ?>
                                       <a href="./admin.php?id=settings&session=<?= $value; ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
@@ -128,7 +132,7 @@ if (!isset($_SESSION["mikhmon"])) {
           <form autocomplete="off" method="post" action="">
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title"><i class="fa fa-user-circle"></i> <?= $_admin ?> &nbsp; | &nbsp; <a href="./admin.php?id=resellers"><i class="fa fa-users"></i> Reseller</a> &nbsp; | &nbsp; <a href="./settings/export_package.php"><i class="fa fa-download"></i> Download Server ZIP</a></h3>
+                <h3 class="card-title"><i class="fa fa-user-circle"></i> <?= $_admin ?> &nbsp; | &nbsp; <a href="./admin.php?id=resellers"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a> &nbsp; | &nbsp; <a href="./admin.php?id=system-update"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update & VPS'; ?></a></h3>
               </div>
             <div class="card-body">
       <table class="table table-sm">
@@ -180,29 +184,29 @@ if (!isset($_SESSION["mikhmon"])) {
     </form>
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-windows"></i> ফুল স্ট্যান্ডঅ্যালোন Mikhmon Server (MikhmonServer.exe সহ) ডাউনলোড</h3>
+        <h3 class="card-title"><i class="fa fa-windows"></i> <?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone Mikhmon Server (with MikhmonServer.exe)'); ?></h3>
       </div>
       <div class="card-body">
         <p style="margin-top:0; margin-bottom:10px;">
-          আপনার আগের মিকমনের সাথে কোনো কিছু করার প্রয়োজন নেই। নিচের বাটনে ক্লিক করলে সরাসরি <b><code>MikhmonServer.exe</code> + PHP Server + NextGan Mikhmon</b> সহ সম্পূর্ণ রেডিমেড সার্ভার ডাউনলোড হবে:
+          <?= isset($_srv_dl_desc) ? $_srv_dl_desc : 'Click the button below to download the complete ready-made portable server:'; ?>
         </p>
         <div style="margin-bottom:12px;">
           <a class="btn bg-green pd-10" href="./settings/export_package.php" style="display:inline-block; font-weight:bold;">
-            <i class="fa fa-download"></i> Download Complete Mikhmon Server (.zip)
+            <i class="fa fa-download"></i> <?= htmlspecialchars(isset($_srv_dl_btn) ? $_srv_dl_btn : 'Download Complete Mikhmon Server (.zip)'); ?>
           </a>
         </div>
         <table class="table table-bordered table-sm" style="margin-bottom:0;">
           <tr>
-            <td style="width:28px;"><b>১.</b></td>
-            <td>উপরের সবুজ বাটনে ক্লিক করে <code>Mikhmon-Server-NextGan-Complete.zip</code> ডাউনলোড করুন।</td>
+            <td style="width:28px;"><b>1.</b></td>
+            <td><?= isset($_srv_dl_step1) ? $_srv_dl_step1 : ''; ?></td>
           </tr>
           <tr>
-            <td><b>২.</b></td>
-            <td>ডাউনলোড হওয়া জিপ ফাইলটির উপর মাউসের রাইট-বাটন ক্লিক করে <b>Extract All / Extract Here</b> করুন। ভেতরে <b><code>Mikhmon Server</code></b> নামের ফোল্ডার পাবেন।</td>
+            <td><b>2.</b></td>
+            <td><?= isset($_srv_dl_step2) ? $_srv_dl_step2 : ''; ?></td>
           </tr>
           <tr>
-            <td><b>৩.</b></td>
-            <td>ফোল্ডারের ভেতরে থাকা নরমাল মিকমনের মতো <b><code>MikhmonServer.exe</code></b> ফাইলে ডাবল-ক্লিক করুন — সার্ভার অটোমেটিক অন (সবুজ বাতি) হয়ে যাবে, এরপর <b>Open</b> বাটনে ক্লিক করলেই সরাসরি ব্রাউজারে ওপেন হবে!</td>
+            <td><b>3.</b></td>
+            <td><?= isset($_srv_dl_step3) ? $_srv_dl_step3 : ''; ?></td>
           </tr>
         </table>
       </div>

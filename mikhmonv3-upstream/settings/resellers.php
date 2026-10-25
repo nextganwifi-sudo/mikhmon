@@ -68,11 +68,11 @@ if (isset($_GET['remove-reseller']) && $_GET['remove-reseller'] !== '') {
     exit;
 }
 
-// Save Permission Groups (Read / Write / Full)
+// Save Permission Groups (Read / Write / Full / Reset Voucher)
 if (isset($_POST['save_permission_groups'])) {
     $activeView = 'groups';
     $updatedGroups = array();
-    foreach (array('Read', 'Write', 'Full') as $gMode) {
+    foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $gMode) {
         $postedG = isset($_POST['grp_perms'][$gMode]) && is_array($_POST['grp_perms'][$gMode]) ? $_POST['grp_perms'][$gMode] : array();
         $gMap = getDefaultPermissionMap(false);
         foreach ($gMap as $pk => $pv) {
@@ -82,7 +82,7 @@ if (isset($_POST['save_permission_groups'])) {
     }
     if (savePermissionGroups($updatedGroups)) {
         $permGroups = loadPermissionGroups();
-        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups (<b>Read</b>, <b>Write</b>, <b>Full</b>) updated. All resellers using these modes have been updated automatically.</div>";
+        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups (<b>Read</b>, <b>Write</b>, <b>Full</b>, <b>Reset Voucher</b>) updated. All resellers using these modes have been updated automatically.</div>";
     }
 }
 
@@ -102,7 +102,7 @@ if (isset($_POST['save_reseller'])) {
     $rName = trim($_POST['r_name']);
     $rPass = isset($_POST['r_password']) ? (string)$_POST['r_password'] : '';
     $rStatus = (isset($_POST['r_status']) && $_POST['r_status'] === 'disabled') ? 'disabled' : 'active';
-    $rMode = isset($_POST['r_permission_mode']) && in_array($_POST['r_permission_mode'], array('Read', 'Write', 'Full', 'Custom'), true)
+    $rMode = isset($_POST['r_permission_mode']) && in_array($_POST['r_permission_mode'], array('Read', 'Write', 'Full', 'Reset Voucher', 'Custom'), true)
         ? $_POST['r_permission_mode']
         : 'Write';
     $rTemplateCode = isset($_POST['r_template_code']) ? preg_replace('/[^a-zA-Z0-9_\-]/', '', strtoupper(trim($_POST['r_template_code']))) : '';
@@ -255,6 +255,7 @@ function getGroupSummaryStats($groupMap, $catalog) {
 $readSummary = getGroupSummaryStats($permGroups['Read'], $permCatalog);
 $writeSummary = getGroupSummaryStats($permGroups['Write'], $permCatalog);
 $fullSummary = getGroupSummaryStats($permGroups['Full'], $permCatalog);
+$resetSummary = getGroupSummaryStats($permGroups['Reset Voucher'], $permCatalog);
 ?>
 <script>
 function PassReseller() {
@@ -270,9 +271,11 @@ function onPermissionModeChange(mode) {
     var summaryRead = document.getElementById('groupSummary_Read');
     var summaryWrite = document.getElementById('groupSummary_Write');
     var summaryFull = document.getElementById('groupSummary_Full');
+    var summaryReset = document.getElementById('groupSummary_ResetVoucher');
     if (summaryRead) summaryRead.style.display = (mode === 'Read') ? 'block' : 'none';
     if (summaryWrite) summaryWrite.style.display = (mode === 'Write') ? 'block' : 'none';
     if (summaryFull) summaryFull.style.display = (mode === 'Full') ? 'block' : 'none';
+    if (summaryReset) summaryReset.style.display = (mode === 'Reset Voucher') ? 'block' : 'none';
     if (customBox) customBox.style.display = (mode === 'Custom') ? 'block' : 'none';
 }
 function setPermPreset(mode) {
@@ -283,6 +286,8 @@ function setPermPreset(mode) {
             boxes[i].checked = true;
         } else if (mode === 'none') {
             boxes[i].checked = false;
+        } else if (mode === 'reset_only') {
+            boxes[i].checked = (boxes[i].getAttribute('data-perm') === 'reset_voucher');
         }
     }
 }
@@ -329,11 +334,12 @@ function setPermPreset(mode) {
                 <table class="table table-sm table-bordered table-hover">
                   <thead>
                     <tr>
-                      <th style="width: 28%;">Category</th>
-                      <th style="width: 42%;">Operation Permission</th>
+                      <th style="width: 24%;">Category</th>
+                      <th style="width: 36%;">Operation Permission</th>
                       <th class="text-center" style="width: 10%;">Read</th>
                       <th class="text-center" style="width: 10%;">Write</th>
                       <th class="text-center" style="width: 10%;">Full</th>
+                      <th class="text-center" style="width: 10%;">Reset Voucher</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -349,7 +355,7 @@ function setPermPreset(mode) {
                               <span class="text-warning"><i class="fa fa-shield"></i> Admin-Protected</span>
                             <?php } ?>
                           </td>
-                          <?php foreach (array('Read', 'Write', 'Full') as $gMode) {
+                          <?php foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $gMode) {
                             $gChecked = !$isProtected && !empty($permGroups[$gMode][$pKey]) ? 'checked' : '';
                           ?>
                             <td class="text-center">
@@ -399,11 +405,15 @@ function setPermPreset(mode) {
                       <?php if (empty($resellers)) { ?>
                         <tr><td colspan="7" class="text-center">No reseller accounts configured.</td></tr>
                       <?php } else {
+                        $defaultLinkSession = !empty($session) ? $session : (!empty($allRouters) ? $allRouters[0] : 'MikroTik-v6');
+                        $tplEditorBaseUrl = !empty($session) ? './?hotspot=template-editor' : './admin.php?id=editor';
+                        $upLogoBaseUrl = !empty($session) ? './?hotspot=uplogo' : './admin.php?id=uplogo';
                         foreach ($resellers as $r) {
                           $isCurrent = ((string)$formId === (string)$r['id']);
                           $rRouters = isset($r['allowed_routers']) && !empty($r['allowed_routers']) ? implode(', ', $r['allowed_routers']) : 'None';
                           $rModeBadge = isset($r['permission_mode']) ? $r['permission_mode'] : 'Custom';
-                          $rTplBadge = (isset($r['template_code']) ? $r['template_code'] : 'NGW-001') . ' (' . ucfirst(isset($r['assigned_template']) ? $r['assigned_template'] : 'default') . ')';
+                          $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
+                          $rTplBadge = (isset($r['template_code']) ? $r['template_code'] : 'NGW-001') . ' (' . ucfirst($rAssignedVariant) . ')';
                           $statusBadge = ($r['status'] === 'active')
                             ? "<b class='text-green'>Active</b>"
                             : "<b class='text-red'>Disabled</b>";
@@ -411,6 +421,10 @@ function setPermPreset(mode) {
                         <tr style="<?= $isCurrent ? 'font-weight:bold;' : '' ?>">
                           <td class="text-center">
                             <a href="<?= $baseResellerUrl ?>&edit-reseller=<?= urlencode($r['id']); ?>" title="Edit <?= htmlspecialchars($r['username']); ?>"><i class="fa fa-edit text-primary"></i></a>
+                            &nbsp;
+                            <a href="<?= $tplEditorBaseUrl ?>&template=<?= urlencode($rAssignedVariant); ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($r['id']); ?>" title="Edit HTML Template Code for <?= htmlspecialchars($r['username']); ?>"><i class="fa fa-code text-blue"></i></a>
+                            &nbsp;
+                            <a href="<?= $upLogoBaseUrl ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($r['id']); ?>" title="Upload Custom Logo for <?= htmlspecialchars($r['username']); ?>"><i class="fa fa-image text-green"></i></a>
                             &nbsp;
                             <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($r['id']); ?>" title="<?= $r['status'] === 'active' ? 'Deactivate' : 'Activate'; ?> <?= htmlspecialchars($r['username']); ?>">
                               <i class="fa <?= $r['status'] === 'active' ? 'fa-unlock text-green' : 'fa-lock text-warning'; ?>"></i>
@@ -428,7 +442,11 @@ function setPermPreset(mode) {
                             <br><small><?= htmlspecialchars($r['name']); ?></small>
                           </td>
                           <td><span class="pd-2p5 radius-3 bg-primary"><?= htmlspecialchars($rModeBadge); ?></span></td>
-                          <td><code><?= htmlspecialchars($rTplBadge); ?></code></td>
+                          <td>
+                            <a href="<?= $tplEditorBaseUrl ?>&template=<?= urlencode($rAssignedVariant); ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($r['id']); ?>" title="Click to Edit HTML Code">
+                              <code><?= htmlspecialchars($rTplBadge); ?></code>
+                            </a>
+                          </td>
                           <td><?= htmlspecialchars($rRouters); ?></td>
                           <td><?= $statusBadge; ?></td>
                         </tr>
@@ -456,6 +474,14 @@ function setPermPreset(mode) {
                     <button type="submit" name="save_reseller" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
                     <a class="btn bg-warning" href="<?= $baseResellerUrl ?>&edit-reseller=new"><i class="fa fa-plus"></i> New Reseller</a>
                     <a class="btn bg-green" href="<?= $baseResellerUrl ?>&view=groups"><i class="fa fa-sliders"></i> Configure Groups</a>
+                    <?php if ($formId !== '') {
+                      $editFormSess = !empty($session) ? $session : (!empty($allRouters) ? $allRouters[0] : 'MikroTik-v6');
+                      $editTplUrl = (!empty($session) ? './?hotspot=template-editor' : './admin.php?id=editor') . '&template=' . urlencode($formAssignedTpl) . '&session=' . urlencode($editFormSess) . '&reseller_id=' . urlencode($formId);
+                      $editLogoUrl = (!empty($session) ? './?hotspot=uplogo' : './admin.php?id=uplogo') . '&session=' . urlencode($editFormSess) . '&reseller_id=' . urlencode($formId);
+                    ?>
+                    <a class="btn bg-blue" href="<?= $editTplUrl; ?>"><i class="fa fa-code"></i> Edit Reseller HTML Code</a>
+                    <a class="btn bg-purple" href="<?= $editLogoUrl; ?>"><i class="fa fa-upload"></i> Logo Manager</a>
+                    <?php } ?>
                   </div>
 
                   <table class="table table-sm">
@@ -539,6 +565,13 @@ function setPermPreset(mode) {
                             </select>
                           </div>
                         </div>
+                        <?php if ($formId !== '') { ?>
+                        <div style="margin-top:6px;">
+                          <small>Isolated HTML files: <code>uploads/reseller-templates/<?= htmlspecialchars($formId); ?>/template*.php</code></small>
+                          &nbsp;
+                          <a class="btn bg-blue" style="padding:2px 8px; font-size:11px;" href="<?= $editTplUrl; ?>"><i class="fa fa-code"></i> Open HTML Editor (Default / Thermal / Small)</a>
+                        </div>
+                        <?php } ?>
                       </td>
                     </tr>
                     <tr>
@@ -577,13 +610,14 @@ function setPermPreset(mode) {
                           <option value="Read" <?= $formMode === 'Read' ? 'selected' : ''; ?>>Read (View-Only Group)</option>
                           <option value="Write" <?= $formMode === 'Write' ? 'selected' : ''; ?>>Write (Standard Voucher Operations Group)</option>
                           <option value="Full" <?= $formMode === 'Full' ? 'selected' : ''; ?>>Full (All Non-Admin Reseller Operations Group)</option>
+                          <option value="Reset Voucher" <?= $formMode === 'Reset Voucher' ? 'selected' : ''; ?>>Reset Voucher (Strictly Only Reset Voucher Page)</option>
                           <option value="Custom" <?= $formMode === 'Custom' ? 'selected' : ''; ?>>Custom (Manual Granular Checklist)</option>
                         </select>
                       </td>
                     </tr>
                   </table>
 
-                  <!-- Concise Group Summaries when Read, Write, or Full is selected -->
+                  <!-- Concise Group Summaries when Read, Write, Full, or Reset Voucher is selected -->
                   <div id="groupSummary_Read" class="box box-bordered pd-10 mr-t-10" style="display: <?= $formMode === 'Read' ? 'block' : 'none'; ?>;">
                     <b><i class="fa fa-eye text-primary"></i> Read Mode Group Summary (<?= $readSummary['total']; ?> permissions enabled):</b><br>
                     <small><?= htmlspecialchars($readSummary['categories']); ?></small><br>
@@ -602,6 +636,11 @@ function setPermPreset(mode) {
                     <small class="text-warning">Grants all non-admin reseller operations. Protected Administrator-only and Reseller Management privileges remain strictly blocked.</small>
                   </div>
 
+                  <div id="groupSummary_ResetVoucher" class="box box-bordered pd-10 mr-t-10" style="display: <?= $formMode === 'Reset Voucher' ? 'block' : 'none'; ?>;">
+                    <b><i class="fa fa-refresh text-green"></i> Reset Voucher Mode Summary (<?= $resetSummary['total']; ?> permission enabled):</b><br>
+                    <small>Strictly isolates this reseller to the <b>Reset Voucher</b> page only (Reset Voucher, Enable, Disable, Check Expiry Date) across their assigned servers. All other menus and pages are hidden.</small>
+                  </div>
+
                   <!-- Individual Checklist (Shown only when Custom mode is selected) -->
                   <div id="customPermChecklist" class="card mr-t-10" style="display: <?= $formMode === 'Custom' ? 'block' : 'none'; ?>;">
                     <div class="card-header">
@@ -610,6 +649,7 @@ function setPermPreset(mode) {
                         <span style="font-size: 12px; font-weight: normal;">
                           &nbsp; | &nbsp; Quick Select:
                           <a href="javascript:void(0)" onclick="setPermPreset('all')">Enable All Allowed</a> &middot;
+                          <a href="javascript:void(0)" onclick="setPermPreset('reset_only')">Only Reset Voucher</a> &middot;
                           <a href="javascript:void(0)" onclick="setPermPreset('none')">Disable All</a>
                         </span>
                       </h3>
