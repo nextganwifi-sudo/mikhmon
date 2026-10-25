@@ -45,6 +45,7 @@ if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
   include('../include/readcfg.php');
 
 // routeros api
+  session_write_close();
   include_once('../lib/routeros_api.class.php');
   include_once('../lib/formatbytesbites.php');
   $API = new RouterosAPI();

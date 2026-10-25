@@ -42,6 +42,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
 // routeros api
+	session_write_close();
 	include_once('../lib/routeros_api.class.php');
 	include_once('../lib/formatbytesbites.php');
 	$API = new RouterosAPI();

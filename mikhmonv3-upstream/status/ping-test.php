@@ -19,8 +19,10 @@ session_start();
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
+    session_write_close();
     header("Location:../admin.php?id=login");
   } else {
+session_write_close();
 $session = $_GET['session'];
 $ping = $_GET['ping'];
 if(isset($ping) && !empty($session)){
@@ -32,10 +34,10 @@ if(isset($ping) && !empty($session)){
     $host = $parts[0];
     $port = isset($parts[1]) && $parts[1] !== '' ? (int)$parts[1] : ($isSsh ? 22 : 8728);
 function ping($host, $port, $isSsh = false){
-	$fsock = @fsockopen($host, $port, $errno, $errstr, 5);
+	$fsock = @fsockopen($host, $port, $errno, $errstr, 3);
 	if (!$fsock && $isSsh && ($host === '127.0.0.1' || $host === '127.0.0.2') && $port === 22) {
 		// Local simulator bridge fallback for SSH mode in preview environment
-		$fsock = @fsockopen($host, 8728, $errno, $errstr, 5);
+		$fsock = @fsockopen($host, 8728, $errno, $errstr, 3);
 	}
 	$protoBadge = $isSsh ? 'SSH' : 'API';
 	if (! $fsock ){

@@ -43,6 +43,7 @@ if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
   include('../include/readcfg.php');
 
 // routeros api
+  session_write_close();
   include_once('../lib/routeros_api.class.php');
   include_once('../lib/formatbytesbites.php');
   $API = new RouterosAPI();
@@ -124,14 +125,16 @@ if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
 
   $API->connect($iphost, $userhost, decrypt($passwdhost));
   include_once('../include/ros_version.php');
-// get & counting hotspot users
-  $countallusers = $API->comm("/ip/hotspot/user/print", array("count-only" => ""));
+// get & counting hotspot users in a single API call
+  $allhotspotusers = $API->comm("/ip/hotspot/user/print");
+  $rawUserCount = is_array($allhotspotusers) ? count($allhotspotusers) : 0;
+  $hasDefaultTrial = ($rawUserCount > 0 && isset($allhotspotusers[0]['name']) && $allhotspotusers[0]['name'] === 'default-trial');
+  $countallusers = $hasDefaultTrial ? ($rawUserCount - 1) : $rawUserCount;
   if ($countallusers < 2) {
     $uunit = "item";
   } elseif ($countallusers > 1) {
     $uunit = "items";
   }
-  $allhotspotusers = $API->comm("/ip/hotspot/user/print");
   $countusedusers = countUsedHotspotVouchers($allhotspotusers);
 
 // get & counting hotspot active

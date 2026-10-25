@@ -96,10 +96,22 @@ if (!isset($_SESSION["mikhmon"])) {
   include_once('./lib/formatbytesbites.php');
   $API = new RouterosAPI();
   $API->debug = false;
-  $API->connect($iphost, $userhost, decrypt($passwdhost));
-
-  $getidentity = $API->comm("/system/identity/print");
-  $identity = $getidentity[0]['name'];
+  $localOnlyHotspotPages = array('resellers', 'system-update', 'admin-settings', 'template-editor', 'uplogo', 'about', 'logout', 'reset-voucher');
+  $curHotspotReq = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
+  if (!in_array($curHotspotReq, $localOnlyHotspotPages, true)) {
+    $API->connect($iphost, $userhost, decrypt($passwdhost));
+    if (!empty($_SESSION[$session . '_identity'])) {
+      $identity = $_SESSION[$session . '_identity'];
+    } else {
+      $getidentity = $API->comm("/system/identity/print");
+      $identity = isset($getidentity[0]['name']) ? $getidentity[0]['name'] : $hotspotname;
+      if (!empty($identity)) {
+        $_SESSION[$session . '_identity'] = $identity;
+      }
+    }
+  } else {
+    $identity = !empty($_SESSION[$session . '_identity']) ? $_SESSION[$session . '_identity'] : $hotspotname;
+  }
   
 
 // get variable

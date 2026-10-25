@@ -26,8 +26,10 @@ $session = $_GET['session'];
 $interface = $_GET['iface'];
 include_once('../include/reseller_acl.php');
 if (!canAccessRouterSession($session)) {
+  session_write_close();
   exit;
 }
+session_write_close();
 //echo $interface
 // load config
 include('../include/config.php');

@@ -29,9 +29,9 @@ class RouterosAPI
     var $ssh_port  = 22;
     var $ssh_user  = '';
     var $ssh_pass  = '';
-    var $timeout   = 3;     //  Connection attempt timeout and data read timeout
-    var $attempts  = 5;     //  Connection attempt count
-    var $delay     = 3;     //  Delay between connection attempts in seconds
+    var $timeout   = 2;     //  Connection attempt timeout and data read timeout
+    var $attempts  = 2;     //  Connection attempt count
+    var $delay     = 1;     //  Delay between connection attempts in seconds
 
     var $socket;            //  Variable for storing socket resource
     var $error_no;          //  Variable for storing connection error number, if any

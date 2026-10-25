@@ -916,6 +916,10 @@ const MIKHMON_DOCROOT = path.resolve(process.cwd(), 'mikhmonv3-upstream');
 
 let phpProcess: ChildProcess | null = null;
 let isInstallingPhp = false;
+let isShuttingDown = false;
+let isPhpRestarting = false;
+let consecutivePhpFailures = 0;
+let phpWatchdogTimer: NodeJS.Timeout | null = null;
 
 function hasPhpBinary(): boolean {
   try {
@@ -923,6 +927,14 @@ function hasPhpBinary(): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+function cleanupOrphanedPhpPort() {
+  try {
+    execSync(`fuser -k ${PHP_PORT}/tcp`, { stdio: 'ignore' });
+  } catch {
+    // Ignore if fuser is unavailable or no process holds the port
   }
 }
 
@@ -953,34 +965,193 @@ function ensurePhpAndStartServer() {
 }
 
 function startPhpServer() {
+  if (isShuttingDown) return;
   if (!hasPhpBinary()) {
     ensurePhpAndStartServer();
     return;
   }
-  phpProcess = spawn(
+
+  isPhpRestarting = false;
+  consecutivePhpFailures = 0;
+
+  if (!phpProcess) {
+    cleanupOrphanedPhpPort();
+  }
+
+  const workers = process.env.PHP_CLI_SERVER_WORKERS || '6';
+  const child = spawn(
     'php',
-    ['-d', 'display_errors=0', '-d', 'error_reporting=0', '-S', `127.0.0.1:${PHP_PORT}`, '-t', MIKHMON_DOCROOT],
+    [
+      '-d',
+      'display_errors=0',
+      '-d',
+      'error_reporting=0',
+      '-d',
+      'max_execution_time=25',
+      '-d',
+      'default_socket_timeout=5',
+      '-S',
+      `127.0.0.1:${PHP_PORT}`,
+      '-t',
+      MIKHMON_DOCROOT,
+    ],
     {
       cwd: MIKHMON_DOCROOT,
+      env: {
+        ...process.env,
+        PHP_CLI_SERVER_WORKERS: workers,
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
   );
 
-  phpProcess.on('error', (err) => {
+  phpProcess = child;
+
+  // CRITICAL: Always drain stdout and stderr pipes so the 64 KB Linux kernel pipe buffer
+  // never fills up and deadlocks PHP on write(2) during access logging!
+  if (child.stdout) {
+    child.stdout.on('data', () => {
+      // Drain stdout continuously
+    });
+  }
+  if (child.stderr) {
+    child.stderr.on('data', (chunk: Buffer) => {
+      const msg = chunk.toString('utf8');
+      if (msg.includes('Fatal error') || msg.includes('Parse error') || msg.includes('Failed to listen')) {
+        console.error(`[PHP Server] ${msg.trim()}`);
+      }
+    });
+  }
+
+  child.on('error', (err) => {
     console.error(`[PHP Server] spawn error: ${err.message}`);
   });
 
-  phpProcess.on('exit', (code) => {
-    console.log(`[PHP Server] exited with code ${code}, restarting in 500ms...`);
+  child.on('exit', (code, signal) => {
+    if (phpProcess === child) {
+      phpProcess = null;
+    }
+    if (isShuttingDown || isPhpRestarting) return;
+    isPhpRestarting = true;
+    console.log(`[PHP Server] exited (code=${code}, signal=${signal}), restarting in 500ms...`);
     setTimeout(startPhpServer, 500);
   });
 }
 
+function recyclePhpServer(reason: string) {
+  if (isShuttingDown || isPhpRestarting) return;
+  isPhpRestarting = true;
+  console.warn(`[PHP Watchdog] Recycling PHP backend (${reason})...`);
+  if (phpProcess) {
+    try {
+      phpProcess.kill('SIGKILL');
+    } catch {
+      // Ignore kill errors
+    }
+    phpProcess = null;
+  }
+  cleanupOrphanedPhpPort();
+  setTimeout(startPhpServer, 500);
+}
+
+function probePhpHealth(timeoutMs = 2500): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.get(
+      {
+        hostname: '127.0.0.1',
+        port: PHP_PORT,
+        path: '/status/server_metrics.php?health=1',
+        timeout: timeoutMs,
+      },
+      (res) => {
+        res.resume();
+        resolve((res.statusCode || 500) >= 200 && (res.statusCode || 500) < 400);
+      }
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+function startPhpWatchdog() {
+  if (phpWatchdogTimer) clearInterval(phpWatchdogTimer);
+  phpWatchdogTimer = setInterval(async () => {
+    if (isShuttingDown || isInstallingPhp || isPhpRestarting) return;
+    const healthy = await probePhpHealth(3000);
+    if (healthy) {
+      consecutivePhpFailures = 0;
+    } else {
+      consecutivePhpFailures++;
+      console.warn(`[PHP Watchdog] Health probe failed (${consecutivePhpFailures}/3) on 127.0.0.1:${PHP_PORT}`);
+      if (consecutivePhpFailures >= 3) {
+        consecutivePhpFailures = 0;
+        recyclePhpServer('3 consecutive health check failures');
+      }
+    }
+  }, 10000);
+}
+
+function shutdownCleanly(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[Mikhmon v3 Server] Received ${signal}, shutting down cleanly...`);
+  if (phpWatchdogTimer) {
+    clearInterval(phpWatchdogTimer);
+    phpWatchdogTimer = null;
+  }
+  if (phpProcess) {
+    try {
+      phpProcess.kill('SIGTERM');
+    } catch {
+      // Ignore
+    }
+    phpProcess = null;
+  }
+  cleanupOrphanedPhpPort();
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => shutdownCleanly('SIGTERM'));
+process.on('SIGINT', () => shutdownCleanly('SIGINT'));
+process.on('exit', () => {
+  if (phpProcess) {
+    try {
+      phpProcess.kill('SIGKILL');
+    } catch {
+      // Ignore
+    }
+  }
+});
+
 startRouterOsTcpServer('127.0.0.1', routers['127.0.0.1']);
 startRouterOsTcpServer('127.0.0.2', routers['127.0.0.2']);
 ensurePhpAndStartServer();
+startPhpWatchdog();
 
-const proxyServer = http.createServer((req, res) => {
+const proxyServer = http.createServer(async (req, res) => {
+  if (req.url === '/__health' || req.url?.startsWith('/__health?')) {
+    const phpUp = await probePhpHealth(2500);
+    const statusCode = phpUp ? 200 : 503;
+    res.writeHead(statusCode, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    });
+    res.end(
+      JSON.stringify({
+        status: phpUp ? 'ok' : 'degraded',
+        node: 'up',
+        php: phpUp ? 'up' : 'down',
+        uptimeSec: Math.floor(process.uptime()),
+      })
+    );
+    return;
+  }
+
   const isHttpsForwarded =
     req.headers['x-forwarded-proto'] === 'https' ||
     (typeof req.headers.referer === 'string' && req.headers.referer.startsWith('https://'));
@@ -1010,13 +1181,28 @@ const proxyServer = http.createServer((req, res) => {
       });
     }
 
-    res.writeHead(proxyRes.statusCode || 200, headers);
+    if (!res.headersSent) {
+      res.writeHead(proxyRes.statusCode || 200, headers);
+    }
     proxyRes.pipe(res, { end: true });
   });
 
+  proxyReq.setTimeout(20000, () => {
+    proxyReq.destroy(new Error('Upstream PHP request timed out after 20s'));
+  });
+
   proxyReq.on('error', (err) => {
-    res.writeHead(502, { 'Content-Type': 'text/plain' });
-    res.end(`Mikhmon PHP Engine starting... (${err.message})`);
+    if (!res.headersSent) {
+      const isTimeout = err.message.includes('timed out');
+      res.writeHead(isTimeout ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(
+        isTimeout
+          ? 'NextGan WiFi Solution: Backend request timed out. Please retry.'
+          : `NextGan WiFi Solution: PHP Engine warming up... (${err.message})`
+      );
+    } else {
+      res.end();
+    }
   });
 
   req.pipe(proxyReq, { end: true });

@@ -195,6 +195,30 @@ if($idleto != "disable"){
 <a id="openNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
 <a id="closeNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
 <a id="cpage" class="navbar-left" href="javascript:void(0)"><?= $mpage; ?></a>
+<?php if (isMikhmonAdmin()) { ?>
+<span class="navbar-left" style="display:inline-flex; align-items:center; gap:12px; padding:10px 10px; user-select:none;" title="Server CPU &amp; RAM">
+  <span style="display:inline-flex; align-items:center; gap:5px;" title="Server CPU">
+    <i id="ngw-cpu-icon" class="fa fa-microchip" style="font-size:13px; color:#2ea043; transition:color 0.3s ease;"></i>
+    <span style="display:inline-block; width:32px; height:6px; background:rgba(150,150,150,0.28); border-radius:3px; overflow:hidden; vertical-align:middle;">
+      <span id="ngw-cpu-bar" style="display:block; height:100%; width:12%; background:#2ea043; border-radius:3px; transition:width 0.3s ease, background-color 0.3s ease;"></span>
+    </span>
+    <span id="ngw-cpu-pct" style="font-size:11px; font-weight:bold; min-width:26px; display:inline-block;">--%</span>
+  </span>
+  <span style="display:inline-flex; align-items:center; gap:5px;" title="Server RAM">
+    <svg id="ngw-ram-icon" width="14" height="13" viewBox="0 0 16 14" fill="none" style="vertical-align:middle; color:#2ea043; transition:color 0.3s ease;">
+      <rect x="1" y="3" width="14" height="7" rx="1.2" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="3.5" y="5" width="2" height="3" fill="currentColor"/>
+      <rect x="7" y="5" width="2" height="3" fill="currentColor"/>
+      <rect x="10.5" y="5" width="2" height="3" fill="currentColor"/>
+      <path d="M3.5 10V12.5M6.5 10V12.5M9.5 10V12.5M12.5 10V12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <span style="display:inline-block; width:32px; height:6px; background:rgba(150,150,150,0.28); border-radius:3px; overflow:hidden; vertical-align:middle;">
+      <span id="ngw-ram-bar" style="display:block; height:100%; width:28%; background:#2ea043; border-radius:3px; transition:width 0.3s ease, background-color 0.3s ease;"></span>
+    </span>
+    <span id="ngw-ram-pct" style="font-size:11px; font-weight:bold; min-width:26px; display:inline-block;">--%</span>
+  </span>
+</span>
+<?php } ?>
 </div>
  <div class="navbar-right">
   <a id="logout" href="./admin.php?id=logout" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
@@ -290,6 +314,30 @@ include('./info.php');
 <a id="openNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
 <a id="closeNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
 <a id="cpage" class="navbar-left" href="javascript:void(0)"><?= $mpage; ?></a>
+<?php if (isMikhmonAdmin()) { ?>
+<span class="navbar-left" style="display:inline-flex; align-items:center; gap:12px; padding:10px 10px; user-select:none;" title="Server CPU &amp; RAM">
+  <span style="display:inline-flex; align-items:center; gap:5px;" title="Server CPU">
+    <i id="ngw-cpu-icon" class="fa fa-microchip" style="font-size:13px; color:#2ea043; transition:color 0.3s ease;"></i>
+    <span style="display:inline-block; width:32px; height:6px; background:rgba(150,150,150,0.28); border-radius:3px; overflow:hidden; vertical-align:middle;">
+      <span id="ngw-cpu-bar" style="display:block; height:100%; width:12%; background:#2ea043; border-radius:3px; transition:width 0.3s ease, background-color 0.3s ease;"></span>
+    </span>
+    <span id="ngw-cpu-pct" style="font-size:11px; font-weight:bold; min-width:26px; display:inline-block;">--%</span>
+  </span>
+  <span style="display:inline-flex; align-items:center; gap:5px;" title="Server RAM">
+    <svg id="ngw-ram-icon" width="14" height="13" viewBox="0 0 16 14" fill="none" style="vertical-align:middle; color:#2ea043; transition:color 0.3s ease;">
+      <rect x="1" y="3" width="14" height="7" rx="1.2" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="3.5" y="5" width="2" height="3" fill="currentColor"/>
+      <rect x="7" y="5" width="2" height="3" fill="currentColor"/>
+      <rect x="10.5" y="5" width="2" height="3" fill="currentColor"/>
+      <path d="M3.5 10V12.5M6.5 10V12.5M9.5 10V12.5M12.5 10V12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <span style="display:inline-block; width:32px; height:6px; background:rgba(150,150,150,0.28); border-radius:3px; overflow:hidden; vertical-align:middle;">
+      <span id="ngw-ram-bar" style="display:block; height:100%; width:28%; background:#2ea043; border-radius:3px; transition:width 0.3s ease, background-color 0.3s ease;"></span>
+    </span>
+    <span id="ngw-ram-pct" style="font-size:11px; font-weight:bold; min-width:26px; display:inline-block;">--%</span>
+  </span>
+</span>
+<?php } ?>
 </div>
  <div class="navbar-right">
   <a id="logout" href="./?hotspot=logout&session=<?= $session; ?>" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
@@ -499,6 +547,53 @@ $(document).ready(function(){
 <?php 
 include('./include/info.php');
 } ?>
+<?php if (isMikhmonAdmin()) { ?>
+<script>
+(function(){
+  var metricsInFlight = false;
+  function pickBarColor(pct) {
+    if (pct >= 85) return '#f85149';
+    if (pct >= 61) return '#f0ad4e';
+    return '#2ea043';
+  }
+  function updateServerMetricsBar() {
+    if (!window.jQuery || metricsInFlight) return;
+    metricsInFlight = true;
+    $.ajax({
+      url: './status/server_metrics.php',
+      dataType: 'json',
+      timeout: 2500,
+      success: function(res) {
+        if (!res || !res.ok) return;
+        var cpu = Math.max(1, Math.min(100, parseInt(res.cpu, 10) || 1));
+        var ram = Math.max(1, Math.min(100, parseInt(res.ram, 10) || 1));
+        var cpuCol = pickBarColor(cpu);
+        var ramCol = pickBarColor(ram);
+        var cBar = document.getElementById('ngw-cpu-bar');
+        var cIco = document.getElementById('ngw-cpu-icon');
+        var cPct = document.getElementById('ngw-cpu-pct');
+        var rBar = document.getElementById('ngw-ram-bar');
+        var rIco = document.getElementById('ngw-ram-icon');
+        var rPct = document.getElementById('ngw-ram-pct');
+        if (cBar) { cBar.style.width = Math.max(6, cpu) + '%'; cBar.style.backgroundColor = cpuCol; }
+        if (cIco) { cIco.style.color = cpuCol; }
+        if (cPct) { cPct.textContent = cpu + '%'; }
+        if (rBar) { rBar.style.width = Math.max(6, ram) + '%'; rBar.style.backgroundColor = ramCol; }
+        if (rIco) { rIco.style.color = ramCol; }
+        if (rPct) { rPct.textContent = ram + '%'; }
+      },
+      complete: function() {
+        metricsInFlight = false;
+      }
+    });
+  }
+  $(document).ready(function(){
+    updateServerMetricsBar();
+    setInterval(updateServerMetricsBar, 1000);
+  });
+})();
+</script>
+<?php } ?>
 
 <div id="main">  
 <div id="loading" class="lds-dual-ring"></div>

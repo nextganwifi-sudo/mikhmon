@@ -51,15 +51,17 @@ if (!isset($_SESSION["mikhmon"])) {
   $log = array_reverse($getlog);
   $THotspotLog = count($getlog);
 */
-// get & counting hotspot users
+// get & counting hotspot users in a single API call
   include_once('./include/ros_version.php');
-  $countallusers = $API->comm("/ip/hotspot/user/print", array("count-only" => ""));
+  $allhotspotusers = $API->comm("/ip/hotspot/user/print");
+  $rawUserCount = is_array($allhotspotusers) ? count($allhotspotusers) : 0;
+  $hasDefaultTrial = ($rawUserCount > 0 && isset($allhotspotusers[0]['name']) && $allhotspotusers[0]['name'] === 'default-trial');
+  $countallusers = $hasDefaultTrial ? ($rawUserCount - 1) : $rawUserCount;
   if ($countallusers < 2) {
     $uunit = "item";
   } elseif ($countallusers > 1) {
     $uunit = "items";
   }
-  $allhotspotusers = $API->comm("/ip/hotspot/user/print");
   $countusedusers = countUsedHotspotVouchers($allhotspotusers);
 
 // get & counting hotspot active

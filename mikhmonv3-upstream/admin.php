@@ -169,14 +169,19 @@ if ($id == "login" || substr($url, -1) == "p") {
 } elseif ($id == "connect"  && !empty($session)) {
   ini_set("max_execution_time",5);  
   include_once('./include/menu.php');
+  $targetAfterConnect = getResellerDefaultFallbackUrl($session);
+  session_write_close();
   $API = new RouterosAPI();
   $API->debug = false;
-  if ($API->connect($iphost, $userhost, decrypt($passwdhost))){
+  $isConnected = $API->connect($iphost, $userhost, decrypt($passwdhost));
+  @session_start();
+  if ($isConnected){
     $_SESSION["connect"] = "<b class='text-green'>Connected</b>";
-    $targetAfterConnect = getResellerDefaultFallbackUrl($session);
+    session_write_close();
     echo "<script>window.location='" . $targetAfterConnect . "'</script>";
   } else {
     $_SESSION["connect"] = "<b class='text-red'>Not Connected</b>";
+    session_write_close();
     $nl = '\n';
     $portHint = (strpos($iphost, 'ssh://') === 0) ? 'SSH (port 22)' : 'API (port 8728)';
     if ($currency == in_array($currency, $cekindo['indo'])) {
