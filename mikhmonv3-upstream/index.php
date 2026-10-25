@@ -65,7 +65,9 @@ if (!isset($_SESSION["mikhmon"])) {
 // lang
   include('./lang/isocodelang.php');
   include('./include/lang.php');
+  $selected_langid = (isset($langid) && $langid !== '') ? $langid : 'en';
   include('./lang/en.php');
+  $langid = $selected_langid;
   if ($langid !== 'en' && is_file('./lang/'.$langid.'.php')) {
     include('./lang/'.$langid.'.php');
   }
@@ -188,6 +190,14 @@ if (!isset($_SESSION["mikhmon"])) {
       exit;
     }
     include_once('./settings/system_update.php');
+  }
+// admin settings
+  elseif ($hotspot == "admin-settings") {
+    if (!isMikhmonAdmin()) {
+      echo "<script>window.location='" . $defRedirect . "'</script>";
+      exit;
+    }
+    include_once('./settings/admin_settings.php');
   }
 // redirect to home
   elseif (substr(explode("=", $url)[0],-9) == "/?session") {

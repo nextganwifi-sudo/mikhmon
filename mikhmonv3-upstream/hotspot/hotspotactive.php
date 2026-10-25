@@ -34,7 +34,12 @@ if (!isset($_SESSION["mikhmon"])) {
 	
 // lang
   include('../include/lang.php');
-  include('../lang/'.$langid.'.php');
+  $selected_langid = (isset($langid) && $langid !== '') ? $langid : 'en';
+  include('../lang/en.php');
+  $langid = $selected_langid;
+  if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
+    include('../lang/'.$langid.'.php');
+  }
 
 // routeros api
 	include_once('../lib/routeros_api.class.php');

@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for Minimal 1-Button GitHub System Update and Clean Full-Width Reseller Management with Three-Dot Action Menu, Details Modal, and Popup Add/Edit Reseller Form.",
-  "updatedAt":  "2026-10-25T09:01:39.799002621Z",
+  "summary":  "Implementation plan for renaming Admin Settings to Router (showing only routers) and creating a dedicated Settings button and page for Admin credentials, Quick Print QR, and Standalone ZIP Server download.",
+  "updatedAt":  "2026-10-25T15:32:17.973288433Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

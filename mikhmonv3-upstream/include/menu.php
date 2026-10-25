@@ -145,7 +145,12 @@ if (!isset($_SESSION["mikhmon"])) {
     $mpage = isset($_reseller) ? $_reseller : "Reseller";
   } elseif ($id == "sessions" || $id == "remove" || $router == "new") {
     $ssesslist = "active";
-    $mpage = $_admin_settings;
+    $mpage = isset($_router_menu_label) ? $_router_menu_label : "Router";
+  } elseif ($id == "admin-settings" || $hotspot == "admin-settings") {
+    $sadmsettings = "active";
+    $ssett = "active";
+    $settmenu = "menu-open";
+    $mpage = $_settings;
   } elseif ($id == "settings" && $session == "new") {
     $snsettings = "active";
     $mpage = $_add_router;
@@ -193,10 +198,11 @@ if($idleto != "disable"){
 </div>
  <div class="navbar-right">
   <a id="logout" href="./admin.php?id=logout" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
+  <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
     <option> <?= $_theme?></option>
     <?php for ($i = 0; $i < count($mtheme); $i++) {
-      echo '<option value="'.$url.'&set-theme='.$mtheme[$i],'">'.ucfirst($mtheme[$i]),'</option>';
+      echo '<option value="'.$url.$urlSep.'set-theme='.$mtheme[$i],'">'.ucfirst($mtheme[$i]),'</option>';
     }
     ?>
   </select>
@@ -208,7 +214,7 @@ if($idleto != "disable"){
         if(is_file($filename)){
           $filename = substr(explode("/",$filename)[1],0,-4);
           if($filename == "isocodelang"){}else{
-            echo '<option value="'.$url.'&setlang=' . $filename . '">'. $isocodelang[$filename]. '</option>'; 
+            echo '<option value="'.$url.$urlSep.'setlang=' . $filename . '">'. $isocodelang[$filename]. '</option>'; 
          }   
         }
       }
@@ -239,7 +245,7 @@ if($idleto != "disable"){
   <div class="menu spa"></div>
 <?php 
 } ?>  
-  <a href="./admin.php?id=sessions" class="menu <?= $ssesslist; ?>"><i class="fa fa-gear"></i> <?= $_admin_settings ?></a>
+  <a href="./admin.php?id=sessions" class="menu <?= $ssesslist; ?>"><i class="fa fa-server"></i> <?= isset($_router_menu_label) ? $_router_menu_label : 'Router'; ?></a>
   <?php if (hasResellerPermission('reset_voucher')) { ?>
   <a href="./admin.php?id=reset-voucher<?= !empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : ''; ?>" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
   <?php } ?>
@@ -248,6 +254,7 @@ if($idleto != "disable"){
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
   <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
+  <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>"><i class="fa fa-gear"></i> <?= $_settings ?></a>
   <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
   <?php } ?>
   <a href="./admin.php?id=about" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
@@ -286,10 +293,11 @@ include('./info.php');
 </div>
  <div class="navbar-right">
   <a id="logout" href="./?hotspot=logout&session=<?= $session; ?>" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
+  <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
     <option> <?= $_theme ?></option>
     <?php for ($i = 0; $i < count($mtheme); $i++) {
-      echo '<option value="'.$url.'&set-theme='.$mtheme[$i],'">'.ucfirst($mtheme[$i]),'</option>';
+      echo '<option value="'.$url.$urlSep.'set-theme='.$mtheme[$i],'">'.ucfirst($mtheme[$i]),'</option>';
     }
     ?>
   </select>
@@ -301,7 +309,7 @@ include('./info.php');
         if(is_file($filename)){
           $filename = substr(explode("/",$filename)[1],0,-4);
           if($filename == "isocodelang"){}else{
-            echo '<option value="'.$url.'&setlang=' . $filename . '">'. $isocodelang[$filename]. '</option>'; 
+            echo '<option value="'.$url.$urlSep.'setlang=' . $filename . '">'. $isocodelang[$filename]. '</option>'; 
          }   
         }
       }
@@ -452,7 +460,10 @@ include('./info.php');
   <?php if (hasResellerPermission('manage_router_settings')) { ?>
   <a href="./admin.php?id=settings&session=<?= $session; ?>" class="menu "> <i class="fa fa-gear "></i> <?= $_session_settings ?> </a>
   <?php } ?>
-  <a href="./admin.php?id=sessions" class="menu "> <i class="fa fa-gear "></i> <?= $_admin_settings ?> </a>
+  <a href="./admin.php?id=sessions" class="menu "> <i class="fa fa-server "></i> <?= isset($_router_menu_label) ? $_router_menu_label : 'Router'; ?> </a>
+  <?php if (isMikhmonAdmin()) { ?>
+  <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>"> <i class="fa fa-gear "></i> <?= $_settings ?> </a>
+  <?php } ?>
   <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template')) { ?>
   <a href="./?hotspot=uplogo&session=<?= $session; ?>" class="menu <?= $uplogo; ?>"> <i class="fa fa-upload "></i> <?= $_upload_logo ?> </a>
   <?php } ?>

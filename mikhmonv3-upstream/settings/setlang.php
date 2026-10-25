@@ -20,7 +20,10 @@ session_start();
 error_reporting(0);
 
 // check url
-$url2 = explode("&setlang", $url)[0];
+$url2 = explode("&setlang", explode("?setlang", $url)[0])[0];
+if ($url2 === '') {
+    $url2 = './admin.php?id=sessions';
+}
 
 $getlang = $_GET['setlang'];
 

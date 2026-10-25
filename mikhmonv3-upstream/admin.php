@@ -40,7 +40,9 @@ $ids = array(
 // lang
 include('./lang/isocodelang.php');
 include('./include/lang.php');
+$selected_langid = (isset($langid) && $langid !== '') ? $langid : 'en';
 include('./lang/en.php');
+$langid = $selected_langid;
 if ($langid !== 'en' && is_file('./lang/'.$langid.'.php')) {
   include('./lang/'.$langid.'.php');
 }
@@ -136,6 +138,13 @@ if ($id == "login" || substr($url, -1) == "p") {
   }
   include_once('./include/menu.php');
   include_once('./settings/resellers.php');
+} elseif ($id == "admin-settings") {
+  if (!isMikhmonAdmin()) {
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
+    exit;
+  }
+  include_once('./include/menu.php');
+  include_once('./settings/admin_settings.php');
 } elseif ($id == "system-update") {
   if (!isMikhmonAdmin()) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";

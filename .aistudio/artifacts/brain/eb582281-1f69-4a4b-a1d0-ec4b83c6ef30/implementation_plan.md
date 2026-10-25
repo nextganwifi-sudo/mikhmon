@@ -1,123 +1,71 @@
-# Minimal GitHub System Update & Clean Reseller Management UI
+# Separate Router List & Dedicated Settings Page (`NextGan WiFi Solution`)
 
-This plan streamlines the **System Update** page into a single GitHub URL + **Git Safe Update** button, and redesigns **Reseller Management** into a clean, full-width **Reseller List** with a **Three-Dot (`⋮`) Action Menu**, a **Details Popup**, and a clean **Add/Edit Reseller Popup Modal**.
+এই আপডেটে পূর্বের **Admin Settings** বাটনটির নাম পরিবর্তন করে **`Router`** (`রাউটার`) করা হবে যেখানে শুধুমাত্র রাউটারগুলোর তালিকাই থাকবে, এবং নতুন একটি **`Settings`** (`সেটিংস`) বাটন যুক্ত করে তার ভেতরে অ্যাডমিন ইউজারনেম, পাসওয়ার্ড, কুইক প্রিন্ট QR এবং জিপ ফাইল ডাউনলোড অপশনগুলো সরিয়ে নেওয়া হবে।
 
 ---
 
-## User Review & Confirmed Decisions
+## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Summary of your confirmed requirements and design choices:
+> আপনার নির্দেশনা অনুযায়ী নিচের পরিবর্তনগুলো চূড়ান্ত করা হয়েছে:
 
-- **Confirmed Decision 1 — Single-Option GitHub System Update (`System Update`)**:
-  - The **System Update** page will contain **only** one clean box: an input field to save/connect your **GitHub Repository URL** and a single **Git Safe Update** button.
-  - All extra boxes (ZIP upload, backup tables, and guides) will be removed. When you push changes from AI Studio to GitHub and click **Git Safe Update**, the software automatically pulls the latest code from GitHub while keeping 100% of your existing data (routers, resellers, templates, logos) intact.
-- **Confirmed Decision 2 — Clean Reseller Header & Full-Width Reseller List**:
-  - Top header bar shows **only 3 items**: `Reseller Management | Add Reseller | Permission Group` (`(Read / Write / Full)` suffix and `Router List` link removed).
-  - Clicking **Reseller** from the sidebar shows **only the full-width Reseller List** (`Action (⋮)`, `Username`, `Name`, `Mode`, `Routers`, `Status`)—no form is shown on the right side by default.
-- **Confirmed Decision 3 — Three-Dot (`⋮`) Action Dropdown with `Details`**:
-  - Each row's `Action` column has a clean **Three-Dot (`⋮`)** button that opens a dropdown menu containing:
-    1. **Details** (opens a popup displaying all information about that reseller)
-    2. **Edit** (opens the Edit Reseller popup modal)
-    3. **Template Editor** (opens HTML Template Editor for that reseller)
-    4. **Upload Logo** (opens Logo Upload for that reseller)
-    5. **Activate / Deactivate**
-    6. **Delete**
-- **Confirmed Decision 4 — Streamlined Add / Edit Reseller Popup Modal**:
-  - Clicking **Add Reseller** (in the top header) or **Edit** (inside the `⋮` menu) opens a clean **Popup Modal** window.
-  - Inside the popup:
-    - **Assigned Routers** uses a clean **Select Router (`Select Router ▾`) dropdown button** with multi-select checkboxes inside the dropdown.
-    - Unnecessary fields (`Internal Reseller ID`, `Template Code & Layout`, `Reseller Logo`, and extra top toolbar buttons) are removed.
-    - Contains **only ONE Save button** at the bottom.
+- **Confirmed Decision 1 (`Admin Settings` ➔ `Router`)**: মেনুতে থাকা **Admin Settings** বাটনটির নাম পরিবর্তন করে **`Router`** (বাংলায়: **`রাউটার`**) রাখা হবে।
+- **Confirmed Decision 2 (`Router` পেজে শুধুমাত্র রাউটার তালিকা)**: **`Router`** বাটনে ক্লিক করলে শুধুমাত্র রাউটারগুলোই (`Router List`) দেখা যাবে; ডানপাশের ইউজারনেম, পাসওয়ার্ড, কুইক প্রিন্ট, সেভ বাটন, জিপ ডাউনলোড বক্স এবং উপরের `Admin | Reseller | System Update` লেখাটি সেখান থেকে সম্পূর্ণ সরিয়ে দেওয়া হবে।
+- **Confirmed Decision 3 (নতুন `Settings` বাটন ও পেজ)**: সাইডবার মেনুতে নতুন একটি **`Settings`** (বাংলায়: **`সেটিংস`**) বাটন যুক্ত করা হবে। এই **`Settings`** পেজের ভেতরে অ্যাডমিন ইউজারনেম, পাসওয়ার্ড, কুইক প্রিন্ট (QR), সেভ বাটন এবং স্ট্যান্ডঅ্যালোন সার্ভার জিপ ডাউনলোড (`Download Complete Mikhmon Server .zip`) অপশনগুলো থাকবে (উপরের `Admin | Reseller | System Update` লিংকগুলো ছাড়া)।
 
 ---
 
-## 1. Overview & Complete Explanation of How It Will Work
+## 1. Overview & Core Concept
 
-### A. System Update Page (`System Update`)
-1. When you click **System Update** from the sidebar (or Admin Settings), you will see a single, clean card.
-2. Inside the card:
-   - **GitHub Repository URL Input**: Enter your GitHub repo link (e.g., `https://github.com/username/repo.git`). The system automatically saves and remembers this URL so you don't need to type it again.
-   - **Single Button — `Git Safe Update`**: Clicking this button automatically backs up your live configuration (`config.php`, `resellers.json`, `permission_groups.json`, reseller templates, and logos), fetches the latest code from your GitHub repository, applies the update, and restores all your data so **zero data is ever lost**.
-
-### B. Reseller Management Page (`Reseller`)
-1. **Top Header Bar**:
-   - Displays only: **`Reseller Management | Add Reseller | Permission Group`**.
-   - Clicking **Permission Group** takes you directly to the Permission Group configuration table.
-   - Clicking **Add Reseller** opens the **Add Reseller Popup Modal**.
-2. **Full-Width Reseller List Table**:
-   - Displays columns: **`Action`**, **`Username`**, **`Name`**, **`Mode`**, **`Routers`**, and **`Status`**.
-   - Under **`Action`**, each reseller has a **`⋮` (Three-Dot)** button.
-3. **Three-Dot (`⋮`) Menu Options**:
-   - **Details**: Opens a clean **Reseller Details Popup** showing the reseller's ID, Username, Full Name, Account Status, Permission Mode, Assigned Routers (with Hotspot Names), Template Code, Active Logo preview, and Creation Date.
-   - **Edit**: Opens the **Edit Reseller Popup Modal** pre-filled with that reseller's data.
-   - **Template Editor**: Jumps directly to that reseller's HTML Template Editor.
-   - **Upload Logo**: Jumps directly to that reseller's Logo Uploader.
-   - **Activate / Deactivate**: Toggles the reseller's active status.
-   - **Delete**: Deletes the reseller after confirmation.
-4. **Clean Add / Edit Reseller Popup Modal**:
-   - Contains only the essential fields:
-     - **Username**
-     - **Name**
-     - **Password**
-     - **Account Status** (`Active` / `Disabled`)
-     - **Assigned Routers** (`Select Router ▾` dropdown button where you can tick one or multiple routers)
-     - **Permission Mode** (`Read`, `Write`, `Full`, `Reset Voucher`, or `Custom`)
-   - Has **only one `Save` button** at the bottom (plus a `Close` button to dismiss the popup).
+- **What It Does**: রাউটার কানেকশন/লিস্ট পেজ এবং অ্যাডমিন অ্যাকাউন্ট ও সার্ভার সেটিংসকে দুটি আলাদা, পরিষ্কার মেনু অপশনে (`Router` এবং `Settings`) বিভক্ত করে।
+- **Target Audience / Persona**: সিস্টেম অ্যাডমিনিস্ট্রেটর এবং রিসেলার।
+- **Key Value**: রাউটার সিলেক্ট করার সময় স্ক্রিনে কোনো অতিরিক্ত ফর্ম বা ডাউনলোড বক্স থাকবে না; শুধুমাত্র রাউটারগুলোই পরিষ্কারভাবে দেখা যাবে এবং প্রয়োজনীয় সেটিংসগুলো আলাদা `Settings` বাটনের ভেতরে সুরক্ষিত থাকবে।
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Architecture & Layout Diagram
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  Reseller Management  |  + Add Reseller  |  Permission Group             │
-├──────────────────────────────────────────────────────────────────────────┤
-│  Reseller List (Full Width)                                              │
-│  ┌────────┬────────────┬──────────────┬───────────┬───────────┬────────┐ │
-│  │ Action │ Username   │ Name         │ Mode      │ Routers   │ Status │ │
-│  ├────────┼────────────┼──────────────┼───────────┼───────────┼────────┤ │
-│  │  [ ⋮ ] │ reseller1  │ North Outlet │ Write     │ MikroTik  │ Active │ │
-│  └────┼───┴────────────┴──────────────┴───────────┴───────────┴────────┘ │
-│       │                                                                  │
-│       ▼  (Clicking ⋮ opens dropdown)                                     │
-│  ┌──────────────────────┐                                                │
-│  │ 👁 Details           │ ──► Opens [Reseller Details Popup Modal]       │
-│  │ ✏ Edit              │ ──► Opens [Edit Reseller Popup Modal]          │
-│  │ <> Template Editor   │ ──► Opens HTML Code Editor for Reseller        │
-│  │ 🖼 Upload Logo       │ ──► Opens Logo Uploader for Reseller           │
-│  │ 🔒 Activate/Disable  │                                                │
-│  │ 🗑 Delete            │                                                │
-│  └──────────────────────┘                                                │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+### ১. `Router` (`রাউটার`) বাটন ও পেজ
+- **মেনু নাম**: বামপাশের মেনুতে (এবং রাউটার সেশন মেনুতে) **Admin Settings**-এর পরিবর্তে **`Router`** (বাংলায়: **`রাউটার`**) লেখা থাকবে।
+- **পরিষ্কার রাউটার ভিউ**: **`Router`** পেজে প্রবেশ করলে শুধুমাত্র অনুমোদিত রাউটারগুলোর কার্ড (`Hotspot Name`, `Session Name`, `API/SSH` ব্যাজ, `Open`, `Edit`, `Delete`) প্রদর্শিত হবে। ডানপাশে কোনো অ্যাডমিন ফর্ম বা অন্য কোনো বক্স থাকবে না।
 
-### Add / Edit Reseller Popup Modal Structure
-```
-┌────────────────────────────────────────────────────────────┐
-│  Add Reseller / Edit Reseller                          [✕] │
-├────────────────────────────────────────────────────────────┤
-│  Username         [ ____________________________ ]         │
-│  Name             [ ____________________________ ]         │
-│  Password         [ ________________________ [👁] ]         │
-│  Account Status   [ Active (Can Login)         ▾ ]         │
-│  Assigned Routers [ Select Router (2 selected) ▾ ]         │
-│                     ├─ [✓] MikroTik-v6 (NextGan-Hotspot)   │
-│                     └─ [✓] MikroTik-v7 (NextGan-ROS7)      │
-│  Permission Mode  [ Write                      ▾ ]         │
-│                                                            │
-│  [ 💾 Save ]                                               │
-└────────────────────────────────────────────────────────────┘
-```
+### ২. নতুন `Settings` (`সেটিংস`) বাটন ও পেজ
+- **নতুন মেনু বাটন**: সাইডবারে নতুন একটি **`Settings`** (`সেটিংস`) বাটন যুক্ত হবে।
+- **সেটিংস পেজের ভেতরের অপশনসমূহ**:
+  1. **Admin Credentials & Quick Print**: ইউজারনেম (`Username`), পাসওয়ার্ড (`Password`), কুইক প্রিন্ট (`Quick Print QR`) এবং `Save` বাটন। (কার্ডের হেডার থেকে `Admin | Reseller | System Update` লিংকগুলো সরিয়ে শুধু পরিষ্কার হেডার রাখা হবে)।
+  2. **Standalone ZIP Server Download**: `Download Complete Mikhmon Server (.zip)` বাটন এবং এর ৩-ধাপের নির্দেশিকা।
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1 — Persistent GitHub URL Storage (`include/github_repo.txt`)**:
-  - *Chosen Approach*: When you paste your GitHub URL and click **Git Safe Update**, the URL is saved in `include/github_repo.txt` (which is also added to the Protected Data Locklist) so it remains pre-filled on future visits.
-  - *Why*: Eliminates re-entering the repository link every time you update.
-- **Decision 2 — Preserving Existing Template/Logo Settings When Editing a Reseller**:
-  - *Chosen Approach*: Removing the Template and Logo inputs from the Add/Edit Reseller popup keeps the form clean while the backend automatically preserves the reseller's existing `template_code`, `assigned_template`, `template_status`, and `logo_filename` (managed via the Three-Dot `⋮` menu).
-  - *Why*: Ensures zero data loss on existing reseller templates/logos while making the Add/Edit form minimal and fast.
+- **Decision 1: রাউটার লিস্ট এবং সিস্টেম কনফিগারেশন আলাদা করা**
+  - *Chosen Approach*: `Router` পেজে শুধুমাত্র রাউটার কার্ডগুলো রাখা এবং অ্যাডমিন ক্রেডেনশিয়াল ও জিপ ডাউনলোড অপশনগুলো স্বতন্ত্র `Settings` পেজে নিয়ে যাওয়া।
+  - *Why*: প্রতিবার রাউটার ওপেন বা সুইচ করার সময় অ্যাডমিন পাসওয়ার্ড ও জিপ ডাউনলোড বক্স সামনে আসার প্রয়োজন নেই; এতে ইন্টারফেস অনেক বেশি হালকা ও গোছানো থাকে।
+
+---
+
+## 4. Technical Architecture & Data Strategy *(Technical Reference)*
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         NextGan WiFi Solution                             │
+├───────────────────────────────────┬───────────────────────────────────────┤
+│   1. Router Page (রাউটার)         │   2. Settings Page (সেটিংস)           │
+├───────────────────────────────────┼───────────────────────────────────────┤
+│  ┌─────────────────────────────┐  │  ┌─────────────────────────────────┐  │
+│  │ 🖧 Router List Only          │  │  │ ⚙️ Admin Settings               │  │
+│  │                             │  │  │  • Username                     │  │
+│  │  • Hotspot Name             │  │  │  • Password (Show/Hide)         │  │
+│  │  • Session Name (API/SSH)   │  │  │  • Quick Print QR               │  │
+│  │  • [Open] [Edit] [Delete]   │  │  │  • [Save]                       │  │
+│  │                             │  │  ├─────────────────────────────────┤  │
+│  │  (No right-side form or     │  │  │ 📦 Download Server (.zip)       │  │
+│  │   extra boxes)              │  │  │  • [Download Complete .zip]     │  │
+│  └─────────────────────────────┘  │  └─────────────────────────────────┘  │
+└───────────────────────────────────┴───────────────────────────────────────┘
+```
+
+- **State & Persistence**:
+  - `Settings` পেজ থেকে ইউজারনেম, পাসওয়ার্ড বা কুইক প্রিন্ট QR পরিবর্তন করে `Save` করলে তা আগের মতোই কনফিগারেশন ফাইলে সংরক্ষিত হবে এবং ব্যবহারকারীকে `Settings` পেজেই রাখবে।
+  - ডিফল্ট ভাষা ১০০% **English** (`Router` এবং `Settings`) এবং ভাষা পরিবর্তন করলে সম্পূর্ণ **বাংলা** (`রাউটার` এবং `সেটিংস`) প্রদর্শিত হবে।
