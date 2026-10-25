@@ -1,7 +1,7 @@
 <?php
 /*
  *  Copyright (C) 2018 Laksamadi Guko.
- *  NextGan WiFi Solution — Reseller Management, Permission Groups, Templates & Logos
+ *  NextGan WiFi Solution — Clean Reseller Management (Full-Width List, Three-Dot Menu, Details Modal & Popup Add/Edit)
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,14 +32,6 @@ $resellers = loadResellers();
 $msg = "";
 $activeView = isset($_GET['view']) && $_GET['view'] === 'groups' ? 'groups' : 'resellers';
 
-// Remove reseller custom logo
-if (isset($_GET['remove-reseller-logo']) && $_GET['remove-reseller-logo'] !== '') {
-    $lid = $_GET['remove-reseller-logo'];
-    removeResellerCustomLogo($lid);
-    echo "<script>window.location='" . $baseResellerUrl . "&edit-reseller=" . urlencode($lid) . "'</script>";
-    exit;
-}
-
 // Toggle active / disabled
 if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
     $tid = $_GET['toggle-reseller'];
@@ -50,7 +42,7 @@ if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
         }
     }
     saveResellers($resellers);
-    echo "<script>window.location='" . $baseResellerUrl . "&edit-reseller=" . urlencode($tid) . "'</script>";
+    echo "<script>window.location='" . $baseResellerUrl . "'</script>";
     exit;
 }
 
@@ -82,7 +74,7 @@ if (isset($_POST['save_permission_groups'])) {
     }
     if (savePermissionGroups($updatedGroups)) {
         $permGroups = loadPermissionGroups();
-        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups (<b>Read</b>, <b>Write</b>, <b>Full</b>, <b>Reset Voucher</b>) updated. All resellers using these modes have been updated automatically.</div>";
+        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups updated successfully.</div>";
     }
 }
 
@@ -96,6 +88,7 @@ if (isset($_POST['reset_permission_groups'])) {
 }
 
 // Save (Create or Update) reseller
+$openModalOnLoad = false;
 if (isset($_POST['save_reseller'])) {
     $editId = isset($_POST['reseller_id']) ? trim($_POST['reseller_id']) : '';
     $rUser = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', trim($_POST['r_username']));
@@ -105,11 +98,6 @@ if (isset($_POST['save_reseller'])) {
     $rMode = isset($_POST['r_permission_mode']) && in_array($_POST['r_permission_mode'], array('Read', 'Write', 'Full', 'Reset Voucher', 'Custom'), true)
         ? $_POST['r_permission_mode']
         : 'Write';
-    $rTemplateCode = isset($_POST['r_template_code']) ? preg_replace('/[^a-zA-Z0-9_\-]/', '', strtoupper(trim($_POST['r_template_code']))) : '';
-    $rAssignedTpl = isset($_POST['r_assigned_template']) && in_array($_POST['r_assigned_template'], array('default', 'thermal', 'small'), true)
-        ? $_POST['r_assigned_template']
-        : 'default';
-    $rTplStatus = (isset($_POST['r_template_status']) && $_POST['r_template_status'] === 'inactive') ? 'inactive' : 'active';
     $assignedRouters = isset($_POST['r_routers']) && is_array($_POST['r_routers']) ? array_values($_POST['r_routers']) : array();
     $postedPerms = isset($_POST['r_perms']) && is_array($_POST['r_perms']) ? $_POST['r_perms'] : array();
 
@@ -121,6 +109,7 @@ if (isset($_POST['save_reseller'])) {
 
     if ($rUser === '' || strtolower($rUser) === strtolower($useradm)) {
         $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> Invalid Reseller Username (cannot be empty or equal to Admin username).</div>";
+        $openModalOnLoad = true;
     } else {
         $duplicate = false;
         foreach ($resellers as $r) {
@@ -131,6 +120,7 @@ if (isset($_POST['save_reseller'])) {
         }
         if ($duplicate) {
             $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> Username <b>" . htmlspecialchars($rUser) . "</b> already exists.</div>";
+            $openModalOnLoad = true;
         } else {
             if ($editId !== '') {
                 foreach ($resellers as $idx => $r) {
@@ -139,9 +129,6 @@ if (isset($_POST['save_reseller'])) {
                         $resellers[$idx]['name'] = $rName !== '' ? $rName : $rUser;
                         $resellers[$idx]['status'] = $rStatus;
                         $resellers[$idx]['permission_mode'] = $rMode;
-                        $resellers[$idx]['template_code'] = $rTemplateCode !== '' ? $rTemplateCode : $r['template_code'];
-                        $resellers[$idx]['assigned_template'] = $rAssignedTpl;
-                        $resellers[$idx]['template_status'] = $rTplStatus;
                         $resellers[$idx]['allowed_routers'] = $assignedRouters;
                         if ($rMode === 'Custom') {
                             $resellers[$idx]['permissions'] = $customPerms;
@@ -152,38 +139,18 @@ if (isset($_POST['save_reseller'])) {
                             $resellers[$idx]['password_hash'] = password_hash($rPass, PASSWORD_DEFAULT);
                             $resellers[$idx]['password_enc'] = encrypt($rPass);
                         }
-                        // Handle optional reseller logo upload
-                        if (isset($_FILES['r_logo_upload']) && !empty($_FILES['r_logo_upload']['tmp_name'])) {
-                            $upRes = handleResellerLogoUpload($editId, $_FILES['r_logo_upload']);
-                            if ($upRes['ok']) {
-                                $resellers[$idx]['logo_filename'] = $upRes['filename'];
-                            } else {
-                                $msg .= "<div class='bg-danger pd-5 radius-3 mr-b-5'><i class='fa fa-ban'></i> Logo Upload Error: " . htmlspecialchars($upRes['error']) . "</div>";
-                            }
-                        }
                         break;
                     }
                 }
                 saveResellers($resellers);
                 ensureResellerTemplateFiles($editId);
-                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> (ID: " . htmlspecialchars($editId) . ") updated successfully.</div>";
+                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> updated successfully.</div>";
             } else {
                 if ($rPass === '') {
                     $rPass = '123456';
                 }
                 $newId = getNextResellerId($resellers);
-                if ($rTemplateCode === '') {
-                    $rTemplateCode = sprintf('NGW-%03d', max(1, (int)$newId - 100));
-                }
-                $newLogoFilename = '';
-                if (isset($_FILES['r_logo_upload']) && !empty($_FILES['r_logo_upload']['tmp_name'])) {
-                    $upRes = handleResellerLogoUpload($newId, $_FILES['r_logo_upload']);
-                    if ($upRes['ok']) {
-                        $newLogoFilename = $upRes['filename'];
-                    } else {
-                        $msg .= "<div class='bg-danger pd-5 radius-3 mr-b-5'><i class='fa fa-ban'></i> Logo Upload Error: " . htmlspecialchars($upRes['error']) . "</div>";
-                    }
-                }
+                $rTemplateCode = sprintf('NGW-%03d', max(1, (int)$newId - 100));
                 $resellers[] = array(
                     'id' => $newId,
                     'legacy_ids' => array(),
@@ -194,70 +161,232 @@ if (isset($_POST['save_reseller'])) {
                     'status' => $rStatus,
                     'permission_mode' => $rMode,
                     'template_code' => $rTemplateCode,
-                    'assigned_template' => $rAssignedTpl,
-                    'template_status' => $rTplStatus,
-                    'logo_filename' => $newLogoFilename,
+                    'assigned_template' => 'default',
+                    'template_status' => 'active',
+                    'logo_filename' => '',
                     'allowed_routers' => $assignedRouters,
                     'permissions' => ($rMode === 'Custom') ? $customPerms : $permGroups[$rMode],
                     'created_at' => date('Y-m-d H:i:s'),
                 );
                 saveResellers($resellers);
                 ensureResellerTemplateFiles($newId);
-                $editId = $newId;
-                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> (ID: " . htmlspecialchars($newId) . ") created successfully.</div>";
+                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> created successfully.</div>";
             }
         }
     }
 }
 
 $resellers = loadResellers();
-$editingReseller = null;
-$reqEditId = isset($_GET['edit-reseller']) ? $_GET['edit-reseller'] : (isset($_GET['edit']) ? $_GET['edit'] : (isset($editId) ? $editId : ''));
-if ($reqEditId === 'new') {
-    $editingReseller = null;
-} elseif ($reqEditId !== '') {
-    $editingReseller = findResellerByIdOrUsername($reqEditId);
-} elseif (!empty($resellers) && !isset($_GET['new'])) {
-    $editingReseller = $resellers[0];
+$defaultLinkSession = !empty($session) ? $session : (!empty($allRouters) ? $allRouters[0] : 'MikroTik-v6');
+$tplEditorBaseUrl = !empty($session) ? './?hotspot=template-editor' : './admin.php?id=editor';
+$upLogoBaseUrl = !empty($session) ? './?hotspot=uplogo' : './admin.php?id=uplogo';
+
+// Map router session -> Hotspot Name for display
+$routerHotspotMap = array();
+foreach ($allRouters as $rSess) {
+    $routerHotspotMap[$rSess] = isset($data[$rSess][4]) && explode('%', $data[$rSess][4])[1] !== ''
+        ? explode('%', $data[$rSess][4])[1]
+        : $rSess;
 }
 
-$nextCandidateId = getNextResellerId($resellers);
-$formId = $editingReseller ? (string)$editingReseller['id'] : '';
-$formUser = $editingReseller ? $editingReseller['username'] : '';
-$formName = $editingReseller ? $editingReseller['name'] : '';
-$formStatus = $editingReseller ? $editingReseller['status'] : 'active';
-$formMode = $editingReseller && !empty($editingReseller['permission_mode']) ? $editingReseller['permission_mode'] : 'Write';
-$formTplCode = $editingReseller && !empty($editingReseller['template_code']) ? $editingReseller['template_code'] : sprintf('NGW-%03d', max(1, (int)$nextCandidateId - 100));
-$formAssignedTpl = $editingReseller && !empty($editingReseller['assigned_template']) ? $editingReseller['assigned_template'] : 'default';
-$formTplStatus = $editingReseller && !empty($editingReseller['template_status']) ? $editingReseller['template_status'] : 'active';
-$formLogoFile = $editingReseller && !empty($editingReseller['logo_filename']) ? $editingReseller['logo_filename'] : '';
-$formRouters = $editingReseller && isset($editingReseller['allowed_routers']) ? $editingReseller['allowed_routers'] : array();
-$formPerms = $editingReseller ? resolveEffectiveResellerPermissions($editingReseller) : $permGroups['Write'];
+// Prepare JSON data of resellers for instant Popup Edit & Details Modal
+$resellersClientMap = array();
+foreach ($resellers as $r) {
+    $rId = (string)$r['id'];
+    $rRoutersList = isset($r['allowed_routers']) && is_array($r['allowed_routers']) ? $r['allowed_routers'] : array();
+    $rRouterLabels = array();
+    foreach ($rRoutersList as $rs) {
+        $rRouterLabels[] = isset($routerHotspotMap[$rs]) ? ($rs . ' (' . $routerHotspotMap[$rs] . ')') : $rs;
+    }
+    $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
+    $rLogoUrl = resolveActiveVoucherLogo($defaultLinkSession, './', true, $rId);
+    $resellersClientMap[$rId] = array(
+        'id' => $rId,
+        'username' => (string)$r['username'],
+        'name' => (string)$r['name'],
+        'status' => (string)$r['status'],
+        'permission_mode' => isset($r['permission_mode']) ? (string)$r['permission_mode'] : 'Write',
+        'allowed_routers' => $rRoutersList,
+        'allowed_routers_text' => !empty($rRouterLabels) ? implode(', ', $rRouterLabels) : 'None',
+        'template_code' => isset($r['template_code']) ? (string)$r['template_code'] : 'NGW-001',
+        'assigned_template' => ucfirst($rAssignedVariant),
+        'logo_filename' => isset($r['logo_filename']) && $r['logo_filename'] !== '' ? (string)$r['logo_filename'] : 'Default Logo',
+        'logo_url' => $rLogoUrl,
+        'created_at' => isset($r['created_at']) ? (string)$r['created_at'] : '-',
+        'permissions' => resolveEffectiveResellerPermissions($r),
+        'tpl_url' => $tplEditorBaseUrl . '&template=' . urlencode($rAssignedVariant) . '&session=' . urlencode($defaultLinkSession) . '&reseller_id=' . urlencode($rId),
+        'logo_edit_url' => $upLogoBaseUrl . '&session=' . urlencode($defaultLinkSession) . '&reseller_id=' . urlencode($rId),
+    );
+}
+?>
 
-// Count enabled permissions per group for concise group summaries
-function getGroupSummaryStats($groupMap, $catalog) {
-    $totalEnabled = 0;
-    $catSummaries = array();
-    foreach ($catalog as $catName => $items) {
-        $cCount = 0;
-        foreach ($items as $k => $lbl) {
-            if (!empty($groupMap[$k])) {
-                $totalEnabled++;
-                $cCount++;
-            }
-        }
-        if ($cCount > 0) {
-            $catSummaries[] = $catName . ' (' . $cCount . ')';
+<style>
+.ngw-action-wrap {
+    position: relative;
+    display: inline-block;
+}
+.ngw-dots-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: inherit;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1.2;
+}
+.ngw-dots-btn:hover {
+    background: #1f6feb;
+    color: #fff;
+}
+.ngw-action-menu {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 3px;
+    min-width: 175px;
+    background: #23282c;
+    color: #f0f6fc;
+    border: 1px solid #3b4248;
+    border-radius: 5px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    z-index: 1050;
+    text-align: left;
+    padding: 4px 0;
+}
+.ngw-action-menu a {
+    display: block;
+    padding: 7px 12px;
+    color: #e6edf3 !important;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: normal;
+    white-space: nowrap;
+}
+.ngw-action-menu a:hover {
+    background: #1f6feb;
+    color: #fff !important;
+}
+.ngw-action-menu a i {
+    width: 18px;
+    text-align: center;
+    margin-right: 5px;
+}
+.ngw-modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 2000;
+    overflow-y: auto;
+    padding: 30px 15px;
+}
+.ngw-modal-box {
+    max-width: 580px;
+    margin: 20px auto;
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+.ngw-router-dd-wrap {
+    position: relative;
+}
+.ngw-router-dd-btn {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 6px 10px;
+}
+.ngw-router-dd-panel {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    margin-top: 2px;
+    background: #23282c;
+    color: #f0f6fc;
+    border: 1px solid #3b4248;
+    border-radius: 4px;
+    max-height: 210px;
+    overflow-y: auto;
+    z-index: 2100;
+    padding: 6px 10px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+}
+.ngw-router-dd-item {
+    display: block;
+    padding: 5px 4px;
+    cursor: pointer;
+    font-weight: normal;
+    margin: 0;
+}
+.ngw-router-dd-item:hover {
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+}
+</style>
+
+<script>
+var NGW_RESELLERS = <?= json_encode($resellersClientMap); ?>;
+
+function toggleActionMenu(ev, id) {
+    if (ev) ev.stopPropagation();
+    var allMenus = document.querySelectorAll('.ngw-action-menu');
+    var targetId = 'actionMenu_' + id;
+    for (var i = 0; i < allMenus.length; i++) {
+        if (allMenus[i].id !== targetId) {
+            allMenus[i].style.display = 'none';
         }
     }
-    return array('total' => $totalEnabled, 'categories' => implode(', ', $catSummaries));
+    var el = document.getElementById(targetId);
+    if (el) {
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
 }
-$readSummary = getGroupSummaryStats($permGroups['Read'], $permCatalog);
-$writeSummary = getGroupSummaryStats($permGroups['Write'], $permCatalog);
-$fullSummary = getGroupSummaryStats($permGroups['Full'], $permCatalog);
-$resetSummary = getGroupSummaryStats($permGroups['Reset Voucher'], $permCatalog);
-?>
-<script>
+
+document.addEventListener('click', function(e) {
+    var allMenus = document.querySelectorAll('.ngw-action-menu');
+    for (var i = 0; i < allMenus.length; i++) {
+        allMenus[i].style.display = 'none';
+    }
+    var ddWrap = document.getElementById('routerDropdownWrap');
+    var ddPanel = document.getElementById('routerDropdownPanel');
+    if (ddWrap && ddPanel && !ddWrap.contains(e.target)) {
+        ddPanel.style.display = 'none';
+    }
+});
+
+function toggleRouterDropdown(ev) {
+    if (ev) ev.stopPropagation();
+    var p = document.getElementById('routerDropdownPanel');
+    if (p) {
+        p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+    }
+}
+
+function updateRouterDropdownLabel() {
+    var checks = document.querySelectorAll('.ngw-router-checkbox');
+    var selectedNames = [];
+    for (var i = 0; i < checks.length; i++) {
+        if (checks[i].checked) {
+            selectedNames.push(checks[i].getAttribute('data-label') || checks[i].value);
+        }
+    }
+    var lbl = document.getElementById('routerDropdownLabel');
+    if (!lbl) return;
+    if (selectedNames.length === 0) {
+        lbl.innerHTML = '<?= htmlspecialchars(isset($_select_router_btn) ? $_select_router_btn : "Select Router"); ?>';
+    } else if (selectedNames.length <= 2) {
+        lbl.innerHTML = selectedNames.join(', ');
+    } else {
+        lbl.innerHTML = selectedNames.length + ' Routers Selected';
+    }
+}
+
 function PassReseller() {
     var x = document.getElementById('r_password');
     if (x.type === 'password') {
@@ -266,18 +395,14 @@ function PassReseller() {
         x.type = 'password';
     }
 }
+
 function onPermissionModeChange(mode) {
     var customBox = document.getElementById('customPermChecklist');
-    var summaryRead = document.getElementById('groupSummary_Read');
-    var summaryWrite = document.getElementById('groupSummary_Write');
-    var summaryFull = document.getElementById('groupSummary_Full');
-    var summaryReset = document.getElementById('groupSummary_ResetVoucher');
-    if (summaryRead) summaryRead.style.display = (mode === 'Read') ? 'block' : 'none';
-    if (summaryWrite) summaryWrite.style.display = (mode === 'Write') ? 'block' : 'none';
-    if (summaryFull) summaryFull.style.display = (mode === 'Full') ? 'block' : 'none';
-    if (summaryReset) summaryReset.style.display = (mode === 'Reset Voucher') ? 'block' : 'none';
-    if (customBox) customBox.style.display = (mode === 'Custom') ? 'block' : 'none';
+    if (customBox) {
+        customBox.style.display = (mode === 'Custom') ? 'block' : 'none';
+    }
 }
+
 function setPermPreset(mode) {
     var boxes = document.querySelectorAll('.perm-checkbox');
     for (var i = 0; i < boxes.length; i++) {
@@ -291,6 +416,100 @@ function setPermPreset(mode) {
         }
     }
 }
+
+function openAddResellerModal() {
+    document.getElementById('modalFormTitle').innerHTML = '<i class="fa fa-user-plus"></i> <?= htmlspecialchars(isset($_add_reseller_label) ? $_add_reseller_label : "Add Reseller"); ?>';
+    document.getElementById('f_reseller_id').value = '';
+    document.getElementById('f_username').value = '';
+    document.getElementById('f_name').value = '';
+    var passEl = document.getElementById('r_password');
+    passEl.value = '';
+    passEl.required = true;
+    passEl.placeholder = '<?= htmlspecialchars($_password); ?>';
+    document.getElementById('f_pass_hint').style.display = 'none';
+    document.getElementById('f_status').value = 'active';
+    document.getElementById('r_permission_mode').value = 'Write';
+    onPermissionModeChange('Write');
+
+    var rChecks = document.querySelectorAll('.ngw-router-checkbox');
+    for (var i = 0; i < rChecks.length; i++) {
+        rChecks[i].checked = false;
+    }
+    updateRouterDropdownLabel();
+
+    var pChecks = document.querySelectorAll('.perm-checkbox');
+    for (var j = 0; j < pChecks.length; j++) {
+        if (!pChecks[j].disabled) pChecks[j].checked = false;
+    }
+
+    document.getElementById('resellerFormModal').style.display = 'block';
+}
+
+function openEditResellerModal(id) {
+    var r = NGW_RESELLERS[String(id)];
+    if (!r) return;
+    document.getElementById('modalFormTitle').innerHTML = '<i class="fa fa-edit"></i> <?= htmlspecialchars($_edit); ?>: ' + r.username;
+    document.getElementById('f_reseller_id').value = r.id;
+    document.getElementById('f_username').value = r.username;
+    document.getElementById('f_name').value = r.name;
+    var passEl = document.getElementById('r_password');
+    passEl.value = '';
+    passEl.required = false;
+    passEl.placeholder = 'Leave blank to keep current password';
+    document.getElementById('f_pass_hint').style.display = 'inline';
+    document.getElementById('f_status').value = r.status;
+    document.getElementById('r_permission_mode').value = r.permission_mode;
+    onPermissionModeChange(r.permission_mode);
+
+    var rChecks = document.querySelectorAll('.ngw-router-checkbox');
+    for (var i = 0; i < rChecks.length; i++) {
+        var val = rChecks[i].value;
+        rChecks[i].checked = (r.allowed_routers.indexOf(val) !== -1);
+    }
+    updateRouterDropdownLabel();
+
+    var pChecks = document.querySelectorAll('.perm-checkbox');
+    for (var j = 0; j < pChecks.length; j++) {
+        var pk = pChecks[j].getAttribute('data-perm');
+        if (!pChecks[j].disabled) {
+            pChecks[j].checked = !!(r.permissions && r.permissions[pk]);
+        }
+    }
+
+    document.getElementById('resellerFormModal').style.display = 'block';
+}
+
+function closeResellerFormModal() {
+    document.getElementById('resellerFormModal').style.display = 'none';
+}
+
+function openResellerDetailsModal(id) {
+    var r = NGW_RESELLERS[String(id)];
+    if (!r) return;
+    document.getElementById('det_id').textContent = '#' + r.id;
+    document.getElementById('det_username').textContent = r.username;
+    document.getElementById('det_name').textContent = r.name;
+    document.getElementById('det_status').innerHTML = (r.status === 'active')
+        ? '<b class="text-green">Active</b>'
+        : '<b class="text-red">Disabled</b>';
+    document.getElementById('det_mode').textContent = r.permission_mode;
+    document.getElementById('det_routers').textContent = r.allowed_routers_text;
+    document.getElementById('det_template').textContent = r.template_code + ' (' + r.assigned_template + ')';
+    document.getElementById('det_created').textContent = r.created_at;
+    document.getElementById('det_logo_img').src = r.logo_url;
+    document.getElementById('det_logo_name').textContent = r.logo_filename;
+    document.getElementById('det_btn_edit').onclick = function() {
+        closeResellerDetailsModal();
+        openEditResellerModal(r.id);
+    };
+    document.getElementById('det_btn_tpl').href = r.tpl_url;
+    document.getElementById('det_btn_logo').href = r.logo_edit_url;
+    document.getElementById('resellerDetailsModal').style.display = 'block';
+}
+
+function closeResellerDetailsModal() {
+    document.getElementById('resellerDetailsModal').style.display = 'none';
+}
 </script>
 
 <div class="row">
@@ -298,37 +517,31 @@ function setPermPreset(mode) {
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">
-          <i class="fa fa-users"></i> Reseller Management
+          <i class="fa fa-users"></i> <a href="<?= $baseResellerUrl ?>" class="<?= $activeView === 'resellers' ? 'text-warning' : '' ?>"><?= htmlspecialchars(isset($_reseller_management) ? $_reseller_management : 'Reseller Management'); ?></a>
           &nbsp; | &nbsp;
-          <a href="<?= $baseResellerUrl ?>&edit-reseller=new" class="<?= $activeView === 'resellers' && !$formId ? 'text-warning' : '' ?>"><i class="fa fa-user-plus"></i> Add Reseller</a>
+          <a href="javascript:void(0)" onclick="openAddResellerModal()"><i class="fa fa-user-plus"></i> <?= htmlspecialchars(isset($_add_reseller_label) ? $_add_reseller_label : 'Add Reseller'); ?></a>
           &nbsp; | &nbsp;
-          <a href="<?= $baseResellerUrl ?>&view=groups" class="<?= $activeView === 'groups' ? 'text-warning' : '' ?>"><i class="fa fa-sliders"></i> Permission Groups (Read / Write / Full)</a>
-          &nbsp; | &nbsp;
-          <a href="./admin.php?id=sessions"><i class="fa fa-server"></i> <?= $_router_list ?></a>
+          <a href="<?= $baseResellerUrl ?>&view=groups" class="<?= $activeView === 'groups' ? 'text-warning' : '' ?>"><i class="fa fa-sliders"></i> <?= htmlspecialchars(isset($_permission_group_label) ? $_permission_group_label : 'Permission Group'); ?></a>
         </h3>
       </div>
       <div class="card-body">
         <?php if ($msg !== '') { echo "<div class='mr-b-10'>" . $msg . "</div>"; } ?>
 
         <?php if ($activeView === 'groups') { ?>
-        <!-- PERMISSION GROUPS CONFIGURATION SECTION -->
+        <!-- PERMISSION GROUP CONFIGURATION SECTION -->
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">
-              <i class="fa fa-sliders"></i> Configure Permission Groups (Read / Write / Full)
+              <i class="fa fa-sliders"></i> <?= htmlspecialchars(isset($_permission_group_label) ? $_permission_group_label : 'Permission Group'); ?>
               &nbsp; | &nbsp;
-              <a href="<?= $baseResellerUrl ?>"><i class="fa fa-arrow-left"></i> Back to Reseller List</a>
+              <a href="<?= $baseResellerUrl ?>"><i class="fa fa-arrow-left"></i> <?= htmlspecialchars(isset($_reseller_list_label) ? $_reseller_list_label : 'Reseller List'); ?></a>
             </h3>
           </div>
           <div class="card-body">
-            <p style="margin-bottom: 10px;">
-              Configure the default permissions included in the <b>Read</b>, <b>Write</b>, and <b>Full</b> reseller permission groups.
-              Protected Administrator-only and Reseller Management operations are locked and can never be granted to resellers.
-            </p>
             <form method="post" action="<?= $baseResellerUrl ?>&view=groups">
               <div class="mr-b-10">
-                <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> Save Permission Groups</button>
-                <button type="submit" name="reset_permission_groups" class="btn bg-warning"><i class="fa fa-refresh"></i> Restore Default Groups</button>
+                <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
+                <button type="submit" name="reset_permission_groups" class="btn bg-warning"><i class="fa fa-refresh"></i> Restore Defaults</button>
               </div>
               <div class="overflow box-bordered" style="max-height: 70vh;">
                 <table class="table table-sm table-bordered table-hover">
@@ -372,81 +585,74 @@ function setPermPreset(mode) {
                   </tbody>
                 </table>
               </div>
-              <div class="mr-t-10">
-                <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> Save Permission Groups</button>
-              </div>
             </form>
           </div>
         </div>
         <?php } else { ?>
-        <!-- RESELLER ACCOUNTS & TEMPLATE/LOGO/PERMISSION ASSIGNMENT -->
+        <!-- FULL-WIDTH RESELLER LIST (ONLY RESELLER LIST SHOWN BY DEFAULT) -->
         <div class="row">
-          <!-- Left Column: Reseller Accounts List -->
-          <div class="col-5">
+          <div class="col-12">
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title"><i class="fa fa-list"></i> Reseller List (<?= count($resellers); ?>)</h3>
+                <h3 class="card-title"><i class="fa fa-list"></i> <?= htmlspecialchars(isset($_reseller_list_label) ? $_reseller_list_label : 'Reseller List'); ?> (<?= count($resellers); ?>)</h3>
               </div>
               <div class="card-body">
-                <div class="overflow box-bordered" style="max-height: 75vh;">
+                <div class="overflow box-bordered" style="min-height: 340px;">
                   <table class="table table-sm table-bordered table-hover text-nowrap">
                     <thead>
                       <tr>
-                        <th class="text-center">Action</th>
-                        <th>ID</th>
+                        <th class="text-center" style="width: 70px;"><?= $_action ?></th>
                         <th><?= $_user_name ?></th>
+                        <th><?= $_name ?></th>
                         <th>Mode</th>
-                        <th>Template</th>
                         <th>Routers</th>
-                        <th>Status</th>
+                        <th><?= isset($_status) ? $_status : 'Status' ?></th>
                       </tr>
                     </thead>
                     <tbody>
                       <?php if (empty($resellers)) { ?>
-                        <tr><td colspan="7" class="text-center">No reseller accounts configured.</td></tr>
+                        <tr><td colspan="6" class="text-center">No reseller accounts configured.</td></tr>
                       <?php } else {
-                        $defaultLinkSession = !empty($session) ? $session : (!empty($allRouters) ? $allRouters[0] : 'MikroTik-v6');
-                        $tplEditorBaseUrl = !empty($session) ? './?hotspot=template-editor' : './admin.php?id=editor';
-                        $upLogoBaseUrl = !empty($session) ? './?hotspot=uplogo' : './admin.php?id=uplogo';
                         foreach ($resellers as $r) {
-                          $isCurrent = ((string)$formId === (string)$r['id']);
+                          $rId = (string)$r['id'];
                           $rRouters = isset($r['allowed_routers']) && !empty($r['allowed_routers']) ? implode(', ', $r['allowed_routers']) : 'None';
                           $rModeBadge = isset($r['permission_mode']) ? $r['permission_mode'] : 'Custom';
                           $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
-                          $rTplBadge = (isset($r['template_code']) ? $r['template_code'] : 'NGW-001') . ' (' . ucfirst($rAssignedVariant) . ')';
                           $statusBadge = ($r['status'] === 'active')
                             ? "<b class='text-green'>Active</b>"
                             : "<b class='text-red'>Disabled</b>";
                       ?>
-                        <tr style="<?= $isCurrent ? 'font-weight:bold;' : '' ?>">
+                        <tr>
                           <td class="text-center">
-                            <a href="<?= $baseResellerUrl ?>&edit-reseller=<?= urlencode($r['id']); ?>" title="Edit <?= htmlspecialchars($r['username']); ?>"><i class="fa fa-edit text-primary"></i></a>
-                            &nbsp;
-                            <a href="<?= $tplEditorBaseUrl ?>&template=<?= urlencode($rAssignedVariant); ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($r['id']); ?>" title="Edit HTML Template Code for <?= htmlspecialchars($r['username']); ?>"><i class="fa fa-code text-blue"></i></a>
-                            &nbsp;
-                            <a href="<?= $upLogoBaseUrl ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($r['id']); ?>" title="Upload Custom Logo for <?= htmlspecialchars($r['username']); ?>"><i class="fa fa-image text-green"></i></a>
-                            &nbsp;
-                            <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($r['id']); ?>" title="<?= $r['status'] === 'active' ? 'Deactivate' : 'Activate'; ?> <?= htmlspecialchars($r['username']); ?>">
-                              <i class="fa <?= $r['status'] === 'active' ? 'fa-unlock text-green' : 'fa-lock text-warning'; ?>"></i>
-                            </a>
-                            &nbsp;
-                            <a href="<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($r['id']); ?>" title="Delete <?= htmlspecialchars($r['username']); ?>">
-                              <i class="fa fa-minus-square text-danger"></i>
-                            </a>
+                            <div class="ngw-action-wrap">
+                              <button type="button" class="ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>')" title="<?= htmlspecialchars($_action); ?>">
+                                <i class="fa fa-ellipsis-v"></i>
+                              </button>
+                              <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu">
+                                <a href="javascript:void(0)" onclick="openResellerDetailsModal('<?= htmlspecialchars($rId, ENT_QUOTES); ?>')">
+                                  <i class="fa fa-info-circle text-info"></i> <?= htmlspecialchars(isset($_details_label) ? $_details_label : 'Details'); ?>
+                                </a>
+                                <a href="javascript:void(0)" onclick="openEditResellerModal('<?= htmlspecialchars($rId, ENT_QUOTES); ?>')">
+                                  <i class="fa fa-edit text-primary"></i> <?= htmlspecialchars($_edit); ?>
+                                </a>
+                                <a href="<?= $tplEditorBaseUrl ?>&template=<?= urlencode($rAssignedVariant); ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($rId); ?>">
+                                  <i class="fa fa-code text-blue"></i> <?= htmlspecialchars($_template_editor); ?>
+                                </a>
+                                <a href="<?= $upLogoBaseUrl ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($rId); ?>">
+                                  <i class="fa fa-image text-green"></i> <?= htmlspecialchars($_upload_logo); ?>
+                                </a>
+                                <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($rId); ?>">
+                                  <i class="fa <?= $r['status'] === 'active' ? 'fa-lock text-warning' : 'fa-unlock text-green'; ?>"></i> <?= $r['status'] === 'active' ? 'Deactivate' : 'Activate'; ?>
+                                </a>
+                                <a href="javascript:void(0)" onclick="if(confirm('Are you sure you want to delete reseller <?= htmlspecialchars($r['username'], ENT_QUOTES); ?>?')){window.location='<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>';}">
+                                  <i class="fa fa-trash text-danger"></i> <?= htmlspecialchars($_delete); ?>
+                                </a>
+                              </div>
+                            </div>
                           </td>
-                          <td><code><?= htmlspecialchars($r['id']); ?></code></td>
-                          <td>
-                            <a href="<?= $baseResellerUrl ?>&edit-reseller=<?= urlencode($r['id']); ?>">
-                              <?= htmlspecialchars($r['username']); ?>
-                            </a>
-                            <br><small><?= htmlspecialchars($r['name']); ?></small>
-                          </td>
+                          <td><b><?= htmlspecialchars($r['username']); ?></b></td>
+                          <td><?= htmlspecialchars($r['name']); ?></td>
                           <td><span class="pd-2p5 radius-3 bg-primary"><?= htmlspecialchars($rModeBadge); ?></span></td>
-                          <td>
-                            <a href="<?= $tplEditorBaseUrl ?>&template=<?= urlencode($rAssignedVariant); ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($r['id']); ?>" title="Click to Edit HTML Code">
-                              <code><?= htmlspecialchars($rTplBadge); ?></code>
-                            </a>
-                          </td>
                           <td><?= htmlspecialchars($rRouters); ?></td>
                           <td><?= $statusBadge; ?></td>
                         </tr>
@@ -457,237 +663,212 @@ function setPermPreset(mode) {
               </div>
             </div>
           </div>
-
-          <!-- Right Column: Create / Edit Reseller, Template, Logo & Permission Mode -->
-          <div class="col-7">
-            <form autocomplete="off" method="post" enctype="multipart/form-data" action="<?= $baseResellerUrl ?><?= $formId ? '&edit-reseller=' . urlencode($formId) : '&edit-reseller=new' ?>">
-              <input type="hidden" name="reseller_id" value="<?= htmlspecialchars($formId); ?>">
-              <div class="card">
-                <div class="card-header">
-                  <h3 class="card-title">
-                    <i class="fa <?= $formId ? 'fa-edit' : 'fa-user-plus'; ?>"></i>
-                    <?= $formId ? 'Edit Reseller #' . htmlspecialchars($formId) . ': ' . htmlspecialchars($formUser) : 'Add New Reseller (ID #' . htmlspecialchars($nextCandidateId) . ')'; ?>
-                  </h3>
-                </div>
-                <div class="card-body">
-                  <div class="mr-b-10">
-                    <button type="submit" name="save_reseller" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
-                    <a class="btn bg-warning" href="<?= $baseResellerUrl ?>&edit-reseller=new"><i class="fa fa-plus"></i> New Reseller</a>
-                    <a class="btn bg-green" href="<?= $baseResellerUrl ?>&view=groups"><i class="fa fa-sliders"></i> Configure Groups</a>
-                    <?php if ($formId !== '') {
-                      $editFormSess = !empty($session) ? $session : (!empty($allRouters) ? $allRouters[0] : 'MikroTik-v6');
-                      $editTplUrl = (!empty($session) ? './?hotspot=template-editor' : './admin.php?id=editor') . '&template=' . urlencode($formAssignedTpl) . '&session=' . urlencode($editFormSess) . '&reseller_id=' . urlencode($formId);
-                      $editLogoUrl = (!empty($session) ? './?hotspot=uplogo' : './admin.php?id=uplogo') . '&session=' . urlencode($editFormSess) . '&reseller_id=' . urlencode($formId);
-                    ?>
-                    <a class="btn bg-blue" href="<?= $editTplUrl; ?>"><i class="fa fa-code"></i> Edit Reseller HTML Code</a>
-                    <a class="btn bg-purple" href="<?= $editLogoUrl; ?>"><i class="fa fa-upload"></i> Logo Manager</a>
-                    <?php } ?>
-                  </div>
-
-                  <table class="table table-sm">
-                    <tr>
-                      <td class="align-middle" style="width: 32%;">Internal Reseller ID</td>
-                      <td>
-                        <input class="form-control" type="text" value="<?= htmlspecialchars($formId !== '' ? $formId : $nextCandidateId); ?>" readonly disabled>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle"><?= $_user_name ?></td>
-                      <td>
-                        <input class="form-control" type="text" name="r_username" value="<?= htmlspecialchars($formUser); ?>" placeholder="e.g. kiosk_utara" required="1">
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle"><?= $_name ?></td>
-                      <td>
-                        <input class="form-control" type="text" name="r_name" value="<?= htmlspecialchars($formName); ?>" placeholder="Outlet / Reseller Display Name" required="1">
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle"><?= $_password ?> <?= $formId ? '<small>(Leave blank to keep)</small>' : '' ?></td>
-                      <td>
-                        <div class="input-group">
-                          <div class="input-group-11 col-box-10">
-                            <input class="group-item group-item-l" id="r_password" type="password" name="r_password" value="" placeholder="<?= $formId ? 'Enter new password to reset' : 'Password'; ?>" <?= $formId ? '' : 'required="1"' ?>>
-                          </div>
-                          <div class="input-group-1 col-box-2">
-                            <div class="group-item group-item-r pd-2p5 text-center align-middle">
-                              <input title="Show/Hide Password" type="checkbox" onclick="PassReseller()">
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle">Account Status</td>
-                      <td>
-                        <select class="form-control" name="r_status">
-                          <option value="active" <?= $formStatus === 'active' ? 'selected' : ''; ?>>Active (Can Login)</option>
-                          <option value="disabled" <?= $formStatus === 'disabled' ? 'selected' : ''; ?>>Disabled (Suspended)</option>
-                        </select>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle">Assigned Routers<br><small>Server-side isolated</small></td>
-                      <td>
-                        <?php if (empty($allRouters)) { ?>
-                          <span>No routers configured yet.</span>
-                        <?php } else {
-                          foreach ($allRouters as $rSess) {
-                            $checked = in_array($rSess, $formRouters, true) ? 'checked' : '';
-                            $rHotspotName = isset($data[$rSess][4]) ? explode('%', $data[$rSess][4])[1] : $rSess;
-                        ?>
-                          <label style="display:inline-block; margin-right: 14px; cursor:pointer;">
-                            <input type="checkbox" name="r_routers[]" value="<?= htmlspecialchars($rSess); ?>" <?= $checked; ?>>
-                            <b><?= htmlspecialchars($rSess); ?></b> (<?= htmlspecialchars($rHotspotName); ?>)
-                          </label>
-                        <?php } } ?>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle">Template Code &amp; Layout</td>
-                      <td>
-                        <div class="row">
-                          <div class="col-4">
-                            <input class="form-control" type="text" name="r_template_code" value="<?= htmlspecialchars($formTplCode); ?>" placeholder="NGW-001" title="Unique Template Code">
-                          </div>
-                          <div class="col-4">
-                            <select class="form-control" name="r_assigned_template" title="Assigned Voucher Template Variant">
-                              <option value="default" <?= $formAssignedTpl === 'default' ? 'selected' : ''; ?>>Default Template</option>
-                              <option value="thermal" <?= $formAssignedTpl === 'thermal' ? 'selected' : ''; ?>>Thermal Template</option>
-                              <option value="small" <?= $formAssignedTpl === 'small' ? 'selected' : ''; ?>>Small Template</option>
-                            </select>
-                          </div>
-                          <div class="col-4">
-                            <select class="form-control" name="r_template_status" title="Template Status">
-                              <option value="active" <?= $formTplStatus === 'active' ? 'selected' : ''; ?>>Template Active</option>
-                              <option value="inactive" <?= $formTplStatus === 'inactive' ? 'selected' : ''; ?>>Inactive (Fallback)</option>
-                            </select>
-                          </div>
-                        </div>
-                        <?php if ($formId !== '') { ?>
-                        <div style="margin-top:6px;">
-                          <small>Isolated HTML files: <code>uploads/reseller-templates/<?= htmlspecialchars($formId); ?>/template*.php</code></small>
-                          &nbsp;
-                          <a class="btn bg-blue" style="padding:2px 8px; font-size:11px;" href="<?= $editTplUrl; ?>"><i class="fa fa-code"></i> Open HTML Editor (Default / Thermal / Small)</a>
-                        </div>
-                        <?php } ?>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle">Reseller Logo<br><small>PNG / JPG / WebP (&le;2MB)</small></td>
-                      <td>
-                        <?php
-                        $hasCustomLogo = false;
-                        $previewLogoUrl = './img/logo.png';
-                        if ($formId !== '' && $formLogoFile !== '') {
-                            $relCheck = './uploads/reseller-logos/' . $formId . '/' . $formLogoFile;
-                            if (is_file($relCheck)) {
-                                $hasCustomLogo = true;
-                                $previewLogoUrl = $relCheck . '?t=' . time();
-                            }
-                        }
-                        ?>
-                        <div class="mr-b-5">
-                          <img src="<?= htmlspecialchars($previewLogoUrl); ?>" alt="Reseller Logo Preview" style="height: 32px; background: #fff; padding: 2px; border-radius: 3px; vertical-align: middle;">
-                          <span style="margin-left: 8px;">
-                            <?php if ($hasCustomLogo) { ?>
-                              <b class="text-green">Custom Logo Active</b> (<code>uploads/reseller-logos/<?= htmlspecialchars($formId); ?>/<?= htmlspecialchars($formLogoFile); ?></code>)
-                              &nbsp;
-                              <a class="btn bg-danger" style="padding: 2px 6px; font-size: 11px;" href="<?= $baseResellerUrl ?>&remove-reseller-logo=<?= urlencode($formId); ?>" title="Remove Custom Logo &amp; Return to Default"><i class="fa fa-trash"></i> Reset to Default</a>
-                            <?php } else { ?>
-                              <small>Using Default Logo Fallback (<code>img/logo.png</code>)</small>
-                            <?php } ?>
-                          </span>
-                        </div>
-                        <input class="form-control" type="file" name="r_logo_upload" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="align-middle">Permission Mode</td>
-                      <td>
-                        <select class="form-control" id="r_permission_mode" name="r_permission_mode" onchange="onPermissionModeChange(this.value)">
-                          <option value="Read" <?= $formMode === 'Read' ? 'selected' : ''; ?>>Read (View-Only Group)</option>
-                          <option value="Write" <?= $formMode === 'Write' ? 'selected' : ''; ?>>Write (Standard Voucher Operations Group)</option>
-                          <option value="Full" <?= $formMode === 'Full' ? 'selected' : ''; ?>>Full (All Non-Admin Reseller Operations Group)</option>
-                          <option value="Reset Voucher" <?= $formMode === 'Reset Voucher' ? 'selected' : ''; ?>>Reset Voucher (Strictly Only Reset Voucher Page)</option>
-                          <option value="Custom" <?= $formMode === 'Custom' ? 'selected' : ''; ?>>Custom (Manual Granular Checklist)</option>
-                        </select>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- Concise Group Summaries when Read, Write, Full, or Reset Voucher is selected -->
-                  <div id="groupSummary_Read" class="box box-bordered pd-10 mr-t-10" style="display: <?= $formMode === 'Read' ? 'block' : 'none'; ?>;">
-                    <b><i class="fa fa-eye text-primary"></i> Read Mode Group Summary (<?= $readSummary['total']; ?> permissions enabled):</b><br>
-                    <small><?= htmlspecialchars($readSummary['categories']); ?></small><br>
-                    <small class="text-warning">Individual checklist is hidden in Read mode. Switch to <b>Custom</b> to select individual permissions or click <a href="<?= $baseResellerUrl ?>&view=groups"><b>Configure Groups</b></a> to edit the Read group.</small>
-                  </div>
-
-                  <div id="groupSummary_Write" class="box box-bordered pd-10 mr-t-10" style="display: <?= $formMode === 'Write' ? 'block' : 'none'; ?>;">
-                    <b><i class="fa fa-pencil text-green"></i> Write Mode Group Summary (<?= $writeSummary['total']; ?> permissions enabled):</b><br>
-                    <small><?= htmlspecialchars($writeSummary['categories']); ?></small><br>
-                    <small class="text-warning">Individual checklist is hidden in Write mode. Switch to <b>Custom</b> to select individual permissions or click <a href="<?= $baseResellerUrl ?>&view=groups"><b>Configure Groups</b></a> to edit the Write group.</small>
-                  </div>
-
-                  <div id="groupSummary_Full" class="box box-bordered pd-10 mr-t-10" style="display: <?= $formMode === 'Full' ? 'block' : 'none'; ?>;">
-                    <b><i class="fa fa-unlock-alt text-warning"></i> Full Mode Group Summary (<?= $fullSummary['total']; ?> permissions enabled):</b><br>
-                    <small><?= htmlspecialchars($fullSummary['categories']); ?></small><br>
-                    <small class="text-warning">Grants all non-admin reseller operations. Protected Administrator-only and Reseller Management privileges remain strictly blocked.</small>
-                  </div>
-
-                  <div id="groupSummary_ResetVoucher" class="box box-bordered pd-10 mr-t-10" style="display: <?= $formMode === 'Reset Voucher' ? 'block' : 'none'; ?>;">
-                    <b><i class="fa fa-refresh text-green"></i> Reset Voucher Mode Summary (<?= $resetSummary['total']; ?> permission enabled):</b><br>
-                    <small>Strictly isolates this reseller to the <b>Reset Voucher</b> page only (Reset Voucher, Enable, Disable, Check Expiry Date) across their assigned servers. All other menus and pages are hidden.</small>
-                  </div>
-
-                  <!-- Individual Checklist (Shown only when Custom mode is selected) -->
-                  <div id="customPermChecklist" class="card mr-t-10" style="display: <?= $formMode === 'Custom' ? 'block' : 'none'; ?>;">
-                    <div class="card-header">
-                      <h3 class="card-title">
-                        <i class="fa fa-lock"></i> Custom Granular Operation Permissions
-                        <span style="font-size: 12px; font-weight: normal;">
-                          &nbsp; | &nbsp; Quick Select:
-                          <a href="javascript:void(0)" onclick="setPermPreset('all')">Enable All Allowed</a> &middot;
-                          <a href="javascript:void(0)" onclick="setPermPreset('reset_only')">Only Reset Voucher</a> &middot;
-                          <a href="javascript:void(0)" onclick="setPermPreset('none')">Disable All</a>
-                        </span>
-                      </h3>
-                    </div>
-                    <div class="card-body">
-                      <?php foreach ($permCatalog as $groupName => $groupPerms) { ?>
-                        <div style="margin-bottom: 10px;">
-                          <div style="font-weight: bold; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 6px;">
-                            <i class="fa fa-check-square-o"></i> <?= htmlspecialchars($groupName); ?>
-                          </div>
-                          <div class="row">
-                            <?php foreach ($groupPerms as $pKey => $pLabel) {
-                              $isProtected = isProtectedAdminPermission($pKey);
-                              $isChecked = !$isProtected && !empty($formPerms[$pKey]) ? 'checked' : '';
-                            ?>
-                              <div class="col-6" style="padding: 2px 8px;">
-                                <label style="cursor:<?= $isProtected ? 'not-allowed' : 'pointer'; ?>; font-weight:normal; opacity:<?= $isProtected ? '0.6' : '1'; ?>;">
-                                  <input type="checkbox" class="perm-checkbox" data-perm="<?= htmlspecialchars($pKey); ?>" name="r_perms[<?= htmlspecialchars($pKey); ?>]" value="1" <?= $isChecked; ?> <?= $isProtected ? 'disabled' : ''; ?>>
-                                  <?= htmlspecialchars($pLabel); ?>
-                                </label>
-                              </div>
-                            <?php } ?>
-                          </div>
-                        </div>
-                      <?php } ?>
-                    </div>
-                  </div>
-
-                  <div class="mr-t-10">
-                    <button type="submit" name="save_reseller" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
         </div>
         <?php } ?>
       </div>
     </div>
   </div>
 </div>
+
+<!-- POPUP MODAL 1: ADD / EDIT RESELLER -->
+<div id="resellerFormModal" class="ngw-modal-backdrop" onclick="if(event.target===this)closeResellerFormModal();">
+  <div class="card ngw-modal-box">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 class="card-title" id="modalFormTitle" style="margin:0;"><i class="fa fa-user-plus"></i> <?= htmlspecialchars(isset($_add_reseller_label) ? $_add_reseller_label : 'Add Reseller'); ?></h3>
+      <span class="pointer" onclick="closeResellerFormModal()" style="font-size:18px; padding:0 6px;" title="<?= htmlspecialchars($_close); ?>"><i class="fa fa-close text-red"></i></span>
+    </div>
+    <div class="card-body">
+      <form autocomplete="off" method="post" action="<?= $baseResellerUrl ?>">
+        <input type="hidden" name="reseller_id" id="f_reseller_id" value="">
+        <table class="table table-sm">
+          <tr>
+            <td class="align-middle" style="width: 34%;"><?= $_user_name ?></td>
+            <td>
+              <input class="form-control" type="text" name="r_username" id="f_username" value="" placeholder="Username" required="1">
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle"><?= $_name ?></td>
+            <td>
+              <input class="form-control" type="text" name="r_name" id="f_name" value="" placeholder="Full Name / Outlet Name" required="1">
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle"><?= $_password ?> <small id="f_pass_hint" style="display:none;">(Optional)</small></td>
+            <td>
+              <div class="input-group">
+                <div class="input-group-11 col-box-10">
+                  <input class="group-item group-item-l" id="r_password" type="password" name="r_password" value="" placeholder="<?= htmlspecialchars($_password); ?>">
+                </div>
+                <div class="input-group-1 col-box-2">
+                  <div class="group-item group-item-r pd-2p5 text-center align-middle">
+                    <input title="Show/Hide Password" type="checkbox" onclick="PassReseller()">
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle"><?= isset($_status) ? $_status : 'Status' ?></td>
+            <td>
+              <select class="form-control" name="r_status" id="f_status">
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle"><?= htmlspecialchars(isset($_select_router_btn) ? $_select_router_btn : 'Select Router'); ?></td>
+            <td>
+              <div id="routerDropdownWrap" class="ngw-router-dd-wrap">
+                <button type="button" class="form-control ngw-router-dd-btn" onclick="toggleRouterDropdown(event)">
+                  <span id="routerDropdownLabel"><?= htmlspecialchars(isset($_select_router_btn) ? $_select_router_btn : 'Select Router'); ?></span>
+                  <i class="fa fa-caret-down"></i>
+                </button>
+                <div id="routerDropdownPanel" class="ngw-router-dd-panel" onclick="event.stopPropagation();">
+                  <?php if (empty($allRouters)) { ?>
+                    <div class="pd-5">No routers configured.</div>
+                  <?php } else {
+                    foreach ($allRouters as $rSess) {
+                      $rHotspotName = isset($routerHotspotMap[$rSess]) ? $routerHotspotMap[$rSess] : $rSess;
+                  ?>
+                    <label class="ngw-router-dd-item">
+                      <input type="checkbox" class="ngw-router-checkbox" name="r_routers[]" value="<?= htmlspecialchars($rSess); ?>" data-label="<?= htmlspecialchars($rHotspotName); ?>" onchange="updateRouterDropdownLabel()">
+                      &nbsp;<b><?= htmlspecialchars($rHotspotName); ?></b> <small>(<?= htmlspecialchars($rSess); ?>)</small>
+                    </label>
+                  <?php } } ?>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle">Permission Mode</td>
+            <td>
+              <select class="form-control" id="r_permission_mode" name="r_permission_mode" onchange="onPermissionModeChange(this.value)">
+                <option value="Read">Read</option>
+                <option value="Write" selected>Write</option>
+                <option value="Full">Full</option>
+                <option value="Reset Voucher">Reset Voucher</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Custom Granular Checklist (Shown only when Custom mode is selected) -->
+        <div id="customPermChecklist" class="card mr-t-5" style="display: none; max-height: 240px; overflow-y: auto;">
+          <div class="card-header">
+            <h3 class="card-title" style="font-size:13px;">
+              <i class="fa fa-lock"></i> Custom Permissions
+              <span style="font-size: 11px; font-weight: normal;">
+                &nbsp; | &nbsp;
+                <a href="javascript:void(0)" onclick="setPermPreset('all')">All</a> &middot;
+                <a href="javascript:void(0)" onclick="setPermPreset('reset_only')">Reset Only</a> &middot;
+                <a href="javascript:void(0)" onclick="setPermPreset('none')">None</a>
+              </span>
+            </h3>
+          </div>
+          <div class="card-body">
+            <?php foreach ($permCatalog as $groupName => $groupPerms) { ?>
+              <div style="margin-bottom: 8px;">
+                <div style="font-weight: bold; font-size:12px; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 4px;">
+                  <?= htmlspecialchars($groupName); ?>
+                </div>
+                <div class="row">
+                  <?php foreach ($groupPerms as $pKey => $pLabel) {
+                    $isProtected = isProtectedAdminPermission($pKey);
+                  ?>
+                    <div class="col-6" style="padding: 2px 6px; font-size:12px;">
+                      <label style="cursor:<?= $isProtected ? 'not-allowed' : 'pointer'; ?>; font-weight:normal; opacity:<?= $isProtected ? '0.5' : '1'; ?>;">
+                        <input type="checkbox" class="perm-checkbox" data-perm="<?= htmlspecialchars($pKey); ?>" name="r_perms[<?= htmlspecialchars($pKey); ?>]" value="1" <?= $isProtected ? 'disabled' : ''; ?>>
+                        <?= htmlspecialchars($pLabel); ?>
+                      </label>
+                    </div>
+                  <?php } ?>
+                </div>
+              </div>
+            <?php } ?>
+          </div>
+        </div>
+
+        <div class="mr-t-10 text-right">
+          <button type="submit" name="save_reseller" class="btn bg-primary pd-10" style="cursor:pointer; font-weight:bold;">
+            <i class="fa fa-save"></i> <?= $_save ?>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP MODAL 2: RESELLER DETAILS -->
+<div id="resellerDetailsModal" class="ngw-modal-backdrop" onclick="if(event.target===this)closeResellerDetailsModal();">
+  <div class="card ngw-modal-box">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 class="card-title" style="margin:0;"><i class="fa fa-info-circle text-info"></i> <?= htmlspecialchars(isset($_reseller_details_title) ? $_reseller_details_title : 'Reseller Details'); ?></h3>
+      <span class="pointer" onclick="closeResellerDetailsModal()" style="font-size:18px; padding:0 6px;" title="<?= htmlspecialchars($_close); ?>"><i class="fa fa-close text-red"></i></span>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered table-sm">
+        <tr>
+          <td style="width: 36%;"><b>Reseller ID</b></td>
+          <td><code id="det_id"></code></td>
+        </tr>
+        <tr>
+          <td><b><?= $_user_name ?></b></td>
+          <td id="det_username"></td>
+        </tr>
+        <tr>
+          <td><b><?= $_name ?></b></td>
+          <td id="det_name"></td>
+        </tr>
+        <tr>
+          <td><b><?= isset($_status) ? $_status : 'Status' ?></b></td>
+          <td id="det_status"></td>
+        </tr>
+        <tr>
+          <td><b>Permission Mode</b></td>
+          <td><span id="det_mode" class="pd-2p5 radius-3 bg-primary"></span></td>
+        </tr>
+        <tr>
+          <td><b>Assigned Routers</b></td>
+          <td id="det_routers"></td>
+        </tr>
+        <tr>
+          <td><b>Template</b></td>
+          <td><code id="det_template"></code></td>
+        </tr>
+        <tr>
+          <td><b>Logo</b></td>
+          <td>
+            <img id="det_logo_img" src="./img/logo.png" alt="Logo" style="height:28px; background:#fff; padding:2px; border-radius:3px; vertical-align:middle;">
+            &nbsp;<small id="det_logo_name"></small>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Created At</b></td>
+          <td id="det_created"></td>
+        </tr>
+      </table>
+      <div class="mr-t-10 text-right">
+        <button type="button" id="det_btn_edit" class="btn bg-primary"><i class="fa fa-edit"></i> <?= $_edit ?></button>
+        <a id="det_btn_tpl" href="javascript:void(0)" class="btn bg-blue"><i class="fa fa-code"></i> <?= $_template_editor ?></a>
+        <a id="det_btn_logo" href="javascript:void(0)" class="btn bg-green"><i class="fa fa-image"></i> <?= $_upload_logo ?></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php if (isset($_GET['edit-reseller']) && $_GET['edit-reseller'] !== '') {
+    $reqE = $_GET['edit-reseller'];
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    <?php if ($reqE === 'new') { ?>
+    openAddResellerModal();
+    <?php } else { ?>
+    openEditResellerModal(<?= json_encode((string)$reqE); ?>);
+    <?php } ?>
+});
+</script>
+<?php } ?>

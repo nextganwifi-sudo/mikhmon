@@ -132,7 +132,7 @@ if (!isset($_SESSION["mikhmon"])) {
           <form autocomplete="off" method="post" action="">
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title"><i class="fa fa-user-circle"></i> <?= $_admin ?> &nbsp; | &nbsp; <a href="./admin.php?id=resellers"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a> &nbsp; | &nbsp; <a href="./admin.php?id=system-update"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update & VPS'; ?></a></h3>
+                <h3 class="card-title"><i class="fa fa-user-circle"></i> <?= $_admin ?> &nbsp; | &nbsp; <a href="./admin.php?id=resellers"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a> &nbsp; | &nbsp; <a href="./admin.php?id=system-update"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a></h3>
               </div>
             <div class="card-body">
       <table class="table table-sm">

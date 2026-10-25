@@ -168,7 +168,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $ssysupdate = "active";
     $ssett = "active";
     $settmenu = "menu-open";
-    $mpage = isset($_system_update) ? $_system_update : "System Update & VPS";
+    $mpage = isset($_system_update) ? $_system_update : "System Update";
   }
 }
 
@@ -248,7 +248,7 @@ if($idleto != "disable"){
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
   <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
-  <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update & VPS'; ?></a>
+  <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
   <?php } ?>
   <a href="./admin.php?id=about" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
 <?php } ?>
@@ -460,7 +460,7 @@ include('./info.php');
   <a href="./?hotspot=template-editor&template=default&session=<?= $session; ?>" class="menu <?= $teditor; ?>"> <i class="fa fa-edit "></i> <?= $_template_editor ?> </a>          
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
-  <a href="./?hotspot=system-update&session=<?= $session; ?>" class="menu <?= $ssysupdate; ?>"> <i class="fa fa-cloud-upload "></i> <?= isset($_system_update) ? $_system_update : 'System Update & VPS'; ?> </a>
+  <a href="./?hotspot=system-update&session=<?= $session; ?>" class="menu <?= $ssysupdate; ?>"> <i class="fa fa-cloud-upload "></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?> </a>
   <?php } ?>
   </div>
   <!--about-->
