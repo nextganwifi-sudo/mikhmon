@@ -45,7 +45,7 @@ if (!isset($_SESSION["mikhmon"])) {
   $uid = $userdetails['.id'];
   $userver = $userdetails['server'];
   $uname = $userdetails['name'];
-  $upass = $userdetails['password'];
+  $upass = isset($userdetails['password']) ? $userdetails['password'] : (isset($userdetails['password.']) ? $userdetails['password.'] : '');
   $umac = $userdetails['mac-address'];
   $uprofile = $userdetails['profile'];
   $uuptime = formatDTM($userdetails['uptime']);

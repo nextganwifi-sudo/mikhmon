@@ -972,13 +972,15 @@ function startPhpServer() {
     'php',
     [
       '-d',
-      'display_errors=0',
+      'display_errors=1',
       '-d',
-      'error_reporting=0',
+      'error_reporting=E_ALL',
       '-d',
-      'max_execution_time=30',
+      'log_errors=1',
       '-d',
-      'default_socket_timeout=5',
+      'max_execution_time=60',
+      '-d',
+      'default_socket_timeout=10',
       '-S',
       `127.0.0.1:${PHP_PORT}`,
       '-t',
@@ -1176,8 +1178,8 @@ const proxyServer = http.createServer(async (req, res) => {
     proxyRes.pipe(res, { end: true });
   });
 
-  proxyReq.setTimeout(30000, () => {
-    proxyReq.destroy(new Error('Upstream PHP request timed out after 30s'));
+  proxyReq.setTimeout(60000, () => {
+    proxyReq.destroy(new Error('Upstream PHP request timed out after 60s'));
   });
 
   proxyReq.on('error', (err) => {
@@ -1186,7 +1188,7 @@ const proxyServer = http.createServer(async (req, res) => {
       res.writeHead(isTimeout ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(
         isTimeout
-          ? 'NextGan WiFi Solution: Backend request timed out. Please retry.'
+          ? 'NextGan WiFi Solution: Backend request timed out. Please check if your router IP is reachable and port 22/8728 is open.'
           : `NextGan WiFi Solution: PHP Engine warming up... (${err.message})`
       );
     } else {

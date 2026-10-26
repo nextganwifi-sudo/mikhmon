@@ -118,8 +118,8 @@ class RouterosAPI
             $this->ssh_pass = $password;
 
             // Check if connecting to local simulated RouterOS in AI Studio preview where port 22 is not bound
-            if (($this->ssh_host === '127.0.0.1' || $this->ssh_host === '127.0.0.2') && $this->ssh_port === 22) {
-                $testSshSock = @fsockopen($this->ssh_host, 22, $eNo, $eStr, 1);
+            if (($this->ssh_host === '127.0.0.1' || $this->ssh_host === '127.0.0.2' || $this->ssh_host === 'localhost') && $this->ssh_port === 22) {
+                $testSshSock = fsockopen($this->ssh_host, 22, $eNo, $eStr, 1);
                 if ($testSshSock) {
                     fclose($testSshSock);
                 } else {
@@ -635,7 +635,8 @@ class RouterosAPI
         // 3. List print commands (.../print)
         if ($action === 'print') {
             $isCountOnly = isset($arr['count-only']);
-            $out = $this->sshExecRaw($cliMenu . ' print detail without-paging');
+            $extraFields = ($cliMenu === '/ip hotspot user') ? ' password' : '';
+            $out = $this->sshExecRaw($cliMenu . ' print detail terse' . $extraFields . ' without-paging');
             $rows = $this->parseRouterOsCliDetail($out);
 
             // Apply ?field => value filters in PHP for 100% v6/v7 consistency
@@ -835,7 +836,8 @@ class RouterosAPI
             }
             $kvs = $this->extractCliKeyValues($b['body']);
             foreach ($kvs as $k => $v) {
-                $row[$k] = $v;
+                $cleanK = (trim($k) === 'password.') ? 'password' : $k;
+                $row[$cleanK] = $v;
             }
             $parsedRows[] = $row;
         }

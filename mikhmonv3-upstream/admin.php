@@ -201,7 +201,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     };
     </script>';
 } elseif ($id == "connect"  && !empty($session)) {
-  ini_set("max_execution_time",5);  
+  ini_set("max_execution_time",30);  
   include_once('./include/menu.php');
   $targetAfterConnect = getResellerDefaultFallbackUrl($session);
   session_write_close();
