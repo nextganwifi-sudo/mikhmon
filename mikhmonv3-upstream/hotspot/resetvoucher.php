@@ -114,6 +114,34 @@ function findHotspotVoucherByAnyField($API, $query) {
     return array('user' => null, 'active' => $matchedActiveRow, 'matched_by' => '');
 }
 
+
+/**
+ * Keep matching voucher activation records from the last 30 days.
+ * RouterOS 6 (mmm/dd/yyyy) and RouterOS 7 (YYYY-MM-DD) dates are normalized by parseRouterOSDate().
+ */
+function filterVoucherRecordsLast30Days($records) {
+    if (!is_array($records)) return array();
+    $cutoff = time() - (30 * 86400);
+    $now = time();
+    $recent = array();
+    foreach ($records as $record) {
+        $dateText = isset($record['login_date']) ? trim((string)$record['login_date']) : '';
+        $timeText = isset($record['login_time']) ? trim((string)$record['login_time']) : '00:00:00';
+        $parsed = parseRouterOSDate($dateText);
+        if (empty($parsed['valid'])) continue;
+        if (!preg_match('/^\\d{1,2}:\\d{2}(?::\\d{2})?$/', $timeText)) $timeText = '00:00:00';
+        if (strlen($timeText) === 5) $timeText .= ':00';
+        $stamp = strtotime($parsed['iso'] . ' ' . $timeText);
+        if ($stamp === false || $stamp < $cutoff || $stamp > $now) continue;
+        $record['_timestamp'] = $stamp;
+        $recent[] = $record;
+    }
+    usort($recent, function($a, $b) {
+        return (isset($a['_timestamp']) ? $a['_timestamp'] : 0) <=> (isset($b['_timestamp']) ? $b['_timestamp'] : 0);
+    });
+    return $recent;
+}
+
 // Build list of allowed servers for this user (Admin or Reseller)
 $allowedServers = array();
 if (isset($data) && is_array($data)) {
@@ -266,11 +294,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                 $activeRow = (is_array($liveActive) && !empty($liveActive) && isset($liveActive[0]['.id'])) ? $liveActive[0] : null;
                 $isOnline  = ($activeRow !== null);
 
-                // Resolve historical script record only when expiry date was explicitly requested
-                $latestRec = null;
-                if ($rvAction === 'check_expiry') {
-                    $scriptRecs = findVoucherRecordsInScripts($rvAPI, $uname);
-                    $latestRec  = !empty($scriptRecs) ? $scriptRecs[count($scriptRecs) - 1] : null;
+                // Load activation history automatically so expiry and recently expired voucher details
+                // are visible directly in the search result without a separate Check Expiry action.
+                $scriptRecs = findVoucherRecordsInScripts($rvAPI, $uname);
+                $recentScriptRecs = filterVoucherRecordsLast30Days($scriptRecs);
+                $latestRec = !empty($scriptRecs) ? $scriptRecs[count($scriptRecs) - 1] : null;
+                if (!empty($recentScriptRecs)) {
+                    $latestRec = $recentScriptRecs[count($recentScriptRecs) - 1];
                 }
 
                 $uPass     = isset($foundLiveUser['password']) ? $foundLiveUser['password'] : $uname;
@@ -310,12 +340,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
 
                 $parsedExp = parseExpiryFromComment($uComment);
                 $isLimitExpired = ($uLimitUp === '1s' || $uLimitUp === '00:00:01');
-                $isCalendarExpired = false;
+                $effectiveExpiry = null;
                 if ($parsedExp['is_expiry'] && !empty($parsedExp['iso_datetime'])) {
-                    $expTs = strtotime($parsedExp['iso_datetime']);
-                    if ($expTs !== false && $expTs <= time()) {
-                        $isCalendarExpired = true;
-                    }
+                    $effectiveExpiry = array(
+                        'iso_datetime' => $parsedExp['iso_datetime'],
+                        'legacy_datetime' => $parsedExp['legacy_datetime'],
+                        'is_expiry' => true
+                    );
+                } elseif ($latestRec !== null && !empty($latestRec['has_expiry'])) {
+                    $effectiveExpiry = array(
+                        'iso_datetime' => $latestRec['expiry_iso'],
+                        'legacy_datetime' => $latestRec['expiry_legacy'],
+                        'is_expiry' => true
+                    );
+                }
+                $isCalendarExpired = false;
+                if ($effectiveExpiry !== null) {
+                    $expTs = strtotime($effectiveExpiry['iso_datetime']);
+                    if ($expTs !== false && $expTs <= time()) $isCalendarExpired = true;
                 }
 
                 if ($uDisabled) {
@@ -330,26 +372,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                     $statusBadge = "<span class='bg-info pd-5 radius-3'><i class='fa fa-ticket'></i> " . htmlspecialchars($_status_unused) . "</span>";
                 }
 
-                // Expiry row is ONLY shown when user clicks "Check Expiry Date"
+                // Always show expiry on the search result; no separate expiry action is needed.
                 $expiryRowHtml = '';
-                if ($rvAction === 'check_expiry') {
-                    if ($parsedExp['is_expiry']) {
-                        $expText = "<b style='font-size:15px;' class='" . (($isLimitExpired || $isCalendarExpired) ? "text-danger" : "text-green") . "'>"
-                            . htmlspecialchars($parsedExp['iso_datetime'])
-                            . "</b> <small>(" . htmlspecialchars($parsedExp['legacy_datetime']) . ")</small>";
-                    } elseif ($latestRec !== null && !empty($latestRec['has_expiry'])) {
-                        $expText = "<b style='font-size:15px;' class='text-green'>"
-                            . htmlspecialchars($latestRec['expiry_iso'])
-                            . "</b> <small>(" . htmlspecialchars($latestRec['expiry_legacy']) . ")</small>";
-                    } else {
-                        $expText = "<span class='text-warning'>" . htmlspecialchars($_not_activated_yet) . "</span>";
+                if ($effectiveExpiry !== null) {
+                    $expText = "<b style='font-size:15px;' class='" . (($isLimitExpired || $isCalendarExpired) ? "text-danger" : "text-green") . "'>"
+                        . htmlspecialchars($effectiveExpiry['iso_datetime'])
+                        . "</b> <small>(" . htmlspecialchars($effectiveExpiry['legacy_datetime']) . ")</small>";
+                } else {
+                    $expText = "<span class='text-warning'>" . htmlspecialchars($_not_activated_yet) . "</span>";
+                }
+                $expiryRowHtml = "
+                  <tr style='background: rgba(23, 162, 184, 0.14);'>
+                    <th>" . htmlspecialchars($_expiry_date) . "</th>
+                    <td>" . $expText . "</td>
+                  </tr>";
+
+                $recentHistoryHtml = '';
+                if (($isLimitExpired || $isCalendarExpired) && !empty($recentScriptRecs)) {
+                    $historyRows = '';
+                    foreach ($recentScriptRecs as $historyRec) {
+                        $historyExpiry = !empty($historyRec['has_expiry'])
+                            ? htmlspecialchars($historyRec['expiry_iso'] . ' (' . $historyRec['expiry_legacy'] . ')')
+                            : htmlspecialchars($historyRec['comment'] !== '' ? $historyRec['comment'] : '-');
+                        $historyRows .= "<tr>"
+                            . "<td>" . htmlspecialchars($historyRec['login_datetime']) . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['profile'] !== '' ? $historyRec['profile'] : '-') . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['validity'] !== '' ? $historyRec['validity'] : '-') . "</td>"
+                            . "<td>" . $historyExpiry . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['ip'] !== '' ? $historyRec['ip'] : '-') . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['mac'] !== '' ? $historyRec['mac'] : '-') . "</td>"
+                            . "</tr>";
                     }
-                    $actionAlertHtml = "<div class='bg-info pd-10 radius-3 mr-b-10'><i class='fa fa-calendar-check-o'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($uname) . "</b> " . htmlspecialchars($_rv_msg_expiry_shown) . "</div>";
-                    $expiryRowHtml = "
-                      <tr style='background: rgba(23, 162, 184, 0.14);'>
-                        <th>" . htmlspecialchars($_expiry_date) . "</th>
-                        <td>" . $expText . "</td>
-                      </tr>";
+                    $recentHistoryHtml = "<tr><th colspan='6'>Voucher records — last 30 days</th></tr>"
+                        . "<tr><th>Login time</th><th>Profile</th><th>Validity</th><th>Expiry</th><th>IP</th><th>MAC</th></tr>"
+                        . $historyRows;
                 }
 
                 $resultCardHtml = "
@@ -393,6 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                       <td>Download: <b>" . htmlspecialchars($uBytesOut) . "</b> &nbsp;|&nbsp; Upload: <b>" . htmlspecialchars($uBytesIn) . "</b></td>
                     </tr>
                     " . $expiryRowHtml . "
+                    " . $recentHistoryHtml . "
                   </table>
 
                   <form method='post' action='' autocomplete='off' class='mr-t-10'>
@@ -402,40 +459,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                     <button type='submit' name='rv_action' value='reset' class='btn bg-primary mr-t-5' style='margin-right: 6px;'>
                       <i class='fa fa-refresh'></i> " . htmlspecialchars($_reset_voucher) . "
                     </button>
-                    <button type='submit' name='rv_action' value='enable' class='btn bg-green mr-t-5' style='margin-right: 6px;'>
-                      <i class='fa fa-unlock'></i> " . htmlspecialchars($_enable) . "
-                    </button>
-                    <button type='submit' name='rv_action' value='disable' class='btn bg-warning mr-t-5' style='margin-right: 6px;'>
-                      <i class='fa fa-lock'></i> " . htmlspecialchars($_disable) . "
-                    </button>
-                    <button type='submit' name='rv_action' value='check_expiry' class='btn bg-info mr-t-5'>
-                      <i class='fa fa-calendar'></i> " . htmlspecialchars($_check_expiry_date) . "
-                    </button>
+                    " . (!$uDisabled
+                        ? "<button type='submit' name='rv_action' value='disable' class='btn bg-warning mr-t-5' style='margin-right: 6px;'><i class='fa fa-lock'></i> " . htmlspecialchars($_disable) . "</button>"
+                        : "<button type='submit' name='rv_action' value='enable' class='btn bg-green mr-t-5' style='margin-right: 6px;'><i class='fa fa-unlock'></i> " . htmlspecialchars($_enable) . "</button>") . "
                   </form>
                 </div>";
             } else {
                 // Voucher NOT found in /ip/hotspot/user — check Mikhmon /system/script historical records
                 $scriptRecs = findVoucherRecordsInScripts($rvAPI, $lookupKey);
+                $recentScriptRecs = filterVoucherRecordsLast30Days($scriptRecs);
                 if (!empty($scriptRecs)) {
-                    $rec = $scriptRecs[count($scriptRecs) - 1];
+                    $rec = !empty($recentScriptRecs)
+                        ? $recentScriptRecs[count($recentScriptRecs) - 1]
+                        : $scriptRecs[count($scriptRecs) - 1];
                     $expDateText = !empty($rec['has_expiry'])
                         ? ($rec['expiry_iso'] . " (" . $rec['expiry_legacy'] . ")")
                         : ($rec['comment'] !== '' ? $rec['comment'] : $_status_expired);
+                    $actionAlertHtml = "<div class='bg-warning pd-10 radius-3 mr-b-10'><i class='fa fa-history'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($rec['voucher']) . "</b> " . htmlspecialchars($_rv_msg_removed_found) . "</div>";
 
-                    if ($rvAction === 'check_expiry') {
-                        $actionAlertHtml = "<div class='bg-warning pd-10 radius-3 mr-b-10'><i class='fa fa-calendar-times-o'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($rec['voucher']) . "</b> " . htmlspecialchars($_rv_msg_removed_expiry_shown) . "</div>";
-                    } else {
-                        $actionAlertHtml = "<div class='bg-warning pd-10 radius-3 mr-b-10'><i class='fa fa-history'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($rec['voucher']) . "</b> " . htmlspecialchars($_rv_msg_removed_found) . "</div>";
+                    $expiryRowHtml = "
+                      <tr style='background: rgba(220, 53, 69, 0.15);'>
+                        <th>" . htmlspecialchars($_expiry_date) . "</th>
+                        <td><b class='text-danger' style='font-size:15px;'><i class='fa fa-calendar-times-o'></i> " . htmlspecialchars($expDateText) . "</b></td>
+                      </tr>";
+                    $historyRows = '';
+                    $displayHistory = !empty($recentScriptRecs) ? $recentScriptRecs : array($rec);
+                    foreach ($displayHistory as $historyRec) {
+                        $historyExpiry = !empty($historyRec['has_expiry'])
+                            ? htmlspecialchars($historyRec['expiry_iso'] . ' (' . $historyRec['expiry_legacy'] . ')')
+                            : htmlspecialchars($historyRec['comment'] !== '' ? $historyRec['comment'] : '-');
+                        $historyRows .= "<tr>"
+                            . "<td>" . htmlspecialchars($historyRec['voucher']) . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['login_datetime']) . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['profile'] !== '' ? $historyRec['profile'] : '-') . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['validity'] !== '' ? $historyRec['validity'] : '-') . "</td>"
+                            . "<td>" . $historyExpiry . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['ip'] !== '' ? $historyRec['ip'] : '-') . "</td>"
+                            . "<td>" . htmlspecialchars($historyRec['mac'] !== '' ? $historyRec['mac'] : '-') . "</td>"
+                            . "</tr>";
                     }
-
-                    $expiryRowHtml = '';
-                    if ($rvAction === 'check_expiry') {
-                        $expiryRowHtml = "
-                          <tr style='background: rgba(220, 53, 69, 0.15);'>
-                            <th>" . htmlspecialchars($_expiry_date) . "</th>
-                            <td><b class='text-danger' style='font-size:15px;'><i class='fa fa-calendar-times-o'></i> " . htmlspecialchars($expDateText) . "</b></td>
-                          </tr>";
-                    }
+                    $recentHistoryHtml = "<tr><th colspan='7'>Voucher records — last 30 days</th></tr>"
+                        . "<tr><th>Voucher</th><th>Login time</th><th>Profile</th><th>Validity</th><th>Expiry</th><th>IP</th><th>MAC</th></tr>"
+                        . $historyRows;
 
                     $resultCardHtml = "
                     <div class='box box-bordered pd-10 mr-t-10'>
@@ -466,16 +531,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                           <td>IP: <code>" . htmlspecialchars($rec['ip'] !== '' ? $rec['ip'] : '-') . "</code> &nbsp;|&nbsp; MAC: <code>" . htmlspecialchars($rec['mac'] !== '' ? $rec['mac'] : '-') . "</code>" . renderRandomizedMacBadge($rec['mac']) . "</td>
                         </tr>
                         " . $expiryRowHtml . "
+                        " . $recentHistoryHtml . "
                       </table>
-
-                      <form method='post' action='' autocomplete='off' class='mr-t-10'>
-                        <input type='hidden' name='server_session' value='" . htmlspecialchars($selectedServer, ENT_QUOTES) . "'>
-                        <input type='hidden' name='voucher_code' value='" . htmlspecialchars($voucherCode !== '' ? $voucherCode : $rec['voucher'], ENT_QUOTES) . "'>
-                        <input type='hidden' name='target_voucher' value='" . htmlspecialchars($rec['voucher'], ENT_QUOTES) . "'>
-                        <button type='submit' name='rv_action' value='check_expiry' class='btn bg-info mr-t-5'>
-                          <i class='fa fa-calendar'></i> " . htmlspecialchars($_check_expiry_date) . "
-                        </button>
-                      </form>
                     </div>";
                 } else {
                     $actionAlertHtml = "<div class='bg-danger pd-10 radius-3 mr-b-10'><i class='fa fa-times-circle'></i> " . htmlspecialchars($_rv_msg_not_found) . " <b>" . htmlspecialchars($srvCfg['hotspotname']) . "</b> (<code>" . htmlspecialchars($lookupKey) . "</code>)</div>";
