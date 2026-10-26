@@ -9,7 +9,7 @@
  *      Username: mikhmon
  *      Password: 1234
  * 3. After logging in at `/admin.php?id=login`, open Admin Settings to change
- *    the administrator username/password and configure your MikroTik RouterOS 6.x / 7.x sessions.
+ *    the administrator username/password and configure RouterOS 6.x / 7.x sessions using the RouterOS API service.
  */
 if(substr($_SERVER["REQUEST_URI"], -10) == "config.php"){header("Location:./");}; 
 if(!isset($data) || !is_array($data)){$data = array();}
