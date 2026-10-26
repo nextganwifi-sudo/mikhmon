@@ -703,22 +703,42 @@ class RouterosAPI
         // 3. List print commands (.../print)
         if ($action === 'print') {
             $isCountOnly = isset($arr['count-only']);
-            // `password` is a field, not a valid extra print argument. Appending it to
-            // the CLI command makes RouterOS reject the entire print request. Passwords
-            // are returned in detail output only when the router account has permission
-            // to view sensitive fields; the parser normalizes `password.` below.
-            $out = $this->sshExecRaw($cliMenu . ' print detail terse without-paging');
-            $rows = $this->parseRouterOsCliDetail($out);
 
-            // Apply ?field => value filters in PHP for 100% v6/v7 consistency
+            // Convert RouterOS API-style ?field filters to a CLI where clause.
+            // Applying exact filters on the router avoids transferring every hotspot
+            // user for each voucher lookup, which was a major timeout risk.
             $filters = array();
             if ($this->isIterable($arr)) {
                 foreach ($arr as $k => $v) {
-                    if (strlen($k) > 1 && $k[0] === '?') {
-                        $filters[substr($k, 1)] = (string)$v;
+                    if (is_string($k) && strlen($k) > 1 && $k[0] === '?') {
+                        $field = substr($k, 1);
+                        if (preg_match('/^[a-zA-Z][a-zA-Z0-9-]*$/', $field)) {
+                            $filters[$field] = (string)$v;
+                        }
                     }
                 }
             }
+
+            $whereParts = array();
+            foreach ($filters as $field => $value) {
+                $slash = chr(92);
+                $escapedValue = str_replace(
+                    array($slash, '"', '$'),
+                    array($slash . $slash, $slash . '"', $slash . '$'),
+                    $value
+                );
+                $whereParts[] = $field . '="' . $escapedValue . '"';
+            }
+
+            $printCommand = $cliMenu . ' print detail terse';
+            if (!empty($whereParts)) {
+                $printCommand .= ' where ' . implode(' and ', $whereParts);
+            }
+            $out = $this->sshExecRaw($printCommand . ' without-paging');
+            $rows = $this->parseRouterOsCliDetail($out);
+
+            // Defensive local exact-match check for RouterOS versions with differing
+            // CLI filtering behavior.
             if (!empty($filters)) {
                 $filtered = array();
                 foreach ($rows as $r) {
