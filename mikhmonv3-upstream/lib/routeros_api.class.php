@@ -295,87 +295,107 @@ class RouterosAPI
 
 
     /**
-     * Read data from Router OS
+     * Read exactly the requested number of bytes, failing on timeout/EOF.
+     * This prevents an empty fread() from leaving the PHP worker in an endless loop.
+     */
+    protected function readExactBytes($length)
+    {
+        $length = (int)$length;
+        if ($length <= 0) { return ''; }
+        if (!is_resource($this->socket)) {
+            throw new Exception('RouterOS API socket is not available');
+        }
+
+        $buffer = '';
+        $deadline = microtime(true) + max(1, (int)$this->timeout) + 1;
+        while (strlen($buffer) < $length) {
+            $chunk = @fread($this->socket, $length - strlen($buffer));
+            if ($chunk === false) {
+                throw new Exception('RouterOS API socket read failed');
+            }
+            if ($chunk === '') {
+                $meta = @stream_get_meta_data($this->socket);
+                if (!empty($meta['timed_out'])) {
+                    throw new Exception('RouterOS API read timed out');
+                }
+                if (!empty($meta['eof']) || @feof($this->socket)) {
+                    throw new Exception('RouterOS API connection closed by peer');
+                }
+                if (microtime(true) >= $deadline) {
+                    throw new Exception('RouterOS API read timed out');
+                }
+                usleep(1000);
+                continue;
+            }
+            $buffer .= $chunk;
+            // Reset the idle deadline only when bytes arrive.
+            $deadline = microtime(true) + max(1, (int)$this->timeout) + 1;
+        }
+        return $buffer;
+    }
+
+    /**
+     * Read data from Router OS.
+     * Returns an empty array on a closed/timed-out socket rather than hanging a PHP worker.
      *
-     * @param boolean     $parse      Parse the data? default: true
-     *
-     * @return array                  Array with parsed or unparsed data
+     * @param boolean $parse Parse the data? default: true
+     * @return array
      */
     public function read($parse = true)
     {
-        $RESPONSE     = array();
+        $RESPONSE = array();
         $receiveddone = false;
-        while (true) {
-            // Read the first byte of input which gives us some or all of the length
-            // of the remaining reply.
-            $BYTE   = ord(fread($this->socket, 1));
-            $LENGTH = 0;
-            // If the first bit is set then we need to remove the first four bits, shift left 8
-            // and then read another byte in.
-            // We repeat this for the second and third bits.
-            // If the fourth bit is set, we need to remove anything left in the first byte
-            // and then read in yet another byte.
-            if ($BYTE & 128) {
-                if (($BYTE & 192) == 128) {
-                    $LENGTH = (($BYTE & 63) << 8) + ord(fread($this->socket, 1));
-                } else {
-                    if (($BYTE & 224) == 192) {
-                        $LENGTH = (($BYTE & 31) << 8) + ord(fread($this->socket, 1));
-                        $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
+        try {
+            while (true) {
+                $BYTE = ord($this->readExactBytes(1));
+                $LENGTH = 0;
+                if ($BYTE & 128) {
+                    if (($BYTE & 192) == 128) {
+                        $LENGTH = (($BYTE & 63) << 8) + ord($this->readExactBytes(1));
+                    } elseif (($BYTE & 224) == 192) {
+                        $LENGTH = (($BYTE & 31) << 8) + ord($this->readExactBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readExactBytes(1));
+                    } elseif (($BYTE & 240) == 224) {
+                        $LENGTH = (($BYTE & 15) << 8) + ord($this->readExactBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readExactBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readExactBytes(1));
                     } else {
-                        if (($BYTE & 240) == 224) {
-                            $LENGTH = (($BYTE & 15) << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                        } else {
-                            $LENGTH = ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                        }
+                        $LENGTH = ord($this->readExactBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readExactBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readExactBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readExactBytes(1));
                     }
+                } else {
+                    $LENGTH = $BYTE;
                 }
-            } else {
-                $LENGTH = $BYTE;
-            }
 
-            $_ = "";
-
-            // If we have got more characters to read, read them in.
-            if ($LENGTH > 0) {
-                $_      = "";
-                $retlen = 0;
-                while ($retlen < $LENGTH) {
-                    $toread = $LENGTH - $retlen;
-                    $_ .= fread($this->socket, $toread);
-                    $retlen = strlen($_);
+                $_ = ($LENGTH > 0) ? $this->readExactBytes($LENGTH) : '';
+                if ($LENGTH > 0) {
+                    $RESPONSE[] = $_;
+                    $this->debug('>>> [' . strlen($_) . '/' . $LENGTH . '] bytes read.');
                 }
-                $RESPONSE[] = $_;
-                $this->debug('>>> [' . $retlen . '/' . $LENGTH . '] bytes read.');
-            }
+                if ($_ === '!done') { $receiveddone = true; }
 
-            // If we get a !done, make a note of it.
-            if ($_ == "!done") {
-                $receiveddone = true;
+                $STATUS = @stream_get_meta_data($this->socket);
+                $unreadBytes = isset($STATUS['unread_bytes']) ? (int)$STATUS['unread_bytes'] : 0;
+                if ($LENGTH > 0) {
+                    $this->debug('>>> [' . $LENGTH . ', ' . $unreadBytes . ']' . $_);
+                }
+                if ((!$this->connected && !$unreadBytes) || ($this->connected && !$unreadBytes && $receiveddone)) {
+                    break;
+                }
             }
-
-            $STATUS = socket_get_status($this->socket);
-            if ($LENGTH > 0) {
-                $this->debug('>>> [' . $LENGTH . ', ' . $STATUS['unread_bytes'] . ']' . $_);
-            }
-
-            if ((!$this->connected && !$STATUS['unread_bytes']) || ($this->connected && !$STATUS['unread_bytes'] && $receiveddone)) {
-                break;
-            }
+        } catch (Exception $e) {
+            $this->error_str = 'RouterOS API read failed: ' . $e->getMessage();
+            $this->connected = false;
+            return array();
         }
 
         if ($parse) {
             $RESPONSE = $this->parseResponse($RESPONSE);
         }
-
         return $RESPONSE;
     }
-
 
     /**
      * Write (send) data to Router OS
@@ -422,6 +442,9 @@ class RouterosAPI
      */
     public function comm($com, $arr = array())
     {
+        if (!$this->connected || !is_resource($this->socket)) {
+            return array();
+        }
         $count = count($arr);
         $this->write($com, !$arr);
         $i = 0;
