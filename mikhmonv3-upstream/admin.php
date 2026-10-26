@@ -217,7 +217,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     $_SESSION["connect"] = "<b class='text-red'>Not Connected</b>";
     session_write_close();
     $nl = '\n';
-    $portHint = (strpos($iphost, 'ssh://') === 0) ? 'SSH (port 22)' : 'API (port 8728)';
+    $portHint = 'RouterOS API (port 8728; API service must be enabled)';
     if ($currency == in_array($currency, $cekindo['indo'])) {
       echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Silakan periksa kembali IP, User, Password dan port ".$portHint." harus enable.')</script>";
     }else{
