@@ -690,12 +690,6 @@ function closeResellerDetailsModal() {
                                 <a href="javascript:void(0)" onclick="openEditResellerModal('<?= htmlspecialchars($rId, ENT_QUOTES); ?>')">
                                   <i class="fa fa-edit text-primary"></i> <?= htmlspecialchars($_edit); ?>
                                 </a>
-                                <a href="<?= $tplEditorBaseUrl ?>&template=<?= urlencode($rAssignedVariant); ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($rId); ?>">
-                                  <i class="fa fa-code text-blue"></i> <?= htmlspecialchars($_template_editor); ?>
-                                </a>
-                                <a href="<?= $upLogoBaseUrl ?>&session=<?= urlencode($defaultLinkSession); ?>&reseller_id=<?= urlencode($rId); ?>">
-                                  <i class="fa fa-image text-green"></i> <?= htmlspecialchars($_upload_logo); ?>
-                                </a>
                                 <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($rId); ?>">
                                   <i class="fa <?= $r['status'] === 'active' ? 'fa-lock text-warning' : 'fa-unlock text-green'; ?>"></i> <?= $r['status'] === 'active' ? 'Deactivate' : 'Activate'; ?>
                                 </a>

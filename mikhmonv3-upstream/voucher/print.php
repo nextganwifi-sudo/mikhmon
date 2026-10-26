@@ -170,11 +170,14 @@ table.voucher {
   $uid = str_replace("=","",base64_encode($regtable['.id']));
   $idqr = str_replace("=","",base64_encode(($regtable['.id']."qr")));
   $username = $regtable['name'];
-  $password = $regtable['password'];
+  $password = isset($regtable['password']) ? (string)$regtable['password'] : '';
   $profile = $regtable['profile'];
   $timelimit = $regtable['limit-uptime'];
   $getdatalimit = $regtable['limit-bytes-total'];
-  $comment = $regtable['comment'];
+  $comment = isset($regtable['comment']) ? (string)$regtable['comment'] : '';
+  if ($password === '' && ($usermode === 'vc' || substr($comment, 0, 3) === 'vc-')) {
+    $password = $username;
+  }
   if ($getdatalimit == 0) {
     $datalimit = "";
   } else {

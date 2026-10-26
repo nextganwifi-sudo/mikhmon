@@ -32,10 +32,10 @@ $router = $_GET['router'];
 $logo = $_GET['logo'];
 
 $ids = array(
-  "editor",
   "uplogo",
   "settings",
 );
+
 
 // lang
 include('./lang/isocodelang.php');
@@ -169,6 +169,15 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./include/menu.php');
   session_write_close();
   include_once('./settings/admin_settings.php');
+} elseif ($id == "vpn") {
+  if (!isMikhmonAdmin()) {
+    session_write_close();
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
+    exit;
+  }
+  include_once('./include/menu.php');
+  session_write_close();
+  include_once('./vpn/vpn_hub.php');
 } elseif ($id == "system-update") {
   if (!isMikhmonAdmin()) {
     session_write_close();
@@ -270,7 +279,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     @unlink($remlogo);
   }
   echo "<script>window.location='./admin.php?id=uplogo&session=" . $session . "'</script>";
-} elseif ($id == "editor"  && !empty($session)) {
+} elseif ($id == "editor") {
   if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template')) {
     requireResellerPermission('edit_own_template', './admin.php?id=sessions');
   }

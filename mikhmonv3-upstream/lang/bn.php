@@ -294,3 +294,6 @@ $_admin_settings_saved = "প্রাইমারি এবং ব্যাক�
 $_login_btn_short = "লগইন";
 $_login_as_reseller_tip = "রিসেলার হিসেবে লগইন";
 $_back_to_admin_btn = "অ্যাডমিনে ফিরুন";
+$_vpn = "ভিপিএন";
+$_vpn_hub = "ভিপিএন হাব";
+

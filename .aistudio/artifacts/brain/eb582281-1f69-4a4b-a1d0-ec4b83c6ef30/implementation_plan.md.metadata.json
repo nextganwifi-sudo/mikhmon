@@ -1,6 +1,6 @@
 {
-  "summary":  "Full-application performance & reliability audit report and implementation plan for NextGan WiFi Solution, including System Scheduler permission isolation in Permission Groups (disabled by default for Resellers) and elimination of N+1 and duplicate RouterOS API calls across all modules.",
-  "updatedAt":  "2026-10-25T19:49:49.928718225Z",
+  "summary":  "রাউটার সেশনের অভ্যন্তরীণ মেনু পরিচ্ছন্নকরণ এবং গ্লোবাল ম্যানেজমেন্ট অপশনসমূহ হাইড করার বাস্তবায়ন পরিকল্পনা।",
+  "updatedAt":  "2026-10-26T08:13:34.834681872Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

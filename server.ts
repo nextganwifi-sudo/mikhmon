@@ -120,40 +120,32 @@ function getFormattedClockTime(): string {
 }
 
 function buildUniversalOnLogin(expmode: string, validity: string, price: string, sprice: string, getlock: string): string {
-  let mode = '';
-  if (expmode === 'rem') mode = 'N';
-  else if (expmode === 'ntf') mode = 'X';
-  else if (expmode === 'remc') mode = 'N';
-  else if (expmode === 'ntfc') mode = 'X';
+  const lockPart =
+    getlock === 'Enable'
+      ? '; :local mac $"mac-address"; :if ([:len $mac] > 0) do={ /ip hotspot user set mac-address=$mac [find where name="$user"] }'
+      : '';
 
   const recordPart =
     expmode === 'remc' || expmode === 'ntfc'
-      ? `; :local sname ("$date-|-$time-|-$user-|-" . "${price}" . "-|-$address-|-$mac-|-` +
-        `${validity}-|-` +
-        '$profile-|-$comment"); :if ([:len [/system script find where name=$sname]] = 0) do={ /system script add name=$sname owner=$mowner source="$date" comment=mikhmon }'
+      ? '; :local time [/system clock get time]; :if ([:len [/system script find where comment="mikhmon" and name~("\\-\\|\\-" . $user . "\\-\\|\\-")]] = 0) do={ /system script add name=("$curdate6-|-$time-|-$user-|-' +
+        price +
+        '-|-$address-|-$mac-|-' +
+        validity +
+        '-|-$profile-|-$comment") owner=("$curmonth$curyear") source="$curdate6" comment="mikhmon" }'
       : '';
 
-  const lockPart =
-    getlock === 'Enable'
-      ? '; [:local mac $"mac-address"; /ip hotspot user set mac-address=$mac [find where name=$user]]'
-      : '';
+  const onloginBase =
+    `:put (",${expmode},${price},${validity},${sprice},,${getlock},"); {:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pick $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local cdate [/system clock get date]; :local ctime [/system clock get time]; :local marray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :local curyear ""; :local curmonth ""; :local curday ""; :if ([:pick $cdate 4 5] = "-") do={ :set curyear [:pick $cdate 0 4]; :local mnum [:tonum [:pick $cdate 5 7]]; :set curmonth [:pick $marray ($mnum - 1)]; :set curday [:pick $cdate 8 10]; } else={ :set curyear [:pick $cdate 7 11]; :set curmonth [:pick $cdate 0 3]; :set curday [:pick $cdate 4 6]; }; :local curdate6 ($curmonth . "/" . $curday . "/" . $curyear); :local expFinal ""; /system scheduler remove [find where name="$user"]; /system scheduler add name="$user" disable=no start-date=$cdate start-time=$ctime interval="${validity}" on-event=""; :delay 2s; :local exp [/system scheduler get [/system scheduler find where name="$user"] next-run]; /system scheduler remove [find where name="$user"]; :local getxp [:len $exp]; :if ($getxp > 0) do={ :if ([:pick $exp 4 5] = "-") do={ :local ey [:pick $exp 0 4]; :local emn [:tonum [:pick $exp 5 7]]; :local em [:pick $marray ($emn - 1)]; :local ed [:pick $exp 8 10]; :local et [:pick $exp 11 19]; :set expFinal ($em . "/" . $ed . "/" . $ey . " " . $et); } else={ :if ($getxp = 15) do={ :local d [:pick $exp 0 6]; :local t [:pick $exp 7 15]; :set expFinal ($d . "/" . $curyear . " " . $t); } else={ :if ($getxp = 8) do={ :set expFinal ($curdate6 . " " . $exp); } else={ :set expFinal $exp; }; }; }; }; :if ([:len $expFinal] = 0) do={ :set expFinal ($curdate6 . " " . $ctime); }; /ip hotspot user set comment="$expFinal" [find where name="$user"]`;
 
-  return (
-    `:put (",${expmode},${price},${validity},${sprice},,${getlock},"); {:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local mac $"mac-address"; :local intons [ /system scheduler get [ /system scheduler find where name="$profile" ] interval ]; :local expd ( [ :totime $date ] + $intons ); :local expstr [ :tostr $expd ]; :local exp ""; :local mowner ""; :if ([:pick $expstr 4 5] = "-") do={ :set exp ([:pick $expstr 0 10] . " " . $time); :set mowner ([:pick $date 5 7] . [:pick $date 0 4]); } else={ :local year [:pick $date 7 11]; :local month [:pick $date 0 3]; :set exp ([:pick $expstr 0 6] . "/" . $year . " " . $time); :set mowner ($month . $year); }; /ip hotspot user set comment="$exp ${mode}" [find where name="$user"]` +
-    recordPart +
-    lockPart +
-    ' }}'
-  );
+  return onloginBase + lockPart + recordPart + '}}';
 }
 
 function buildUniversalSchedulerOnEvent(profileName: string, expmode: string): string {
-  const actionBlock =
-    expmode === 'ntf' || expmode === 'ntfc'
-      ? ':do { /ip hotspot user set limit-uptime=1s [find where .id=$i] } on-error={ /ip hotspot user set limit-uptime=00:00:01 [find where .id=$i] }; /ip hotspot active remove [find where user=$user];'
-      : '/ip hotspot user remove [find where .id=$i]; /ip hotspot active remove [find where user=$user];';
+  const mode = expmode === 'ntf' || expmode === 'ntfc' ? 'set limit-uptime=1s' : 'remove';
+  const guardNotAlreadyExpired = mode === 'set limit-uptime=1s' ? ' and $limit != "1s" and $limit != "00:00:01"' : '';
 
   return (
-    `:local dateint do={:local d [ :tostr $1 ]; :if ([:pick $d 4 5] = "-") do={ :local yyyy [:pick $d 0 4]; :local mm [:pick $d 5 7]; :local dd [:pick $d 8 10]; :return [:tonum ("$yyyy$mm$dd")]; }; :local montharray ( "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" ); :local days [ : pick $d 4 6 ]; :local month [ : pick $d 0 3 ]; :local year [ : pick $d 7 11 ]; :local monthint ([ :find $montharray $month]); :local monthnum ($monthint + 1); :if ($monthnum < 10) do={ :set monthnum ("0" . [:tostr $monthnum]); } else={ :set monthnum [:tostr $monthnum]; }; :return [:tonum ("$year$monthnum$days")]; }; :local timeint do={ :local hours [ : pick $1 0 2 ]; :local minutes [ : pick $1 3 5 ]; :return ($hours * 60 + $minutes) ; }; :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local today [$dateint $date] ; :local curtime [$timeint $time] ; :foreach i in [ /ip hotspot user find where profile="${profileName}" ] do={ :local comment [ /ip hotspot user get $i comment]; :local name [ /ip hotspot user get $i name]; :local gettime ""; :if ([:pick $comment 4 5] = "-") do={ :set gettime [:pick $comment 11 19]; } else={ :if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={ :set gettime [:pick $comment 12 20]; }; }; :if ($gettime != "") do={ :local expd [$dateint $comment] ; :local expt [$timeint $gettime] ; :if ( (($expd < $today) and ($expd > 0)) or (($expd = $today) and ($expt < $curtime)) ) do={ :local user $name; ${actionBlock} } } }`
+    `:local dateint do={ :local montharray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :if ([:pick $d 4 5] = "-") do={ :local yr [:pick $d 0 4]; :local mo [:pick $d 5 7]; :local dy [:pick $d 8 10]; :return [:tonum ("$yr$mo$dy")]; } else={ :local days [:pick $d 4 6]; :local month [:pick $d 0 3]; :local year [:pick $d 7 11]; :local monthint ([:find $montharray $month]); :if ([:len $monthint] > 0) do={ :local mnum ($monthint + 1); :if ($mnum < 10) do={ :return [:tonum ("$year" . "0" . "$mnum$days")]; } else={ :return [:tonum ("$year$mnum$days")]; }; } else={ :return 0; }; }; }; :local timeint do={ :local hours [:tonum [:pick $t 0 2]]; :local minutes [:tonum [:pick $t 3 5]]; :local seconds [:tonum [:pick $t 6 8]]; :return ($hours * 3600 + $minutes * 60 + $seconds); }; :local date [/system clock get date]; :local time [/system clock get time]; :local today [$dateint d=$date]; :local curtime [$timeint t=$time]; :if ($today > 20200000) do={ :foreach i in=[/ip hotspot user find where profile="${profileName}"] do={ :local comment [/ip hotspot user get $i comment]; :local uname [/ip hotspot user get $i name]; :local limit [/ip hotspot user get $i limit-uptime]; :local expd 0; :local expt 0; :if ([:pick $comment 4 5] = "-") do={ :set expd [$dateint d=[:pick $comment 0 10]]; :set expt [$timeint t=[:pick $comment 11 19]]; } else={ :if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={ :set expd [$dateint d=[:pick $comment 0 11]]; :set expt [$timeint t=[:pick $comment 12 20]]; }; }; :if ($expd > 20200000) do={ :if (($expd < $today) or ($expd = $today and $expt <= $curtime)${guardNotAlreadyExpired}) do={ [ /ip hotspot user ${mode} $i ]; [ /ip hotspot active remove [find where user=$uname] ]; [ /ip hotspot cookie remove [find where user=$uname] ]; }; }; }; }`
   );
 }
 
@@ -171,14 +163,11 @@ function createInitialRouterState(
   const d = String(now.getDate()).padStart(2, '0');
   const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
   const mon = months[now.getMonth()];
+  const expDay = String(Math.min(28, now.getDate() + 1)).padStart(2, '0');
 
-  const activeExpComment =
-    major === 7
-      ? `${y}-${m}-${String(Math.min(28, now.getDate() + 1)).padStart(2, '0')} 18:30:00 X`
-      : `${mon}/${String(Math.min(28, now.getDate() + 1)).padStart(2, '0')}/${y} 18:30:00 X`;
-
-  const expiredNoticeComment =
-    major === 7 ? `2025-01-10 09:15:00 X` : `jan/10/2025 09:15:00 X`;
+  // Both ROS6 and ROS7 on-login scripts stamp comments in exact same mmm/dd/yyyy HH:MM:SS format
+  const activeExpComment = `${mon}/${expDay}/${y} 18:30:00`;
+  const expiredNoticeComment = `jan/10/2025 09:15:00`;
 
   return {
     id,
@@ -978,7 +967,7 @@ function startPhpServer() {
     cleanupOrphanedPhpPort();
   }
 
-  const workers = process.env.PHP_CLI_SERVER_WORKERS || '6';
+  const workers = process.env.PHP_CLI_SERVER_WORKERS || '12';
   const child = spawn(
     'php',
     [
@@ -987,7 +976,7 @@ function startPhpServer() {
       '-d',
       'error_reporting=0',
       '-d',
-      'max_execution_time=25',
+      'max_execution_time=30',
       '-d',
       'default_socket_timeout=5',
       '-S',
@@ -1054,7 +1043,7 @@ function recyclePhpServer(reason: string) {
   setTimeout(startPhpServer, 500);
 }
 
-function probePhpHealth(timeoutMs = 2500): Promise<boolean> {
+function probePhpHealth(timeoutMs = 4000): Promise<boolean> {
   return new Promise((resolve) => {
     const req = http.get(
       {
@@ -1082,18 +1071,18 @@ function startPhpWatchdog() {
   if (phpWatchdogTimer) clearInterval(phpWatchdogTimer);
   phpWatchdogTimer = setInterval(async () => {
     if (isShuttingDown || isInstallingPhp || isPhpRestarting) return;
-    const healthy = await probePhpHealth(3000);
+    const healthy = await probePhpHealth(4000);
     if (healthy) {
       consecutivePhpFailures = 0;
     } else {
       consecutivePhpFailures++;
-      console.warn(`[PHP Watchdog] Health probe failed (${consecutivePhpFailures}/3) on 127.0.0.1:${PHP_PORT}`);
-      if (consecutivePhpFailures >= 3) {
+      console.warn(`[PHP Watchdog] Health probe failed (${consecutivePhpFailures}/5) on 127.0.0.1:${PHP_PORT}`);
+      if (consecutivePhpFailures >= 5) {
         consecutivePhpFailures = 0;
-        recyclePhpServer('3 consecutive health check failures');
+        recyclePhpServer('5 consecutive health check failures');
       }
     }
-  }, 10000);
+  }, 15000);
 }
 
 function shutdownCleanly(signal: string) {
@@ -1187,8 +1176,8 @@ const proxyServer = http.createServer(async (req, res) => {
     proxyRes.pipe(res, { end: true });
   });
 
-  proxyReq.setTimeout(20000, () => {
-    proxyReq.destroy(new Error('Upstream PHP request timed out after 20s'));
+  proxyReq.setTimeout(30000, () => {
+    proxyReq.destroy(new Error('Upstream PHP request timed out after 30s'));
   });
 
   proxyReq.on('error', (err) => {

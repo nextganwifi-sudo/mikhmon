@@ -169,6 +169,9 @@ if (!isset($_SESSION["mikhmon"])) {
   } elseif ($hotspot == "reset-voucher" || $id == "reset-voucher") {
     $sresetvoucher = "active";
     $mpage = isset($_reset_voucher) ? $_reset_voucher : "Reset Voucher";
+  } elseif ($hotspot == "vpn" || $id == "vpn") {
+    $svpn = "active";
+    $mpage = isset($_vpn) ? $_vpn : "VPN";
   } elseif ($hotspot == "system-update" || $id == "system-update") {
     $ssysupdate = "active";
     $ssett = "active";
@@ -332,18 +335,12 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
   <a href="./admin.php?id=logout" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
 <?php } else { ?>
 <?php if (($id == "settings" && $session == "new") || $id == "settings" && $router == "new") {
-}else if ($id == "settings" || $id == "editor"|| $id == "uplogo" || $id == "connect"){
+}else if (($id == "settings" || $id == "connect") && !empty($session)){
 ?>  
   <div class="menu text-center align-middle card-header" style="border-radius:0;"><h3 id="MikhmonSession"><?= $session; ?></h3></div>
   <a class="connect menu <?= $shome; ?>" id="<?= $session; ?>&c=settings"><i class='fa fa-tachometer'></i> <?= $_dashboard ?></a>
   <?php if (hasResellerPermission('manage_router_settings')) { ?>
   <a  href="./admin.php?id=settings&session=<?= $session; ?>" class="menu <?= $ssettings; ?>" title="NextGan WiFi Solution Settings"><i class='fa fa-gear'></i> <?= $_session_settings ?></a>
-  <?php } ?>
-  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template')) { ?>
-  <a href="./admin.php?id=uplogo&session=<?= $session; ?>" class="menu <?= $suplogo; ?>"><i class="fa fa-upload "></i> <?= $_upload_logo ?></a>
-  <?php } ?>
-  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template')) { ?>
-  <a href="./admin.php?id=editor&template=default&session=<?= $session; ?>" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= $_template_editor ?></a>
   <?php } ?>
   <div class="menu spa"></div>
 <?php 
@@ -358,7 +355,13 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
   <?php if (isMikhmonAdmin()) { ?>
   <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
   <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>"><i class="fa fa-gear"></i> <?= $_settings ?></a>
+  <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
+  <a href="./admin.php?id=editor" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?></a>
   <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
+  <?php } else { ?>
+  <?php if (hasResellerPermission('edit_own_template')) { ?>
+  <a href="./admin.php?id=editor" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?></a>
+  <?php } ?>
   <?php } ?>
   <a href="./admin.php?id=about" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
   <a href="./admin.php?id=logout" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
@@ -579,32 +582,8 @@ $(document).ready(function(){
   <?php if (hasResellerPermission('view_report')) { ?>
   <a href="./?report=selling&idbl=<?= strtolower(date("M")) . date("Y"); ?>&session=<?= $session; ?>" class="menu <?= $sselling; ?>"><i class="nav-icon fa fa-money"></i> <?= $_report ?></a>
   <?php } ?>
-  <!--reseller-->
-  <?php if (isMikhmonAdmin()) { ?>
-  <a href="./?hotspot=resellers&session=<?= $session; ?>" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
-  <?php } ?>
-  <!--settings-->
-  <div class="dropdown-btn <?= $ssett; ?>"><i class=" fa fa-gear"></i> <?= $_settings ?> 
-    <i class="fa fa-caret-down"></i> &nbsp;
-  </div>
-  <div class="dropdown-container <?= $settmenu; ?>">
-  <?php if (hasResellerPermission('manage_router_settings')) { ?>
-  <a href="./admin.php?id=settings&session=<?= $session; ?>" class="menu "> <i class="fa fa-gear "></i> <?= $_session_settings ?> </a>
-  <?php } ?>
-  <a href="./admin.php?id=sessions" class="menu "> <i class="fa fa-server "></i> <?= isset($_router_menu_label) ? $_router_menu_label : 'Router'; ?> </a>
-  <?php if (isMikhmonAdmin()) { ?>
-  <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>"> <i class="fa fa-gear "></i> <?= $_settings ?> </a>
-  <?php } ?>
-  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template')) { ?>
-  <a href="./?hotspot=uplogo&session=<?= $session; ?>" class="menu <?= $uplogo; ?>"> <i class="fa fa-upload "></i> <?= $_upload_logo ?> </a>
-  <?php } ?>
-  <?php if (hasResellerPermission('manage_router_settings') || hasResellerPermission('edit_own_template')) { ?>
-  <a href="./?hotspot=template-editor&template=default&session=<?= $session; ?>" class="menu <?= $teditor; ?>"> <i class="fa fa-edit "></i> <?= $_template_editor ?> </a>          
-  <?php } ?>
-  <?php if (isMikhmonAdmin()) { ?>
-  <a href="./?hotspot=system-update&session=<?= $session; ?>" class="menu <?= $ssysupdate; ?>"> <i class="fa fa-cloud-upload "></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?> </a>
-  <?php } ?>
-  </div>
+  <!--router switch / back to sessions-->
+  <a href="./admin.php?id=sessions" class="menu" title="Back to Router List"><i class="fa fa-server"></i> <?= isset($_router_menu_label) ? $_router_menu_label : 'Router'; ?></a>
   <!--about-->
   <a href="./?hotspot=about&session=<?= $session; ?>" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
   <!--logout-->

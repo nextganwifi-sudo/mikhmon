@@ -31,7 +31,7 @@ function findHotspotVoucherByAnyField($API, $query) {
     $qLower = strtolower($q);
     $qMacNorm = str_replace('-', ':', $qLower);
 
-    // 1. Exact match by name
+    // 1. Exact match by name (Fast path: <0.1s on real router)
     $byName = $API->comm("/ip/hotspot/user/print", array("?name" => $q));
     if (is_array($byName) && !empty($byName) && isset($byName[0]['.id'])) {
         $u = $byName[0];
@@ -40,7 +40,28 @@ function findHotspotVoucherByAnyField($API, $query) {
         return array('user' => $u, 'active' => $activeRow, 'matched_by' => 'username');
     }
 
-    // 2. Check /ip/hotspot/active first for matching user, mac-address, or IP address
+    // 2. Direct MAC query if query matches MAC address pattern
+    if (strpos($q, ':') !== false || strpos($q, '-') !== false) {
+        $byMac = $API->comm("/ip/hotspot/user/print", array("?mac-address" => $qMacNorm));
+        if (is_array($byMac) && !empty($byMac) && isset($byMac[0]['.id'])) {
+            $u = $byMac[0];
+            $act = $API->comm("/ip/hotspot/active/print", array("?user" => $u['name']));
+            $activeRow = (is_array($act) && !empty($act) && isset($act[0]['.id'])) ? $act[0] : null;
+            return array('user' => $u, 'active' => $activeRow, 'matched_by' => 'mac');
+        }
+    }
+
+    // 3. Fast Active query by user name
+    $actDirect = $API->comm("/ip/hotspot/active/print", array("?user" => $q));
+    if (is_array($actDirect) && !empty($actDirect) && isset($actDirect[0]['.id'])) {
+        $activeRow = $actDirect[0];
+        $byName = $API->comm("/ip/hotspot/user/print", array("?name" => $activeRow['user']));
+        if (is_array($byName) && !empty($byName) && isset($byName[0]['.id'])) {
+            return array('user' => $byName[0], 'active' => $activeRow, 'matched_by' => 'active_session');
+        }
+    }
+
+    // 4. Check active sessions (small list, fast)
     $allActive = $API->comm("/ip/hotspot/active/print");
     $matchedActiveRow = null;
     if (is_array($allActive)) {
@@ -245,9 +266,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                 $activeRow = (is_array($liveActive) && !empty($liveActive) && isset($liveActive[0]['.id'])) ? $liveActive[0] : null;
                 $isOnline  = ($activeRow !== null);
 
-                // Resolve historical script record for fallback IP/MAC/Expiry
-                $scriptRecs = findVoucherRecordsInScripts($rvAPI, $uname);
-                $latestRec  = !empty($scriptRecs) ? $scriptRecs[count($scriptRecs) - 1] : null;
+                // Resolve historical script record only when expiry date was explicitly requested
+                $latestRec = null;
+                if ($rvAction === 'check_expiry') {
+                    $scriptRecs = findVoucherRecordsInScripts($rvAPI, $uname);
+                    $latestRec  = !empty($scriptRecs) ? $scriptRecs[count($scriptRecs) - 1] : null;
+                }
 
                 $uPass     = isset($foundLiveUser['password']) ? $foundLiveUser['password'] : $uname;
                 $uProfile  = isset($foundLiveUser['profile']) ? $foundLiveUser['profile'] : '-';
@@ -354,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                     </tr>
                     <tr>
                       <th>" . htmlspecialchars($_mac_address) . "</th>
-                      <td><code>" . htmlspecialchars($uMac) . "</code></td>
+                      <td><code>" . htmlspecialchars($uMac) . "</code>" . renderRandomizedMacBadge($uMac) . "</td>
                     </tr>
                     <tr>
                       <th>" . htmlspecialchars($_profile) . "</th>
@@ -439,7 +463,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                         </tr>
                         <tr>
                           <th>" . htmlspecialchars($_last_ip_mac) . "</th>
-                          <td>IP: <code>" . htmlspecialchars($rec['ip'] !== '' ? $rec['ip'] : '-') . "</code> &nbsp;|&nbsp; MAC: <code>" . htmlspecialchars($rec['mac'] !== '' ? $rec['mac'] : '-') . "</code></td>
+                          <td>IP: <code>" . htmlspecialchars($rec['ip'] !== '' ? $rec['ip'] : '-') . "</code> &nbsp;|&nbsp; MAC: <code>" . htmlspecialchars($rec['mac'] !== '' ? $rec['mac'] : '-') . "</code>" . renderRandomizedMacBadge($rec['mac']) . "</td>
                         </tr>
                         " . $expiryRowHtml . "
                       </table>

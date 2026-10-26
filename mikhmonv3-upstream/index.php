@@ -242,6 +242,14 @@ if (!isset($_SESSION["mikhmon"])) {
     }
     include_once('./settings/resellers.php');
   }
+// vpn hub
+  elseif ($hotspot == "vpn") {
+    if (!isMikhmonAdmin()) {
+      echo "<script>window.location='" . $defRedirect . "'</script>";
+      exit;
+    }
+    include_once('./vpn/vpn_hub.php');
+  }
 // system update & vps center
   elseif ($hotspot == "system-update") {
     if (!isMikhmonAdmin()) {

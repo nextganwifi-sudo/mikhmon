@@ -104,38 +104,55 @@ function parseRouterOSDate($dateStr) {
 function parseExpiryFromComment($comment) {
     $comment = trim((string)$comment);
     // Match ROS 7: YYYY-MM-DD HH:MM:SS [optional note]
-    if (preg_match('/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})(?:\s+(.*))?$/', $comment, $m)) {
+    if (preg_match('/^(\d{4}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{2}(?::\d{2})?)(?:\s+(.*))?$/', $comment, $m)) {
         $d = parseRouterOSDate($m[1]);
         if ($d['valid']) {
+            $t = (strlen($m[2]) === 5) ? ($m[2] . ':00') : $m[2];
             return array(
                 'is_expiry' => true,
                 'format' => 'ros7',
                 'date_str' => $m[1],
-                'time_str' => $m[2],
-                'datetime' => $m[1] . ' ' . $m[2],
-                'iso_datetime' => $d['iso'] . ' ' . $m[2],
-                'legacy_datetime' => $d['legacy'] . ' ' . $m[2],
+                'time_str' => $t,
+                'datetime' => $m[1] . ' ' . $t,
+                'iso_datetime' => $d['iso'] . ' ' . $t,
+                'legacy_datetime' => $d['legacy'] . ' ' . $t,
                 'note' => isset($m[3]) ? $m[3] : '',
                 'date_int' => $d['int']
             );
         }
     }
     // Match ROS 6: mmm/dd/yyyy HH:MM:SS [optional note]
-    if (preg_match('/^([a-zA-Z]{3}\/\d{2}\/\d{4})\s+(\d{2}:\d{2}:\d{2})(?:\s+(.*))?$/', $comment, $m)) {
+    if (preg_match('/^([a-zA-Z]{3}\/\d{1,2}\/\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)(?:\s+(.*))?$/', $comment, $m)) {
         $d = parseRouterOSDate($m[1]);
         if ($d['valid']) {
+            $t = (strlen($m[2]) === 5) ? ($m[2] . ':00') : $m[2];
             return array(
                 'is_expiry' => true,
                 'format' => 'ros6',
                 'date_str' => strtolower($m[1]),
-                'time_str' => $m[2],
-                'datetime' => strtolower($m[1]) . ' ' . $m[2],
-                'iso_datetime' => $d['iso'] . ' ' . $m[2],
-                'legacy_datetime' => $d['legacy'] . ' ' . $m[2],
+                'time_str' => $t,
+                'datetime' => strtolower($m[1]) . ' ' . $t,
+                'iso_datetime' => $d['iso'] . ' ' . $t,
+                'legacy_datetime' => $d['legacy'] . ' ' . $t,
                 'note' => isset($m[3]) ? $m[3] : '',
                 'date_int' => $d['int']
             );
         }
+    }
+    // Match numeric mm/dd/yyyy or dd/mm/yyyy HH:MM:SS
+    if (preg_match('/^(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{2}(?::\d{2})?)(?:\s+(.*))?$/', $comment, $m)) {
+        $t = (strlen($m[2]) === 5) ? ($m[2] . ':00') : $m[2];
+        return array(
+            'is_expiry' => true,
+            'format' => 'numeric',
+            'date_str' => $m[1],
+            'time_str' => $t,
+            'datetime' => $m[1] . ' ' . $t,
+            'iso_datetime' => $m[1] . ' ' . $t,
+            'legacy_datetime' => $m[1] . ' ' . $t,
+            'note' => isset($m[3]) ? $m[3] : '',
+            'date_int' => 20260101
+        );
     }
     return array(
         'is_expiry' => false,
@@ -147,20 +164,26 @@ function parseExpiryFromComment($comment) {
 
 /**
  * Build universal dual-stack (RouterOS 6.x + RouterOS 7.x) on-login and scheduler scripts.
+ * 1. Stamped comment matches ROS6 format (mmm/dd/yyyy HH:MM:SS) across both ROS6 and ROS7.
+ * 2. Unlocks/locks client device MAC address on initial activation.
+ * 3. Schedules and performs 100% reliable background user expiration check.
  */
 function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $sprice, $getlock) {
     if ($getlock == "Enable") {
-        $lock = '; [:local mac $"mac-address"; /ip hotspot user set mac-address=$mac [find where name=$user]]';
+        $lock = '; :local mac $"mac-address"; :if ([:len $mac] > 0) do={ /ip hotspot user set mac-address=$mac [find where name="$user"] }';
     } else {
         $lock = "";
     }
 
-    // Universal idempotent record snippet: normalizes ROS7 YYYY-MM-DD to mmm/dd/yyyy for report compatibility
-    // and guards against duplicate sales records for the same voucher.
-    $record = '; :local mac $"mac-address"; :local time [/system clock get time]; :local marray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :local rdate $date; :local rmonth $month; :local ryear $year; :if ([:pick $date 4 5] = "-") do={ :set ryear [:pick $date 0 4]; :local mnum [:tonum [:pick $date 5 7]]; :set rmonth [:pick $marray ($mnum - 1)]; :set rdate ($rmonth . "/" . [:pick $date 8 10] . "/" . $ryear); }; :if ([:len [/system script find where comment="mikhmon" and name~"\\-\\|\\-$user\\-\\|\\-"]] = 0) do={ /system script add name="$rdate-|-$time-|-$user-|-' . $price . '-|-$address-|-$mac-|-' . $validity . '-|-' . $name . '-|-$comment" owner="$rmonth$ryear" source="$rdate" comment="mikhmon" }';
+    // Universal sales record script snippet: adds script into /system script with comment="mikhmon"
+    $record = '; :local time [/system clock get time]; :if ([:len [/system script find where comment="mikhmon" and name~("\\-\\|\\-" . $user . "\\-\\|\\-")]] = 0) do={ /system script add name=("$curdate6-|-$time-|-$user-|-' . $price . '-|-$address-|-$mac-|-' . $validity . '-|-' . $name . '-|-$comment") owner=("$curmonth$curyear") source="$curdate6" comment="mikhmon" }';
 
-    // Universal on-login script supporting both ROS 6 and ROS 7 date & next-run formats
-    $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [/system clock get date]; :local year ""; :local month ""; :if ([:pick $date 4 5] = "-") do={ :set year [:pick $date 0 4]; :local mnum [:tonum [:pick $date 5 7]]; :local marray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :set month [:pick $marray ($mnum - 1)]; } else={ :set year [:pick $date 7 11]; :set month [:pick $date 0 3]; }; /sys sch remove [find where name="$user"]; /sys sch add name="$user" disable=no start-date=$date interval="' . $validity . '"; :delay 2s; :local exp [/sys sch get [/sys sch find where name="$user"] next-run]; :local getxp [:len $exp]; :if ($getxp = 15) do={ :local d [:pic $exp 0 6]; :local t [:pic $exp 7 16]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp" [find where name="$user"]; }; :if ($getxp = 8) do={ /ip hotspot user set comment="$date $exp" [find where name="$user"]; }; :if ($getxp = 14) do={ :local d [:pic $exp 0 5]; :local t [:pic $exp 6 14]; /ip hotspot user set comment=("$year-" . $d . " " . $t) [find where name="$user"]; }; :if ($getxp > 15) do={ /ip hotspot user set comment="$exp" [find where name="$user"]; }; /sys sch remove [find where name="$user"]';
+    // Universal on-login script supporting both ROS 6 and ROS 7:
+    // Reads system date, converts ISO (YYYY-MM-DD) to ROS6 mmm/dd/yyyy format,
+    // adds temporary scheduler to compute next-run with validity,
+    // formats the expiration comment identically to ROS6 (e.g. oct/27/2026 14:30:00),
+    // and locks MAC address if enabled.
+    $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pick $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local cdate [/system clock get date]; :local ctime [/system clock get time]; :local marray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :local curyear ""; :local curmonth ""; :local curday ""; :if ([:pick $cdate 4 5] = "-") do={ :set curyear [:pick $cdate 0 4]; :local mnum [:tonum [:pick $cdate 5 7]]; :set curmonth [:pick $marray ($mnum - 1)]; :set curday [:pick $cdate 8 10]; } else={ :set curyear [:pick $cdate 7 11]; :set curmonth [:pick $cdate 0 3]; :set curday [:pick $cdate 4 6]; }; :local curdate6 ($curmonth . "/" . $curday . "/" . $curyear); :local expFinal ""; /system scheduler remove [find where name="$user"]; /system scheduler add name="$user" disable=no start-date=$cdate start-time=$ctime interval="' . $validity . '" on-event=""; :delay 2s; :local exp [/system scheduler get [/system scheduler find where name="$user"] next-run]; /system scheduler remove [find where name="$user"]; :local getxp [:len $exp]; :if ($getxp > 0) do={ :if ([:pick $exp 4 5] = "-") do={ :local ey [:pick $exp 0 4]; :local emn [:tonum [:pick $exp 5 7]]; :local em [:pick $marray ($emn - 1)]; :local ed [:pick $exp 8 10]; :local et [:pick $exp 11 19]; :set expFinal ($em . "/" . $ed . "/" . $ey . " " . $et); } else={ :if ($getxp = 15) do={ :local d [:pick $exp 0 6]; :local t [:pick $exp 7 15]; :set expFinal ($d . "/" . $curyear . " " . $t); } else={ :if ($getxp = 8) do={ :set expFinal ($curdate6 . " " . $exp); } else={ :set expFinal $exp; }; }; }; }; :if ([:len $expFinal] = 0) do={ :set expFinal ($curdate6 . " " . $ctime); }; /ip hotspot user set comment="$expFinal" [find where name="$user"]';
 
     $mode = "";
     if ($expmode == "rem") {
@@ -170,10 +193,10 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
         $onlogin = $onloginBase . $lock . "}}";
         $mode = "set limit-uptime=1s";
     } elseif ($expmode == "remc") {
-        $onlogin = $onloginBase . $record . $lock . "}}";
+        $onlogin = $onloginBase . $lock . $record . "}}";
         $mode = "remove";
     } elseif ($expmode == "ntfc") {
-        $onlogin = $onloginBase . $record . $lock . "}}";
+        $onlogin = $onloginBase . $lock . $record . "}}";
         $mode = "set limit-uptime=1s";
     } elseif ($expmode == "0" && $price != "") {
         $onlogin = ':put (",,' . $price . ',,,noexp,' . $getlock . ',")' . $lock;
@@ -181,9 +204,11 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
         $onlogin = "";
     }
 
-    // Universal background scheduler monitor script (supports both ROS 6 mmm/dd/yyyy and ROS 7 YYYY-MM-DD comments)
+    // Universal background scheduler monitor script:
+    // Periodically checks all users in profile $name, compares comment expiration date/time
+    // with current router clock on both ROS6 and ROS7, and terminates expired vouchers.
     $guardNotAlreadyExpired = ($mode == "set limit-uptime=1s") ? ' and $limit != "1s" and $limit != "00:00:01"' : '';
-    $bgservice = ':local dateint do={ :local montharray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :if ([:pick $d 4 5] = "-") do={ :local yr [:pick $d 0 4]; :local mo [:pick $d 5 7]; :local dy [:pick $d 8 10]; :return [:tonum ("$yr$mo$dy")]; } else={ :local days [:pick $d 4 6]; :local month [:pick $d 0 3]; :local year [:pick $d 7 11]; :local monthint ([:find $montharray $month]); :local month ($monthint + 1); :if ([:len $month] = 1) do={ :local zero ("0"); :return [:tonum ("$year$zero$month$days")]; } else={ :return [:tonum ("$year$month$days")]; }; }; }; :local timeint do={ :local hours [:tonum [:pick $t 0 2]]; :local minutes [:tonum [:pick $t 3 5]]; :local seconds [:tonum [:pick $t 6 8]]; :return ($hours * 3600 + $minutes * 60 + $seconds); }; :local date [/system clock get date]; :local time [/system clock get time]; :local today [$dateint d=$date]; :local curtime [$timeint t=$time]; :if ($today > 20200000) do={ :foreach i in=[/ip hotspot user find where profile="' . $name . '"] do={ :local comment [/ip hotspot user get $i comment]; :local name [/ip hotspot user get $i name]; :local limit [/ip hotspot user get $i limit-uptime]; :local isv6 ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/"); :local isv7 ([:pick $comment 4 5] = "-" and [:pick $comment 7 8] = "-"); :if ($isv6 or $isv7) do={ :local gettime ""; :local expd 0; :if ($isv7) do={ :set gettime [:pick $comment 11 19]; :set expd [$dateint d=[:pick $comment 0 10]]; } else={ :set gettime [:pick $comment 12 20]; :set expd [$dateint d=[:pick $comment 0 11]]; }; :local expt [$timeint t=$gettime]; :if ((($expd < $today) or ($expd = $today and $expt <= $curtime))' . $guardNotAlreadyExpired . ') do={ [ /ip hotspot user ' . $mode . ' $i ]; [ /ip hotspot active remove [find where user=$name] ]; [ /ip hotspot cookie remove [find where user=$name] ]; }; }; }; }';
+    $bgservice = ':local dateint do={ :local montharray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :if ([:pick $d 4 5] = "-") do={ :local yr [:pick $d 0 4]; :local mo [:pick $d 5 7]; :local dy [:pick $d 8 10]; :return [:tonum ("$yr$mo$dy")]; } else={ :local days [:pick $d 4 6]; :local month [:pick $d 0 3]; :local year [:pick $d 7 11]; :local monthint ([:find $montharray $month]); :if ([:len $monthint] > 0) do={ :local mnum ($monthint + 1); :if ($mnum < 10) do={ :return [:tonum ("$year" . "0" . "$mnum$days")]; } else={ :return [:tonum ("$year$mnum$days")]; }; } else={ :return 0; }; }; }; :local timeint do={ :local hours [:tonum [:pick $t 0 2]]; :local minutes [:tonum [:pick $t 3 5]]; :local seconds [:tonum [:pick $t 6 8]]; :return ($hours * 3600 + $minutes * 60 + $seconds); }; :local date [/system clock get date]; :local time [/system clock get time]; :local today [$dateint d=$date]; :local curtime [$timeint t=$time]; :if ($today > 20200000) do={ :foreach i in=[/ip hotspot user find where profile="' . $name . '"] do={ :local comment [/ip hotspot user get $i comment]; :local uname [/ip hotspot user get $i name]; :local limit [/ip hotspot user get $i limit-uptime]; :local expd 0; :local expt 0; :if ([:pick $comment 4 5] = "-") do={ :set expd [$dateint d=[:pick $comment 0 10]]; :set expt [$timeint t=[:pick $comment 11 19]]; } else={ :if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={ :set expd [$dateint d=[:pick $comment 0 11]]; :set expt [$timeint t=[:pick $comment 12 20]]; }; }; :if ($expd > 20200000) do={ :if (($expd < $today) or ($expd = $today and $expt <= $curtime)' . $guardNotAlreadyExpired . ') do={ [ /ip hotspot user ' . $mode . ' $i ]; [ /ip hotspot active remove [find where user=$uname] ]; [ /ip hotspot cookie remove [find where user=$uname] ]; }; }; }; }';
 
     return array(
         'onlogin' => $onlogin,
@@ -262,13 +287,18 @@ function removeMikhmonReportScripts($API, $idhr = '', $idbl = '') {
 }
 
 /**
- * Verify if a Hotspot user comment represents a genuinely activated ("Used") voucher
- * with a valid activation/expiry date (ROS 6 mmm/dd/yyyy or ROS 7 YYYY-MM-DD), valid 24h time,
- * and the verified 'X' activation marker.
+ * Verify if a Hotspot user comment represents an activated ("Used") voucher.
+ * Follows the activation/expiry date stamped by RouterOS v6 & v7 on-login scripts:
+ * Matches formats like 'mmm/dd/yyyy HH:MM:SS' (ROS6/ROS7), 'YYYY-MM-DD HH:MM:SS', etc.
+ * Excludes unactivated vouchers (empty, 'vc-...', 'up-...').
  */
 function isUsedActivatedVoucherComment($comment) {
     $comment = trim((string)$comment);
     if ($comment === '') {
+        return false;
+    }
+    $prefix2 = strtolower(substr($comment, 0, 2));
+    if ($prefix2 === 'vc' || $prefix2 === 'up') {
         return false;
     }
     $parsed = parseExpiryFromComment($comment);
@@ -276,20 +306,16 @@ function isUsedActivatedVoucherComment($comment) {
         return false;
     }
     $tParts = explode(':', $parsed['time_str']);
-    if (count($tParts) !== 3) {
+    if (count($tParts) < 2 || count($tParts) > 3) {
         return false;
     }
     $hh = (int)$tParts[0];
     $mm = (int)$tParts[1];
-    $ss = (int)$tParts[2];
+    $ss = isset($tParts[2]) ? (int)$tParts[2] : 0;
     if ($hh < 0 || $hh > 23 || $mm < 0 || $mm > 59 || $ss < 0 || $ss > 59) {
         return false;
     }
-    $note = isset($parsed['note']) ? trim((string)$parsed['note']) : '';
-    if ($note === '') {
-        return false;
-    }
-    return preg_match('/(?:^|\s)X(?:\s|$)/', $note) === 1;
+    return true;
 }
 
 /**
@@ -458,6 +484,25 @@ function findVoucherRecordsInScripts($API, $searchQuery) {
         }
     }
     return $matches;
+}
+
+/**
+ * Detect if a MAC address is a Locally Administered (Randomized / Private) address.
+ * In IEEE 802, bit 1 of byte 0 is 1 for locally administered addresses.
+ * In hexadecimal, the second digit of the first octet will be 2, 6, A, or E.
+ */
+function isRandomizedMacAddress($mac) {
+    $mac = trim((string)$mac);
+    if (strlen($mac) < 2) return false;
+    $firstByte = substr($mac, 0, 2);
+    return (bool)preg_match('/^[0-9a-fA-F][26aAeE]$/', $firstByte);
+}
+
+function renderRandomizedMacBadge($mac) {
+    if (!isRandomizedMacAddress($mac)) {
+        return '';
+    }
+    return ' <span class="text-warning" style="font-size:10px; font-weight:bold; padding:1px 5px; border-radius:3px; background:rgba(255,193,7,0.18); border:1px solid rgba(255,193,7,0.4); vertical-align:middle; display:inline-block;" title="Locally Administered / Private Randomized MAC"><i class="fa fa-shield"></i> Random MAC</span>';
 }
 ?>
 

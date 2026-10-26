@@ -302,3 +302,5 @@ $_admin_settings_saved = "Admin & Backup Admin credentials saved successfully!";
 $_login_btn_short = "Login";
 $_login_as_reseller_tip = "Login as Reseller";
 $_back_to_admin_btn = "Back to Admin";
+$_vpn = "VPN";
+$_vpn_hub = "VPN Hub";

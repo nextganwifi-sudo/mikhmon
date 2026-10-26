@@ -171,12 +171,14 @@ if (!isset($_SESSION["mikhmon"])) {
   </div>
 </div>
 <div class="overflow mr-t-10 box-bordered" style="max-height: 75vh">
+<?php include_once('./include/ros_version.php'); ?>
 <table id="dataTable" class="table table-bordered table-hover text-nowrap">
   <thead>
   <tr>
     <th style="min-width:50px;" class="align-middle text-center" id="cuser"><?= $counttuser; ?></th>
     <th style="min-width:50px;" class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Server</th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_password ?></th>
     <th>Print</th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_profile ?></th>
 	  <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Mac Address</th>
@@ -193,7 +195,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
   $uid = $userdetails['.id'];
   $userver = $userdetails['server'];
   $uname = $userdetails['name'];
-  $upass = $userdetails['password'];
+  $upass = isset($userdetails['password']) ? $userdetails['password'] : '';
   $uprofile = $userdetails['profile'];
   $umacadd = $userdetails['mac-address'];
   $uuptime = formatDTM($userdetails['uptime']);
@@ -233,11 +235,20 @@ for ($i = 0; $i < $TotalReg; $i++) {
   }
   echo '</td>';
   echo "<td>" . $userver . "</td>";
-  if ($uname == $upass) {
+  
+  // Resolve user mode & handle SSL/ROS7 empty password
+  if (empty($upass) && (substr($ucomment, 0, 3) == "vc-" || $ucomment == "vc")) {
+    $upass = $uname;
+  }
+  if ($uname == $upass || substr($ucomment, 0, 3) == "vc-") {
     $usermode = "vc";
+    if (empty($upass)) {
+      $upass = $uname;
+    }
   } else {
     $usermode = "up";
   }
+
   $popup = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=no&session=" . $session . "','_blank','width=320,height=550').print();";
   $popupQR = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=yes&session=" . $session . "','_blank','width=320,height=550').print();";
   if (hasResellerPermission('edit_user')) {
@@ -245,13 +256,20 @@ for ($i = 0; $i < $TotalReg; $i++) {
   } else {
     echo "<td>" . $uname . "</td>";
   }
+  // Password column
+  if ($usermode == "vc") {
+    echo "<td style='font-family:monospace; color:#888;' title='Voucher Code (Password equals Username)'>= " . htmlspecialchars($uname) . "</td>";
+  } else {
+    echo "<td style='font-family:monospace; font-weight:bold;'>" . htmlspecialchars($upass !== '' ? $upass : '-') . "</td>";
+  }
+
   echo '<td class="text-center">';
   if (hasResellerPermission('print_voucher')) {
     echo '<a title="Print ' . $uname . '" href="' . $popup . '"><i class="fa fa-print"></i></a> &nbsp <a title="Print ' . $uname . '" href="' . $popupQR . '"><i class="fa fa-qrcode"></i> </a>';
   }
   echo '</td>';
   echo "<td>" . $uprofile . "</td>";
-  echo "<td style=' text-align:left'>" . $umacadd . "</td>";
+  echo "<td style=' text-align:left'>" . htmlspecialchars($umacadd) . renderRandomizedMacBadge($umacadd) . "</td>";
   echo "<td style=' text-align:right'>" . $uuptime . "</td>";
   echo "<td style=' text-align:right'>" . $ubytesi . "</td>";
   echo "<td style=' text-align:right'>" . $ubyteso . "</td>";
