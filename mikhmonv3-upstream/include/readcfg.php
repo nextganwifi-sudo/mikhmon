@@ -24,8 +24,13 @@ if (substr($_SERVER["REQUEST_URI"], -11) == "readcfg.php") {
 // read config
 
 $iphost = explode('!', $data[$session][1])[1];
-$connmode = (strpos($iphost, 'ssh://') === 0) ? 'ssh' : 'api';
-$iphost_clean = ($connmode === 'ssh') ? substr($iphost, 6) : $iphost;
+// Legacy SSH session URLs are normalized; all connections now use RouterOS API.
+if (stripos($iphost, 'ssh://') === 0) {
+    $iphost = substr($iphost, 6);
+    if (preg_match('/\\:22$/', $iphost)) { $iphost = substr($iphost, 0, -3); }
+}
+$connmode = 'api';
+$iphost_clean = $iphost;
 $userhost = explode('@|@', $data[$session][2])[1];
 $passwdhost = explode('#|#', $data[$session][3])[1];
 $hotspotname = explode('%', $data[$session][4])[1];
