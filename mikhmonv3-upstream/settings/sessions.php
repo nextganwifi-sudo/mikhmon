@@ -51,12 +51,8 @@ if (!isset($_SESSION["mikhmon"])) {
                     </div>
                     <div class="box-group-area">
                       <span>
-                        <?php
-                          $rIpRaw = explode('!', $data[$value][1])[1];
-                          $rIsSsh = (strpos($rIpRaw, 'ssh://') === 0);
-                        ?>
                         <?= $_hotspot_name ?> : <?= explode('%', $data[$value][4])[1]; ?><br>
-                        <?= $_session_name ?> : <?= $value; ?> <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(0,0,0,0.35); color:#fff; font-weight:bold;"><?= $rIsSsh ? 'SSH' : 'API'; ?></span><br>
+                        <?= $_session_name ?> : <?= $value; ?><br>
                         <span class="connect pointer" id="<?= $value; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
                         <?php if (hasResellerPermission('manage_router_settings')) { ?>
                         <a href="./admin.php?id=settings&session=<?= $value; ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
