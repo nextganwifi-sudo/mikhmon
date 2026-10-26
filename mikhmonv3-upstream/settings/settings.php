@@ -37,33 +37,10 @@ if (!isset($_SESSION["mikhmon"])) {
     echo "<script>window.location='./admin.php?id=settings&session=" . $router . "'</script>";
   }
 
-  if (isset($_POST['ajax_set_connmode']) && !empty($session) && explode("-", $session)[0] !== "new") {
-    $reqMode = ($_POST['ajax_set_connmode'] === 'ssh') ? 'ssh' : 'api';
-    $cleanIpNow = (strpos($iphost, 'ssh://') === 0) ? substr($iphost, 6) : $iphost;
-    if (isset($_POST['ipmik_now']) && trim($_POST['ipmik_now']) !== '') {
-      $cleanIpNow = preg_replace('#^ssh://#i', '', preg_replace('/\s+/', '', $_POST['ipmik_now']));
-    }
-    $newIpSlot = ($reqMode === 'ssh' && $cleanIpNow !== '') ? ('ssh://' . $cleanIpNow) : $cleanIpNow;
-    $content = @file_get_contents("./include/config.php");
-    if ($content !== false) {
-      $newcontent = str_replace("$session!$iphost", "$session!$newIpSlot", $content);
-      @file_put_contents("./include/config.php", $newcontent);
-      $iphost = $newIpSlot;
-      $connmode = $reqMode;
-      $iphost_clean = $cleanIpNow;
-    }
-    if (ob_get_length()) { @ob_clean(); }
-    header('Content-Type: application/json');
-    echo json_encode(array('ok' => true, 'mode' => $reqMode, 'iphost' => $newIpSlot));
-    exit;
-  }
-
   if (isset($_POST['save'])) {
 
     $raw_ipmik = (preg_replace('/\s+/', '', $_POST['ipmik']));
-    $clean_ipmik = preg_replace('#^ssh://#i', '', $raw_ipmik);
-    $sconnmode = (isset($_POST['connmode']) && $_POST['connmode'] === 'ssh') ? 'ssh' : 'api';
-    $siphost = ($sconnmode === 'ssh' && $clean_ipmik !== '') ? ('ssh://' . $clean_ipmik) : $clean_ipmik;
+    $siphost = preg_replace('#^ssh://#i', '', $raw_ipmik);
     $suserhost = ($_POST['usermik']);
     $spasswdhost = encrypt($_POST['passmik']);
     $shotspotname = str_replace("'","",$_POST['hotspotname']);
@@ -100,8 +77,7 @@ if (!isset($_SESSION["mikhmon"])) {
   if ($currency == "") {
     echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";
   }
-  $current_connmode = (strpos($iphost, 'ssh://') === 0) ? 'ssh' : 'api';
-  $display_iphost = ($current_connmode === 'ssh') ? substr($iphost, 6) : $iphost;
+  $display_iphost = preg_replace('#^ssh://#i', '', $iphost);
 }
 ?>
 <script>
@@ -119,31 +95,7 @@ if (!isset($_SESSION["mikhmon"])) {
     } else {
     x.type = 'password';
   }}
-  function setMikrotikConnMode(mode) {
-    var m = (mode === 'ssh') ? 'ssh' : 'api';
-    var inp = document.getElementById('connmode_input');
-    if (inp) inp.value = m;
-    var btnApi = document.getElementById('btn_mode_api');
-    var btnSsh = document.getElementById('btn_mode_ssh');
-    var hdrBadge = document.getElementById('mk_mode_badge');
-    if (btnApi) {
-      btnApi.style.background = (m === 'api') ? '#2ea043' : 'transparent';
-      btnApi.style.color = (m === 'api') ? '#ffffff' : '#8b949e';
-    }
-    if (btnSsh) {
-      btnSsh.style.background = (m === 'ssh') ? '#1f6feb' : 'transparent';
-      btnSsh.style.color = (m === 'ssh') ? '#ffffff' : '#8b949e';
-    }
-    if (hdrBadge) {
-      hdrBadge.innerHTML = (m === 'ssh') ? 'SSH' : 'API';
-      hdrBadge.style.background = (m === 'ssh') ? '#1f6feb' : '#2ea043';
-    }
-    var ipField = document.getElementById('ipmik_input');
-    var ipVal = ipField ? ipField.value : '';
-    if (window.jQuery) {
-      $.post(window.location.href, { ajax_set_connmode: m, ipmik_now: ipVal });
-    }
-  }
+
 </script>
 
 <form autocomplete="off" method="post" action="" name="settings">  
@@ -178,22 +130,15 @@ if (!isset($_SESSION["mikhmon"])) {
             <div class="col-12">
 				      <div class="card">
         	     <div class="card-header">
-            	   <h3 class="card-title">MikroTik <span id="mk_mode_badge" style="font-size:11px; padding:1px 6px; border-radius:3px; color:#fff; background:<?= $current_connmode === 'ssh' ? '#1f6feb' : '#2ea043'; ?>;"><?= strtoupper($current_connmode); ?></span> <?= $_SESSION["connect"]; ?></h3>
+            	   <h3 class="card-title">MikroTik API <?= $_SESSION["connect"]; ?></h3>
         	     </div>
         	     <div class="card-body">
 				<table class="table table-sm">
 					<tr>
 	  					<td class="align-middle">IP MikroTik </td><td>
-							<input type="hidden" name="connmode" id="connmode_input" value="<?= $current_connmode; ?>"/>
 							<div class="input-group">
-								<div class="input-group-9 col-box-8">
-									<input class="group-item group-item-l" id="ipmik_input" type="text" size="15" name="ipmik" title="IP MikroTik / IP Cloud MikroTik" value="<?= htmlspecialchars($display_iphost); ?>" required="1"/>
-								</div>
-								<div class="input-group-3 col-box-4">
-									<div class="group-item group-item-r text-center align-middle" style="display:flex; gap:2px; align-items:center; justify-content:center; padding:2px 3px;">
-										<span id="btn_mode_api" onclick="setMikrotikConnMode('api')" class="pointer radius-3" style="flex:1; font-size:11px; font-weight:bold; padding:2px 4px; line-height:1.4; <?= $current_connmode === 'api' ? 'background:#2ea043; color:#ffffff;' : 'background:transparent; color:#8b949e;'; ?>" title="<?= htmlspecialchars(isset($_conn_mode_api_tip) ? $_conn_mode_api_tip : 'Default API Connection (Port 8728)'); ?>">API</span>
-										<span id="btn_mode_ssh" onclick="setMikrotikConnMode('ssh')" class="pointer radius-3" style="flex:1; font-size:11px; font-weight:bold; padding:2px 4px; line-height:1.4; <?= $current_connmode === 'ssh' ? 'background:#1f6feb; color:#ffffff;' : 'background:transparent; color:#8b949e;'; ?>" title="<?= htmlspecialchars(isset($_conn_mode_ssh_tip) ? $_conn_mode_ssh_tip : 'SSH Connection (Port 22 - Connect with SSH Username & Password only)'); ?>">SSH</span>
-									</div>
+								<div class="input-group-12 col-box-12">
+									<input class="form-control" id="ipmik_input" type="text" size="15" name="ipmik" title="IP MikroTik / IP Cloud MikroTik" value="<?= htmlspecialchars($display_iphost); ?>" required="1"/>
 								</div>
 							</div>
 						</td>
