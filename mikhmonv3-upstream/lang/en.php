@@ -269,7 +269,6 @@ $_srv_dl_step1 = "Click the green button above to download <code>Mikhmon-Server-
 $_srv_dl_step2 = "Right-click the downloaded ZIP file and select <b>Extract All / Extract Here</b> to open the <b><code>Mikhmon Server</code></b> folder.";
 $_srv_dl_step3 = "Double-click <b><code>MikhmonServer.exe</code></b> inside the folder — the server will start automatically (green indicator), then click <b>Open</b> to launch in your browser.";
 
-// System Update, Reseller UI & MikroTik SSH Mode Labels (English Default)
 $_system_update = "System Update";
 $_github_repo_url_label = "GitHub URL";
 $_btn_git_pull_update = "Git Safe Update";
@@ -284,7 +283,6 @@ $_details_label = "Details";
 $_reseller_details_title = "Reseller Details";
 $_select_router_btn = "Select Router";
 $_conn_mode_api_tip = "Default API Connection (Port 8728)";
-$_conn_mode_ssh_tip = "SSH Connection (Port 22 - Connect with SSH Username & Password only)";
 $_select_reseller_scope = "Target Scope";
 $_router_menu_label = "Router";
 $_software_version_label = "Software Version";
