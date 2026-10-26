@@ -38,41 +38,72 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
   if (isset($_POST['save'])) {
-
-    $raw_ipmik = (preg_replace('/\s+/', '', $_POST['ipmik']));
+    $raw_ipmik = preg_replace('/\\s+/', '', isset($_POST['ipmik']) ? $_POST['ipmik'] : '');
     $siphost = preg_replace('#^ssh://#i', '', $raw_ipmik);
-    $suserhost = ($_POST['usermik']);
-    $spasswdhost = encrypt($_POST['passmik']);
-    $shotspotname = str_replace("'","",$_POST['hotspotname']);
-    $sdnsname = ($_POST['dnsname']);
-    $scurrency = ($_POST['currency']);
-    $sreload = ($_POST['areload']);
-    if ($sreload < 10) {
-      $sreload = 10;
+    $suserhost = isset($_POST['usermik']) ? trim($_POST['usermik']) : '';
+    $spasswdhost = encrypt(isset($_POST['passmik']) ? $_POST['passmik'] : '');
+    $shotspotname = str_replace("'", '', isset($_POST['hotspotname']) ? $_POST['hotspotname'] : '');
+    $sdnsname = isset($_POST['dnsname']) ? $_POST['dnsname'] : '';
+    $scurrency = isset($_POST['currency']) ? $_POST['currency'] : '';
+    $sreload = isset($_POST['areload']) ? (int)$_POST['areload'] : 10;
+    if ($sreload < 10) { $sreload = 10; }
+    $siface = isset($_POST['iface']) ? $_POST['iface'] : '';
+    $sinfolp = isset($_POST['infolp']) ? implode(unpack('H*', $_POST['infolp'])) : '';
+    $sidleto = isset($_POST['idleto']) ? $_POST['idleto'] : '';
+    $sesname = preg_replace('/\\s+/', '-', trim(isset($_POST['sessname']) ? $_POST['sessname'] : $session));
+    $slivereport = isset($_POST['livereport']) ? $_POST['livereport'] : 'disable';
+
+    // Read the exact stored host token. readcfg.php removes legacy ssh:// from $iphost,
+    // but config.php may still contain it; using $iphost here prevented those edits saving.
+    $storedIpHost = isset($data[$session][1]) ? explode('!', $data[$session][1], 2)[1] : $iphost;
+    $storedIpHost = isset($storedIpHost) ? $storedIpHost : $iphost;
+    $search = array(
+      "$session!$storedIpHost",
+      "$session@|@$userhost",
+      "$session#|#$passwdhost",
+      "$session%$hotspotname",
+      "$session^$dnsname",
+      "$session&$currency",
+      "$session*$areload",
+      "$session($iface",
+      "$session)$infolp",
+      "$session=$idleto",
+      "'$session'",
+      "$session@!@$livereport"
+    );
+    $replace = array(
+      "$sesname!$siphost",
+      "$sesname@|@$suserhost",
+      "$sesname#|#$spasswdhost",
+      "$sesname%$shotspotname",
+      "$sesname^$sdnsname",
+      "$sesname&$scurrency",
+      "$sesname*$sreload",
+      "$sesname($siface",
+      "$sesname)$sinfolp",
+      "$sesname=$sidleto",
+      "'$sesname'",
+      "$sesname@!@$slivereport"
+    );
+
+    $configPath = './include/config.php';
+    $content = @file_get_contents($configPath);
+    if ($content === false || strpos($content, "'$session'") === false) {
+      $_SESSION['connect'] = "";
+      echo "<div class='alert alert-danger'>Could not save router settings: the session entry was not found or config.php is not writable.</div>";
     } else {
-      $sreload = $sreload;
+      // Apply all field replacements to the same original content, then write once.
+      $newcontent = str_replace($search, $replace, $content);
+      if ($newcontent === $content && $session !== $sesname) {
+        echo "<div class='alert alert-danger'>Could not save router settings: no matching configuration values were found.</div>";
+      } elseif (@file_put_contents($configPath, $newcontent, LOCK_EX) === false) {
+        echo "<div class='alert alert-danger'>Could not save router settings: config.php is not writable.</div>";
+      } else {
+        $_SESSION['connect'] = '';
+        echo "<script>window.location='./admin.php?id=settings&session=" . rawurlencode($sesname) . "'</script>";
+        exit;
+      }
     }
-    $siface = ($_POST['iface']);
-    $sinfolp = implode(unpack("H*", $_POST['infolp']));
-    //$sinfolp = encrypt($_POST['infolp']);
-    //$sinfolp = ($_POST['infolp']);
-    $sidleto = ($_POST['idleto']);
-
-    $sesname = (preg_replace('/\s+/', '-', $_POST['sessname']));
-    $slivereport = ($_POST['livereport']);
-
-    $search = array('1' => "$session!$iphost", "$session@|@$userhost", "$session#|#$passwdhost", "$session%$hotspotname", "$session^$dnsname", "$session&$currency", "$session*$areload", "$session($iface", "$session)$infolp", "$session=$idleto", "'$session'", "$session@!@$livereport");
-
-    $replace = array('1' => "$sesname!$siphost", "$sesname@|@$suserhost", "$sesname#|#$spasswdhost", "$sesname%$shotspotname", "$sesname^$sdnsname", "$sesname&$scurrency", "$sesname*$sreload", "$sesname($siface", "$sesname)$sinfolp", "$sesname=$sidleto", "'$sesname'", "$sesname@!@$slivereport");
-
-    for ($i = 1; $i < 15; $i++) {
-      $file = file("./include/config.php");
-      $content = file_get_contents("./include/config.php");
-      $newcontent = str_replace((string)$search[$i], (string)$replace[$i], "$content");
-      file_put_contents("./include/config.php", "$newcontent");
-    }
-    $_SESSION["connect"] = "";
-    echo "<script>window.location='./admin.php?id=settings&session=" . $sesname . "'</script>";
   }
   if ($currency == "") {
     echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";
