@@ -261,7 +261,6 @@ $_srv_dl_step1 = "উপরের সবুজ বাটনে ক্লিক �
 $_srv_dl_step2 = "ডাউনলোড হওয়া জিপ ফাইলটির উপর মাউসের রাইট-বাটন ক্লিক করে <b>Extract All / Extract Here</b> করুন। ভেতরে <b><code>Mikhmon Server</code></b> নামের ফোল্ডার পাবেন।";
 $_srv_dl_step3 = "ফোল্ডারের ভেতরে থাকা <b><code>MikhmonServer.exe</code></b> ফাইলে ডাবল-ক্লিক করুন — সার্ভার অটোমেটিক অন (সবুজ বাতি) হয়ে যাবে, এরপর <b>Open</b> বাটনে ক্লিক করলেই সরাসরি ব্রাউজারে ওপেন হবে!";
 
-// System Update, Reseller UI & MikroTik SSH Mode Labels (Bengali)
 $_system_update = "সিস্টেম আপডেট";
 $_github_repo_url_label = "গিটহাব ইউআরএল (GitHub URL)";
 $_btn_git_pull_update = "গিট সেফ আপডেট";
@@ -276,7 +275,6 @@ $_details_label = "ডিটেইলস";
 $_reseller_details_title = "রিসেলারের বিস্তারিত তথ্য";
 $_select_router_btn = "সিলেক্ট রাউটার";
 $_conn_mode_api_tip = "ডিফল্ট API কানেকশন (পোর্ট 8728)";
-$_conn_mode_ssh_tip = "SSH কানেকশন (পোর্ট 22 - শুধুমাত্র SSH ইউজারনেম ও পাসওয়ার্ড দিয়ে কানেক্ট)";
 $_select_reseller_scope = "টার্গেট রিসেলার / স্কোপ";
 $_router_menu_label = "রাউটার";
 $_software_version_label = "সফটওয়্যার ভার্সন";
