@@ -30,6 +30,7 @@ class RouterosAPI
     var $ssh_user  = '';
     var $ssh_pass  = '';
     var $timeout   = 3;     //  Connection attempt timeout and data read timeout (fail fast on offline routers)
+    var $command_timeout = 12; // Maximum time for a single SSH CLI command
     var $attempts  = 1;     //  Connection attempt count (1 attempt prevents worker pool starvation)
     var $delay     = 0;     //  Delay between connection attempts in seconds
 
@@ -236,18 +237,30 @@ class RouterosAPI
     protected function sshExecRaw($cliCommand, &$exitCode = 0)
     {
         $exitCode = 1;
+        $commandTimeout = max(2, (int)$this->command_timeout);
+
+        // PHP ssh2 streams must have a read timeout too; otherwise a silent or
+        // overloaded router can hold the PHP worker indefinitely.
         if ($this->ssh_conn && function_exists('ssh2_exec')) {
             $stream = @ssh2_exec($this->ssh_conn, $cliCommand);
             if ($stream) {
-                stream_set_blocking($stream, true);
+                @stream_set_blocking($stream, true);
+                @stream_set_timeout($stream, $commandTimeout);
                 $output = stream_get_contents($stream);
+                $meta = stream_get_meta_data($stream);
                 fclose($stream);
+                if (!empty($meta['timed_out'])) {
+                    $exitCode = 124;
+                    $this->error_str = 'SSH command timed out after ' . $commandTimeout . ' seconds';
+                    return (string)$output;
+                }
                 $exitCode = 0;
                 return (string)$output;
             }
         }
 
         if (!function_exists('proc_open')) {
+            $this->error_str = 'proc_open is unavailable; SSH CLI fallback cannot run';
             return '';
         }
 
@@ -261,7 +274,6 @@ class RouterosAPI
         $target = escapeshellarg($this->ssh_user . '@' . $this->ssh_host);
         $remoteCmd = escapeshellarg($cliCommand);
 
-        // Check if sshpass is available
         $hasSshpass = false;
         foreach (array('/usr/bin/sshpass', '/usr/local/bin/sshpass', '/bin/sshpass') as $spBin) {
             if (@is_executable($spBin)) {
@@ -280,7 +292,6 @@ class RouterosAPI
             $env['SSHPASS'] = (string)$this->ssh_pass;
             $fullCmd = $hasSshpass . ' -e ssh ' . $sshOpts . ' ' . $target . ' ' . $remoteCmd;
         } else {
-            // Use SSH_ASKPASS + setsid with standard OpenSSH client
             $askPassScript = sys_get_temp_dir() . '/ngw_askpass_' . uniqid('', true) . '.sh';
             @file_put_contents($askPassScript, "#!/bin/sh\necho \"\$NGW_SSH_PASS\"\n");
             @chmod($askPassScript, 0700);
@@ -298,15 +309,72 @@ class RouterosAPI
         );
         $proc = @proc_open($fullCmd, $descriptors, $pipes, null, $env);
         $stdout = '';
+        $stderr = '';
+        $observedExitCode = null;
+
         if (is_resource($proc)) {
             fclose($pipes[0]);
-            $stdout = stream_get_contents($pipes[1]);
+            stream_set_blocking($pipes[1], false);
+            stream_set_blocking($pipes[2], false);
+            $deadline = microtime(true) + $commandTimeout;
+
+            while (true) {
+                $read = array();
+                if (is_resource($pipes[1]) && !feof($pipes[1])) $read[] = $pipes[1];
+                if (is_resource($pipes[2]) && !feof($pipes[2])) $read[] = $pipes[2];
+
+                if (!empty($read)) {
+                    $write = null;
+                    $except = null;
+                    @stream_select($read, $write, $except, 0, 200000);
+                    foreach ($read as $ready) {
+                        $chunk = fread($ready, 8192);
+                        if ($chunk !== false && $chunk !== '') {
+                            if ($ready === $pipes[1]) $stdout .= $chunk;
+                            else $stderr .= $chunk;
+                        }
+                    }
+                } else {
+                    usleep(20000);
+                }
+
+                $status = proc_get_status($proc);
+                if (!$status['running']) {
+                    $observedExitCode = (int)$status['exitcode'];
+                    // Drain any buffered output before leaving.
+                    $tailOut = stream_get_contents($pipes[1]);
+                    $tailErr = stream_get_contents($pipes[2]);
+                    if ($tailOut !== false) $stdout .= $tailOut;
+                    if ($tailErr !== false) $stderr .= $tailErr;
+                    break;
+                }
+
+                if (microtime(true) >= $deadline) {
+                    @proc_terminate($proc, 9);
+                    $exitCode = 124;
+                    $this->error_str = 'SSH command timed out after ' . $commandTimeout . ' seconds';
+                    break;
+                }
+            }
+
             fclose($pipes[1]);
             fclose($pipes[2]);
-            $exitCode = proc_close($proc);
+            $closeCode = proc_close($proc);
+            if ($exitCode !== 124) {
+                $exitCode = ($observedExitCode !== null && $observedExitCode >= 0)
+                    ? $observedExitCode
+                    : (int)$closeCode;
+            }
+        } else {
+            $this->error_str = 'Unable to start SSH client process';
         }
+
         if ($askPassScript !== '' && is_file($askPassScript)) {
             @unlink($askPassScript);
+        }
+
+        if ($exitCode !== 0 && $stderr !== '') {
+            $this->error_str = trim($stderr);
         }
         return (string)$stdout;
     }
@@ -635,19 +703,42 @@ class RouterosAPI
         // 3. List print commands (.../print)
         if ($action === 'print') {
             $isCountOnly = isset($arr['count-only']);
-            $extraFields = ($cliMenu === '/ip hotspot user') ? ' password' : '';
-            $out = $this->sshExecRaw($cliMenu . ' print detail terse' . $extraFields . ' without-paging');
-            $rows = $this->parseRouterOsCliDetail($out);
 
-            // Apply ?field => value filters in PHP for 100% v6/v7 consistency
+            // Convert RouterOS API-style ?field filters to a CLI where clause.
+            // Applying exact filters on the router avoids transferring every hotspot
+            // user for each voucher lookup, which was a major timeout risk.
             $filters = array();
             if ($this->isIterable($arr)) {
                 foreach ($arr as $k => $v) {
-                    if (strlen($k) > 1 && $k[0] === '?') {
-                        $filters[substr($k, 1)] = (string)$v;
+                    if (is_string($k) && strlen($k) > 1 && $k[0] === '?') {
+                        $field = substr($k, 1);
+                        if (preg_match('/^[a-zA-Z][a-zA-Z0-9-]*$/', $field)) {
+                            $filters[$field] = (string)$v;
+                        }
                     }
                 }
             }
+
+            $whereParts = array();
+            foreach ($filters as $field => $value) {
+                $slash = chr(92);
+                $escapedValue = str_replace(
+                    array($slash, '"', '$'),
+                    array($slash . $slash, $slash . '"', $slash . '$'),
+                    $value
+                );
+                $whereParts[] = $field . '="' . $escapedValue . '"';
+            }
+
+            $printCommand = $cliMenu . ' print detail terse';
+            if (!empty($whereParts)) {
+                $printCommand .= ' where ' . implode(' and ', $whereParts);
+            }
+            $out = $this->sshExecRaw($printCommand . ' without-paging');
+            $rows = $this->parseRouterOsCliDetail($out);
+
+            // Defensive local exact-match check for RouterOS versions with differing
+            // CLI filtering behavior.
             if (!empty($filters)) {
                 $filtered = array();
                 foreach ($rows as $r) {
