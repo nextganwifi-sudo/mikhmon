@@ -21,16 +21,7 @@ class RouterosAPI
     var $connected = false; //  Connection state
     var $port      = 8728;  //  Port to connect to (default 8729 for ssl)
     var $ssl       = false; //  Connect using SSL (must enable api-ssl in IP/Services)
-    var $ssh       = false; //  Connect using SSH (port 22 by default)
-    var $use_ssh   = false; //  Active transport is SSH
-    var $ssh_bridge_local = false; // Local preview simulator bridge flag
-    var $ssh_conn  = null;  //  PHP ssh2 resource if ssh2 extension is used
-    var $ssh_host  = '';
-    var $ssh_port  = 22;
-    var $ssh_user  = '';
-    var $ssh_pass  = '';
     var $timeout   = 3;     //  Connection attempt timeout and data read timeout (fail fast on offline routers)
-    var $command_timeout = 12; // Maximum time for a single SSH CLI command
     var $attempts  = 1;     //  Connection attempt count (1 attempt prevents worker pool starvation)
     var $delay     = 0;     //  Delay between connection attempts in seconds
 
@@ -93,51 +84,24 @@ class RouterosAPI
 
 
     /**
-     * Login to RouterOS (Supports both Binary API and SSH CLI mode)
+     * Login to RouterOS using the RouterOS Binary API only.
      *
-     * @param string      $ip         Hostname (IP or domain) of the RouterOS server (prefix ssh:// for SSH mode)
-     * @param string      $login      The RouterOS username
-     * @param string      $password   The RouterOS password
-     *
-     * @return boolean                If we are connected or not
+     * @param string $ip Hostname/IP, optionally followed by :port
+     * @param string $login RouterOS API username
+     * @param string $password RouterOS API password
+     * @return boolean
      */
     public function connect($ip, $login, $password)
     {
         $rawIp = trim((string)$ip);
-        $isSshMode = $this->ssh || (strpos($rawIp, 'ssh://') === 0);
-        if (strpos($rawIp, 'ssh://') === 0) {
+        // Compatibility for old configs: retire the ssh:// scheme and use API.
+        if (stripos($rawIp, 'ssh://') === 0) {
             $rawIp = substr($rawIp, 6);
+            if (preg_match('/\\:22$/', $rawIp)) {
+                $rawIp = substr($rawIp, 0, -3);
+            }
         }
 
-        if ($isSshMode) {
-            $this->use_ssh = true;
-            $this->ssh_bridge_local = false;
-            $hostParts = explode(':', $rawIp);
-            $this->ssh_host = $hostParts[0];
-            $this->ssh_port = (isset($hostParts[1]) && $hostParts[1] !== '') ? (int)$hostParts[1] : 22;
-            $this->ssh_user = $login;
-            $this->ssh_pass = $password;
-
-            // Check if connecting to local simulated RouterOS in AI Studio preview where port 22 is not bound
-            if (($this->ssh_host === '127.0.0.1' || $this->ssh_host === '127.0.0.2' || $this->ssh_host === 'localhost') && $this->ssh_port === 22) {
-                $testSshSock = fsockopen($this->ssh_host, 22, $eNo, $eStr, 1);
-                if ($testSshSock) {
-                    fclose($testSshSock);
-                } else {
-                    $this->ssh_bridge_local = true;
-                    $rawIp = $this->ssh_host . ':8728';
-                }
-            }
-
-            if (!$this->ssh_bridge_local) {
-                return $this->connectSshTransport();
-            }
-        } else {
-            $this->use_ssh = false;
-            $this->ssh_bridge_local = false;
-        }
-
-        // Parse optional custom port in $rawIp for Binary API
         $apiHost = $rawIp;
         $apiPort = $this->port;
         if (strpos($rawIp, ':') !== false) {
@@ -148,235 +112,59 @@ class RouterosAPI
             }
         }
 
-        for ($ATTEMPT = 1; $ATTEMPT <= $this->attempts; $ATTEMPT++) {
+        for ($attempt = 1; $attempt <= $this->attempts; $attempt++) {
             $this->connected = false;
-            $PROTOCOL = ($this->ssl ? 'ssl://' : '' );
-            $context = stream_context_create(array('ssl' => array('ciphers' => 'ADH:ALL', 'verify_peer' => false, 'verify_peer_name' => false)));
-            $this->debug('Connection attempt #' . $ATTEMPT . ' to ' . $PROTOCOL . $apiHost . ':' . $apiPort . '...');
-            $this->socket = @stream_socket_client($PROTOCOL . $apiHost . ':' . $apiPort, $this->error_no, $this->error_str, $this->timeout, STREAM_CLIENT_CONNECT, $context);
+            $protocol = ($this->ssl ? 'ssl://' : '');
+            $context = stream_context_create(array('ssl' => array(
+                'ciphers' => 'ADH:ALL',
+                'verify_peer' => false,
+                'verify_peer_name' => false
+            )));
+            $this->debug('Connection attempt #' . $attempt . ' to ' . $protocol . $apiHost . ':' . $apiPort . '...');
+            $this->socket = @stream_socket_client(
+                $protocol . $apiHost . ':' . $apiPort,
+                $this->error_no,
+                $this->error_str,
+                $this->timeout,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+
             if ($this->socket) {
-                socket_set_timeout($this->socket, $this->timeout);
+                @socket_set_timeout($this->socket, $this->timeout);
                 $this->write('/login', false);
                 $this->write('=name=' . $login, false);
                 $this->write('=password=' . $password);
-                $RESPONSE = $this->read(false);
-                if (isset($RESPONSE[0])) {
-                    if ($RESPONSE[0] == '!done') {
-                        if (!isset($RESPONSE[1])) {
-                            // Login method post-v6.43
+                $response = $this->read(false);
+
+                if (isset($response[0]) && $response[0] === '!done') {
+                    if (!isset($response[1])) {
+                        $this->connected = true;
+                        break;
+                    }
+                    $matches = array();
+                    if (preg_match_all('/[^=]+/i', $response[1], $matches)
+                        && isset($matches[0][0], $matches[0][1])
+                        && $matches[0][0] === 'ret'
+                        && strlen($matches[0][1]) === 32) {
+                        $this->write('/login', false);
+                        $this->write('=name=' . $login, false);
+                        $this->write('=response=00' . md5(chr(0) . $password . pack('H*', $matches[0][1])));
+                        $response = $this->read(false);
+                        if (isset($response[0]) && $response[0] === '!done') {
                             $this->connected = true;
                             break;
-                        } else {
-                            // Login method pre-v6.43
-                            $MATCHES = array();
-                            if (preg_match_all('/[^=]+/i', $RESPONSE[1], $MATCHES)) {
-                                if ($MATCHES[0][0] == 'ret' && strlen($MATCHES[0][1]) == 32) {
-                                    $this->write('/login', false);
-                                    $this->write('=name=' . $login, false);
-                                    $this->write('=response=00' . md5(chr(0) . $password . pack('H*', $MATCHES[0][1])));
-                                    $RESPONSE = $this->read(false);
-                                    if (isset($RESPONSE[0]) && $RESPONSE[0] == '!done') {
-                                        $this->connected = true;
-                                        break;
-                                    }
-                                }
-                            }
                         }
                     }
                 }
                 fclose($this->socket);
+                $this->socket = null;
             }
-            sleep($this->delay);
+            if ($this->delay > 0) { sleep($this->delay); }
         }
 
-        if ($this->connected) {
-            $this->debug('Connected...');
-        } else {
-            $this->debug('Error...');
-        }
+        $this->debug($this->connected ? 'Connected...' : 'Error...');
         return $this->connected;
-    }
-
-    /**
-     * Establish and verify SSH connection to MikroTik RouterOS using only SSH Username & Password
-     */
-    protected function connectSshTransport()
-    {
-        $this->connected = false;
-        // 1. Check TCP reachability of SSH port first
-        $sock = @fsockopen($this->ssh_host, $this->ssh_port, $this->error_no, $this->error_str, $this->timeout);
-        if (!$sock) {
-            return false;
-        }
-        fclose($sock);
-
-        // 2. Prefer PHP ssh2 extension if installed
-        if (function_exists('ssh2_connect')) {
-            $conn = @ssh2_connect($this->ssh_host, $this->ssh_port);
-            if ($conn && @ssh2_auth_password($conn, $this->ssh_user, $this->ssh_pass)) {
-                $this->ssh_conn = $conn;
-                $this->connected = true;
-                return true;
-            }
-        }
-
-        // 3. Fallback to OpenSSH CLI (sshpass or SSH_ASKPASS)
-        $exitCode = 1;
-        $out = $this->sshExecRaw('/system identity print without-paging', $exitCode);
-        if ($exitCode === 0 && $out !== false && (stripos($out, 'name:') !== false || trim($out) !== '')) {
-            $this->connected = true;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Execute a single RouterOS CLI command over SSH and return stdout string
-     */
-    protected function sshExecRaw($cliCommand, &$exitCode = 0)
-    {
-        $exitCode = 1;
-        $commandTimeout = max(2, (int)$this->command_timeout);
-
-        // PHP ssh2 streams must have a read timeout too; otherwise a silent or
-        // overloaded router can hold the PHP worker indefinitely.
-        if ($this->ssh_conn && function_exists('ssh2_exec')) {
-            $stream = @ssh2_exec($this->ssh_conn, $cliCommand);
-            if ($stream) {
-                @stream_set_blocking($stream, true);
-                @stream_set_timeout($stream, $commandTimeout);
-                $output = stream_get_contents($stream);
-                $meta = stream_get_meta_data($stream);
-                fclose($stream);
-                if (!empty($meta['timed_out'])) {
-                    $exitCode = 124;
-                    $this->error_str = 'SSH command timed out after ' . $commandTimeout . ' seconds';
-                    return (string)$output;
-                }
-                $exitCode = 0;
-                return (string)$output;
-            }
-        }
-
-        if (!function_exists('proc_open')) {
-            $this->error_str = 'proc_open is unavailable; SSH CLI fallback cannot run';
-            return '';
-        }
-
-        $sshOpts = '-p ' . (int)$this->ssh_port
-            . ' -o StrictHostKeyChecking=no'
-            . ' -o UserKnownHostsFile=/dev/null'
-            . ' -o PubkeyAuthentication=no'
-            . ' -o PreferredAuthentications=password,keyboard-interactive'
-            . ' -o ConnectTimeout=' . max(2, (int)$this->timeout)
-            . ' -o LogLevel=ERROR';
-        $target = escapeshellarg($this->ssh_user . '@' . $this->ssh_host);
-        $remoteCmd = escapeshellarg($cliCommand);
-
-        $hasSshpass = false;
-        foreach (array('/usr/bin/sshpass', '/usr/local/bin/sshpass', '/bin/sshpass') as $spBin) {
-            if (@is_executable($spBin)) {
-                $hasSshpass = $spBin;
-                break;
-            }
-        }
-
-        $env = $_ENV;
-        if (empty($env['PATH'])) {
-            $env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
-        }
-        $askPassScript = '';
-
-        if ($hasSshpass) {
-            $env['SSHPASS'] = (string)$this->ssh_pass;
-            $fullCmd = $hasSshpass . ' -e ssh ' . $sshOpts . ' ' . $target . ' ' . $remoteCmd;
-        } else {
-            $askPassScript = sys_get_temp_dir() . '/ngw_askpass_' . uniqid('', true) . '.sh';
-            @file_put_contents($askPassScript, "#!/bin/sh\necho \"\$NGW_SSH_PASS\"\n");
-            @chmod($askPassScript, 0700);
-            $env['NGW_SSH_PASS'] = (string)$this->ssh_pass;
-            $env['SSH_ASKPASS'] = $askPassScript;
-            $env['SSH_ASKPASS_REQUIRE'] = 'force';
-            $env['DISPLAY'] = ':0';
-            $fullCmd = 'setsid -w ssh ' . $sshOpts . ' ' . $target . ' ' . $remoteCmd;
-        }
-
-        $descriptors = array(
-            0 => array('pipe', 'r'),
-            1 => array('pipe', 'w'),
-            2 => array('pipe', 'w'),
-        );
-        $proc = @proc_open($fullCmd, $descriptors, $pipes, null, $env);
-        $stdout = '';
-        $stderr = '';
-        $observedExitCode = null;
-
-        if (is_resource($proc)) {
-            fclose($pipes[0]);
-            stream_set_blocking($pipes[1], false);
-            stream_set_blocking($pipes[2], false);
-            $deadline = microtime(true) + $commandTimeout;
-
-            while (true) {
-                $read = array();
-                if (is_resource($pipes[1]) && !feof($pipes[1])) $read[] = $pipes[1];
-                if (is_resource($pipes[2]) && !feof($pipes[2])) $read[] = $pipes[2];
-
-                if (!empty($read)) {
-                    $write = null;
-                    $except = null;
-                    @stream_select($read, $write, $except, 0, 200000);
-                    foreach ($read as $ready) {
-                        $chunk = fread($ready, 8192);
-                        if ($chunk !== false && $chunk !== '') {
-                            if ($ready === $pipes[1]) $stdout .= $chunk;
-                            else $stderr .= $chunk;
-                        }
-                    }
-                } else {
-                    usleep(20000);
-                }
-
-                $status = proc_get_status($proc);
-                if (!$status['running']) {
-                    $observedExitCode = (int)$status['exitcode'];
-                    // Drain any buffered output before leaving.
-                    $tailOut = stream_get_contents($pipes[1]);
-                    $tailErr = stream_get_contents($pipes[2]);
-                    if ($tailOut !== false) $stdout .= $tailOut;
-                    if ($tailErr !== false) $stderr .= $tailErr;
-                    break;
-                }
-
-                if (microtime(true) >= $deadline) {
-                    @proc_terminate($proc, 9);
-                    $exitCode = 124;
-                    $this->error_str = 'SSH command timed out after ' . $commandTimeout . ' seconds';
-                    break;
-                }
-            }
-
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            $closeCode = proc_close($proc);
-            if ($exitCode !== 124) {
-                $exitCode = ($observedExitCode !== null && $observedExitCode >= 0)
-                    ? $observedExitCode
-                    : (int)$closeCode;
-            }
-        } else {
-            $this->error_str = 'Unable to start SSH client process';
-        }
-
-        if ($askPassScript !== '' && is_file($askPassScript)) {
-            @unlink($askPassScript);
-        }
-
-        if ($exitCode !== 0 && $stderr !== '') {
-            $this->error_str = trim($stderr);
-        }
-        return (string)$stdout;
     }
 
     /**
@@ -390,7 +178,6 @@ class RouterosAPI
         if( is_resource($this->socket) ) {
             fclose($this->socket);
         }
-        $this->ssh_conn = null;
         $this->connected = false;
         $this->debug('Disconnected...');
     }
@@ -635,10 +422,6 @@ class RouterosAPI
      */
     public function comm($com, $arr = array())
     {
-        if ($this->use_ssh && !$this->ssh_bridge_local) {
-            return $this->commSsh($com, $arr);
-        }
-
         $count = count($arr);
         $this->write($com, !$arr);
         $i = 0;
@@ -664,337 +447,6 @@ class RouterosAPI
         return $this->read();
     }
 
-    /**
-     * Translate RouterOS Binary API command + arguments into RouterOS SSH CLI and parse response into API array format
-     */
-    protected function commSsh($com, $arr = array())
-    {
-        $cleanPath = trim((string)$com, "/ \t\n\r");
-        $segments = explode('/', $cleanPath);
-        $action = end($segments);
-        array_pop($segments);
-        $cliMenu = '/' . implode(' ', $segments);
-
-        // 1. /interface/monitor-traffic
-        if ($action === 'monitor-traffic') {
-            $iface = isset($arr['interface']) ? $arr['interface'] : 'ether1';
-            $escIface = str_replace(array('\\', '"'), array('\\\\', '\\"'), $iface);
-            $out = $this->sshExecRaw('/interface monitor-traffic interface="' . $escIface . '" once without-paging');
-            $parsed = $this->parseRouterOsCliColon($out);
-            $rx = isset($parsed['rx-bits-per-second']) ? $this->convertCliRateToBits($parsed['rx-bits-per-second']) : '0';
-            $tx = isset($parsed['tx-bits-per-second']) ? $this->convertCliRateToBits($parsed['tx-bits-per-second']) : '0';
-            return array(
-                0 => array(
-                    'name' => $iface,
-                    'rx-bits-per-second' => (string)$rx,
-                    'tx-bits-per-second' => (string)$tx,
-                )
-            );
-        }
-
-        // 2. Singleton colon-delimited print commands (/system/identity/print, /system/resource/print, /system/routerboard/print, /system/clock/print)
-        $colonMenus = array('/system identity', '/system resource', '/system routerboard', '/system clock');
-        if ($action === 'print' && in_array($cliMenu, $colonMenus, true)) {
-            $out = $this->sshExecRaw($cliMenu . ' print without-paging');
-            $row = $this->parseRouterOsCliColon($out);
-            return empty($row) ? array() : array(0 => $row);
-        }
-
-        // 3. List print commands (.../print)
-        if ($action === 'print') {
-            $isCountOnly = isset($arr['count-only']);
-
-            // Convert RouterOS API-style ?field filters to a CLI where clause.
-            // Applying exact filters on the router avoids transferring every hotspot
-            // user for each voucher lookup, which was a major timeout risk.
-            $filters = array();
-            if ($this->isIterable($arr)) {
-                foreach ($arr as $k => $v) {
-                    if (is_string($k) && strlen($k) > 1 && $k[0] === '?') {
-                        $field = substr($k, 1);
-                        if (preg_match('/^[a-zA-Z][a-zA-Z0-9-]*$/', $field)) {
-                            $filters[$field] = (string)$v;
-                        }
-                    }
-                }
-            }
-
-            $whereParts = array();
-            foreach ($filters as $field => $value) {
-                $slash = chr(92);
-                $escapedValue = str_replace(
-                    array($slash, '"', '$'),
-                    array($slash . $slash, $slash . '"', $slash . '$'),
-                    $value
-                );
-                $whereParts[] = $field . '="' . $escapedValue . '"';
-            }
-
-            $printCommand = $cliMenu . ' print detail terse';
-            if (!empty($whereParts)) {
-                $printCommand .= ' where ' . implode(' and ', $whereParts);
-            }
-            $out = $this->sshExecRaw($printCommand . ' without-paging');
-            $rows = $this->parseRouterOsCliDetail($out);
-
-            // Defensive local exact-match check for RouterOS versions with differing
-            // CLI filtering behavior.
-            if (!empty($filters)) {
-                $filtered = array();
-                foreach ($rows as $r) {
-                    $match = true;
-                    foreach ($filters as $fk => $fv) {
-                        $rv = isset($r[$fk]) ? (string)$r[$fk] : '';
-                        if ($rv !== $fv) {
-                            $match = false;
-                            break;
-                        }
-                    }
-                    if ($match) {
-                        $filtered[] = $r;
-                    }
-                }
-                $rows = $filtered;
-            }
-
-            if ($isCountOnly) {
-                return (string)count($rows);
-            }
-            return $rows;
-        }
-
-        // 4. System reboot / shutdown
-        if ($cleanPath === 'system/reboot' || $cleanPath === 'system/shutdown') {
-            $this->sshExecRaw('/' . str_replace('/', ' ', $cleanPath));
-            return array();
-        }
-
-        // 5. Item targeting actions (remove, enable, disable, reset-counters)
-        if (in_array($action, array('remove', 'enable', 'disable', 'reset-counters'), true)) {
-            $targetId = isset($arr['.id']) ? (string)$arr['.id'] : (isset($arr['numbers']) ? (string)$arr['numbers'] : '');
-            $cliTarget = $this->formatCliTargetId($targetId);
-            if ($cliTarget !== '') {
-                $this->sshExecRaw($cliMenu . ' ' . $action . ' ' . $cliTarget);
-            }
-            return array();
-        }
-
-        // 6. Add or Set commands
-        if ($action === 'add' || $action === 'set') {
-            $kvParts = array();
-            $targetId = '';
-            if ($this->isIterable($arr)) {
-                foreach ($arr as $k => $v) {
-                    if ($k === '.id' || $k === 'numbers') {
-                        $targetId = (string)$v;
-                        continue;
-                    }
-                    $cleanKey = ltrim((string)$k, '=?');
-                    $escVal = str_replace(array('\\', '"', '$'), array('\\\\', '\\"', '\\$'), (string)$v);
-                    $kvParts[] = $cleanKey . '="' . $escVal . '"';
-                }
-            }
-            if ($action === 'set') {
-                $cliTarget = $this->formatCliTargetId($targetId);
-                if ($cliTarget !== '' && !empty($kvParts)) {
-                    $this->sshExecRaw($cliMenu . ' set ' . $cliTarget . ' ' . implode(' ', $kvParts));
-                }
-                return array();
-            } else {
-                if (!empty($kvParts)) {
-                    $this->sshExecRaw($cliMenu . ' add ' . implode(' ', $kvParts));
-                }
-                return array('ret' => '*new');
-            }
-        }
-
-        return array();
-    }
-
-    protected function formatCliTargetId($targetId)
-    {
-        $t = trim((string)$targetId);
-        if ($t === '') {
-            return '';
-        }
-        // If .id is formatted as *0, *1, *2 from parseRouterOsCliDetail, strip leading * for CLI index
-        if (preg_match('/^\*(\d+)$/', $t, $m)) {
-            return $m[1];
-        }
-        // If comma-separated list of *0,*1
-        if (strpos($t, ',') !== false) {
-            $parts = explode(',', $t);
-            $cleaned = array();
-            foreach ($parts as $p) {
-                $p = trim($p);
-                if (preg_match('/^\*(\d+)$/', $p, $m)) {
-                    $cleaned[] = $m[1];
-                } elseif ($p !== '') {
-                    $cleaned[] = $p;
-                }
-            }
-            return implode(',', $cleaned);
-        }
-        $esc = str_replace(array('\\', '"'), array('\\\\', '\\"'), $t);
-        return '"' . $esc . '"';
-    }
-
-    protected function convertCliRateToBits($rateStr)
-    {
-        $s = strtolower(trim((string)$rateStr));
-        if ($s === '' || $s === '0' || $s === '0bps') {
-            return 0;
-        }
-        if (preg_match('/^([0-9\.]+)\s*(gbps|mbps|kbps|bps)?$/i', $s, $m)) {
-            $val = (float)$m[1];
-            $unit = isset($m[2]) ? strtolower($m[2]) : 'bps';
-            if ($unit === 'gbps') return (int)round($val * 1000000000);
-            if ($unit === 'mbps') return (int)round($val * 1000000);
-            if ($unit === 'kbps') return (int)round($val * 1000);
-            return (int)round($val);
-        }
-        return (int)$s;
-    }
-
-    protected function parseRouterOsCliColon($output)
-    {
-        $res = array();
-        $lines = preg_split('/\r?\n/', (string)$output);
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ($line === '' || strpos($line, ':') === false) {
-                continue;
-            }
-            $parts = explode(':', $line, 2);
-            $k = trim($parts[0]);
-            $v = trim($parts[1], " \t\"");
-            if ($k !== '') {
-                $res[$k] = $v;
-            }
-        }
-        return $res;
-    }
-
-    protected function parseRouterOsCliDetail($output)
-    {
-        $text = str_replace("\r\n", "\n", (string)$output);
-        $lines = explode("\n", $text);
-        $blocks = array();
-        $curBlock = null;
-
-        foreach ($lines as $line) {
-            if (preg_match('/^\s*(\d+)\s+([A-Z\s]*?)(?:;;;\s*(.*)|([a-zA-Z0-9_\-\.]+\=.*))$/', $line, $m)) {
-                if ($curBlock !== null) {
-                    $blocks[] = $curBlock;
-                }
-                $idx = $m[1];
-                $flags = trim($m[2]);
-                $commentLine = isset($m[3]) ? trim($m[3]) : '';
-                $kvRest = isset($m[4]) ? $m[4] : '';
-                $curBlock = array(
-                    'idx' => $idx,
-                    'flags' => $flags,
-                    'comment' => $commentLine,
-                    'body' => $kvRest,
-                );
-            } elseif ($curBlock !== null) {
-                $trimmed = trim($line);
-                if ($trimmed === '') {
-                    continue;
-                }
-                if (strpos($trimmed, ';;;') === 0 && $curBlock['comment'] === '') {
-                    $curBlock['comment'] = trim(substr($trimmed, 3));
-                } else {
-                    $curBlock['body'] .= ' ' . $trimmed;
-                }
-            }
-        }
-        if ($curBlock !== null) {
-            $blocks[] = $curBlock;
-        }
-
-        $parsedRows = array();
-        foreach ($blocks as $b) {
-            $flagStr = $b['flags'];
-            $row = array(
-                '.id' => '*' . $b['idx'],
-                'disabled' => (strpos($flagStr, 'X') !== false) ? 'true' : 'false',
-                'dynamic'  => (strpos($flagStr, 'D') !== false) ? 'true' : 'false',
-                'running'  => (strpos($flagStr, 'R') !== false) ? 'true' : 'false',
-            );
-            if ($b['comment'] !== '') {
-                $row['comment'] = $b['comment'];
-            }
-            $kvs = $this->extractCliKeyValues($b['body']);
-            foreach ($kvs as $k => $v) {
-                $cleanK = (trim($k) === 'password.') ? 'password' : $k;
-                $row[$cleanK] = $v;
-            }
-            $parsedRows[] = $row;
-        }
-        return $parsedRows;
-    }
-
-    protected function extractCliKeyValues($body)
-    {
-        $result = array();
-        $len = strlen($body);
-        $i = 0;
-        while ($i < $len) {
-            while ($i < $len && ctype_space($body[$i])) {
-                $i++;
-            }
-            if ($i >= $len) {
-                break;
-            }
-            $keyStart = $i;
-            while ($i < $len && $body[$i] !== '=' && !ctype_space($body[$i])) {
-                $i++;
-            }
-            if ($i >= $len || $body[$i] !== '=') {
-                while ($i < $len && !ctype_space($body[$i])) {
-                    $i++;
-                }
-                continue;
-            }
-            $key = substr($body, $keyStart, $i - $keyStart);
-            $i++; // skip '='
-            if ($i >= $len) {
-                $result[$key] = '';
-                break;
-            }
-            if ($body[$i] === '"') {
-                $i++; // skip opening quote
-                $val = '';
-                while ($i < $len) {
-                    if ($body[$i] === '\\' && ($i + 1) < $len) {
-                        $val .= $body[$i + 1];
-                        $i += 2;
-                    } elseif ($body[$i] === '"') {
-                        $i++; // skip closing quote
-                        break;
-                    } else {
-                        $val .= $body[$i];
-                        $i++;
-                    }
-                }
-                $result[$key] = $val;
-            } else {
-                $valStart = $i;
-                while ($i < $len && !ctype_space($body[$i])) {
-                    $i++;
-                }
-                $result[$key] = substr($body, $valStart, $i - $valStart);
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * Standard destructor
-     *
-     * @return void
-     */
     public function __destruct()
     {
         $this->disconnect();
