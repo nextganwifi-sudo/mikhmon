@@ -294,13 +294,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                 $activeRow = (is_array($liveActive) && !empty($liveActive) && isset($liveActive[0]['.id'])) ? $liveActive[0] : null;
                 $isOnline  = ($activeRow !== null);
 
-                // Load activation history automatically so expiry and recently expired voucher details
-                // are visible directly in the search result without a separate Check Expiry action.
-                $scriptRecs = findVoucherRecordsInScripts($rvAPI, $uname);
-                $recentScriptRecs = filterVoucherRecordsLast30Days($scriptRecs);
-                $latestRec = !empty($scriptRecs) ? $scriptRecs[count($scriptRecs) - 1] : null;
-                if (!empty($recentScriptRecs)) {
-                    $latestRec = $recentScriptRecs[count($recentScriptRecs) - 1];
+                // Avoid loading the router's entire script history on every search.
+                // A full history scan is only needed when the expiry comment is missing/invalid
+                // or when the voucher has already expired and recent history should be displayed.
+                $uComment = isset($foundLiveUser['comment']) ? trim((string)$foundLiveUser['comment']) : '';
+                $preParsedExp = parseExpiryFromComment($uComment);
+                $preCalendarExpired = false;
+                if (!empty($preParsedExp['is_expiry']) && !empty($preParsedExp['iso_datetime'])) {
+                    $preExpTs = strtotime($preParsedExp['iso_datetime']);
+                    $preCalendarExpired = ($preExpTs !== false && $preExpTs <= time());
+                }
+                $scriptRecs = array();
+                $recentScriptRecs = array();
+                $latestRec = null;
+                $needsHistory = empty($preParsedExp['is_expiry']) || $preCalendarExpired || $rvAction === 'check_expiry';
+                if ($needsHistory) {
+                    $scriptRecs = findVoucherRecordsInScripts($rvAPI, $uname);
+                    $recentScriptRecs = filterVoucherRecordsLast30Days($scriptRecs);
+                    $latestRec = !empty($recentScriptRecs)
+                        ? $recentScriptRecs[count($recentScriptRecs) - 1]
+                        : (!empty($scriptRecs) ? $scriptRecs[count($scriptRecs) - 1] : null);
                 }
 
                 $uPass     = isset($foundLiveUser['password']) ? $foundLiveUser['password'] : $uname;
@@ -336,9 +349,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                 }
 
                 $uDisabled = (isset($foundLiveUser['disabled']) && ($foundLiveUser['disabled'] === 'true' || $foundLiveUser['disabled'] === 'yes'));
-                $uComment  = isset($foundLiveUser['comment']) ? trim((string)$foundLiveUser['comment']) : '';
 
-                $parsedExp = parseExpiryFromComment($uComment);
+                $parsedExp = $preParsedExp;
                 $isLimitExpired = ($uLimitUp === '1s' || $uLimitUp === '00:00:01');
                 $effectiveExpiry = null;
                 if ($parsedExp['is_expiry'] && !empty($parsedExp['iso_datetime'])) {
