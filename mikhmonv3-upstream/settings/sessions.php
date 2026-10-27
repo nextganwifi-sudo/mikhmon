@@ -35,6 +35,12 @@ if (!isset($_SESSION["mikhmon"])) {
         <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i></h3>
       </div>
       <div class="card-body">
+        <?php if (!empty($_SESSION['router_settings_notice'])) { ?>
+          <div class="alert alert-success" role="status" style="margin-bottom:12px;">
+            <?= htmlspecialchars($_SESSION['router_settings_notice'], ENT_QUOTES, 'UTF-8'); ?>
+          </div>
+          <?php unset($_SESSION['router_settings_notice']); ?>
+        <?php } ?>
         <div class="row">
           <?php
           foreach (file('./include/config.php') as $line) {
