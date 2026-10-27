@@ -15,18 +15,35 @@ if (!isset($_SESSION["mikhmon"])) {
 	exit;
 }
 
-// load session MikroTik
-$session = isset($_GET['session']) ? $_GET['session'] : '';
-
-// load config
+// Load router configuration and access control before resolving a preview session.
+$session = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
 include_once('./include/config.php');
-include_once('./include/readcfg.php');
 include_once('./include/reseller_acl.php');
+$isAdminUser = isMikhmonAdmin();
+
+// Template previews need a real, accessible RouterOS session for router-specific
+// variables. Preserve the selected session; otherwise pick the first accessible one.
+if (!$isAdminUser && $session !== '' && !canAccessRouterSession($session)) {
+    $session = '';
+}
+if ($session === '' && isset($data) && is_array($data)) {
+    foreach (array_keys($data) as $candidateSession) {
+        if ($candidateSession === 'mikhmon' || !isset($data[$candidateSession]) || !is_array($data[$candidateSession])) {
+            continue;
+        }
+        if ($isAdminUser || canAccessRouterSession((string)$candidateSession)) {
+            $session = (string)$candidateSession;
+            break;
+        }
+    }
+}
+include_once('./include/readcfg.php');
 
 $url = $_SERVER['REQUEST_URI'];
 $telplate = isset($_GET['template']) && $_GET['template'] !== '' ? $_GET['template'] : 'default';
 
 $isAdminUser = isMikhmonAdmin();
+$canEditTemplate = $isAdminUser || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template');
 $currentReseller = getCurrentResellerRecord();
 $targetReseller = null;
 
@@ -55,19 +72,19 @@ $editorRouteBase = (isset($_GET['hotspot']) && $_GET['hotspot'] === 'template-ed
 if ($telplate == "thermal") {
 	$telplatet = "template-thermal";
 	$defaultSource = "default-thermal";
-	$popup = "javascript:window.open('./voucher/vpreview.php?usermode=up&user=m&qr=no&variant=thermal&session=" . urlencode($session) . $resQuerySuffix . "','_blank','width=310,height=310')";
-	$popupQR = "javascript:window.open('./voucher/vpreview.php?usermode=up&user=m&qr=yes&variant=thermal&session=" . urlencode($session) . $resQuerySuffix . "','_blank','width=310,height=310')";
+	$popup = "./voucher/vpreview.php?usermode=up&user=m&qr=no&variant=thermal&session=" . urlencode($session) . $resQuerySuffix;
+	$popupQR = "./voucher/vpreview.php?usermode=up&user=m&qr=yes&variant=thermal&session=" . urlencode($session) . $resQuerySuffix;
 } elseif ($telplate == "small") {
 	$telplatet = "template-small";
 	$defaultSource = "default-small";
-	$popup = "javascript:window.open('./voucher/vpreview.php?usermode=up&small=yes&qr=no&variant=small&session=" . urlencode($session) . $resQuerySuffix . "','_blank','width=310,height=310')";
-	$popupQR = "javascript:window.open('./voucher/vpreview.php?usermode=up&small=yes&qr=yes&variant=small&session=" . urlencode($session) . $resQuerySuffix . "','_blank','width=310,height=310')";
+	$popup = "./voucher/vpreview.php?usermode=up&small=yes&qr=no&variant=small&session=" . urlencode($session) . $resQuerySuffix;
+	$popupQR = "./voucher/vpreview.php?usermode=up&small=yes&qr=yes&variant=small&session=" . urlencode($session) . $resQuerySuffix;
 } else {
 	$telplate = "default";
 	$telplatet = "template";
 	$defaultSource = "default";
-	$popup = "javascript:window.open('./voucher/vpreview.php?usermode=up&qr=no&variant=default&session=" . urlencode($session) . $resQuerySuffix . "','_blank','width=310,height=310')";
-	$popupQR = "javascript:window.open('./voucher/vpreview.php?usermode=up&qr=yes&variant=default&session=" . urlencode($session) . $resQuerySuffix . "','_blank','width=310,height=310')";
+	$popup = "./voucher/vpreview.php?usermode=up&qr=no&variant=default&session=" . urlencode($session) . $resQuerySuffix;
+	$popupQR = "./voucher/vpreview.php?usermode=up&qr=yes&variant=default&session=" . urlencode($session) . $resQuerySuffix;
 }
 
 $editorMsg = '';
@@ -174,7 +191,9 @@ elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 // 3. ACTION HANDLER: REMOVE CUSTOM LOGO
 // ============================================================================
 elseif (isset($_POST['remove_logo'])) {
-	if ($targetResId !== '') {
+	if (!$isAdminUser && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
+		$editorErr = 'Access Denied: You do not have permission to remove logos.';
+	} elseif ($targetResId !== '') {
 		removeResellerCustomLogo($targetResId);
 		@unlink('./uploads/reseller-templates/' . $targetResId . '/logo.png');
 		if (isset($_SESSION['mikhmon_reseller_id']) && (string)$_SESSION['mikhmon_reseller_id'] === (string)$targetResId) {
@@ -331,14 +350,16 @@ textarea {
 											</button>
 										<?php } ?>
 
-										<button type="submit" name="reset_to_default" class="btn bg-danger" onclick="return confirm('Are you sure you want to reset this template and logo to clean system defaults?');" title="Reset template and logo to system defaults">
+										<?php if ($canEditTemplate) { ?>
+<button type="submit" name="reset_to_default" class="btn bg-danger" onclick="return confirm('Are you sure you want to reset this template and logo to clean system defaults?');" title="Reset template and logo to system defaults">
 											<i class="fa fa-refresh"></i> Reset to Default
 										</button>
+<?php } ?>
 
-										<a class="btn bg-green" href="<?= $popup; ?>" title="Preview voucher with Logo">
+										<a class="btn bg-green" href="<?= htmlspecialchars($popup, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" title="Preview voucher with Logo">
 											<i class="fa fa-image"></i> Voucher
 										</a>
-										<a class="btn bg-green" href="<?= $popupQR; ?>" title="Preview voucher with QR">
+										<a class="btn bg-green" href="<?= htmlspecialchars($popupQR, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" title="Preview voucher with QR">
 											<i class="fa fa-qrcode"></i> QR
 										</a>
 									</div>
@@ -378,7 +399,7 @@ textarea {
 					</table>
 
 					<!-- CodeMirror Editor Textarea -->
-					<textarea class="bg-dark" id="editotMikhmon" name="editor" style="width:100%" height="700"><?= htmlspecialchars($loadedTemplateContent); ?></textarea>
+					<textarea class="bg-dark" id="editotMikhmon" name="editor" style="width:100%" height="700" <?= $canEditTemplate ? '' : 'readonly'; ?>><?= htmlspecialchars($loadedTemplateContent); ?></textarea>
 				</form>
 			</div>
 		</div>
