@@ -512,13 +512,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
             <!-- TABS NAVIGATION -->
             <div style="border-bottom: 2px solid rgba(150,150,150,0.2); margin-bottom:15px;">
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=secrets" class="btn <?= $tab === 'secrets' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0; margin-right:4px;">
-                <i class="fa fa-key"></i> PPP Secrets (ভিপিএন ইউজার)
+                <i class="fa fa-key"></i> <?= vpnText('Secret List', 'VPN তালিকা'); ?>
               </a>
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=nat" class="btn <?= $tab === 'nat' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0; margin-right:4px;">
-                <i class="fa fa-exchange"></i> Port Forwarding (NAT পোর্ট)
+                <i class="fa fa-exchange"></i> <?= vpnText('Port Forwarding', 'Port Forwarding'); ?>
               </a>
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=bypass" class="btn <?= $tab === 'bypass' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0; margin-right:4px;">
-                <i class="fa fa-whatsapp"></i> Voice Call Bypass (ভয়েস কল)
+                <i class="fa fa-whatsapp"></i> <?= vpnText('Voice Call', 'ভয়েস কল'); ?>
               </a>
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=active" class="btn <?= $tab === 'active' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0;">
                 <i class="fa fa-wifi"></i> Active Connections (<?= count($routerPppActive); ?>)
@@ -532,7 +532,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 <div class="col-4 col-box-12">
                   <div class="card">
                     <div class="card-header">
-                      <h4 style="margin:0;"><i class="fa fa-user-plus"></i> Add VPN User (PPP Secret)</h4>
+                      <h4 style="margin:0;"><i class="fa fa-user-plus"></i> <?= vpnText('Add VPN User', 'VPN ইউজার যোগ করুন'); ?></h4>
                     </div>
                     <div class="card-body">
                       <form method="post" action="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=secrets" autocomplete="off">
@@ -540,17 +540,17 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <input type="hidden" name="active_tab" value="secrets">
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">VPN Username (ইউজারনেম):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('VPN Username:', 'VPN ইউজারনেম:'); ?></label>
                           <input type="text" name="secret_user" class="form-control" required placeholder="e.g. vpn_user01">
                         </div>
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Password (পাসওয়ার্ড):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Password:', 'পাসওয়ার্ড:'); ?></label>
                           <input type="text" name="secret_pass" class="form-control" required placeholder="Password">
                         </div>
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Service (ভিপিএন প্রোটোকল):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Service:', 'Service:'); ?></label>
                           <select name="secret_service" class="form-control">
                             <option value="any">any (All protocols)</option>
                             <option value="l2tp">L2TP</option>
@@ -561,7 +561,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         </div>
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Local Address / Pool (লোকাল অ্যাড্রেস):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Local Address / Pool:', 'Local Address / Pool:'); ?></label>
                           <select name="secret_local" class="form-control">
                             <option value="">Default Profile Gateway</option>
                             <?php foreach ($routerPools as $pl) { ?>
@@ -571,13 +571,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         </div>
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Static Remote IP (স্ট্যাটিক রিমোট আইপি):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Static Remote IP:', 'Static Remote IP:'); ?></label>
                           <input type="text" name="secret_remote" class="form-control" required placeholder="e.g. 10.10.10.50">
                           <small class="text-muted">Client will always receive this static IP upon connection.</small>
                         </div>
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Group / Customer Name (কমেন্ট / ব্যক্তি):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Group / Customer Name:', 'Group / Customer Name:'); ?></label>
                           <input type="text" name="secret_group" class="form-control" required placeholder="e.g. শাহিন">
                           <small class="text-muted">Saved in comment so all user routers can be filtered together.</small>
                         </div>
@@ -594,7 +594,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 <div class="col-8 col-box-12">
                   <div class="card">
                     <div class="card-header">
-                      <h4 style="margin:0;"><i class="fa fa-list"></i> Configured PPP Secrets (<?= count($routerPppSecrets); ?>)</h4>
+                      <h4 style="margin:0;"><i class="fa fa-list"></i> <?= vpnText('Secret List', 'VPN তালিকা'); ?> (<?= count($routerPppSecrets); ?>)</h4>
                     </div>
                     <div class="card-body">
                       <div class="overflow box-bordered" style="max-height:600px;">
@@ -660,7 +660,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 <div class="col-5 col-box-12">
                   <div class="card">
                     <div class="card-header">
-                      <h4 style="margin:0;"><i class="fa fa-exchange"></i> Add 3-Port Forwarding (Winbox, API, Web)</h4>
+                      <h4 style="margin:0;"><i class="fa fa-exchange"></i> <?= vpnText('Port Forwarding (Winbox, API, Web)', 'Port Forwarding (Winbox, API, Web)'); ?></h4>
                     </div>
                     <div class="card-body">
                       <form method="post" action="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=nat" autocomplete="off">
@@ -668,7 +668,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <input type="hidden" name="active_tab" value="nat">
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Select Client Secret or Enter Static IP:</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Select VPN Username:', 'VPN ইউজারনেম নির্বাচন করুন:'); ?></label>
                           <select id="selectVpnClient" class="form-control" onchange="applySelectedVpnClient(this);">
                             <option value="">-- Choose from PPP Secrets --</option>
                             <?php foreach ($routerPppSecrets as $s) {
@@ -685,14 +685,14 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         </div>
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Client Static IP (টার্গেট আইপি):</label>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Client Static IP:', 'Client Static IP:'); ?></label>
                           <input type="text" id="forward_ip" name="forward_ip" class="form-control" required placeholder="e.g. 10.10.10.50">
                         </div>
 
                         <div class="row">
                           <div class="col-6">
                             <div class="form-group mr-b-10">
-                              <label style="font-weight:bold; font-size:12px;">Customer / Group:</label>
+                              <label style="font-weight:bold; font-size:12px;"><?= vpnText('Customer / Group:', 'Customer / Group:'); ?></label>
                               <input type="text" id="forward_group" name="forward_group" class="form-control" required placeholder="e.g. শাহিন">
                             </div>
                           </div>
@@ -807,7 +807,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 <div class="col-6 col-box-12">
                   <div class="card">
                     <div class="card-header">
-                      <h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> Push WhatsApp Voice Call Traffic Bypass ("ভয়েস কল")</h4>
+                      <h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> <?= vpnText('WhatsApp Voice Call Routing', 'WhatsApp Voice Call Routing'); ?></h4>
                     </div>
                     <div class="card-body">
                       <p style="font-size:13px;" class="text-muted">
@@ -836,7 +836,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         </div>
 
                         <button type="submit" name="push_whatsapp_bypass" class="btn bg-green btn-block" style="font-size:14px; font-weight:bold; padding:8px 15px;">
-                          <i class="fa fa-cloud-upload"></i> পুশ ভয়েস কল কনফিগারেশন (Push WhatsApp Bypass)
+                          <i class="fa fa-cloud-upload"></i> <?= vpnText('Push Voice Call Rules', 'ভয়েস কল Rules Push করুন'); ?>
                         </button>
                       </form>
                     </div>
