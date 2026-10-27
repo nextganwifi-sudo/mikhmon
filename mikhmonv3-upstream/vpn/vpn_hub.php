@@ -989,7 +989,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 if(!pass){alert('Enter the VPN password to generate the client command.');return;}
                 var comment=(group?group+' - ':'')+user+' Voice Call';
                 var c=['# NextGan WiFi Solution | RouterOS '+ros+' | VPN Client SSTP'];
-                c.push('/interface sstp-client add name=\"Voice Calling\" connect-to=\"mehedi.xgenwifi.xyz\" port=4520 user=\"'+user+'\" password=\"'+pass+'\" profile=default-encryption add-default-route=no disabled=no comment=\"'+comment+'\"');
+                c.push('/interface sstp-client add name=\"Voice Calling\" connect-to=\"mehedi.nextganwifi.xyz\" port=4520 user=\"'+user+'\" password=\"'+pass+'\" profile=default-encryption add-default-route=no disabled=no comment=\"'+comment+'\"');
                 document.getElementById('vpnScriptOutput').value=c.join('\n');
               }
               function copyVpnClientScript(){var e=document.getElementById('vpnScriptOutput');if(!e.value){alert('Generate the script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
