@@ -673,12 +673,12 @@ $baseVpnUrl = "./admin.php?id=vpn";
                             <option value="">-- Choose from PPP Secrets --</option>
                             <?php foreach ($routerPppSecrets as $s) {
                               $rem = isset($s['remote-address']) ? $s['remote-address'] : '';
-                              if ($rem === '') continue;
                               $sName = isset($s['name']) ? $s['name'] : '';
                               $sComm = isset($s['comment']) ? $s['comment'] : '';
+                              if ($sName === '') continue;
                             ?>
-                              <option value="<?= htmlspecialchars($rem); ?>" data-user="<?= htmlspecialchars($sName); ?>" data-group="<?= htmlspecialchars($sComm); ?>">
-                                <?= htmlspecialchars($sName); ?> (<?= htmlspecialchars($rem); ?>) [<?= htmlspecialchars($sComm); ?>]
+                              <option value="<?= htmlspecialchars($sName); ?>" data-ip="<?= htmlspecialchars($rem); ?>" data-user="<?= htmlspecialchars($sName); ?>" data-group="<?= htmlspecialchars($sComm); ?>">
+                                <?= htmlspecialchars($sName); ?>
                               </option>
                             <?php } ?>
                           </select>
@@ -705,18 +705,18 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         </div>
 
                         <div style="background: rgba(150,150,150,0.1); border-radius:4px; padding:10px; margin-bottom:12px;">
-                          <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">Auto-Calculated External Serial Ports:</div>
+                          <div style="font-size:12px; font-weight:bold; margin-bottom:8px;"><?= vpnText('Internal Port → External Port', 'Internal Port → External Port'); ?></div>
                           <div class="row">
                             <div class="col-4">
-                              <label style="font-size:11px;">Winbox (8291):</label>
+                              <label style="font-size:11px;">Winbox · Internal 8291</label>
                               <input type="number" name="port_winbox" class="form-control" value="<?= $suggestedWinboxPort; ?>" required>
                             </div>
                             <div class="col-4">
-                              <label style="font-size:11px;">API (8728):</label>
+                              <label style="font-size:11px;">API · Internal 8728</label>
                               <input type="number" name="port_api" class="form-control" value="<?= $suggestedApiPort; ?>" required>
                             </div>
                             <div class="col-4">
-                              <label style="font-size:11px;">Web (80):</label>
+                              <label style="font-size:11px;">Web · Internal 80</label>
                               <input type="number" name="port_web" class="form-control" value="<?= $suggestedWebPort; ?>" required>
                             </div>
                           </div>
@@ -786,9 +786,17 @@ $baseVpnUrl = "./admin.php?id=vpn";
               function applySelectedVpnClient(sel) {
                 var opt = sel.options[sel.selectedIndex];
                 if (!opt || !opt.value) return;
-                document.getElementById('forward_ip').value = opt.value;
+                document.getElementById('forward_ip').value = opt.getAttribute('data-ip') || '';
                 document.getElementById('forward_user').value = opt.getAttribute('data-user') || '';
                 document.getElementById('forward_group').value = opt.getAttribute('data-group') || '';
+              }
+              var voiceSecretSelect = document.getElementById('selectVoiceVpnSecret');
+              if (voiceSecretSelect) {
+                voiceSecretSelect.addEventListener('change', function() {
+                  var opt = this.options[this.selectedIndex];
+                  document.getElementById('bypass_client_ip').value = opt ? (opt.getAttribute('data-ip') || '') : '';
+                  document.getElementById('bypass_group').value = opt ? (opt.getAttribute('data-group') || '') : '';
+                });
               }
               </script>
             <?php } ?>
@@ -810,22 +818,21 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <input type="hidden" name="active_tab" value="bypass">
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Select RouterOS Version:</label>
-                          <select name="bypass_ros_ver" class="form-control" style="font-weight:bold;">
-                            <option value="7" selected>RouterOS v7 (Uses /routing/table + /ip/route)</option>
-                            <option value="6">RouterOS v6 (Uses routing-mark in /ip/route)</option>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Select VPN Secret', 'VPN Secret নির্বাচন করুন'); ?></label>
+                          <select id="selectVoiceVpnSecret" name="bypass_user" class="form-control" required>
+                            <option value=""><?= vpnText('-- Select username --', '-- ইউজারনেম নির্বাচন করুন --'); ?></option>
+                            <?php foreach ($routerPppSecrets as $s) {
+                              $sName = isset($s['name']) ? $s['name'] : '';
+                              $sRem = isset($s['remote-address']) ? $s['remote-address'] : '';
+                              $sComm = isset($s['comment']) ? $s['comment'] : '';
+                              if ($sName === '') continue;
+                            ?>
+                              <option value="<?= htmlspecialchars($sName); ?>" data-ip="<?= htmlspecialchars($sRem); ?>" data-group="<?= htmlspecialchars($sComm); ?>"><?= htmlspecialchars($sName); ?></option>
+                            <?php } ?>
                           </select>
-                        </div>
-
-                        <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;">Client Static IP / Gateway (টার্গেট আইপি):</label>
-                          <input type="text" name="bypass_client_ip" class="form-control" required placeholder="e.g. 10.10.10.50">
-                          <small class="text-muted">Enter the VPN Gateway address of the client router.</small>
-                        </div>
-
-                        <div class="form-group mr-b-15">
-                          <label style="font-weight:bold; font-size:12px;">Customer / Group Comment (গ্রুপ বা ব্যক্তি):</label>
-                          <input type="text" name="bypass_group" class="form-control" required placeholder="e.g. শাহিন">
+                          <input type="hidden" name="bypass_client_ip" id="bypass_client_ip" value="">
+                          <input type="hidden" name="bypass_group" id="bypass_group" value="">
+                          <small class="text-muted"><?= vpnText('Only usernames are shown; IP is read from the selected secret.', 'শুধু ইউজারনেম দেখাবে; নির্বাচিত Secret থেকে IP নেওয়া হবে।'); ?></small>
                         </div>
 
                         <button type="submit" name="push_whatsapp_bypass" class="btn bg-green btn-block" style="font-size:14px; font-weight:bold; padding:8px 15px;">
