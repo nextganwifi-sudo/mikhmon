@@ -280,8 +280,8 @@ if ($id == "login" || substr($url, -1) == "p") {
   }
   echo "<script>window.location='./admin.php?id=uplogo&session=" . $session . "'</script>";
 } elseif ($id == "editor") {
-  if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template')) {
-    requireResellerPermission('edit_own_template', './admin.php?id=sessions');
+  if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher')) {
+    requireResellerPermission('preview_assigned_template', './admin.php?id=sessions');
   }
   include_once('./include/menu.php');
   session_write_close();
