@@ -1108,15 +1108,15 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     <div class="card-body">
                       <p class="text-muted" style="font-size:12px;"><?= vpnText('Generate only WhatsApp Voice Call mangle rules. This does not create VPN clients, routes, or routing tables.','শুধু WhatsApp Voice Call Mangle Rule তৈরি হবে। VPN Client, Route বা Routing Table তৈরি হবে না।'); ?></p>
                       <div class="form-group"><label><?= vpnText('Search / Select VPN User','VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
-                        <input id="scriptVpnSearch" class="form-control" list="scriptVpnOptions" placeholder="<?= vpnText('Type username to search…','ইউজারনেম লিখে খুঁজুন…'); ?>" oninput="selectScriptVpnUser(this.value)">
+                        <input id="whatsappMangleUserSearch" class="form-control" list="scriptVpnOptions" placeholder="<?= vpnText('Type username to search…','ইউজারনেম লিখে খুঁজুন…'); ?>" oninput="selectScriptVpnUser(this.value)">
                         <datalist id="scriptVpnOptions"><?php foreach ($routerPppSecrets as $ss) { $scriptUser=isset($ss['name'])?$ss['name']:''; if($scriptUser!==''){ ?><option value="<?= htmlspecialchars($scriptUser); ?>"></option><?php } } ?></datalist>
                       </div>
                       <input type="hidden" id="scriptVpnUser" value="">
                       <input type="hidden" id="scriptVpnGroup" value="">
-                      <div class="form-group"><label>RouterOS</label><select id="scriptVpnRos" class="form-control"><option value="6">RouterOS 6</option><option value="7" selected>RouterOS 7</option></select></div>
+                      <div class="form-group"><label>RouterOS</label><select id="whatsappMangleRos" class="form-control"><option value="6">RouterOS 6</option><option value="7" selected>RouterOS 7</option></select></div>
                       <button type="button" class="btn bg-primary" onclick="generateVpnClientInline()"><?= vpnText('Generate WhatsApp Mangle Script','WhatsApp Mangle Script তৈরি করুন'); ?></button>
                       <button type="button" class="btn bg-secondary" onclick="copyVpnInlineScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
-                      <textarea id="scriptVpnOutput" class="form-control" rows="8" readonly style="margin-top:10px;font-family:monospace;"></textarea>
+                      <textarea id="whatsappMangleOutput" class="form-control" rows="8" readonly style="margin-top:10px;font-family:monospace;"></textarea>
                     </div>
                   </div>
                 </div>
@@ -1196,7 +1196,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
               function selectScriptVpnUser(value){var d=voiceSecretData[value];document.getElementById('scriptVpnUser').value=d?value:'';document.getElementById('scriptVpnGroup').value=d?d.group:'';}
               function generateVpnClientInline(){
                 var user=document.getElementById('scriptVpnUser').value, group=document.getElementById('scriptVpnGroup').value;
-                var ros=document.getElementById('scriptVpnRos').value;
+                var ros=document.getElementById('whatsappMangleRos').value;
                 if(!user){alert('Select a VPN user first.');return;}
                 function q(v){return String(v).replace(/["\\\r\n]/g,'_');}
                 var ip=(voiceSecretData[user]||{}).ip||'';
@@ -1206,9 +1206,9 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 var c=['# NextGan WiFi Solution | WhatsApp Voice Call Mangle | RouterOS '+ros];
                 c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
                 c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
-                document.getElementById('scriptVpnOutput').value=c.join('\n');
+                document.getElementById('whatsappMangleOutput').value=c.join('\n');
               }
-              function copyVpnInlineScript(){var e=document.getElementById('scriptVpnOutput');if(!e.value){alert('Generate script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
+              function copyVpnInlineScript(){var e=document.getElementById('whatsappMangleOutput');if(!e.value){alert('Generate script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
               </script>
             <?php } ?>
 
