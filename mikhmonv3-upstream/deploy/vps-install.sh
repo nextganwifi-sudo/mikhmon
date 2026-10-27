@@ -116,6 +116,18 @@ echo "[3/6] Setting directory permissions for web-based Template Editor, Logo Up
 # Create a runtime config only when this is a fresh install; never overwrite live router credentials.
 if [[ ! -f "${APP_DIR}/include/config.php" && -f "${APP_DIR}/include/config.example.php" ]]; then
   cp "${APP_DIR}/include/config.example.php" "${APP_DIR}/include/config.php"
+  # Generate unique initial admin credentials instead of deploying the public demo login.
+  ADMIN_USER="admin_$(openssl rand -hex 4)"
+  ADMIN_PASS="$(openssl rand -hex 12)"
+  ADMIN_ENC="$(php -r '$s=$argv[1];$key="128";$r="";for($i=0;$i<strlen($s);$i++){$r.=chr(ord($s[$i])+ord(substr($key,($i%strlen($key))-1,1)));}echo base64_encode($r);' "$ADMIN_PASS")"
+  APP_CONFIG="${APP_DIR}/include/config.php" ADMIN_USER="$ADMIN_USER" ADMIN_ENC="$ADMIN_ENC" php -r '$p=getenv("APP_CONFIG");$s=file_get_contents($p);$s=preg_replace("/\\x27mikhmon<\\|<mikhmon\\x27/","\\x27mikhmon<|<".getenv("ADMIN_USER")."\\x27",$s,1);$s=preg_replace("/\\x27mikhmon>\\|>[^\\x27]*\\x27/","\\x27mikhmon>|>".getenv("ADMIN_ENC")."\\x27",$s,1);if(file_put_contents($p,$s)===false){fwrite(STDERR,"Unable to configure initial admin credentials.\\n");exit(1);}'
+  CREDENTIAL_FILE="/root/nextgan-initial-credentials.txt"
+  umask 077
+  printf 'NextGan initial administrator login\\nUsername: %s\\nPassword: %s\\nChange this password immediately after login.\\n' "$ADMIN_USER" "$ADMIN_PASS" > "$CREDENTIAL_FILE"
+  chmod 600 "$CREDENTIAL_FILE"
+  echo "[!] Initial admin credentials were generated and saved to $CREDENTIAL_FILE"
+  echo "    Username: $ADMIN_USER"
+  echo "    Password: $ADMIN_PASS"
 fi
 mkdir -p "${APP_DIR}/uploads/reseller-templates" "${APP_DIR}/uploads/reseller-logos" "${APP_DIR}/backups" "${APP_DIR}/images"
 chown -R www-data:www-data "${APP_DIR}"
