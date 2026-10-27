@@ -26,6 +26,19 @@ if (!isMikhmonAdmin() && !hasResellerPermission('manage_router_settings')) {
     exit;
 }
 
+// Bind state-changing VPN actions to the authenticated session.
+if (empty($_SESSION['vpn_hub_csrf'])) {
+    try {
+        $_SESSION['vpn_hub_csrf'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        $_SESSION['vpn_hub_csrf'] = bin2hex(openssl_random_pseudo_bytes(32));
+    }
+}
+$vpnCsrfToken = (string)$_SESSION['vpn_hub_csrf'];
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
 $vpnStoragePath = __DIR__ . '/../include/vpn_routers.json';
 
 /** Language-aware VPN Hub labels; $langid is set by the main application. */
@@ -62,9 +75,19 @@ function saveVpnRouters($routers) {
 $vpnRouters = loadVpnRouters();
 $vpnMsg = '';
 $vpnErr = '';
+$vpnCsrfValid = true;
+
+// Reject all state-changing VPN requests with a missing or invalid token.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedVpnToken = isset($_POST['vpn_csrf_token']) ? (string)$_POST['vpn_csrf_token'] : '';
+    if ($postedVpnToken === '' || !hash_equals($vpnCsrfToken, $postedVpnToken)) {
+        $vpnErr = 'Security token expired or invalid. Reload the page and try again.';
+        $vpnCsrfValid = false;
+    }
+}
 
 // Handle VPN Router CRUD.
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
     if (isset($_POST['save_vpn_router']) || isset($_POST['add_vpn_router'])) {
         $editId = trim((string)(isset($_POST['vpn_router_id']) ? $_POST['vpn_router_id'] : ''));
         $rName = trim((string)$_POST['vpn_name']);
@@ -101,11 +124,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'pass_enc' => function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass),
                         'port' => $rPort, 'ros_ver' => $rVer, 'created_at' => date('Y-m-d H:i:s'),
                     );
-                    $vpnMsg = 'VPN Router added successfully.';
+                    // Success is reported only after the configuration is persisted.
                 } else {
-                    $vpnMsg = 'VPN Router updated successfully.';
+                    // Success is reported only after the configuration is persisted.
                 }
-                saveVpnRouters($vpnRouters);
+                if (saveVpnRouters($vpnRouters)) {
+                    $vpnMsg = $editId === '' ? 'VPN Router added successfully.' : 'VPN Router updated successfully.';
+                } else {
+                    $vpnRouters = loadVpnRouters();
+                    $vpnErr = 'VPN Router changes could not be saved. Check VPS file permissions and disk space.';
+                }
             }
         }
     } elseif (isset($_POST['delete_vpn_router'])) {
@@ -113,8 +141,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $vpnRouters = array_values(array_filter($vpnRouters, function($vr) use ($delId) {
             return !isset($vr['id']) || $vr['id'] !== $delId;
         }));
-        saveVpnRouters($vpnRouters);
-        $vpnMsg = 'VPN Router removed.';
+        if (saveVpnRouters($vpnRouters)) {
+            $vpnMsg = 'VPN Router removed.';
+        } else {
+            $vpnRouters = loadVpnRouters();
+            $vpnErr = 'VPN Router could not be removed from storage. Check VPS file permissions and disk space.';
+        }
     }
 }
 
@@ -639,7 +671,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                             <form method="post" action="" style="display:inline;" onsubmit="return confirm('Remove VPN Router <?= htmlspecialchars($vr['name'], ENT_QUOTES); ?>?');">
                               <input type="hidden" name="del_id" value="<?= htmlspecialchars($vr['id']); ?>">
                               <button type="submit" name="delete_vpn_router" class="btn bg-danger" style="padding:5px 9px;font-size:12px;" title="Delete"><i class="fa fa-trash"></i></button>
-                            </form>
+                            <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                           </td>
                         </tr>
                       <?php } ?>
@@ -762,7 +794,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <button type="submit" name="create_ppp_secret" class="btn bg-primary btn-block">
                           <i class="fa fa-save"></i> Create VPN Secret
                         </button>
-                      </form>
+                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                     </div>
                   </div>
                 </div>
@@ -844,7 +876,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                         <input type="hidden" name="secret_id" value="<?= htmlspecialchars($sId); ?>">
                                         <button type="submit" name="action_secret" value="<?= $sDis ? 'enable' : 'disable'; ?>" class="btn <?= $sDis ? 'bg-green' : 'bg-warning'; ?> btn-block"><?= $sDis ? vpnText('Enable','চালু করুন') : vpnText('Disable','বন্ধ করুন'); ?></button>
                                         <button type="submit" name="action_secret" value="remove" class="btn bg-danger btn-block" onclick="return confirm('<?= vpnText('Delete this secret?','এই Secret মুছে ফেলবেন?'); ?>')"><?= vpnText('Delete','মুছুন'); ?></button>
-                                      </form>
+                                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                                     </div>
                                   </details>
                                   <div id="<?= $safeModalId; ?>" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:20px;overflow:auto;">
@@ -1036,7 +1068,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <button type="submit" name="apply_port_forward" id="nat_apply_button" class="btn bg-primary btn-block">
                           <i class="fa fa-check"></i> Apply Port Forwarding (3 Rules)
                         </button>
-                      </form>
+                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                     </div>
                   </div>
                 </div>
@@ -1091,7 +1123,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                     <input type="hidden" name="nat_id" value="<?= htmlspecialchars($nId); ?>">
                                     <button type="button" class="btn bg-primary" style="padding:2px 6px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$nId,"dst"=>$nDstPort,"ip"=>$nToAddr,"to"=>$nToPort,"comment"=>$nComm,"protocol"=>isset($nr["protocol"])?$nr["protocol"]:"tcp"), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i></button>
                                     <button type="submit" name="remove_nat_rule" class="btn bg-danger" style="padding:2px 6px;" title="Remove NAT Rule" onclick="return confirm('Remove NAT Rule for port <?= htmlspecialchars($nDstPort, ENT_QUOTES); ?>?');"><i class="fa fa-trash"></i></button>
-                                  </form>
+                                  <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                                 </td>
                                 <td><strong><?= htmlspecialchars($nUser); ?></strong></td>
                                 <td><b class="text-primary"><?= htmlspecialchars($nDstPort); ?></b></td>
@@ -1209,7 +1241,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <button type="submit" name="push_whatsapp_bypass" class="btn bg-green btn-block" style="font-size:14px; font-weight:bold; padding:8px 15px;">
                           <i class="fa fa-cloud-upload"></i> <?= vpnText('Push Voice Call Rules', 'ভয়েস কল Rules Push করুন'); ?>
                         </button>
-                      </form>
+                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                     </div>
                   </div>
                 </div>
@@ -1290,7 +1322,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 <input type="hidden" name="active_tab" value="bypass">
                                 <input type="hidden" name="bypass_user" value="<?= htmlspecialchars($vs['user']); ?>">
                                 <button type="submit" name="remove_whatsapp_bypass" class="btn bg-danger" style="padding:4px 9px;"><?= vpnText('Delete','ডিলিট'); ?></button>
-                              </form>
+                              <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                             </td>
                           </tr>
                         <?php } } ?>
@@ -1370,7 +1402,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 <button type="submit" name="disconnect_active_vpn" class="btn bg-danger" style="padding:2px 8px; font-size:12px;" onclick="return confirm('Disconnect active VPN user <?= htmlspecialchars($aName, ENT_QUOTES); ?>?');">
                                   <i class="fa fa-power-off"></i> Disconnect
                                 </button>
-                              </form>
+                              <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                             </td>
                             <td><b><?= htmlspecialchars($aName); ?></b></td>
                             <td><?= htmlspecialchars($aServ); ?></td>
@@ -1479,7 +1511,7 @@ document.addEventListener('DOMContentLoaded',function(){
         <button type="submit" name="save_vpn_router" id="vpnRouterSaveButton" class="btn bg-primary btn-block" style="margin-top:10px;">
           <i class="fa fa-save"></i> Save VPN Router
         </button>
-      </form>
+      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
     </div>
   </div>
 </div>
