@@ -147,7 +147,7 @@ if (@file_put_contents($p, $updated) === false) {
 PHP
   CREDENTIAL_FILE="/root/nextgan-initial-credentials.txt"
   umask 077
-  printf 'NextGan initial administrator login\\nUsername: %s\\nPassword: %s\\nChange this password immediately after login.\\n' "$ADMIN_USER" "$ADMIN_PASS" > "$CREDENTIAL_FILE"
+  printf 'NextGan initial administrator login\nUsername: %s\nPassword: %s\nChange this password immediately after login.\n' "$ADMIN_USER" "$ADMIN_PASS" > "$CREDENTIAL_FILE"
   chmod 600 "$CREDENTIAL_FILE"
   echo "[!] Initial admin credentials were generated and saved to $CREDENTIAL_FILE"
   echo "    Username: $ADMIN_USER"
@@ -197,7 +197,7 @@ server {
     }
 
     # Uploaded templates may be included internally, but must not execute via direct HTTP requests.
-    location ~* ^/(uploads|voucher)/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)\$ {
+    location ~* ^/(uploads|voucher)/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$ {
         deny all;
         return 404;
     }
@@ -207,7 +207,7 @@ server {
         return 404;
     }
 
-    location ~ \.php\$ {
+    location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:${PHP_SOCK};
         fastcgi_read_timeout 180;
