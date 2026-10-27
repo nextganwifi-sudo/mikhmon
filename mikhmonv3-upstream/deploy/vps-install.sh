@@ -120,7 +120,29 @@ if [[ ! -f "${APP_DIR}/include/config.php" && -f "${APP_DIR}/include/config.exam
   ADMIN_USER="admin_$(openssl rand -hex 4)"
   ADMIN_PASS="$(openssl rand -hex 12)"
   ADMIN_ENC="$(php -r '$s=$argv[1];$key="128";$r="";for($i=0;$i<strlen($s);$i++){$r.=chr(ord($s[$i])+ord(substr($key,($i%strlen($key))-1,1)));}echo base64_encode($r);' "$ADMIN_PASS")"
-  APP_CONFIG="${APP_DIR}/include/config.php" ADMIN_USER="$ADMIN_USER" ADMIN_ENC="$ADMIN_ENC" php -r '$p=getenv("APP_CONFIG");$s=file_get_contents($p);$s=preg_replace("/\\x27mikhmon<\\|<mikhmon\\x27/","\\x27mikhmon<|<".getenv("ADMIN_USER")."\\x27",$s,1);$s=preg_replace("/\\x27mikhmon>\\|>[^\\x27]*\\x27/","\\x27mikhmon>|>".getenv("ADMIN_ENC")."\\x27",$s,1);if(file_put_contents($p,$s)===false){fwrite(STDERR,"Unable to configure initial admin credentials.\\n");exit(1);}'
+  APP_CONFIG="${APP_DIR}/include/config.php" ADMIN_USER="$ADMIN_USER" ADMIN_ENC="$ADMIN_ENC" php <<'PHP'
+<?php
+$p = getenv('APP_CONFIG');
+$user = getenv('ADMIN_USER');
+$enc = getenv('ADMIN_ENC');
+$s = @file_get_contents($p);
+if ($s === false || $user === '' || $enc === '') {
+    fwrite(STDERR, "Unable to read config or generate initial administrator credentials.\n");
+    exit(1);
+}
+$pattern = '/^\$data\[[\'"]mikhmon[\'"]\]\s*=\s*array\s*\(.*\);\s*$/m';
+$replacement = "\$data['mikhmon'] = array ('1'=>'mikhmon<|<" . $user . "','mikhmon>|>" . $enc . "');";
+$count = 0;
+$updated = preg_replace($pattern, $replacement, $s, 1, $count);
+if ($updated === null || $count !== 1) {
+    fwrite(STDERR, "Unable to locate the administrator config entry; refusing to install with a known default credential.\n");
+    exit(1);
+}
+if (@file_put_contents($p, $updated) === false) {
+    fwrite(STDERR, "Unable to save initial administrator credentials.\n");
+    exit(1);
+}
+PHP
   CREDENTIAL_FILE="/root/nextgan-initial-credentials.txt"
   umask 077
   printf 'NextGan initial administrator login\\nUsername: %s\\nPassword: %s\\nChange this password immediately after login.\\n' "$ADMIN_USER" "$ADMIN_PASS" > "$CREDENTIAL_FILE"
