@@ -63,6 +63,10 @@ cp -a "${STAGE_BACKUP}/images/." "${APP_DIR}/images/" 2>/dev/null || true
 
 echo "[4/4] Fixing file permissions..."
 chown -R www-data:www-data "${APP_DIR}" 2>/dev/null || true
-chmod -R 775 "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" 2>/dev/null || true
+# Keep application code non-writable to group/other; grant write access only to runtime directories.
+find "${APP_DIR}" -type d -exec chmod 755 {} + 2>/dev/null || true
+find "${APP_DIR}" -type f -exec chmod 644 {} + 2>/dev/null || true
+chmod 750 "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" 2>/dev/null || true
+chmod 640 "${APP_DIR}/include/config.php" "${APP_DIR}/include/resellers.json" "${APP_DIR}/include/permission_groups.json" "${APP_DIR}/include/backup_admin.json" 2>/dev/null || true
 
 echo "Safe Update Completed Successfully! Zero data files were modified or lost."
