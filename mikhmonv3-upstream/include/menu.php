@@ -361,7 +361,7 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
   <?php } ?>
   <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
   <?php } else { ?>
-  <?php if (hasResellerPermission('edit_own_template') && (!isset($id) || $id !== 'vpn')) { ?>
+  <?php if ((hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template') || hasResellerPermission('preview_assigned_template') || hasResellerPermission('use_assigned_template') || hasResellerPermission('print_voucher')) && (!isset($id) || $id !== 'vpn')) { ?>
   <a href="./admin.php?id=editor" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?></a>
   <?php } ?>
   <?php } ?>
