@@ -502,6 +502,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <th>API Port</th>
                         <th>RouterOS</th>
                         <th>Created</th>
+                        <th class="text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -813,38 +814,37 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <input type="hidden" name="active_tab" value="nat">
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Select VPN Username:', 'VPN ইউজারনেম নির্বাচন করুন:'); ?></label>
-                          <select id="selectVpnClient" class="form-control" onchange="applySelectedVpnClient(this);">
-                            <option value="">-- Choose from PPP Secrets --</option>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Search / Select VPN User', 'VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
+                          <input id="searchVpnClient" class="form-control" list="vpnClientOptions" placeholder="<?= vpnText('Type username to search…', 'ইউজারনেম লিখে খুঁজুন…'); ?>" autocomplete="off" oninput="applySearchedVpnClient(this.value)">
+                          <datalist id="vpnClientOptions">
                             <?php foreach ($routerPppSecrets as $s) {
                               $rem = isset($s['remote-address']) ? $s['remote-address'] : '';
                               $sName = isset($s['name']) ? $s['name'] : '';
                               $sComm = isset($s['comment']) ? $s['comment'] : '';
                               if ($sName === '') continue;
                             ?>
-                              <option value="<?= htmlspecialchars($sName); ?>" data-ip="<?= htmlspecialchars($rem); ?>" data-user="<?= htmlspecialchars($sName); ?>" data-group="<?= htmlspecialchars($sComm); ?>">
-                                <?= htmlspecialchars($sName); ?>
-                              </option>
+                              <option value="<?= htmlspecialchars($sName); ?>"></option>
                             <?php } ?>
-                          </select>
+                          </datalist>
+                          <input type="hidden" id="selectVpnClient" value="">
                         </div>
 
                         <div class="form-group mr-b-10">
                           <label style="font-weight:bold; font-size:12px;"><?= vpnText('Client Static IP:', 'Client Static IP:'); ?></label>
-                          <input type="text" id="forward_ip" name="forward_ip" class="form-control" required placeholder="e.g. 10.10.10.50">
+                          <input type="text" id="forward_ip" name="forward_ip" class="form-control" readonly required placeholder="Auto-filled from PPP Secret">
                         </div>
 
                         <div class="row">
                           <div class="col-6">
                             <div class="form-group mr-b-10">
                               <label style="font-weight:bold; font-size:12px;"><?= vpnText('Customer / Group:', 'Customer / Group:'); ?></label>
-                              <input type="text" id="forward_group" name="forward_group" class="form-control" required placeholder="e.g. শাহিন">
+                              <input type="text" id="forward_group" name="forward_group" class="form-control" readonly required placeholder="Auto-filled from PPP Secret">
                             </div>
                           </div>
                           <div class="col-6">
                             <div class="form-group mr-b-10">
                               <label style="font-weight:bold; font-size:12px;">VPN Username:</label>
-                              <input type="text" id="forward_user" name="forward_user" class="form-control" required placeholder="e.g. kiosk_1">
+                              <input type="text" id="forward_user" name="forward_user" class="form-control" readonly required placeholder="Auto-filled from PPP Secret">
                             </div>
                           </div>
                         </div>
@@ -928,20 +928,28 @@ $baseVpnUrl = "./admin.php?id=vpn";
               </div>
 
               <script>
-              function applySelectedVpnClient(sel) {
-                var opt = sel.options[sel.selectedIndex];
-                if (!opt || !opt.value) return;
-                document.getElementById('forward_ip').value = opt.getAttribute('data-ip') || '';
-                document.getElementById('forward_user').value = opt.getAttribute('data-user') || '';
-                document.getElementById('forward_group').value = opt.getAttribute('data-group') || '';
+              var vpnSecretIndex = {};
+              <?php foreach ($routerPppSecrets as $s) {
+                $un = isset($s['name']) ? $s['name'] : '';
+                if ($un === '') continue;
+                $remote = isset($s['remote-address']) ? $s['remote-address'] : '';
+                $group = isset($s['comment']) ? $s['comment'] : '';
+              ?>
+              vpnSecretIndex[<?= json_encode($un); ?>] = {ip:<?= json_encode($remote); ?>,user:<?= json_encode($un); ?>,group:<?= json_encode($group); ?>};
+              <?php } ?>
+              function applySearchedVpnUser(value) {
+                var u=vpnSecretIndex[value];
+                document.getElementById('selectVpnClient').value=value;
+                document.getElementById('forward_ip').value=u?u.ip:'';
+                document.getElementById('forward_user').value=u?u.user:'';
+                document.getElementById('forward_group').value=u?u.group:'';
               }
-              var voiceSecretSelect = document.getElementById('selectVoiceVpnSecret');
-              if (voiceSecretSelect) {
-                voiceSecretSelect.addEventListener('change', function() {
-                  var opt = this.options[this.selectedIndex];
-                  document.getElementById('bypass_client_ip').value = opt ? (opt.getAttribute('data-ip') || '') : '';
-                  document.getElementById('bypass_group').value = opt ? (opt.getAttribute('data-group') || '') : '';
-                });
+              function applySearchedVpnClient(value){applySearchedVpnUser(value);}
+              function applySearchedVoiceVpnUser(value) {
+                var u=vpnSecretIndex[value];
+                document.getElementById('selectVoiceVpnSecret').value=u?u.user:'';
+                document.getElementById('bypass_client_ip').value=u?u.ip:'';
+                document.getElementById('bypass_group').value=u?u.group:'';
               }
               </script>
             <?php } ?>
@@ -963,18 +971,19 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <input type="hidden" name="active_tab" value="bypass">
 
                         <div class="form-group mr-b-10">
-                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Select VPN Secret', 'VPN Secret নির্বাচন করুন'); ?></label>
-                          <select id="selectVoiceVpnSecret" name="bypass_user" class="form-control" required>
-                            <option value=""><?= vpnText('-- Select username --', '-- ইউজারনেম নির্বাচন করুন --'); ?></option>
+                          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Search / Select VPN User', 'VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
+                          <input id="searchVoiceVpnSecret" class="form-control" list="voiceVpnOptions" placeholder="<?= vpnText('Type username to search…', 'ইউজারনেম লিখে খুঁজুন…'); ?>" autocomplete="off" oninput="applySearchedVoiceVpnUser(this.value)" required>
+                          <datalist id="voiceVpnOptions">
                             <?php foreach ($routerPppSecrets as $s) {
                               $sName = isset($s['name']) ? $s['name'] : '';
                               $sRem = isset($s['remote-address']) ? $s['remote-address'] : '';
                               $sComm = isset($s['comment']) ? $s['comment'] : '';
                               if ($sName === '') continue;
                             ?>
-                              <option value="<?= htmlspecialchars($sName); ?>" data-ip="<?= htmlspecialchars($sRem); ?>" data-group="<?= htmlspecialchars($sComm); ?>"><?= htmlspecialchars($sName); ?></option>
+                              <option value="<?= htmlspecialchars($sName); ?>"></option>
                             <?php } ?>
-                          </select>
+                          </datalist>
+                          <input type="hidden" id="selectVoiceVpnSecret" name="bypass_user" value="">
                           <input type="hidden" name="bypass_client_ip" id="bypass_client_ip" value="">
                           <input type="hidden" name="bypass_group" id="bypass_group" value="">
                           <small class="text-muted"><?= vpnText('Only usernames are shown; IP is read from the selected secret.', 'শুধু ইউজারনেম দেখাবে; নির্বাচিত Secret থেকে IP নেওয়া হবে।'); ?></small>
