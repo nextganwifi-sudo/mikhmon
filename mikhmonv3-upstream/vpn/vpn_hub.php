@@ -715,6 +715,26 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                       </form>
                                     </div>
                                   </details>
+                                  <div id="<?= $safeModalId; ?>" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:20px;overflow:auto;">
+                                    <div class="card" style="max-width:760px;margin:25px auto;padding:15px;">
+                                      <button type="button" class="btn bg-secondary" style="float:right;" onclick="document.getElementById('<?= $safeModalId; ?>').style.display='none'">&times;</button>
+                                      <h4><?= vpnText('Secret Details','Secret-এর বিস্তারিত'); ?> — <?= htmlspecialchars($sName); ?></h4>
+                                      <table class="table table-bordered">
+                                        <tr><th><?= vpnText('Username','ইউজারনেম'); ?></th><td><?= htmlspecialchars($sName); ?></td></tr>
+                                        <tr><th><?= vpnText('Service','Service'); ?></th><td><?= htmlspecialchars(strtoupper($sServ)); ?></td></tr>
+                                        <tr><th><?= vpnText('Remote IP','Remote IP'); ?></th><td><?= htmlspecialchars($sRem); ?></td></tr>
+                                        <tr><th><?= vpnText('Group','Group'); ?></th><td><?= htmlspecialchars($sComm); ?></td></tr>
+                                        <tr><th><?= vpnText('Status','Status'); ?></th><td><?= $sDis ? vpnText('Disabled','বন্ধ') : vpnText('Enabled','চালু'); ?></td></tr>
+                                        <tr><th><?= vpnText('WhatsApp Voice Call','WhatsApp Voice Call'); ?></th><td><?= $hasVoice ? vpnText('Configured','কনফিগার করা') : vpnText('Not configured','কনফিগার করা নেই'); ?></td></tr>
+                                      </table>
+                                      <h5><?= vpnText('Port Forwarding','Port Forwarding'); ?></h5>
+                                      <table class="table table-bordered"><thead><tr><th><?= vpnText('External Port','External Port'); ?></th><th><?= vpnText('Internal Port','Internal Port'); ?></th><th><?= vpnText('Target IP','Target IP'); ?></th><th>Comment</th></tr></thead><tbody>
+                                        <?php if (!$relatedNat) { ?><tr><td colspan="4"><?= vpnText('No matching NAT rules','মিল থাকা NAT Rule নেই'); ?></td></tr><?php } else { foreach ($relatedNat as $rr) { ?>
+                                          <tr><td><?= htmlspecialchars(isset($rr['dst-port']) ? $rr['dst-port'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-ports']) ? $rr['to-ports'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-addresses']) ? $rr['to-addresses'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['comment']) ? $rr['comment'] : '-'); ?></td></tr>
+                                        <?php } } ?>
+                                      </tbody></table>
+                                    </div>
+                                  </div>
                                 </td>
                               </tr>
                             <?php } } ?>
