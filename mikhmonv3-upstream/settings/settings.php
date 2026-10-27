@@ -99,8 +99,12 @@ if (!isset($_SESSION["mikhmon"])) {
       } elseif (@file_put_contents($configPath, $newcontent, LOCK_EX) === false) {
         echo "<div class='alert alert-danger'>Could not save router settings: config.php is not writable.</div>";
       } else {
+        // Post/Redirect/Get: return to the router list after a confirmed config write.
+        // This prevents the edit form from being re-submitted or appearing to cycle through previews.
         $_SESSION['connect'] = '';
-        echo "<script>window.location='./admin.php?id=settings&session=" . rawurlencode($sesname) . "'</script>";
+        $_SESSION['router_settings_notice'] = 'Router settings saved successfully for ' . $sesname . '.';
+        session_write_close();
+        echo "<script>window.location='./admin.php?id=sessions'</script>";
         exit;
       }
     }
