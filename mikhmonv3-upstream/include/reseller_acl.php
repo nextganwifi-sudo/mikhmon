@@ -438,69 +438,9 @@ function loadResellers($forceReload = false) {
     $groups = loadPermissionGroups();
 
     if (!file_exists($path)) {
-        $defaultRouters = getConfiguredRouterSessions();
-        $r1 = isset($defaultRouters[0]) ? array($defaultRouters[0]) : array('MikroTik-ROS7');
-        $r2 = isset($defaultRouters[1]) ? array($defaultRouters[1]) : array('MikroTik-ROS6');
-
-        $writeCustomNoDelete = $groups['Write'];
-        $writeCustomNoDelete['delete_user'] = false;
-
-        $seed = array(
-            array(
-                'id' => '101',
-                'legacy_ids' => array('res_kiosk_utara', 'reseller_1'),
-                'username' => 'kiosk_utara',
-                'name' => 'Kiosk Utara Cellular',
-                'password_hash' => password_hash('kiosk123', PASSWORD_DEFAULT),
-                'password_enc' => function_exists('encrypt') ? encrypt('kiosk123') : base64_encode('kiosk123'),
-                'status' => 'active',
-                'permission_mode' => 'Write',
-                'template_code' => 'NGW-001',
-                'assigned_template' => 'default',
-                'template_status' => 'active',
-                'logo_filename' => '',
-                'allowed_routers' => $r1,
-                'permissions' => $writeCustomNoDelete,
-                'created_at' => '2026-10-20 09:00:00',
-            ),
-            array(
-                'id' => '102',
-                'legacy_ids' => array('res_mitra_selatan', 'reseller_2'),
-                'username' => 'mitra_selatan',
-                'name' => 'Mitra Selatan Net',
-                'password_hash' => password_hash('mitra123', PASSWORD_DEFAULT),
-                'password_enc' => function_exists('encrypt') ? encrypt('mitra123') : base64_encode('mitra123'),
-                'status' => 'active',
-                'permission_mode' => 'Full',
-                'template_code' => 'NGW-002',
-                'assigned_template' => 'thermal',
-                'template_status' => 'active',
-                'logo_filename' => '',
-                'allowed_routers' => $r2,
-                'permissions' => $groups['Full'],
-                'created_at' => '2026-10-21 11:30:00',
-            ),
-            array(
-                'id' => '103',
-                'legacy_ids' => array('res_counter_timur', 'reseller_3'),
-                'username' => 'counter_timur',
-                'name' => 'Counter Timur Voucher',
-                'password_hash' => password_hash('timur123', PASSWORD_DEFAULT),
-                'password_enc' => function_exists('encrypt') ? encrypt('timur123') : base64_encode('timur123'),
-                'status' => 'active',
-                'permission_mode' => 'Read',
-                'template_code' => 'NGW-003',
-                'assigned_template' => 'small',
-                'template_status' => 'active',
-                'logo_filename' => '',
-                'allowed_routers' => $r1,
-                'permissions' => $groups['Read'],
-                'created_at' => '2026-10-22 14:15:00',
-            ),
-        );
-        foreach ($seed as $sr) {
-            ensureResellerTemplateFiles($sr['id']);
-        }
+        // Never provision publicly known demo reseller credentials on a fresh installation.
+        // Existing deployments retain their resellers.json through the safe-update backup/restore flow.
+        $seed = array();
         @file_put_contents($path, json_encode($seed, JSON_PRETTY_PRINT));
         return $seed;
     }
