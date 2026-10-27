@@ -339,9 +339,7 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
 ?>  
   <div class="menu text-center align-middle card-header" style="border-radius:0;"><h3 id="MikhmonSession"><?= $session; ?></h3></div>
   <a class="connect menu <?= $shome; ?>" id="<?= $session; ?>&c=settings"><i class='fa fa-tachometer'></i> <?= $_dashboard ?></a>
-  <?php if (hasResellerPermission('manage_router_settings')) { ?>
-  <a  href="./admin.php?id=settings&session=<?= $session; ?>" class="menu <?= $ssettings; ?>" title="NextGan WiFi Solution Settings"><i class='fa fa-gear'></i> <?= $_session_settings ?></a>
-  <?php } ?>
+  <?php /* Session Settings are opened through Add Router or Edit Router, not a separate sidebar button. */ ?>
   <div class="menu spa"></div>
 <?php 
 } ?>  
