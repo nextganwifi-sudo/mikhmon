@@ -1065,9 +1065,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 }
                             ?>
                               <tr>
-                                <td><strong><?= htmlspecialchars($nUser); ?></strong></td>
-                                <td>
-                                  <form method="post" action="" style="display:inline;">
+                                <td class="text-center" style="white-space:nowrap; min-width:88px;">
+                                  <form method="post" action="" style="display:inline-flex; align-items:center; justify-content:center; gap:4px; margin:0;">
                                     <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
                                     <input type="hidden" name="active_tab" value="nat">
                                     <input type="hidden" name="nat_id" value="<?= htmlspecialchars($nId); ?>">
@@ -1075,6 +1074,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                     <button type="submit" name="remove_nat_rule" class="btn bg-danger" style="padding:2px 6px;" title="Remove NAT Rule" onclick="return confirm('Remove NAT Rule for port <?= htmlspecialchars($nDstPort, ENT_QUOTES); ?>?');"><i class="fa fa-trash"></i></button>
                                   </form>
                                 </td>
+                                <td><strong><?= htmlspecialchars($nUser); ?></strong></td>
                                 <td><b class="text-primary"><?= htmlspecialchars($nDstPort); ?></b></td>
                                 <td><code><?= htmlspecialchars($nToAddr); ?></code></td>
                                 <td><?= htmlspecialchars($nToPort); ?></td>
