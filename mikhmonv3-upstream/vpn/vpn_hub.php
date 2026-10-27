@@ -275,90 +275,150 @@ if ($currentVpnRouter !== null) {
                 $vpnMsg = vpnText('Port-forward rule removed.', 'Port Forward Rule মুছে ফেলা হয়েছে।');
             }
 
-            // 5. Push voice-call rules for the selected PPP secret only.
+            // 5. Push WhatsApp Voice Call rules with explicit dependency and API-error checks.
             if (isset($_POST['push_whatsapp_bypass'])) {
                 $bpUser = trim((string)(isset($_POST['bypass_user']) ? $_POST['bypass_user'] : ''));
                 $bpRosVer = isset($currentVpnRouter['ros_ver']) ? (int)$currentVpnRouter['ros_ver'] : 7;
-                $allSecretsForPush = $API->comm('/ppp/secret/print');
-                $bpSecret = null;
-                if (is_array($allSecretsForPush)) {
-                    foreach ($allSecretsForPush as $secretForPush) {
-                        if (isset($secretForPush['name']) && $secretForPush['name'] === $bpUser) {
-                            $bpSecret = $secretForPush;
-                            break;
-                        }
+                $pushErrors = array();
+                $pushWarnings = array();
+                $pushOk = true;
+                $apiHasTrap = function($result) {
+                    if (!is_array($result)) return true;
+                    foreach ($result as $row) {
+                        if (is_array($row) && (isset($row['!trap']) || isset($row['!fatal']) || (isset($row['message']) && isset($row['category']) && (string)$row['category'] !== '0'))) return true;
+                        if (is_string($row) && ($row === '!trap' || $row === '!fatal')) return true;
                     }
-                }
-                $bpTargetIp = ($bpSecret !== null && isset($bpSecret['remote-address'])) ? trim((string)$bpSecret['remote-address']) : '';
-                $bpGroup = ($bpSecret !== null && isset($bpSecret['comment'])) ? trim((string)$bpSecret['comment']) : '';
-                if ($bpUser === '' || $bpSecret === null || $bpTargetIp === '' || !filter_var($bpTargetIp, FILTER_VALIDATE_IP)) {
-                    $vpnErr = vpnText('Select a PPP Secret with a valid static Remote Address first.', 'আগে বৈধ Static Remote Address-সহ একটি PPP Secret নির্বাচন করুন।');
+                    return false;
+                };
+                if ($bpUser === '') {
+                    $pushErrors[] = vpnText('No VPN user was selected.', 'কোনো VPN User নির্বাচন করা হয়নি।');
                 } else {
-                    $bpLabel = ($bpGroup !== '' ? $bpGroup . ' - ' : '') . $bpUser . ' - Voice Call';
-                    $bpPorts = '3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
-                    $existingMangle = $API->comm('/ip/firewall/mangle/print');
-                    $existingMangle = is_array($existingMangle) ? $existingMangle : array();
-                    $tcpComment = $bpLabel . ' TCP';
-                    $udpComment = $bpLabel . ' UDP';
-                    $tcpExists = false; $udpExists = false;
-                    foreach ($existingMangle as $existingRule) {
-                        $comment = isset($existingRule['comment']) ? $existingRule['comment'] : '';
-                        if ($comment === $tcpComment) $tcpExists = true;
-                        if ($comment === $udpComment) $udpExists = true;
+                    $allSecretsForPush = $API->comm('/ppp/secret/print');
+                    $bpSecret = null;
+                    if (is_array($allSecretsForPush)) foreach ($allSecretsForPush as $secretForPush) {
+                        if (isset($secretForPush['name']) && $secretForPush['name'] === $bpUser) { $bpSecret = $secretForPush; break; }
                     }
-                    if (!$tcpExists) {
-                        $API->comm('/ip/firewall/mangle/add', array(
-                            'chain' => 'prerouting', 'action' => 'mark-routing',
-                            'new-routing-mark' => 'voicecall', 'passthrough' => 'no',
-                            'src-address' => $bpTargetIp, 'protocol' => 'tcp', 'dst-port' => $bpPorts,
-                            'comment' => $tcpComment,
-                        ));
-                    }
-                    if (!$udpExists) {
-                        $API->comm('/ip/firewall/mangle/add', array(
-                            'chain' => 'prerouting', 'action' => 'mark-routing',
-                            'new-routing-mark' => 'voicecall', 'passthrough' => 'no',
-                            'src-address' => $bpTargetIp, 'protocol' => 'udp', 'dst-port' => $bpPorts,
-                            'comment' => $udpComment,
-                        ));
-                    }
-                    $routeComment = $bpLabel . ' Route';
-                    $routes = $API->comm('/ip/route/print');
-                    $routeExists = false;
-                    if (is_array($routes)) foreach ($routes as $route) {
-                        if (isset($route['comment']) && $route['comment'] === $routeComment) $routeExists = true;
-                    }
-                    $routeOk = true;
-                    if ($bpRosVer === 7) {
-                        $tables = $API->comm('/routing/table/print');
-                        $tableExists = false;
-                        if (is_array($tables)) foreach ($tables as $table) {
-                            if (isset($table['name']) && $table['name'] === 'voicecall') $tableExists = true;
-                        }
-                        if (!$tableExists) {
-                            $tableResult = $API->comm('/routing/table/add', array('name' => 'voicecall', 'fib' => 'yes'));
-                            if (isset($tableResult[0]) && $tableResult[0] === '!trap') $routeOk = false;
-                        }
-                        if ($routeOk && !$routeExists) {
-                            $routeResult = $API->comm('/ip/route/add', array(
-                                'dst-address' => '0.0.0.0/0', 'gateway' => $bpTargetIp,
-                                'routing-table' => 'voicecall', 'comment' => $routeComment,
-                            ));
-                            if (isset($routeResult[0]) && $routeResult[0] === '!trap') $routeOk = false;
-                        }
-                    } elseif (!$routeExists) {
-                        $routeResult = $API->comm('/ip/route/add', array(
-                            'dst-address' => '0.0.0.0/0', 'gateway' => $bpTargetIp,
-                            'routing-mark' => 'voicecall', 'comment' => $routeComment,
-                        ));
-                        if (isset($routeResult[0]) && $routeResult[0] === '!trap') $routeOk = false;
-                    }
-                    if ($routeOk) {
-                        $vpnMsg = vpnText('Voice-call rules pushed for ', 'Voice Call Rule Push হয়েছে: ') . '<b>' . htmlspecialchars($bpUser) . '</b>.';
+                    if ($bpSecret === null) {
+                        $pushErrors[] = vpnText('The selected PPP Secret does not exist on this router.', 'নির্বাচিত PPP Secret এই Router-এ পাওয়া যায়নি।');
                     } else {
-                        $vpnErr = vpnText('Mangle rules may exist, but the routing table/route failed. Check RouterOS version and permissions.', 'Mangle Rule তৈরি হতে পারে, কিন্তু Routing Table/Route ব্যর্থ হয়েছে। RouterOS Version ও Permission পরীক্ষা করুন।');
+                        $bpTargetIp = isset($bpSecret['remote-address']) ? trim((string)$bpSecret['remote-address']) : '';
+                        $bpGroup = isset($bpSecret['comment']) ? trim((string)$bpSecret['comment']) : '';
+                        if ($bpTargetIp === '' || !filter_var($bpTargetIp, FILTER_VALIDATE_IP)) {
+                            $pushErrors[] = vpnText('PPP Secret is missing a valid static Remote Address.', 'PPP Secret-এ বৈধ Static Remote Address নেই।');
+                        }
+                        $bpLabel = ($bpGroup !== '' ? $bpGroup . ' - ' : '') . $bpUser . ' - Voice Call';
+                        $bpPorts = '3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
+
+                        // Confirm that a usable VPN client/interface exists before pushing a route through it.
+                        $interfaces = $API->comm('/interface/print');
+                        $voiceInterfaceFound = false;
+                        $voiceInterfaceRunning = false;
+                        if (is_array($interfaces)) foreach ($interfaces as $iface) {
+                            $ifaceName = isset($iface['name']) ? (string)$iface['name'] : '';
+                            $ifaceComment = isset($iface['comment']) ? (string)$iface['comment'] : '';
+                            if ($ifaceName === 'Voice Calling' || strpos($ifaceComment, $bpUser) !== false) {
+                                if (stripos($ifaceName, 'sstp-') === 0 || stripos($ifaceName, 'l2tp-') === 0 || stripos($ifaceName, 'pptp-') === 0 || stripos($ifaceName, 'ovpn-') === 0 || $ifaceName === 'Voice Calling') {
+                                    $voiceInterfaceFound = true;
+                                    if (isset($iface['running']) && ($iface['running'] === 'true' || $iface['running'] === 'yes')) $voiceInterfaceRunning = true;
+                                }
+                            }
+                        }
+                        if (!$voiceInterfaceFound) $pushErrors[] = vpnText('VPN client/interface is missing. Create the Voice Calling VPN client first.', 'VPN Client/Interface নেই। আগে Voice Calling VPN Client তৈরি করুন।');
+                        elseif (!$voiceInterfaceRunning) $pushWarnings[] = vpnText('VPN client/interface exists but is not running; the route may not work until it connects.', 'VPN Client/Interface আছে, কিন্তু Running নয়; সংযোগ না হওয়া পর্যন্ত Route কাজ নাও করতে পারে।');
+
+                        if (empty($pushErrors)) {
+                            $existingMangle = $API->comm('/ip/firewall/mangle/print');
+                            if (!is_array($existingMangle)) {
+                                $pushErrors[] = vpnText('Could not read existing Mangle rules; RouterOS API permissions or connectivity may be insufficient.', 'আগের Mangle Rule পড়া যায়নি; RouterOS API Permission বা সংযোগে সমস্যা থাকতে পারে।');
+                            } else {
+                                $tcpComment = $bpLabel . ' TCP';
+                                $udpComment = $bpLabel . ' UDP';
+                                $tcpExists = false; $udpExists = false;
+                                foreach ($existingMangle as $existingRule) {
+                                    $comment = isset($existingRule['comment']) ? (string)$existingRule['comment'] : '';
+                                    if ($comment === $tcpComment) $tcpExists = true;
+                                    if ($comment === $udpComment) $udpExists = true;
+                                }
+                                if (!$tcpExists) {
+                                    $tcpResult = $API->comm('/ip/firewall/mangle/add', array(
+                                        'chain' => 'prerouting', 'action' => 'mark-routing',
+                                        'new-routing-mark' => 'voicecall', 'passthrough' => 'no',
+                                        'src-address' => $bpTargetIp, 'protocol' => 'tcp', 'dst-port' => $bpPorts,
+                                        'comment' => $tcpComment,
+                                    ));
+                                    if ($apiHasTrap($tcpResult)) { $pushOk = false; $pushErrors[] = vpnText('TCP Mangle rule creation failed. Check RouterOS API write permissions and the error log.', 'TCP Mangle Rule তৈরি হয়নি। RouterOS API Write Permission ও Error Log পরীক্ষা করুন।'); }
+                                }
+                                if (!$udpExists) {
+                                    $udpResult = $API->comm('/ip/firewall/mangle/add', array(
+                                        'chain' => 'prerouting', 'action' => 'mark-routing',
+                                        'new-routing-mark' => 'voicecall', 'passthrough' => 'no',
+                                        'src-address' => $bpTargetIp, 'protocol' => 'udp', 'dst-port' => $bpPorts,
+                                        'comment' => $udpComment,
+                                    ));
+                                    if ($apiHasTrap($udpResult)) { $pushOk = false; $pushErrors[] = vpnText('UDP Mangle rule creation failed. Check RouterOS API write permissions and the error log.', 'UDP Mangle Rule তৈরি হয়নি। RouterOS API Write Permission ও Error Log পরীক্ষা করুন।'); }
+                                }
+                                if ($bpRosVer >= 7) {
+                                    $tables = $API->comm('/routing/table/print');
+                                    $tableExists = false;
+                                    if (is_array($tables)) foreach ($tables as $table) if (isset($table['name']) && $table['name'] === 'voicecall') $tableExists = true;
+                                    if (!$tableExists) {
+                                        $tableResult = $API->comm('/routing/table/add', array('name' => 'voicecall', 'fib' => 'yes'));
+                                        if ($apiHasTrap($tableResult)) { $pushOk = false; $pushErrors[] = vpnText('RouterOS 7 routing table "voicecall" could not be created. Check API permissions or table configuration.', 'RouterOS 7-এর "voicecall" Routing Table তৈরি হয়নি। API Permission বা Table Configuration পরীক্ষা করুন।'); }
+                                        else {
+                                            $tables = $API->comm('/routing/table/print');
+                                            $tableExists = false;
+                                            if (is_array($tables)) foreach ($tables as $table) if (isset($table['name']) && $table['name'] === 'voicecall') $tableExists = true;
+                                            if (!$tableExists) { $pushOk = false; $pushErrors[] = vpnText('RouterOS 7 routing table "voicecall" is still missing after creation attempt.', 'তৈরির চেষ্টা করার পরও RouterOS 7-এর "voicecall" Routing Table পাওয়া যায়নি।'); }
+                                        }
+                                    }
+                                }
+                                $routes = $API->comm('/ip/route/print');
+                                if (!is_array($routes)) {
+                                    $pushOk = false; $pushErrors[] = vpnText('Could not read routing table entries from RouterOS.', 'RouterOS থেকে Routing Entry পড়া যায়নি।');
+                                } else {
+                                    $routeExists = false;
+                                    foreach ($routes as $route) if (isset($route['comment']) && $route['comment'] === $bpLabel . ' Route') $routeExists = true;
+                                    if (!$routeExists && ($bpRosVer < 7 || $pushOk)) {
+                                        $routeParams = array('dst-address' => '0.0.0.0/0', 'gateway' => 'Voice Calling', 'comment' => $bpLabel . ' Route');
+                                        if ($bpRosVer >= 7) $routeParams['routing-table'] = 'voicecall';
+                                        else $routeParams['routing-mark'] = 'voicecall';
+                                        $routeResult = $API->comm('/ip/route/add', $routeParams);
+                                        if ($apiHasTrap($routeResult)) { $pushOk = false; $pushErrors[] = vpnText('WhatsApp route creation failed. Confirm the Voice Calling interface is connected and route gateway is valid.', 'WhatsApp Route তৈরি হয়নি। Voice Calling Interface Connected এবং Route Gateway সঠিক কি না পরীক্ষা করুন।'); }
+                                    }
+                                }
+                                // Re-read actual router state. Never show success merely because a command was attempted.
+                                $verifyMangle = $API->comm('/ip/firewall/mangle/print');
+                                $verifyRoutes = $API->comm('/ip/route/print');
+                                $verifyTables = $bpRosVer >= 7 ? $API->comm('/routing/table/print') : array();
+                                $hasTcp = false; $hasUdp = false; $hasRoute = false; $hasTable = ($bpRosVer < 7);
+                                if (is_array($verifyMangle)) foreach ($verifyMangle as $rule) {
+                                    $cc = isset($rule['comment']) ? (string)$rule['comment'] : '';
+                                    if ($cc === $bpLabel . ' TCP' && empty($rule['disabled'])) $hasTcp = true;
+                                    if ($cc === $bpLabel . ' UDP' && empty($rule['disabled'])) $hasUdp = true;
+                                }
+                                if (is_array($verifyRoutes)) foreach ($verifyRoutes as $route) {
+                                    if (isset($route['comment']) && $route['comment'] === $bpLabel . ' Route') {
+                                        $expectedTable = $bpRosVer >= 7 ? (isset($route['routing-table']) ? $route['routing-table'] : '') : (isset($route['routing-mark']) ? $route['routing-mark'] : '');
+                                        if ($expectedTable === 'voicecall') $hasRoute = true;
+                                    }
+                                }
+                                if (is_array($verifyTables)) foreach ($verifyTables as $table) if (isset($table['name']) && $table['name'] === 'voicecall') $hasTable = true;
+                                if (!$hasTcp) $pushErrors[] = vpnText('Verification failed: TCP Mangle rule is missing or disabled.', 'যাচাই ব্যর্থ: TCP Mangle Rule নেই অথবা Disabled।');
+                                if (!$hasUdp) $pushErrors[] = vpnText('Verification failed: UDP Mangle rule is missing or disabled.', 'যাচাই ব্যর্থ: UDP Mangle Rule নেই অথবা Disabled।');
+                                if (!$hasTable) $pushErrors[] = vpnText('Verification failed: RouterOS 7 voicecall routing table is missing.', 'যাচাই ব্যর্থ: RouterOS 7 voicecall Routing Table নেই।');
+                                if (!$hasRoute) $pushErrors[] = vpnText('Verification failed: WhatsApp route through Voice Calling is missing.', 'যাচাই ব্যর্থ: Voice Calling দিয়ে WhatsApp Route নেই।');
+                                if (!empty($pushErrors)) {
+                                    $vpnErr = vpnText('WhatsApp Voice Call PUSH FAILED: ', 'WhatsApp Voice Call PUSH ব্যর্থ: ') . htmlspecialchars(implode(' ', array_unique($pushErrors)));
+                                    if (!empty($pushWarnings)) $vpnErr .= '<br>' . htmlspecialchars(implode(' ', array_unique($pushWarnings)));
+                                } else {
+                                    $vpnMsg = vpnText('WhatsApp Voice Call rules verified on RouterOS for ', 'RouterOS-এ WhatsApp Voice Call Rule যাচাই করে নিশ্চিত হয়েছে: ') . '<b>' . htmlspecialchars($bpUser) . '</b>.';
+                                    if (!empty($pushWarnings)) $vpnErr = htmlspecialchars(implode(' ', array_unique($pushWarnings)));
+                                }
+                            }
+                        }
                     }
                 }
+                if (!empty($pushErrors) && $vpnErr === '') $vpnErr = vpnText('WhatsApp Voice Call PUSH FAILED: ', 'WhatsApp Voice Call PUSH ব্যর্থ: ') . htmlspecialchars(implode(' ', array_unique($pushErrors)));
             }
 
             // 6. Delete all WhatsApp Voice Call rules belonging to one selected PPP Secret.
