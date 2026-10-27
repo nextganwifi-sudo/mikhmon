@@ -63,44 +63,58 @@ $vpnRouters = loadVpnRouters();
 $vpnMsg = '';
 $vpnErr = '';
 
-// Handle VPN Router CRUD
+// Handle VPN Router CRUD.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['add_vpn_router'])) {
+    if (isset($_POST['save_vpn_router']) || isset($_POST['add_vpn_router'])) {
+        $editId = trim((string)(isset($_POST['vpn_router_id']) ? $_POST['vpn_router_id'] : ''));
         $rName = trim((string)$_POST['vpn_name']);
         $rHost = trim((string)$_POST['vpn_host']);
         $rUser = trim((string)$_POST['vpn_user']);
-        $rPass = (string)$_POST['vpn_pass'];
+        $rPass = (string)(isset($_POST['vpn_pass']) ? $_POST['vpn_pass'] : '');
         $rPort = !empty($_POST['vpn_port']) ? (int)$_POST['vpn_port'] : 8728;
-        $rVer  = isset($_POST['vpn_ros_ver']) && (int)$_POST['vpn_ros_ver'] === 6 ? 6 : 7;
-
-        if ($rName === '' || $rHost === '' || $rUser === '') {
-            $vpnErr = 'Please fill in Router Name, IP/Host, and Username.';
+        $rVer = isset($_POST['vpn_ros_ver']) && (int)$_POST['vpn_ros_ver'] === 6 ? 6 : 7;
+        if ($rName === '' || $rHost === '' || $rUser === '' || $rPort < 1 || $rPort > 65535) {
+            $vpnErr = 'Please enter a valid router name, host, username and API port.';
         } else {
-            $newId = 'vpn_' . time();
-            $vpnRouters[] = array(
-                'id' => $newId,
-                'name' => $rName,
-                'host' => $rHost,
-                'user' => $rUser,
-                'pass_enc' => function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass),
-                'port' => $rPort,
-                'ros_ver' => $rVer,
-                'created_at' => date('Y-m-d H:i:s'),
-            );
-            saveVpnRouters($vpnRouters);
-            $vpnMsg = "VPN Router <b>" . htmlspecialchars($rName) . "</b> added successfully.";
+            $found = false;
+            foreach ($vpnRouters as $idx => $vr) {
+                if ($editId !== '' && isset($vr['id']) && $vr['id'] === $editId) {
+                    $vpnRouters[$idx]['name'] = $rName;
+                    $vpnRouters[$idx]['host'] = $rHost;
+                    $vpnRouters[$idx]['user'] = $rUser;
+                    $vpnRouters[$idx]['port'] = $rPort;
+                    $vpnRouters[$idx]['ros_ver'] = $rVer;
+                    if ($rPass !== '') {
+                        $vpnRouters[$idx]['pass_enc'] = function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass);
+                    }
+                    $found = true;
+                    break;
+                }
+            }
+            if ($editId !== '' && !$found) {
+                $vpnErr = 'VPN Router not found; no changes were saved.';
+            } else {
+                if ($editId === '') {
+                    $vpnRouters[] = array(
+                        'id' => 'vpn_' . time() . '_' . mt_rand(100, 999),
+                        'name' => $rName, 'host' => $rHost, 'user' => $rUser,
+                        'pass_enc' => function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass),
+                        'port' => $rPort, 'ros_ver' => $rVer, 'created_at' => date('Y-m-d H:i:s'),
+                    );
+                    $vpnMsg = 'VPN Router added successfully.';
+                } else {
+                    $vpnMsg = 'VPN Router updated successfully.';
+                }
+                saveVpnRouters($vpnRouters);
+            }
         }
     } elseif (isset($_POST['delete_vpn_router'])) {
         $delId = trim((string)$_POST['del_id']);
-        $filtered = array();
-        foreach ($vpnRouters as $vr) {
-            if ($vr['id'] !== $delId) {
-                $filtered[] = $vr;
-            }
-        }
-        $vpnRouters = $filtered;
+        $vpnRouters = array_values(array_filter($vpnRouters, function($vr) use ($delId) {
+            return !isset($vr['id']) || $vr['id'] !== $delId;
+        }));
         saveVpnRouters($vpnRouters);
-        $vpnMsg = "VPN Router removed.";
+        $vpnMsg = 'VPN Router removed.';
     }
 }
 
@@ -237,11 +251,27 @@ if ($currentVpnRouter !== null) {
                 }
             }
 
-            // 4. Delete NAT Rule
+            // 4. Edit or delete an individual DST-NAT rule.
+            if (isset($_POST['edit_nat_rule'])) {
+                $natId = trim((string)$_POST['nat_id']);
+                $natDst = (int)$_POST['nat_dst_port'];
+                $natAddr = trim((string)$_POST['nat_to_address']);
+                $natTo = (int)$_POST['nat_to_port'];
+                $natProto = strtolower(trim((string)$_POST['nat_protocol']));
+                $natComment = trim((string)$_POST['nat_comment']);
+                if ($natId === '' || $natDst < 1 || $natDst > 65535 || $natTo < 1 || $natTo > 65535 ||
+                    !filter_var($natAddr, FILTER_VALIDATE_IP) || !in_array($natProto, array('tcp','udp','icmp'), true)) {
+                    $vpnErr = vpnText('Enter a valid external port, target IP, internal port and protocol.', 'বৈধ External Port, Target IP, Internal Port ও Protocol দিন।');
+                } else {
+                    $natUpdate = array('.id' => $natId, 'dst-port' => (string)$natDst, 'to-addresses' => $natAddr, 'to-ports' => (string)$natTo, 'protocol' => $natProto, 'comment' => $natComment);
+                    $natResult = $API->comm('/ip/firewall/nat/set', $natUpdate);
+                    $vpnMsg = vpnText('Port-forward rule updated.', 'Port Forward Rule আপডেট হয়েছে।');
+                }
+            }
             if (isset($_POST['remove_nat_rule'])) {
                 $natId = trim((string)$_POST['nat_id']);
                 $API->comm('/ip/firewall/nat/remove', array('.id' => $natId));
-                $vpnMsg = "Port forwarding rule removed.";
+                $vpnMsg = vpnText('Port-forward rule removed.', 'Port Forward Rule মুছে ফেলা হয়েছে।');
             }
 
             // 5. Push voice-call rules for the selected PPP secret only.
@@ -330,7 +360,37 @@ if ($currentVpnRouter !== null) {
                 }
             }
 
-            // 6. Disconnect Active VPN
+            // 6. Disable voice-call routing for one selected PPP Secret.
+            if (isset($_POST['remove_whatsapp_bypass'])) {
+                $disableUser = trim((string)(isset($_POST['bypass_user']) ? $_POST['bypass_user'] : ''));
+                $secretsForDisable = $API->comm('/ppp/secret/print');
+                $disableSecret = null;
+                if (is_array($secretsForDisable)) foreach ($secretsForDisable as $ss) {
+                    if (isset($ss['name']) && $ss['name'] === $disableUser) { $disableSecret = $ss; break; }
+                }
+                if ($disableSecret === null || $disableUser === '') {
+                    $vpnErr = vpnText('Select a valid VPN user first.', 'আগে বৈধ VPN ইউজার নির্বাচন করুন।');
+                } else {
+                    $disableGroup = isset($disableSecret['comment']) ? trim((string)$disableSecret['comment']) : '';
+                    $disableLabel = ($disableGroup !== '' ? $disableGroup . ' - ' : '') . $disableUser . ' - Voice Call';
+                    $rulesToRemove = $API->comm('/ip/firewall/mangle/print');
+                    if (is_array($rulesToRemove)) foreach ($rulesToRemove as $ruleToRemove) {
+                        $ruleComment = isset($ruleToRemove['comment']) ? $ruleToRemove['comment'] : '';
+                        if ($ruleComment === $disableLabel . ' TCP' || $ruleComment === $disableLabel . ' UDP') {
+                            if (isset($ruleToRemove['.id'])) $API->comm('/ip/firewall/mangle/remove', array('.id' => $ruleToRemove['.id']));
+                        }
+                    }
+                    $routesToRemove = $API->comm('/ip/route/print');
+                    if (is_array($routesToRemove)) foreach ($routesToRemove as $routeToRemove) {
+                        if (isset($routeToRemove['comment']) && $routeToRemove['comment'] === $disableLabel . ' Route' && isset($routeToRemove['.id'])) {
+                            $API->comm('/ip/route/remove', array('.id' => $routeToRemove['.id']));
+                        }
+                    }
+                    $vpnMsg = vpnText('Voice-call routing disabled for ', 'এই ইউজারের Voice Call Routing বন্ধ হয়েছে: ') . '<b>' . htmlspecialchars($disableUser) . '</b>.';
+                }
+            }
+
+            // 7. Disconnect Active VPN
             if (isset($_POST['disconnect_active_vpn'])) {
                 $actId = trim((string)$_POST['active_vpn_id']);
                 $API->comm('/ppp/active/remove', array('.id' => $actId));
@@ -356,7 +416,7 @@ if ($currentVpnRouter !== null) {
 
         $nats = $API->comm('/ip/firewall/nat/print', array('?chain' => 'dstnat'));
         $routerNatRules = is_array($nats) ? $nats : array();
-        if ($tab === 'secrets') {
+        if ($tab === 'secrets' || $tab === 'bypass') {
             $mangles = $API->comm('/ip/firewall/mangle/print');
             $routerMangleRules = is_array($mangles) ? $mangles : array();
         }
