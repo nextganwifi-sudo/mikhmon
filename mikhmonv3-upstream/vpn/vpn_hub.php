@@ -1109,24 +1109,19 @@ $baseVpnUrl = "./admin.php?id=vpn";
 
                 <div class="col-6 col-box-12">
                   <div class="card">
-                    <div class="card-header"><h4 style="margin:0;"><i class="fa fa-terminal"></i> <?= vpnText('Generate VPN Client Script','VPN Client Script তৈরি করুন'); ?></h4></div>
+                    <div class="card-header"><h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> <?= vpnText('WhatsApp Mangle Script Generator','WhatsApp Mangle Script Generator'); ?></h4></div>
                     <div class="card-body">
+                      <p class="text-muted" style="font-size:12px;"><?= vpnText('Generate only WhatsApp Voice Call mangle rules. This does not create VPN clients, routes, or routing tables.','শুধু WhatsApp Voice Call Mangle Rule তৈরি হবে। VPN Client, Route বা Routing Table তৈরি হবে না।'); ?></p>
                       <div class="form-group"><label><?= vpnText('Search / Select VPN User','VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
                         <input id="scriptVpnSearch" class="form-control" list="scriptVpnOptions" placeholder="<?= vpnText('Type username to search…','ইউজারনেম লিখে খুঁজুন…'); ?>" oninput="selectScriptVpnUser(this.value)">
                         <datalist id="scriptVpnOptions"><?php foreach ($routerPppSecrets as $ss) { $scriptUser=isset($ss['name'])?$ss['name']:''; if($scriptUser!==''){ ?><option value="<?= htmlspecialchars($scriptUser); ?>"></option><?php } } ?></datalist>
                       </div>
                       <input type="hidden" id="scriptVpnUser" value="">
                       <input type="hidden" id="scriptVpnGroup" value="">
-                      <div class="row">
-                        <div class="col-6"><label>RouterOS</label><select id="scriptVpnRos" class="form-control"><option value="6">RouterOS 6</option><option value="7" selected>RouterOS 7</option></select></div>
-                        <div class="col-6"><label><?= vpnText('Service','Service'); ?></label><select id="scriptVpnService" class="form-control"><option value="sstp">SSTP</option><option value="l2tp">L2TP</option><option value="pptp">PPTP</option><option value="ovpn">OpenVPN</option></select></div>
-                      </div>
-                      <div class="form-group" style="margin-top:10px;"><label><?= vpnText('VPN Password','VPN Password'); ?></label><input type="password" id="scriptVpnPass" class="form-control" autocomplete="new-password"></div>
-                      <label style="display:block;margin:10px 0;"><input type="checkbox" id="scriptVpnVoice"> <?= vpnText('Include WhatsApp Voice Call routing','WhatsApp Voice Call Routing যুক্ত করুন'); ?></label>
-                      <button type="button" class="btn bg-primary" onclick="generateVpnClientInline()"><?= vpnText('Generate Script','Script তৈরি করুন'); ?></button>
+                      <div class="form-group"><label>RouterOS</label><select id="scriptVpnRos" class="form-control"><option value="6">RouterOS 6</option><option value="7" selected>RouterOS 7</option></select></div>
+                      <button type="button" class="btn bg-primary" onclick="generateVpnClientInline()"><?= vpnText('Generate WhatsApp Mangle Script','WhatsApp Mangle Script তৈরি করুন'); ?></button>
                       <button type="button" class="btn bg-secondary" onclick="copyVpnInlineScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
-                      <textarea id="scriptVpnOutput" class="form-control" rows="12" readonly style="margin-top:10px;font-family:monospace;"></textarea>
-                      <small class="text-muted"><?= vpnText('SSTP uses mehedi.xgenwifi.xyz on port 4520. Select RouterOS 6 or 7 before generating.', 'SSTP-এর জন্য mehedi.xgenwifi.xyz এবং Port 4520 ব্যবহার হবে। Generate করার আগে RouterOS 6 বা 7 নির্বাচন করুন।'); ?></small>
+                      <textarea id="scriptVpnOutput" class="form-control" rows="8" readonly style="margin-top:10px;font-family:monospace;"></textarea>
                     </div>
                   </div>
                 </div>
@@ -1205,18 +1200,17 @@ $baseVpnUrl = "./admin.php?id=vpn";
               function applySearchedVoiceVpnUser(value){var d=voiceSecretData[value];document.getElementById('selectVoiceVpnSecret').value=d?value:'';document.getElementById('bypass_client_ip').value=d?d.ip:'';document.getElementById('bypass_group').value=d?d.group:'';}
               function selectScriptVpnUser(value){var d=voiceSecretData[value];document.getElementById('scriptVpnUser').value=d?value:'';document.getElementById('scriptVpnGroup').value=d?d.group:'';}
               function generateVpnClientInline(){
-                var user=document.getElementById('scriptVpnUser').value, group=document.getElementById('scriptVpnGroup').value, pass=document.getElementById('scriptVpnPass').value;
-                var ros=document.getElementById('scriptVpnRos').value, svc=document.getElementById('scriptVpnService').value, voice=document.getElementById('scriptVpnVoice').checked;
-                if(!user){alert('Select a VPN user first.');return;} if(!pass){alert('Enter the PPP Secret password.');return;}
+                var user=document.getElementById('scriptVpnUser').value, group=document.getElementById('scriptVpnGroup').value;
+                var ros=document.getElementById('scriptVpnRos').value;
+                if(!user){alert('Select a VPN user first.');return;}
                 function q(v){return String(v).replace(/["\\\r\n]/g,'_');}
-                var safe=(group+'_'+user).replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').substring(0,28)||'vpnuser';
-                var name=(safe+(voice?'_voicecall':'')).substring(0,32), u=q(user),g=q(group),p=q(pass),comment=g+' '+u+(voice?' Voice Call':'');
-                var c=['# NextGan WiFi Solution | RouterOS '+ros+' | '+svc.toUpperCase()];
-                if(svc==='sstp')c.push('/interface sstp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" port=4520 user="'+u+'" password="'+p+'" profile=default-encryption add-default-route=no disabled=no comment="'+comment+'"');
-                else if(svc==='l2tp')c.push('/interface l2tp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" user="'+u+'" password="'+p+'" add-default-route=no disabled=no comment="'+comment+'"');
-                else if(svc==='pptp')c.push('/interface pptp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" user="'+u+'" password="'+p+'" add-default-route=no disabled=no comment="'+comment+'"');
-                else c.push('/interface ovpn-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" port=1194 mode=ip user="'+u+'" password="'+p+'" add-default-route=no disabled=no comment="'+comment+'"');
-                if(voice){var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';if(ros==='7'){c.push('/routing/table/add name=voicecall fib');c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="'+name+'" routing-table=voicecall comment="'+comment+' Route"');}else{c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="'+name+'" routing-mark=voicecall comment="'+comment+' Route"');}c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');}
+                var ip=(voiceSecretData[user]||{}).ip||'';
+                if(!ip){alert('The selected PPP Secret has no static remote IP.');return;}
+                var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
+                var comment=(group?group+' - ':'')+user+' - Voice Call';
+                var c=['# NextGan WiFi Solution | WhatsApp Voice Call Mangle | RouterOS '+ros];
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
                 document.getElementById('scriptVpnOutput').value=c.join('\n');
               }
               function copyVpnInlineScript(){var e=document.getElementById('scriptVpnOutput');if(!e.value){alert('Generate script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
