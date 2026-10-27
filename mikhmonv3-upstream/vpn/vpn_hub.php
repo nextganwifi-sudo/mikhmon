@@ -750,13 +750,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <div class="form-group mr-b-10">
                           <label style="font-weight:bold; font-size:12px;"><?= vpnText('Static Remote IP:', 'Static Remote IP:'); ?></label>
                           <input type="text" name="secret_remote" class="form-control" required placeholder="e.g. 10.10.10.50">
-                          <small class="text-muted">Client will always receive this static IP upon connection.</small>
+                          
                         </div>
 
                         <div class="form-group mr-b-10">
                           <label style="font-weight:bold; font-size:12px;"><?= vpnText('Group / Customer Name:', 'Group / Customer Name:'); ?></label>
                           <input type="text" name="secret_group" class="form-control" required placeholder="e.g. শাহিন">
-                          <small class="text-muted">Saved in comment so all user routers can be filtered together.</small>
+                          
                         </div>
 
                         <button type="submit" name="create_ppp_secret" class="btn bg-primary btn-block">
@@ -920,11 +920,11 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     <div class="col-4 col-box-12"><label><?= vpnText('Interface Name','Interface Name'); ?></label><input class="form-control" value="Voice Calling" readonly></div>
                     <div class="col-4 col-box-12"><label><?= vpnText('VPN Password','VPN Password'); ?></label><input id="vpnScriptPass" type="password" class="form-control" autocomplete="new-password"></div>
                   </div>
-                  <p class="text-muted" style="margin:12px 0;"><?= vpnText('This script creates only the Voice Calling SSTP client. Routing table, route and Mangle rules are generated in the Voice Call section.','এই Script শুধু Voice Calling SSTP Client তৈরি করবে। Routing Table, Route ও Mangle Rule Voice Call Section থেকে তৈরি হবে।'); ?></p>
+                  
                   <button type="button" class="btn bg-primary" onclick="generateVpnClientScript()"><?= vpnText('Generate Script','Script তৈরি করুন'); ?></button>
                   <button type="button" class="btn bg-secondary" onclick="copyVpnClientScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
                   <textarea id="vpnScriptOutput" class="form-control" rows="16" style="margin-top:10px;font-family:monospace;" readonly></textarea>
-                  <small class="text-muted"><?= vpnText('SSTP endpoint: mehedi.xgenwifi.xyz:4520. Review the commands before running them.', 'SSTP endpoint: mehedi.xgenwifi.xyz:4520। চালানোর আগে Command যাচাই করুন।'); ?></small>
+                  
                 </div>
               </div>
               <script>
@@ -1182,9 +1182,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                       <h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> <?= vpnText('WhatsApp Voice Call Routing', 'WhatsApp Voice Call Routing'); ?></h4>
                     </div>
                     <div class="card-body">
-                      <p style="font-size:13px;" class="text-muted">
-                        Automatically pushes Mangle rules (TCP &amp; UDP WhatsApp Voice ports) and marks routing through the target VPN Gateway.
-                      </p>
+                      
                       <form method="post" action="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=bypass" autocomplete="off">
                         <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
                         <input type="hidden" name="active_tab" value="bypass">
@@ -1205,7 +1203,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <input type="hidden" id="selectVoiceVpnSecret" name="bypass_user" value="">
                           <input type="hidden" name="bypass_client_ip" id="bypass_client_ip" value="">
                           <input type="hidden" name="bypass_group" id="bypass_group" value="">
-                          <small class="text-muted"><?= vpnText('Only usernames are shown; IP is read from the selected secret.', 'শুধু ইউজারনেম দেখাবে; নির্বাচিত Secret থেকে IP নেওয়া হবে।'); ?></small>
+                          
                         </div>
 
                         <button type="submit" name="push_whatsapp_bypass" class="btn bg-green btn-block" style="font-size:14px; font-weight:bold; padding:8px 15px;">
@@ -1220,7 +1218,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                   <div class="card">
                     <div class="card-header"><h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> <?= vpnText('Voice Call Routing Script Generator','Voice Call Routing Script Generator'); ?></h4></div>
                     <div class="card-body">
-                      <p class="text-muted" style="font-size:12px;"><?= vpnText('Generate the RouterOS-specific routing table (RouterOS 7), route through Voice Calling, and TCP/UDP WhatsApp Mangle rules. The VPN client itself is not created here.','RouterOS অনুযায়ী Routing Table (OS 7), Voice Calling দিয়ে Route এবং TCP/UDP WhatsApp Mangle Rule তৈরি হবে। এখানে VPN Client তৈরি হবে না।'); ?></p>
+                      
                       <div class="form-group"><label><?= vpnText('Search / Select VPN User','VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
                         <input id="whatsappMangleUserSearch" class="form-control" list="scriptVpnOptions" placeholder="<?= vpnText('Type username to search…','ইউজারনেম লিখে খুঁজুন…'); ?>" oninput="selectScriptVpnUser(this.value)">
                         <datalist id="scriptVpnOptions"><?php foreach ($routerPppSecrets as $ss) { $scriptUser=isset($ss['name'])?$ss['name']:''; if($scriptUser!==''){ ?><option value="<?= htmlspecialchars($scriptUser); ?>"></option><?php } } ?></datalist>
