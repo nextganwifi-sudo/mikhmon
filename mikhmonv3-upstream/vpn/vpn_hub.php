@@ -925,7 +925,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 }
                 c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
                 c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
-                document.getElementById('vpnScriptOutput').value=c.join('\\n');
+                document.getElementById('vpnScriptOutput').value=c.join('\n');
               }
               function copyVpnClientScript(){var e=document.getElementById('vpnScriptOutput');if(!e.value){alert('Generate the script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
               </script>
