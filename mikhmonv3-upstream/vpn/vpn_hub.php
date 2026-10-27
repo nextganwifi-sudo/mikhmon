@@ -809,9 +809,10 @@ $baseVpnUrl = "./admin.php?id=vpn";
                       <h4 style="margin:0;"><i class="fa fa-exchange"></i> <?= vpnText('Port Forwarding (Winbox, API, Web)', 'Port Forwarding (Winbox, API, Web)'); ?></h4>
                     </div>
                     <div class="card-body">
-                      <form method="post" action="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=nat" autocomplete="off">
+                      <form method="post" action="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=nat" autocomplete="off" id="natForwardForm">
                         <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
                         <input type="hidden" name="active_tab" value="nat">
+                        <input type="hidden" name="nat_id" id="nat_edit_id" value="">
 
                         <div class="form-group mr-b-10">
                           <label style="font-weight:bold; font-size:12px;"><?= vpnText('Search / Select VPN User', 'VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
@@ -853,21 +854,36 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <div style="font-size:12px; font-weight:bold; margin-bottom:8px;"><?= vpnText('Internal Port → External Port', 'Internal Port → External Port'); ?></div>
                           <div class="row">
                             <div class="col-4">
-                              <label style="font-size:11px;">Winbox · Internal 8291</label>
-                              <input type="number" name="port_winbox" class="form-control" value="<?= $suggestedWinboxPort; ?>" required>
+                              <label style="font-size:11px;">Winbox · Internal Port</label>
+                              <input type="number" id="nat_winbox_external" name="port_winbox" class="form-control" min="1" max="65535" value="<?= $suggestedWinboxPort; ?>" required>
+                              <input type="hidden" id="nat_winbox_internal" value="8291">
                             </div>
                             <div class="col-4">
-                              <label style="font-size:11px;">API · Internal 8728</label>
-                              <input type="number" name="port_api" class="form-control" value="<?= $suggestedApiPort; ?>" required>
+                              <label style="font-size:11px;">API · Internal Port</label>
+                              <input type="number" id="nat_api_external" name="port_api" class="form-control" min="1" max="65535" value="<?= $suggestedApiPort; ?>" required>
+                              <input type="hidden" id="nat_api_internal" value="8728">
                             </div>
                             <div class="col-4">
-                              <label style="font-size:11px;">Web · Internal 80</label>
-                              <input type="number" name="port_web" class="form-control" value="<?= $suggestedWebPort; ?>" required>
+                              <label style="font-size:11px;">Web · Internal Port</label>
+                              <input type="number" id="nat_web_external" name="port_web" class="form-control" min="1" max="65535" value="<?= $suggestedWebPort; ?>" required>
+                              <input type="hidden" id="nat_web_internal" value="80">
                             </div>
                           </div>
                         </div>
 
-                        <button type="submit" name="apply_port_forward" class="btn bg-primary btn-block">
+                        <div id="natEditFields" style="display:none;margin:10px 0;padding:10px;border:1px solid #bbb;border-radius:5px;">
+                          <h5><?= vpnText('Edit selected NAT rule','নির্বাচিত NAT Rule সম্পাদনা'); ?></h5>
+                          <div class="row">
+                            <div class="col-6"><label><?= vpnText('External Port','External Port'); ?></label><input id="nat_dst_port" name="nat_dst_port" class="form-control" type="number" min="1" max="65535"></div>
+                            <div class="col-6"><label><?= vpnText('Internal Port','Internal Port'); ?></label><input id="nat_to_port" name="nat_to_port" class="form-control" type="number" min="1" max="65535"></div>
+                            <div class="col-6"><label><?= vpnText('Target IP','Target IP'); ?></label><input id="nat_to_address" name="nat_to_address" class="form-control"></div>
+                            <div class="col-6"><label>Protocol</label><select id="nat_protocol" name="nat_protocol" class="form-control"><option>tcp</option><option>udp</option></select></div>
+                            <div class="col-12"><label>Comment</label><input id="nat_comment" name="nat_comment" class="form-control"></div>
+                          </div>
+                          <button type="submit" name="edit_nat_rule" id="nat_edit_button" class="btn bg-primary"><?= vpnText('Save rule changes','Rule পরিবর্তন সংরক্ষণ'); ?></button>
+                          <button type="button" class="btn bg-secondary" onclick="document.getElementById('natEditFields').style.display='none';document.getElementById('nat_apply_button').style.display='block';document.getElementById('nat_edit_button').style.display='none';"><?= vpnText('Cancel','বাতিল'); ?></button>
+                        </div>
+                        <button type="submit" name="apply_port_forward" id="nat_apply_button" class="btn bg-primary btn-block">
                           <i class="fa fa-check"></i> Apply Port Forwarding (3 Rules)
                         </button>
                       </form>
@@ -910,6 +926,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                     <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
                                     <input type="hidden" name="active_tab" value="nat">
                                     <input type="hidden" name="nat_id" value="<?= htmlspecialchars($nId); ?>">
+                                    <button type="button" class="btn bg-primary" style="padding:2px 6px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$nId,"dst"=>$nDstPort,"ip"=>$nToAddr,"to"=>$nToPort,"comment"=>$nComm,"protocol"=>isset($nr["protocol"])?$nr["protocol"]:"tcp"), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i></button>
                                     <button type="submit" name="remove_nat_rule" class="btn bg-danger" style="padding:2px 6px;" title="Remove NAT Rule" onclick="return confirm('Remove NAT Rule for port <?= htmlspecialchars($nDstPort, ENT_QUOTES); ?>?');"><i class="fa fa-trash"></i></button>
                                   </form>
                                 </td>
@@ -937,6 +954,19 @@ $baseVpnUrl = "./admin.php?id=vpn";
               ?>
               vpnSecretIndex[<?= json_encode($un); ?>] = {ip:<?= json_encode($remote); ?>,user:<?= json_encode($un); ?>,group:<?= json_encode($group); ?>};
               <?php } ?>
+              function openNatEdit(rule) {
+                var id=document.getElementById('nat_edit_id');
+                if(!id)return;
+                id.value=rule.id||'';
+                document.getElementById('nat_dst_port').value=rule.dst||'';
+                document.getElementById('nat_to_address').value=rule.ip||'';
+                document.getElementById('nat_to_port').value=rule.to||'';
+                document.getElementById('nat_protocol').value=rule.protocol||'tcp';
+                document.getElementById('nat_comment').value=rule.comment||'';
+                document.getElementById('nat_edit_button').style.display='inline-block';
+                document.getElementById('nat_apply_button').style.display='none';
+                document.getElementById('natEditFields').style.display='block';
+              }
               function applySearchedVpnUser(value) {
                 var u=vpnSecretIndex[value];
                 document.getElementById('selectVpnClient').value=value;
