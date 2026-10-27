@@ -309,22 +309,18 @@ if ($currentVpnRouter !== null) {
                         $bpLabel = ($bpGroup !== '' ? $bpGroup . ' - ' : '') . $bpUser . ' - Voice Call';
                         $bpPorts = '3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
 
-                        // Confirm that a usable VPN client/interface exists before pushing a route through it.
-                        $interfaces = $API->comm('/interface/print');
-                        $voiceInterfaceFound = false;
-                        $voiceInterfaceRunning = false;
-                        if (is_array($interfaces)) foreach ($interfaces as $iface) {
-                            $ifaceName = isset($iface['name']) ? (string)$iface['name'] : '';
-                            $ifaceComment = isset($iface['comment']) ? (string)$iface['comment'] : '';
-                            if ($ifaceName === 'Voice Calling' || strpos($ifaceComment, $bpUser) !== false) {
-                                if (stripos($ifaceName, 'sstp-') === 0 || stripos($ifaceName, 'l2tp-') === 0 || stripos($ifaceName, 'pptp-') === 0 || stripos($ifaceName, 'ovpn-') === 0 || $ifaceName === 'Voice Calling') {
-                                    $voiceInterfaceFound = true;
-                                    if (isset($iface['running']) && ($iface['running'] === 'true' || $iface['running'] === 'yes')) $voiceInterfaceRunning = true;
-                                }
+                        // On the VPN hub, validate the selected PPP session, not a client-side interface name.
+                        $activePpp = $API->comm('/ppp/active/print');
+                        $activeSessionFound = false;
+                        if (is_array($activePpp)) foreach ($activePpp as $activeRow) {
+                            if (isset($activeRow['name']) && (string)$activeRow['name'] === $bpUser) {
+                                $activeSessionFound = true;
+                                break;
                             }
                         }
-                        if (!$voiceInterfaceFound) $pushErrors[] = vpnText('VPN client/interface is missing. Create the Voice Calling VPN client first.', 'VPN Client/Interface নেই। আগে Voice Calling VPN Client তৈরি করুন।');
-                        elseif (!$voiceInterfaceRunning) $pushWarnings[] = vpnText('VPN client/interface exists but is not running; the route may not work until it connects.', 'VPN Client/Interface আছে, কিন্তু Running নয়; সংযোগ না হওয়া পর্যন্ত Route কাজ নাও করতে পারে।');
+                        if (!$activeSessionFound) {
+                            $pushErrors[] = vpnText('The selected VPN user has no active PPP session on this router. Connect the VPN client first; rules were not pushed.', 'এই VPN User-এর Active PPP Session নেই। আগে VPN Client Connect করুন; Rule Push করা হয়নি।');
+                        }
 
                         if (empty($pushErrors)) {
                             $existingMangle = $API->comm('/ip/firewall/mangle/print');
@@ -379,7 +375,7 @@ if ($currentVpnRouter !== null) {
                                     $routeExists = false;
                                     foreach ($routes as $route) if (isset($route['comment']) && $route['comment'] === $bpLabel . ' Route') $routeExists = true;
                                     if (!$routeExists && ($bpRosVer < 7 || $pushOk)) {
-                                        $routeParams = array('dst-address' => '0.0.0.0/0', 'gateway' => 'Voice Calling', 'comment' => $bpLabel . ' Route');
+                                        $routeParams = array('dst-address' => '0.0.0.0/0', 'gateway' => $bpTargetIp, 'comment' => $bpLabel . ' Route');
                                         if ($bpRosVer >= 7) $routeParams['routing-table'] = 'voicecall';
                                         else $routeParams['routing-mark'] = 'voicecall';
                                         $routeResult = $API->comm('/ip/route/add', $routeParams);
