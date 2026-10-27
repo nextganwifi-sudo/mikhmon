@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Never commit runtime backup archives or database dumps.
+/backups/*.tar.gz
+/backups/*.zip
+/backups/*.sql
