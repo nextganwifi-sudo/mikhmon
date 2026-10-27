@@ -1113,8 +1113,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
                               foreach ($routerNatRules as $nr) {
                                 $nId = isset($nr['.id']) ? $nr['.id'] : '';
                                 $nDstPort = isset($nr['dst_port']) ? $nr['dst_port'] : '-';
-                                $nToAddr = isset($nr['to-addresses']) ? $nr['to-addresses'] : '-';
-                                $nToPort = isset($nr['to-ports']) ? $nr['to-ports'] : '-';
+                                $nToAddr = isset($nr['to_addresses']) ? $nr['to_addresses'] : '-';
+                                $nToPort = isset($nr['to_ports']) ? $nr['to_ports'] : '-';
                                 $nComm = isset($nr['comment']) ? $nr['comment'] : '-';
                                 $nUser = '-';
                                 foreach ($routerPppSecrets as $nSecret) {
