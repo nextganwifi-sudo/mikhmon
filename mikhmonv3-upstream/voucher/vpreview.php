@@ -26,9 +26,27 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 
 // load session MikroTik
-  $session = $_GET['session'];
+  $session = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
   include_once('../include/reseller_acl.php');
-  if (!canAccessRouterSession($session) || (!hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher'))) {
+  $isAdminPreview = isMikhmonAdmin();
+  if (!$isAdminPreview && $session !== '' && !canAccessRouterSession($session)) {
+    $session = '';
+  }
+  // If opened from the global template editor, select an accessible router
+  // session so the preview can resolve router-specific voucher variables.
+  if ($session === '') {
+    include_once('../include/config.php');
+    if (isset($data) && is_array($data)) {
+      foreach (array_keys($data) as $candidateSession) {
+        if ($candidateSession === 'mikhmon' || !isset($data[$candidateSession]) || !is_array($data[$candidateSession])) continue;
+        if ($isAdminPreview || canAccessRouterSession((string)$candidateSession)) {
+          $session = (string)$candidateSession;
+          break;
+        }
+      }
+    }
+  }
+  if ($session === '' || (!$isAdminPreview && (!canAccessRouterSession($session) || (!hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher'))))) {
     echo "Access Denied: You do not have permission to preview voucher templates for this router session.";
     exit;
   }
