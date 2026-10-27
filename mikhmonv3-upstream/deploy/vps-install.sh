@@ -113,10 +113,18 @@ if [[ -d "$BACKUP_TMP" ]]; then
 fi
 
 echo "[3/6] Setting directory permissions for web-based Template Editor, Logo Upload & Safe Updater..."
+# Create a runtime config only when this is a fresh install; never overwrite live router credentials.
+if [[ ! -f "${APP_DIR}/include/config.php" && -f "${APP_DIR}/include/config.example.php" ]]; then
+  cp "${APP_DIR}/include/config.example.php" "${APP_DIR}/include/config.php"
+fi
 mkdir -p "${APP_DIR}/uploads/reseller-templates" "${APP_DIR}/uploads/reseller-logos" "${APP_DIR}/backups" "${APP_DIR}/images"
 chown -R www-data:www-data "${APP_DIR}"
-chmod -R 755 "${APP_DIR}"
-chmod -R 775 "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups"
+# Source code should be readable but not writable by group/other; only runtime directories need write access.
+find "${APP_DIR}" -type d -exec chmod 755 {} +
+find "${APP_DIR}" -type f -exec chmod 644 {} +
+chmod 750 "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups"
+chmod 640 "${APP_DIR}/include/config.php" 2>/dev/null || true
+chmod 640 "${APP_DIR}/include/resellers.json" "${APP_DIR}/include/permission_groups.json" "${APP_DIR}/include/backup_admin.json" 2>/dev/null || true
 
 echo "[4/6] Configuring Nginx Virtual Host for domain: ${DOMAIN}..."
 cat > /etc/nginx/sites-available/nextgan-wifi <<EOF
