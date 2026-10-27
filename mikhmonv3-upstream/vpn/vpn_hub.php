@@ -322,6 +322,23 @@ if ($currentVpnRouter !== null) {
                             $pushErrors[] = vpnText('The selected VPN user has no active PPP session on this router. Connect the VPN client first; rules were not pushed.', 'এই VPN User-এর Active PPP Session নেই। আগে VPN Client Connect করুন; Rule Push করা হয়নি।');
                         }
 
+                        // A Voice Calling interface must exist before creating any routing rules.
+                        $allInterfaces = $API->comm('/interface/print');
+                        $voiceCallingFound = false;
+                        $voiceCallingDown = false;
+                        if (is_array($allInterfaces)) foreach ($allInterfaces as $iface) {
+                            if (isset($iface['name']) && (string)$iface['name'] === 'Voice Calling') {
+                                $voiceCallingFound = true;
+                                if (isset($iface['running']) && (string)$iface['running'] === 'no') $voiceCallingDown = true;
+                                break;
+                            }
+                        }
+                        if (!$voiceCallingFound) {
+                            $pushErrors[] = vpnText('VPN interface \"Voice Calling\" was not found on this router. Create/connect the Voice Calling VPN client first; no WhatsApp rules were pushed.', 'এই Router-এ \"Voice Calling\" নামে VPN Interface নেই। আগে Voice Calling VPN Client তৈরি/Connect করুন; কোনো WhatsApp Rule Push করা হয়নি।');
+                        } elseif ($voiceCallingDown) {
+                            $pushErrors[] = vpnText('VPN interface \"Voice Calling\" exists but is not running. Connect it before pushing WhatsApp rules.', '\"Voice Calling\" VPN Interface আছে, কিন্তু Running নয়। WhatsApp Rule Push করার আগে VPN Connect করুন।');
+                        }
+
                         if (empty($pushErrors)) {
                             $existingMangle = $API->comm('/ip/firewall/mangle/print');
                             if (!is_array($existingMangle)) {
@@ -373,13 +390,23 @@ if ($currentVpnRouter !== null) {
                                     $pushOk = false; $pushErrors[] = vpnText('Could not read routing table entries from RouterOS.', 'RouterOS থেকে Routing Entry পড়া যায়নি।');
                                 } else {
                                     $routeExists = false;
-                                    foreach ($routes as $route) if (isset($route['comment']) && $route['comment'] === $bpLabel . ' Route') $routeExists = true;
+                                    foreach ($routes as $route) {
+                                        if (!isset($route['comment']) || $route['comment'] !== $bpLabel . ' Route') continue;
+                                        $expectedTable = $bpRosVer >= 7 ? (isset($route['routing-table']) ? $route['routing-table'] : '') : (isset($route['routing-mark']) ? $route['routing-mark'] : '');
+                                        $expectedGateway = isset($route['gateway']) ? (string)$route['gateway'] : '';
+                                        if ($expectedGateway === 'Voice Calling' && $expectedTable === 'voicecall') {
+                                            $routeExists = true;
+                                        } elseif (isset($route['.id'])) {
+                                            // Replace a previously generated route that used a different gateway/table.
+                                            $API->comm('/ip/route/remove', array('.id' => $route['.id']));
+                                        }
+                                    }
                                     if (!$routeExists && ($bpRosVer < 7 || $pushOk)) {
-                                        $routeParams = array('dst-address' => '0.0.0.0/0', 'gateway' => $bpTargetIp, 'comment' => $bpLabel . ' Route');
+                                        $routeParams = array('dst-address' => '0.0.0.0/0', 'gateway' => 'Voice Calling', 'comment' => $bpLabel . ' Route');
                                         if ($bpRosVer >= 7) $routeParams['routing-table'] = 'voicecall';
                                         else $routeParams['routing-mark'] = 'voicecall';
                                         $routeResult = $API->comm('/ip/route/add', $routeParams);
-                                        if ($apiHasTrap($routeResult)) { $pushOk = false; $pushErrors[] = vpnText('WhatsApp route creation failed. Confirm the Voice Calling interface is connected and route gateway is valid.', 'WhatsApp Route তৈরি হয়নি। Voice Calling Interface Connected এবং Route Gateway সঠিক কি না পরীক্ষা করুন।'); }
+                                        if ($apiHasTrap($routeResult)) { $pushOk = false; $pushErrors[] = vpnText('WhatsApp route creation failed. Confirm the Voice Calling VPN interface is connected and route gateway/table is valid.', 'WhatsApp Route তৈরি হয়নি। Voice Calling VPN Interface Connected এবং Route Gateway/Table সঠিক কি না পরীক্ষা করুন।'); }
                                     }
                                 }
                                 // Re-read actual router state. Never show success merely because a command was attempted.
@@ -395,7 +422,8 @@ if ($currentVpnRouter !== null) {
                                 if (is_array($verifyRoutes)) foreach ($verifyRoutes as $route) {
                                     if (isset($route['comment']) && $route['comment'] === $bpLabel . ' Route') {
                                         $expectedTable = $bpRosVer >= 7 ? (isset($route['routing-table']) ? $route['routing-table'] : '') : (isset($route['routing-mark']) ? $route['routing-mark'] : '');
-                                        if ($expectedTable === 'voicecall') $hasRoute = true;
+                                        $expectedGateway = isset($route['gateway']) ? (string)$route['gateway'] : '';
+                                        if ($expectedTable === 'voicecall' && $expectedGateway === 'Voice Calling') $hasRoute = true;
                                     }
                                 }
                                 if (is_array($verifyTables)) foreach ($verifyTables as $table) if (isset($table['name']) && $table['name'] === 'voicecall') $hasTable = true;
@@ -892,7 +920,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     <div class="col-4 col-box-12"><label><?= vpnText('Interface Name','Interface Name'); ?></label><input class="form-control" value="Voice Calling" readonly></div>
                     <div class="col-4 col-box-12"><label><?= vpnText('VPN Password','VPN Password'); ?></label><input id="vpnScriptPass" type="password" class="form-control" autocomplete="new-password"></div>
                   </div>
-                  <p class="text-muted" style="margin:12px 0;"><?= vpnText('WhatsApp Voice Call routing is included automatically.','WhatsApp Voice Call Routing স্বয়ংক্রিয়ভাবে যুক্ত হবে।'); ?></p>
+                  <p class="text-muted" style="margin:12px 0;"><?= vpnText('This script creates only the Voice Calling SSTP client. Routing table, route and Mangle rules are generated in the Voice Call section.','এই Script শুধু Voice Calling SSTP Client তৈরি করবে। Routing Table, Route ও Mangle Rule Voice Call Section থেকে তৈরি হবে।'); ?></p>
                   <button type="button" class="btn bg-primary" onclick="generateVpnClientScript()"><?= vpnText('Generate Script','Script তৈরি করুন'); ?></button>
                   <button type="button" class="btn bg-secondary" onclick="copyVpnClientScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
                   <textarea id="vpnScriptOutput" class="form-control" rows="16" style="margin-top:10px;font-family:monospace;" readonly></textarea>
@@ -914,17 +942,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 var ros=document.getElementById('vpnScriptRos').value;
                 if(!pass){alert('Enter the VPN password to generate the client command.');return;}
                 var comment=(group?group+' - ':'')+user+' Voice Call';
-                var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
-                var c=['# NextGan WiFi Solution | RouterOS '+ros+' | WhatsApp Voice Call SSTP'];
-                c.push('/interface sstp-client add name="Voice Calling" connect-to="mehedi.xgenwifi.xyz" port=4520 user="'+user+'" password="'+pass+'" profile=default-encryption add-default-route=no disabled=no comment="'+comment+'"');
-                if(ros==='7'){
-                  c.push(':if ([:len [/routing/table/find where name="voicecall"]]=0) do={/routing/table/add name=voicecall fib}');
-                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="Voice Calling" routing-table=voicecall comment="'+comment+' Route"');
-                } else {
-                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="Voice Calling" routing-mark=voicecall comment="'+comment+' Route"');
-                }
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
+                var c=['# NextGan WiFi Solution | RouterOS '+ros+' | VPN Client SSTP'];
+                c.push('/interface sstp-client add name=\"Voice Calling\" connect-to=\"mehedi.xgenwifi.xyz\" port=4520 user=\"'+user+'\" password=\"'+pass+'\" profile=default-encryption add-default-route=no disabled=no comment=\"'+comment+'\"');
                 document.getElementById('vpnScriptOutput').value=c.join('\n');
               }
               function copyVpnClientScript(){var e=document.getElementById('vpnScriptOutput');if(!e.value){alert('Generate the script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
@@ -1199,9 +1218,9 @@ $baseVpnUrl = "./admin.php?id=vpn";
 
                 <div class="col-6 col-box-12">
                   <div class="card">
-                    <div class="card-header"><h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> <?= vpnText('WhatsApp Mangle Script Generator','WhatsApp Mangle Script Generator'); ?></h4></div>
+                    <div class="card-header"><h4 style="margin:0;"><i class="fa fa-whatsapp text-green"></i> <?= vpnText('Voice Call Routing Script Generator','Voice Call Routing Script Generator'); ?></h4></div>
                     <div class="card-body">
-                      <p class="text-muted" style="font-size:12px;"><?= vpnText('Generate only WhatsApp Voice Call mangle rules. This does not create VPN clients, routes, or routing tables.','শুধু WhatsApp Voice Call Mangle Rule তৈরি হবে। VPN Client, Route বা Routing Table তৈরি হবে না।'); ?></p>
+                      <p class="text-muted" style="font-size:12px;"><?= vpnText('Generate the RouterOS-specific routing table (RouterOS 7), route through Voice Calling, and TCP/UDP WhatsApp Mangle rules. The VPN client itself is not created here.','RouterOS অনুযায়ী Routing Table (OS 7), Voice Calling দিয়ে Route এবং TCP/UDP WhatsApp Mangle Rule তৈরি হবে। এখানে VPN Client তৈরি হবে না।'); ?></p>
                       <div class="form-group"><label><?= vpnText('Search / Select VPN User','VPN ইউজার খুঁজুন / নির্বাচন করুন'); ?></label>
                         <input id="whatsappMangleUserSearch" class="form-control" list="scriptVpnOptions" placeholder="<?= vpnText('Type username to search…','ইউজারনেম লিখে খুঁজুন…'); ?>" oninput="selectScriptVpnUser(this.value)">
                         <datalist id="scriptVpnOptions"><?php foreach ($routerPppSecrets as $ss) { $scriptUser=isset($ss['name'])?$ss['name']:''; if($scriptUser!==''){ ?><option value="<?= htmlspecialchars($scriptUser); ?>"></option><?php } } ?></datalist>
@@ -1209,9 +1228,9 @@ $baseVpnUrl = "./admin.php?id=vpn";
                       <input type="hidden" id="scriptVpnUser" value="">
                       <input type="hidden" id="scriptVpnGroup" value="">
                       <div class="form-group"><label>RouterOS</label><select id="whatsappMangleRos" class="form-control"><option value="6">RouterOS 6</option><option value="7" selected>RouterOS 7</option></select></div>
-                      <button type="button" class="btn bg-primary" onclick="generateVpnClientInline()"><?= vpnText('Generate WhatsApp Mangle Script','WhatsApp Mangle Script তৈরি করুন'); ?></button>
+                      <button type="button" class="btn bg-primary" onclick="generateVpnClientInline()"><?= vpnText('Generate Voice Call Script','Voice Call Script তৈরি করুন'); ?></button>
                       <button type="button" class="btn bg-secondary" onclick="copyVpnInlineScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
-                      <textarea id="whatsappMangleOutput" class="form-control" rows="8" readonly style="margin-top:10px;font-family:monospace;"></textarea>
+                      <textarea id="whatsappMangleOutput" class="form-control" rows="13" readonly style="margin-top:10px;font-family:monospace;"></textarea>
                     </div>
                   </div>
                 </div>
@@ -1293,14 +1312,20 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 var user=document.getElementById('scriptVpnUser').value, group=document.getElementById('scriptVpnGroup').value;
                 var ros=document.getElementById('whatsappMangleRos').value;
                 if(!user){alert('Select a VPN user first.');return;}
-                function q(v){return String(v).replace(/["\\\r\n]/g,'_');}
+                function q(v){return String(v).replace(/[\"\\\r\n]/g,'_');}
                 var ip=(voiceSecretData[user]||{}).ip||'';
                 if(!ip){alert('The selected PPP Secret has no static remote IP.');return;}
                 var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
                 var comment=(group?group+' - ':'')+user+' - Voice Call';
-                var c=['# NextGan WiFi Solution | WhatsApp Voice Call Mangle | RouterOS '+ros];
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
+                var c=['# NextGan WiFi Solution | WhatsApp Voice Call Routing | RouterOS '+ros];
+                if(ros==='7'){
+                  c.push(':if ([:len [/routing/table/find where name=\"voicecall\"]]=0) do={/routing/table/add name=voicecall fib}');
+                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway=\"Voice Calling\" routing-table=voicecall comment=\"'+comment+' Route\"');
+                } else {
+                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway=\"Voice Calling\" routing-mark=voicecall comment=\"'+comment+' Route\"');
+                }
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=tcp dst-port='+ports+' comment=\"'+comment+' TCP\"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=udp dst-port='+ports+' comment=\"'+comment+' UDP\"');
                 document.getElementById('whatsappMangleOutput').value=c.join('\n');
               }
               function copyVpnInlineScript(){var e=document.getElementById('whatsappMangleOutput');if(!e.value){alert('Generate script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
