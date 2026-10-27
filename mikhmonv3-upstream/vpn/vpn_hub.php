@@ -622,18 +622,55 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 $sDis = (isset($sec['disabled']) && ($sec['disabled'] === 'true' || $sec['disabled'] === 'yes'));
                             ?>
                               <tr>
+                                <?php
+                                  $relatedNat = array();
+                                  foreach ($routerNatRules as $rr) {
+                                      $rc = isset($rr['comment']) ? (string)$rr['comment'] : '';
+                                      if ($sName !== '' && strpos($rc, $sName) !== false) $relatedNat[] = $rr;
+                                  }
+                                  $hasVoice = false;
+                                  foreach ($routerMangleRules as $mr) {
+                                      $mc = isset($mr['comment']) ? (string)$mr['comment'] : '';
+                                      if (stripos($mc, 'Voice Call') !== false && $sName !== '' && strpos($mc, $sName) !== false) $hasVoice = true;
+                                  }
+                                  $svc = in_array($sServ, array('sstp','l2tp','pptp','ovpn'), true) ? $sServ : 'sstp';
+                                  $safeModalId = 'vpnDetail' . preg_replace('/[^A-Za-z0-9]/', '', $sId);
+                                ?>
                                 <td>
-                                  <form method="post" action="" style="display:inline;">
-                                    <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
-                                    <input type="hidden" name="active_tab" value="secrets">
-                                    <input type="hidden" name="secret_id" value="<?= htmlspecialchars($sId); ?>">
-                                    <?php if ($sDis) { ?>
-                                      <button type="submit" name="action_secret" value="enable" class="btn bg-green" style="padding:2px 6px;" title="Enable"><i class="fa fa-unlock"></i></button>
-                                    <?php } else { ?>
-                                      <button type="submit" name="action_secret" value="disable" class="btn bg-warning" style="padding:2px 6px;" title="Disable"><i class="fa fa-lock"></i></button>
-                                    <?php } ?>
-                                    <button type="submit" name="action_secret" value="remove" class="btn bg-danger" style="padding:2px 6px;" title="Delete" onclick="return confirm('Delete secret <?= htmlspecialchars($sName, ENT_QUOTES); ?>?');"><i class="fa fa-trash"></i></button>
-                                  </form>
+                                  <details style="position:relative;display:inline-block;">
+                                    <summary class="btn bg-secondary" style="cursor:pointer;list-style:none;padding:3px 9px;">&#8942;</summary>
+                                    <div style="position:absolute;right:0;z-index:99;min-width:145px;background:var(--card-bg,#fff);border:1px solid #aaa;border-radius:5px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.18);">
+                                      <button type="button" class="btn bg-info btn-block" onclick="document.getElementById('<?= $safeModalId; ?>').style.display='block';"><?= vpnText('Details','বিস্তারিত'); ?></button>
+                                      <button type="button" class="btn bg-primary btn-block" onclick="openVpnScriptModal(this)" data-user="<?= htmlspecialchars($sName, ENT_QUOTES); ?>" data-group="<?= htmlspecialchars($sComm, ENT_QUOTES); ?>" data-service="<?= htmlspecialchars($svc, ENT_QUOTES); ?>" data-voice="<?= $hasVoice ? '1' : '0'; ?>"><?= vpnText('Script','স্ক্রিপ্ট'); ?></button>
+                                      <form method="post" action="">
+                                        <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
+                                        <input type="hidden" name="active_tab" value="secrets">
+                                        <input type="hidden" name="secret_id" value="<?= htmlspecialchars($sId); ?>">
+                                        <button type="submit" name="action_secret" value="<?= $sDis ? 'enable' : 'disable'; ?>" class="btn <?= $sDis ? 'bg-green' : 'bg-warning'; ?> btn-block"><?= $sDis ? vpnText('Enable','চালু করুন') : vpnText('Disable','বন্ধ করুন'); ?></button>
+                                        <button type="submit" name="action_secret" value="remove" class="btn bg-danger btn-block" onclick="return confirm('<?= vpnText('Delete this secret?','এই Secret মুছে ফেলবেন?'); ?>')"><?= vpnText('Delete','মুছুন'); ?></button>
+                                      </form>
+                                    </div>
+                                  </details>
+                                  <div id="<?= $safeModalId; ?>" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:20px;overflow:auto;">
+                                    <div class="card" style="max-width:760px;margin:25px auto;padding:15px;">
+                                      <button type="button" class="btn bg-secondary" style="float:right;" onclick="document.getElementById('<?= $safeModalId; ?>').style.display='none'">&times;</button>
+                                      <h4><?= vpnText('Secret Details','Secret-এর বিস্তারিত'); ?> — <?= htmlspecialchars($sName); ?></h4>
+                                      <table class="table table-bordered">
+                                        <tr><th><?= vpnText('Username','ইউজারনেম'); ?></th><td><?= htmlspecialchars($sName); ?></td></tr>
+                                        <tr><th><?= vpnText('Service','Service'); ?></th><td><?= htmlspecialchars(strtoupper($sServ)); ?></td></tr>
+                                        <tr><th><?= vpnText('Remote IP','Remote IP'); ?></th><td><?= htmlspecialchars($sRem); ?></td></tr>
+                                        <tr><th><?= vpnText('Group','Group'); ?></th><td><?= htmlspecialchars($sComm); ?></td></tr>
+                                        <tr><th><?= vpnText('Status','Status'); ?></th><td><?= $sDis ? vpnText('Disabled','বন্ধ') : vpnText('Enabled','চালু'); ?></td></tr>
+                                        <tr><th><?= vpnText('WhatsApp Voice Call','WhatsApp Voice Call'); ?></th><td><?= $hasVoice ? vpnText('Configured','কনফিগার করা') : vpnText('Not configured','কনফিগার করা নেই'); ?></td></tr>
+                                      </table>
+                                      <h5><?= vpnText('Port Forwarding','Port Forwarding'); ?></h5>
+                                      <table class="table table-bordered"><thead><tr><th><?= vpnText('External Port','External Port'); ?></th><th><?= vpnText('Internal Port','Internal Port'); ?></th><th><?= vpnText('Target IP','Target IP'); ?></th><th>Comment</th></tr></thead><tbody>
+                                        <?php if (!$relatedNat) { ?><tr><td colspan="4"><?= vpnText('No matching NAT rules','মিল থাকা NAT Rule নেই'); ?></td></tr><?php } else { foreach ($relatedNat as $rr) { ?>
+                                          <tr><td><?= htmlspecialchars(isset($rr['dst-port']) ? $rr['dst-port'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-ports']) ? $rr['to-ports'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-addresses']) ? $rr['to-addresses'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['comment']) ? $rr['comment'] : '-'); ?></td></tr>
+                                        <?php } } ?>
+                                      </tbody></table>
+                                    </div>
+                                  </div>
                                 </td>
                                 <td><b><?= htmlspecialchars($sName); ?></b></td>
                                 <td><?= htmlspecialchars($sServ); ?></td>
@@ -652,6 +689,58 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 </div>
               </div>
             <?php } ?>
+
+              <div id="vpnClientScriptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;padding:20px;overflow:auto;">
+                <div class="card" style="max-width:850px;margin:20px auto;padding:15px;">
+                  <button type="button" class="btn bg-secondary" style="float:right;" onclick="document.getElementById('vpnClientScriptModal').style.display='none'">&times;</button>
+                  <h4><?= vpnText('VPN Client Script','VPN Client Script'); ?> — <span id="vpnScriptUserLabel"></span></h4>
+                  <div class="row">
+                    <div class="col-4 col-box-12"><label><?= vpnText('RouterOS Version','RouterOS Version'); ?></label><select id="vpnScriptRos" class="form-control"><option value="7">7</option><option value="6">6</option></select></div>
+                    <div class="col-4 col-box-12"><label><?= vpnText('Service','Service'); ?></label><select id="vpnScriptService" class="form-control"><option value="sstp">SSTP</option><option value="l2tp">L2TP</option><option value="pptp">PPTP</option><option value="ovpn">OpenVPN</option></select></div>
+                    <div class="col-4 col-box-12"><label><?= vpnText('VPN Password','VPN Password'); ?></label><input id="vpnScriptPass" type="password" class="form-control" autocomplete="new-password"></div>
+                  </div>
+                  <label style="display:block;margin:12px 0;"><input type="checkbox" id="vpnScriptVoice"> <?= vpnText('Include Voice Call routing','Voice Call routing যুক্ত করুন'); ?></label>
+                  <button type="button" class="btn bg-primary" onclick="generateVpnClientScript()"><?= vpnText('Generate Script','Script তৈরি করুন'); ?></button>
+                  <button type="button" class="btn bg-secondary" onclick="copyVpnClientScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
+                  <textarea id="vpnScriptOutput" class="form-control" rows="16" style="margin-top:10px;font-family:monospace;" readonly></textarea>
+                  <small class="text-muted"><?= vpnText('SSTP endpoint: mehedi.xgenwifi.xyz:4520. Review the commands before running them.', 'SSTP endpoint: mehedi.xgenwifi.xyz:4520। চালানোর আগে Command যাচাই করুন।'); ?></small>
+                </div>
+              </div>
+              <script>
+              var vpnScriptData = {};
+              function openVpnScriptModal(btn) {
+                vpnScriptData = {user:btn.getAttribute('data-user')||'',group:btn.getAttribute('data-group')||'VPN',service:btn.getAttribute('data-service')||'sstp',voice:btn.getAttribute('data-voice')==='1'};
+                document.getElementById('vpnScriptUserLabel').textContent = vpnScriptData.user;
+                document.getElementById('vpnScriptService').value = vpnScriptData.service;
+                document.getElementById('vpnScriptVoice').checked = vpnScriptData.voice;
+                document.getElementById('vpnScriptPass').value = '';
+                document.getElementById('vpnScriptOutput').value = '';
+                document.getElementById('vpnClientScriptModal').style.display = 'block';
+              }
+              function quoteRos(v){return String(v).replace(/[\\\"\r\n]/g,'_');}
+              function generateVpnClientScript() {
+                var user=quoteRos(vpnScriptData.user), group=quoteRos(vpnScriptData.group), pass=quoteRos(document.getElementById('vpnScriptPass').value);
+                var svc=document.getElementById('vpnScriptService').value, ros=document.getElementById('vpnScriptRos').value, voice=document.getElementById('vpnScriptVoice').checked;
+                if(!pass){alert('Enter the VPN password to generate the client command.');return;}
+                var safe=(group+'_'+user).replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').substring(0,30);
+                if(!safe)safe='vpn_'+user.replace(/[^A-Za-z0-9_-]/g,'').substring(0,20);
+                var name=(safe+(voice?'_voicecall':'')).substring(0,32), comment=group+' '+user+(voice?' Voice Call':'');
+                var c=['# NextGan WiFi Solution | RouterOS '+ros+' | '+svc.toUpperCase()];
+                if(svc==='sstp') c.push('/interface sstp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" port=4520 user="'+user+'" password="'+pass+'" profile=default-encryption add-default-route=no disabled=no comment="'+comment+'"');
+                else if(svc==='l2tp') c.push('/interface l2tp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" user="'+user+'" password="'+pass+'" use-ipsec=no add-default-route=no disabled=no comment="'+comment+'"');
+                else if(svc==='pptp') c.push('/interface pptp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" user="'+user+'" password="'+pass+'" add-default-route=no disabled=no comment="'+comment+'"');
+                else c.push('/interface ovpn-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" port=1194 mode=ip user="'+user+'" password="'+pass+'" add-default-route=no disabled=no comment="'+comment+'"');
+                if(voice){
+                  var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
+                  if(ros==='7'){c.push('/routing/table/add name=voicecall fib');c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="'+name+'" routing-table=voicecall comment="'+comment+' Route"');}
+                  else c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="'+name+'" routing-mark=voicecall comment="'+comment+' Route"');
+                  c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
+                  c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
+                }
+                document.getElementById('vpnScriptOutput').value=c.join('\n');
+              }
+              function copyVpnClientScript(){var e=document.getElementById('vpnScriptOutput');if(!e.value){alert('Generate the script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
+              </script>
 
             <!-- TAB 2: PORT FORWARDING (NAT) -->
             <?php if ($tab === 'nat') { ?>
