@@ -83,6 +83,10 @@ if ($id == "login" || substr($url, -1) == "p") {
     $pass = $_POST['pass'];
     $auth = authenticateMikhmonUser($user, $pass, $useradm, decrypt($passadm));
     if ($auth['authenticated']) {
+      // Rotate the session ID after successful authentication to mitigate session fixation.
+      if (session_status() === PHP_SESSION_ACTIVE) {
+        session_regenerate_id(true);
+      }
       $_SESSION["mikhmon"] = $user;
       $_SESSION["mikhmon_role"] = $auth['role'];
       $_SESSION["mikhmon_reseller_id"] = isset($auth['id']) ? $auth['id'] : '';
@@ -113,6 +117,10 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   echo "<script>window.location='./admin.php?id=login'</script>";
 } elseif ($id == "return-to-admin" && !empty($_SESSION['mikhmon_impersonator_admin'])) {
+  // Rotate the session ID when returning from reseller impersonation to admin.
+  if (session_status() === PHP_SESSION_ACTIVE) {
+    session_regenerate_id(true);
+  }
   $admUser = $_SESSION['mikhmon_impersonator_admin'];
   unset($_SESSION['mikhmon_impersonator_admin']);
   $_SESSION["mikhmon"] = $admUser;

@@ -26,6 +26,19 @@ if (!isMikhmonAdmin() && !hasResellerPermission('manage_router_settings')) {
     exit;
 }
 
+// Bind state-changing VPN actions to the authenticated session.
+if (empty($_SESSION['vpn_hub_csrf'])) {
+    try {
+        $_SESSION['vpn_hub_csrf'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        $_SESSION['vpn_hub_csrf'] = bin2hex(openssl_random_pseudo_bytes(32));
+    }
+}
+$vpnCsrfToken = (string)$_SESSION['vpn_hub_csrf'];
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
 $vpnStoragePath = __DIR__ . '/../include/vpn_routers.json';
 
 /** Language-aware VPN Hub labels; $langid is set by the main application. */
@@ -62,9 +75,19 @@ function saveVpnRouters($routers) {
 $vpnRouters = loadVpnRouters();
 $vpnMsg = '';
 $vpnErr = '';
+$vpnCsrfValid = true;
+
+// Reject all state-changing VPN requests with a missing or invalid token.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedVpnToken = isset($_POST['vpn_csrf_token']) ? (string)$_POST['vpn_csrf_token'] : '';
+    if ($postedVpnToken === '' || !hash_equals($vpnCsrfToken, $postedVpnToken)) {
+        $vpnErr = 'Security token expired or invalid. Reload the page and try again.';
+        $vpnCsrfValid = false;
+    }
+}
 
 // Handle VPN Router CRUD.
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
     if (isset($_POST['save_vpn_router']) || isset($_POST['add_vpn_router'])) {
         $editId = trim((string)(isset($_POST['vpn_router_id']) ? $_POST['vpn_router_id'] : ''));
         $rName = trim((string)$_POST['vpn_name']);
@@ -101,11 +124,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'pass_enc' => function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass),
                         'port' => $rPort, 'ros_ver' => $rVer, 'created_at' => date('Y-m-d H:i:s'),
                     );
-                    $vpnMsg = 'VPN Router added successfully.';
+                    // Success is reported only after the configuration is persisted.
                 } else {
-                    $vpnMsg = 'VPN Router updated successfully.';
+                    // Success is reported only after the configuration is persisted.
                 }
-                saveVpnRouters($vpnRouters);
+                if (saveVpnRouters($vpnRouters)) {
+                    $vpnMsg = $editId === '' ? 'VPN Router added successfully.' : 'VPN Router updated successfully.';
+                } else {
+                    $vpnRouters = loadVpnRouters();
+                    $vpnErr = 'VPN Router changes could not be saved. Check VPS file permissions and disk space.';
+                }
             }
         }
     } elseif (isset($_POST['delete_vpn_router'])) {
@@ -113,8 +141,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $vpnRouters = array_values(array_filter($vpnRouters, function($vr) use ($delId) {
             return !isset($vr['id']) || $vr['id'] !== $delId;
         }));
-        saveVpnRouters($vpnRouters);
-        $vpnMsg = 'VPN Router removed.';
+        if (saveVpnRouters($vpnRouters)) {
+            $vpnMsg = 'VPN Router removed.';
+        } else {
+            $vpnRouters = loadVpnRouters();
+            $vpnErr = 'VPN Router could not be removed from storage. Check VPS file permissions and disk space.';
+        }
     }
 }
 
@@ -157,7 +189,7 @@ if ($currentVpnRouter !== null) {
 
     if ($isConnected) {
         // Handle actions
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
             // 1. Create PPP Secret
             if (isset($_POST['create_ppp_secret'])) {
                 $sUser   = trim((string)$_POST['secret_user']);
@@ -301,7 +333,7 @@ if ($currentVpnRouter !== null) {
                     if ($bpSecret === null) {
                         $pushErrors[] = vpnText('The selected PPP Secret does not exist on this router.', 'নির্বাচিত PPP Secret এই Router-এ পাওয়া যায়নি।');
                     } else {
-                        $bpTargetIp = isset($bpSecret['remote-address']) ? trim((string)$bpSecret['remote-address']) : '';
+                        $bpTargetIp = isset($bpSecret['remote_address']) ? trim((string)$bpSecret['remote_address']) : '';
                         $bpGroup = isset($bpSecret['comment']) ? trim((string)$bpSecret['comment']) : '';
                         if ($bpTargetIp === '' || !filter_var($bpTargetIp, FILTER_VALIDATE_IP)) {
                             $pushErrors[] = vpnText('PPP Secret is missing a valid static Remote Address.', 'PPP Secret-এ বৈধ Static Remote Address নেই।');
@@ -322,21 +354,33 @@ if ($currentVpnRouter !== null) {
                             $pushErrors[] = vpnText('The selected VPN user has no active PPP session on this router. Connect the VPN client first; rules were not pushed.', 'এই VPN User-এর Active PPP Session নেই। আগে VPN Client Connect করুন; Rule Push করা হয়নি।');
                         }
 
-                        // A Voice Calling interface must exist before creating any routing rules.
+                        // Validate the interface on the currently selected API router, using normalized RouterOS field values.
                         $allInterfaces = $API->comm('/interface/print');
                         $voiceCallingFound = false;
                         $voiceCallingDown = false;
-                        if (is_array($allInterfaces)) foreach ($allInterfaces as $iface) {
-                            if (isset($iface['name']) && (string)$iface['name'] === 'Voice Calling') {
-                                $voiceCallingFound = true;
-                                if (isset($iface['running']) && (string)$iface['running'] === 'no') $voiceCallingDown = true;
-                                break;
+                        $interfaceReadFailed = !is_array($allInterfaces) || isset($allInterfaces['!trap']) || isset($allInterfaces['!fatal']);
+                        $availableInterfaceNames = array();
+                        if (!$interfaceReadFailed) {
+                            foreach ($allInterfaces as $iface) {
+                                if (!isset($iface['name'])) continue;
+                                $interfaceName = trim((string)$iface['name']);
+                                if ($interfaceName !== '' && count($availableInterfaceNames) < 10) $availableInterfaceNames[] = $interfaceName;
+                                if (strcasecmp($interfaceName, 'Voice Calling') === 0) {
+                                    $voiceCallingFound = true;
+                                    $runningValue = isset($iface['running']) ? strtolower(trim((string)$iface['running'])) : '';
+                                    $voiceCallingDown = in_array($runningValue, array('false', 'no', '0'), true);
+                                    break;
+                                }
                             }
                         }
-                        if (!$voiceCallingFound) {
-                            $pushErrors[] = vpnText('VPN interface \"Voice Calling\" was not found on this router. Create/connect the Voice Calling VPN client first; no WhatsApp rules were pushed.', 'এই Router-এ \"Voice Calling\" নামে VPN Interface নেই। আগে Voice Calling VPN Client তৈরি/Connect করুন; কোনো WhatsApp Rule Push করা হয়নি।');
+                        if ($interfaceReadFailed) {
+                            $pushErrors[] = vpnText('Could not read interfaces from the selected router via RouterOS API. Check API read permissions and connection.', 'নির্বাচিত Router থেকে RouterOS API দিয়ে Interface তালিকা পড়া যায়নি। API Read Permission ও সংযোগ পরীক্ষা করুন।');
+                        } elseif (!$voiceCallingFound) {
+                            $routerLabel = (isset($currentVpnRouter['name']) ? $currentVpnRouter['name'] : 'Selected router') . ' (' . (isset($currentVpnRouter['host']) ? $currentVpnRouter['host'] : 'unknown host') . ')';
+                            $availableText = empty($availableInterfaceNames) ? '' : ' Interfaces returned by API: ' . implode(', ', $availableInterfaceNames) . '.';
+                            $pushErrors[] = vpnText('Interface "Voice Calling" was not found on the selected VPN router ' . $routerLabel . '. The check runs on this router, not on a different client router.' . $availableText . ' No WhatsApp rules were pushed.', 'নির্বাচিত VPN Router ' . $routerLabel . '-এ "Voice Calling" Interface পাওয়া যায়নি। পরীক্ষা শুধু এই Router-এ হয়, অন্য Client Router-এ নয়।' . $availableText . ' কোনো WhatsApp Rule Push করা হয়নি।');
                         } elseif ($voiceCallingDown) {
-                            $pushErrors[] = vpnText('VPN interface \"Voice Calling\" exists but is not running. Connect it before pushing WhatsApp rules.', '\"Voice Calling\" VPN Interface আছে, কিন্তু Running নয়। WhatsApp Rule Push করার আগে VPN Connect করুন।');
+                            $pushErrors[] = vpnText('Interface "Voice Calling" exists on the selected router but is not running. Connect it before pushing WhatsApp rules.', 'নির্বাচিত Router-এ "Voice Calling" Interface আছে, কিন্তু Running নয়। Rule Push করার আগে VPN Connect করুন।');
                         }
 
                         if (empty($pushErrors)) {
@@ -392,7 +436,7 @@ if ($currentVpnRouter !== null) {
                                     $routeExists = false;
                                     foreach ($routes as $route) {
                                         if (!isset($route['comment']) || $route['comment'] !== $bpLabel . ' Route') continue;
-                                        $expectedTable = $bpRosVer >= 7 ? (isset($route['routing-table']) ? $route['routing-table'] : '') : (isset($route['routing-mark']) ? $route['routing-mark'] : '');
+                                        $expectedTable = $bpRosVer >= 7 ? (isset($route['routing_table']) ? $route['routing_table'] : '') : (isset($route['routing_mark']) ? $route['routing_mark'] : '');
                                         $expectedGateway = isset($route['gateway']) ? (string)$route['gateway'] : '';
                                         if ($expectedGateway === 'Voice Calling' && $expectedTable === 'voicecall') {
                                             $routeExists = true;
@@ -416,12 +460,14 @@ if ($currentVpnRouter !== null) {
                                 $hasTcp = false; $hasUdp = false; $hasRoute = false; $hasTable = ($bpRosVer < 7);
                                 if (is_array($verifyMangle)) foreach ($verifyMangle as $rule) {
                                     $cc = isset($rule['comment']) ? (string)$rule['comment'] : '';
-                                    if ($cc === $bpLabel . ' TCP' && empty($rule['disabled'])) $hasTcp = true;
-                                    if ($cc === $bpLabel . ' UDP' && empty($rule['disabled'])) $hasUdp = true;
+                                    $disabledValue = isset($rule['disabled']) ? strtolower(trim((string)$rule['disabled'])) : 'false';
+                                    $ruleEnabled = !in_array($disabledValue, array('true', 'yes', '1'), true);
+                                    if ($cc === $bpLabel . ' TCP' && $ruleEnabled) $hasTcp = true;
+                                    if ($cc === $bpLabel . ' UDP' && $ruleEnabled) $hasUdp = true;
                                 }
                                 if (is_array($verifyRoutes)) foreach ($verifyRoutes as $route) {
                                     if (isset($route['comment']) && $route['comment'] === $bpLabel . ' Route') {
-                                        $expectedTable = $bpRosVer >= 7 ? (isset($route['routing-table']) ? $route['routing-table'] : '') : (isset($route['routing-mark']) ? $route['routing-mark'] : '');
+                                        $expectedTable = $bpRosVer >= 7 ? (isset($route['routing_table']) ? $route['routing_table'] : '') : (isset($route['routing_mark']) ? $route['routing_mark'] : '');
                                         $expectedGateway = isset($route['gateway']) ? (string)$route['gateway'] : '';
                                         if ($expectedTable === 'voicecall' && $expectedGateway === 'Voice Calling') $hasRoute = true;
                                     }
@@ -483,14 +529,14 @@ if ($currentVpnRouter !== null) {
                         $remainingMangles = $API->comm('/ip/firewall/mangle/print');
                         $voiceTableInUse = false;
                         if (is_array($remainingRoutes)) foreach ($remainingRoutes as $remainingRoute) {
-                            if ((isset($remainingRoute['routing-table']) && $remainingRoute['routing-table'] === 'voicecall') ||
-                                (isset($remainingRoute['routing-mark']) && $remainingRoute['routing-mark'] === 'voicecall')) {
+                            if ((isset($remainingRoute['routing_table']) && $remainingRoute['routing_table'] === 'voicecall') ||
+                                (isset($remainingRoute['routing_mark']) && $remainingRoute['routing_mark'] === 'voicecall')) {
                                 $voiceTableInUse = true;
                                 break;
                             }
                         }
                         if (!$voiceTableInUse && is_array($remainingMangles)) foreach ($remainingMangles as $remainingMangle) {
-                            if (isset($remainingMangle['new-routing-mark']) && $remainingMangle['new-routing-mark'] === 'voicecall') {
+                            if (isset($remainingMangle['new_routing_mark']) && $remainingMangle['new_routing_mark'] === 'voicecall') {
                                 $voiceTableInUse = true;
                                 break;
                             }
@@ -550,8 +596,8 @@ $suggestedWinboxPort = 8010;
 $usedDstPorts = array();
 if (!empty($routerNatRules)) {
     foreach ($routerNatRules as $nr) {
-        if (!empty($nr['dst-port']) && is_numeric($nr['dst-port'])) {
-            $p = (int)$nr['dst-port'];
+        if (!empty($nr['dst_port']) && is_numeric($nr['dst_port'])) {
+            $p = (int)$nr['dst_port'];
             $usedDstPorts[$p] = true;
         }
     }
@@ -614,7 +660,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 </div>
               <?php } else { ?>
                 <div class="overflow box-bordered">
-                  <table class="table table-bordered table-hover text-nowrap">
+                  <table class="table table-bordered table-hover text-nowrap vpn-searchable-list">
                     <thead>
                       <tr>
                         <th>Router Name</th>
@@ -639,7 +685,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                             <form method="post" action="" style="display:inline;" onsubmit="return confirm('Remove VPN Router <?= htmlspecialchars($vr['name'], ENT_QUOTES); ?>?');">
                               <input type="hidden" name="del_id" value="<?= htmlspecialchars($vr['id']); ?>">
                               <button type="submit" name="delete_vpn_router" class="btn bg-danger" style="padding:5px 9px;font-size:12px;" title="Delete"><i class="fa fa-trash"></i></button>
-                            </form>
+                            <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                           </td>
                         </tr>
                       <?php } ?>
@@ -663,7 +709,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
               <div class="col-3 col-box-6">
                 <div class="box pd-10 bg-primary radius-3">
                   <div style="font-size:11px; opacity:0.8;">BOARD &amp; MODEL</div>
-                  <div style="font-size:15px; font-weight:bold;"><?= htmlspecialchars(isset($routerResource['board-name']) ? $routerResource['board-name'] : 'MikroTik'); ?></div>
+                  <div style="font-size:15px; font-weight:bold;"><?= htmlspecialchars(isset($routerResource['board_name']) ? $routerResource['board_name'] : 'MikroTik'); ?></div>
                 </div>
               </div>
               <div class="col-3 col-box-6">
@@ -762,7 +808,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <button type="submit" name="create_ppp_secret" class="btn bg-primary btn-block">
                           <i class="fa fa-save"></i> Create VPN Secret
                         </button>
-                      </form>
+                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                     </div>
                   </div>
                 </div>
@@ -775,7 +821,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     </div>
                     <div class="card-body">
                       <div class="overflow box-bordered vpn-secret-table-wrap" style="max-height:600px;">
-                        <table class="table table-bordered table-hover vpn-secret-table" style="width:100%;table-layout:auto;">
+                        <table class="table table-bordered table-hover vpn-secret-table vpn-searchable-list" style="width:100%;table-layout:auto;">
                           <thead>
                             <tr>
                               <th>Username</th>
@@ -794,7 +840,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 $sId = isset($sec['.id']) ? $sec['.id'] : '';
                                 $sName = isset($sec['name']) ? $sec['name'] : '';
                                 $sServ = isset($sec['service']) ? $sec['service'] : 'any';
-                                $sRem = isset($sec['remote-address']) ? $sec['remote-address'] : '-';
+                                $sRem = isset($sec['remote_address']) ? $sec['remote_address'] : '-';
                                 $sComm = isset($sec['comment']) ? $sec['comment'] : '-';
                                 $sDis = (isset($sec['disabled']) && ($sec['disabled'] === 'true' || $sec['disabled'] === 'yes'));
                             ?>
@@ -844,7 +890,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                         <input type="hidden" name="secret_id" value="<?= htmlspecialchars($sId); ?>">
                                         <button type="submit" name="action_secret" value="<?= $sDis ? 'enable' : 'disable'; ?>" class="btn <?= $sDis ? 'bg-green' : 'bg-warning'; ?> btn-block"><?= $sDis ? vpnText('Enable','চালু করুন') : vpnText('Disable','বন্ধ করুন'); ?></button>
                                         <button type="submit" name="action_secret" value="remove" class="btn bg-danger btn-block" onclick="return confirm('<?= vpnText('Delete this secret?','এই Secret মুছে ফেলবেন?'); ?>')"><?= vpnText('Delete','মুছুন'); ?></button>
-                                      </form>
+                                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                                     </div>
                                   </details>
                                   <div id="<?= $safeModalId; ?>" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:20px;overflow:auto;">
@@ -859,12 +905,12 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                         <tr><th><?= vpnText('Status','Status'); ?></th><td><?= $sDis ? vpnText('Disabled','বন্ধ') : vpnText('Enabled','চালু'); ?></td></tr>
                                         <tr><th><?= vpnText('WhatsApp Voice Call Routing','WhatsApp Voice Call Routing'); ?></th><td><?= $hasVoice ? '<span class="text-green">' . vpnText('Configured','কনফিগার করা') . '</span>' : ($hasVoiceAny ? '<span class="text-warning">' . vpnText('Incomplete — check rules/route','অসম্পূর্ণ — Rule/Route পরীক্ষা করুন') . '</span>' : vpnText('Not configured','কনফিগার করা নেই')); ?></td></tr>
                                         <tr><th><?= vpnText('WhatsApp Route Gateway','WhatsApp Route Gateway'); ?></th><td><?= $voiceRoute !== null ? htmlspecialchars(isset($voiceRoute['gateway']) ? $voiceRoute['gateway'] : '-') : '-'; ?></td></tr>
-                                        <tr><th><?= vpnText('Routing Table / Mark','Routing Table / Mark'); ?></th><td><?= $voiceRoute !== null ? htmlspecialchars(isset($voiceRoute['routing-table']) ? $voiceRoute['routing-table'] : (isset($voiceRoute['routing-mark']) ? $voiceRoute['routing-mark'] : '-')) : '-'; ?></td></tr>
+                                        <tr><th><?= vpnText('Routing Table / Mark','Routing Table / Mark'); ?></th><td><?= $voiceRoute !== null ? htmlspecialchars(isset($voiceRoute['routing_table']) ? $voiceRoute['routing_table'] : (isset($voiceRoute['routing_mark']) ? $voiceRoute['routing_mark'] : '-')) : '-'; ?></td></tr>
                                       </table>
                                       <h5><?= vpnText('Port Forwarding','Port Forwarding'); ?></h5>
                                       <table class="table table-bordered"><thead><tr><th><?= vpnText('External Port','External Port'); ?></th><th><?= vpnText('Internal Port','Internal Port'); ?></th><th><?= vpnText('Target IP','Target IP'); ?></th><th>Comment</th></tr></thead><tbody>
                                         <?php if (!$relatedNat) { ?><tr><td colspan="4"><?= vpnText('No matching NAT rules','মিল থাকা NAT Rule নেই'); ?></td></tr><?php } else { foreach ($relatedNat as $rr) { ?>
-                                          <tr><td><?= htmlspecialchars(isset($rr['dst-port']) ? $rr['dst-port'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-ports']) ? $rr['to-ports'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-addresses']) ? $rr['to-addresses'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['comment']) ? $rr['comment'] : '-'); ?></td></tr>
+                                          <tr><td><?= htmlspecialchars(isset($rr['dst_port']) ? $rr['dst_port'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to_ports']) ? $rr['to_ports'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to_addresses']) ? $rr['to_addresses'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['comment']) ? $rr['comment'] : '-'); ?></td></tr>
                                         <?php } } ?>
                                       </tbody></table>
                                     </div>
@@ -943,7 +989,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 if(!pass){alert('Enter the VPN password to generate the client command.');return;}
                 var comment=(group?group+' - ':'')+user+' Voice Call';
                 var c=['# NextGan WiFi Solution | RouterOS '+ros+' | VPN Client SSTP'];
-                c.push('/interface sstp-client add name=\"Voice Calling\" connect-to=\"mehedi.xgenwifi.xyz\" port=4520 user=\"'+user+'\" password=\"'+pass+'\" profile=default-encryption add-default-route=no disabled=no comment=\"'+comment+'\"');
+                c.push('/interface sstp-client add name=\"Voice Calling\" connect-to=\"mehedi.nextganwifi.xyz\" port=4520 user=\"'+user+'\" password=\"'+pass+'\" profile=default-encryption add-default-route=no disabled=no comment=\"'+comment+'\"');
                 document.getElementById('vpnScriptOutput').value=c.join('\n');
               }
               function copyVpnClientScript(){var e=document.getElementById('vpnScriptOutput');if(!e.value){alert('Generate the script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
@@ -969,7 +1015,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <input id="searchVpnClient" class="form-control" list="vpnClientOptions" placeholder="<?= vpnText('Type username to search…', 'ইউজারনেম লিখে খুঁজুন…'); ?>" autocomplete="off" oninput="applySearchedVpnClient(this.value)">
                           <datalist id="vpnClientOptions">
                             <?php foreach ($routerPppSecrets as $s) {
-                              $rem = isset($s['remote-address']) ? $s['remote-address'] : '';
+                              $rem = isset($s['remote_address']) ? $s['remote_address'] : '';
                               $sName = isset($s['name']) ? $s['name'] : '';
                               $sComm = isset($s['comment']) ? $s['comment'] : '';
                               if ($sName === '') continue;
@@ -1036,7 +1082,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <button type="submit" name="apply_port_forward" id="nat_apply_button" class="btn bg-primary btn-block">
                           <i class="fa fa-check"></i> Apply Port Forwarding (3 Rules)
                         </button>
-                      </form>
+                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                     </div>
                   </div>
                 </div>
@@ -1049,7 +1095,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     </div>
                     <div class="card-body">
                       <div class="overflow box-bordered" style="max-height:600px;">
-                        <table class="table table-bordered table-hover text-nowrap">
+                        <table class="table table-bordered table-hover text-nowrap vpn-searchable-list">
                           <thead>
                             <tr>
                               <th>Action</th>
@@ -1066,13 +1112,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
                             <?php } else {
                               foreach ($routerNatRules as $nr) {
                                 $nId = isset($nr['.id']) ? $nr['.id'] : '';
-                                $nDstPort = isset($nr['dst-port']) ? $nr['dst-port'] : '-';
-                                $nToAddr = isset($nr['to-addresses']) ? $nr['to-addresses'] : '-';
-                                $nToPort = isset($nr['to-ports']) ? $nr['to-ports'] : '-';
+                                $nDstPort = isset($nr['dst_port']) ? $nr['dst_port'] : '-';
+                                $nToAddr = isset($nr['to_addresses']) ? $nr['to_addresses'] : '-';
+                                $nToPort = isset($nr['to_ports']) ? $nr['to_ports'] : '-';
                                 $nComm = isset($nr['comment']) ? $nr['comment'] : '-';
                                 $nUser = '-';
                                 foreach ($routerPppSecrets as $nSecret) {
-                                  if (isset($nSecret['name'], $nSecret['remote-address']) && (string)$nSecret['remote-address'] === (string)$nToAddr) {
+                                  if (isset($nSecret['name'], $nSecret['remote_address']) && (string)$nSecret['remote_address'] === (string)$nToAddr) {
                                     $nUser = (string)$nSecret['name'];
                                     break;
                                   }
@@ -1091,7 +1137,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                     <input type="hidden" name="nat_id" value="<?= htmlspecialchars($nId); ?>">
                                     <button type="button" class="btn bg-primary" style="padding:2px 6px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$nId,"dst"=>$nDstPort,"ip"=>$nToAddr,"to"=>$nToPort,"comment"=>$nComm,"protocol"=>isset($nr["protocol"])?$nr["protocol"]:"tcp"), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i></button>
                                     <button type="submit" name="remove_nat_rule" class="btn bg-danger" style="padding:2px 6px;" title="Remove NAT Rule" onclick="return confirm('Remove NAT Rule for port <?= htmlspecialchars($nDstPort, ENT_QUOTES); ?>?');"><i class="fa fa-trash"></i></button>
-                                  </form>
+                                  <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                                 </td>
                                 <td><strong><?= htmlspecialchars($nUser); ?></strong></td>
                                 <td><b class="text-primary"><?= htmlspecialchars($nDstPort); ?></b></td>
@@ -1114,15 +1160,15 @@ $baseVpnUrl = "./admin.php?id=vpn";
               <?php foreach ($routerPppSecrets as $s) {
                 $un = isset($s['name']) ? $s['name'] : '';
                 if ($un === '') continue;
-                $remote = isset($s['remote-address']) ? $s['remote-address'] : '';
+                $remote = isset($s['remote_address']) ? $s['remote_address'] : '';
                 $group = isset($s['comment']) ? $s['comment'] : '';
               ?>
               vpnSecretIndex[<?= json_encode($un); ?>] = {ip:<?= json_encode($remote); ?>,user:<?= json_encode($un); ?>,group:<?= json_encode($group); ?>};
               <?php } ?>
               <?php foreach ($routerNatRules as $natIndexRule) {
-                $natIndexIp = isset($natIndexRule['to-addresses']) ? (string)$natIndexRule['to-addresses'] : '';
-                $natIndexExt = isset($natIndexRule['dst-port']) ? (string)$natIndexRule['dst-port'] : '';
-                $natIndexInt = isset($natIndexRule['to-ports']) ? (string)$natIndexRule['to-ports'] : '';
+                $natIndexIp = isset($natIndexRule['to_addresses']) ? (string)$natIndexRule['to_addresses'] : '';
+                $natIndexExt = isset($natIndexRule['dst_port']) ? (string)$natIndexRule['dst_port'] : '';
+                $natIndexInt = isset($natIndexRule['to_ports']) ? (string)$natIndexRule['to_ports'] : '';
                 if ($natIndexIp === '' || $natIndexExt === '') continue;
               ?>
               if (!natPortIndex[<?= json_encode($natIndexIp); ?>]) natPortIndex[<?= json_encode($natIndexIp); ?>] = {};
@@ -1193,7 +1239,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <datalist id="voiceVpnOptions">
                             <?php foreach ($routerPppSecrets as $s) {
                               $sName = isset($s['name']) ? $s['name'] : '';
-                              $sRem = isset($s['remote-address']) ? $s['remote-address'] : '';
+                              $sRem = isset($s['remote_address']) ? $s['remote_address'] : '';
                               $sComm = isset($s['comment']) ? $s['comment'] : '';
                               if ($sName === '') continue;
                             ?>
@@ -1209,7 +1255,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <button type="submit" name="push_whatsapp_bypass" class="btn bg-green btn-block" style="font-size:14px; font-weight:bold; padding:8px 15px;">
                           <i class="fa fa-cloud-upload"></i> <?= vpnText('Push Voice Call Rules', 'ভয়েস কল Rules Push করুন'); ?>
                         </button>
-                      </form>
+                      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                     </div>
                   </div>
                 </div>
@@ -1238,7 +1284,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 <div class="card-header"><h4 style="margin:0;"><i class="fa fa-list"></i> <?= vpnText('WhatsApp Voice Call User List','WhatsApp Voice Call User List'); ?></h4></div>
                 <div class="card-body">
                   <div class="overflow box-bordered" style="max-height:420px;">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover vpn-searchable-list">
                       <thead><tr><th><?= vpnText('User','ইউজার'); ?></th><th><?= vpnText('Static IP','Static IP'); ?></th><th><?= vpnText('Voice Rules','Voice Rules'); ?></th><th class="text-right"><?= vpnText('Action','অ্যাকশন'); ?></th></tr></thead>
                       <tbody>
                         <?php
@@ -1247,7 +1293,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           $voiceStatusRows = array();
                           foreach ($routerPppSecrets as $vsec) {
                             $vu = isset($vsec['name']) ? (string)$vsec['name'] : '';
-                            $vip = isset($vsec['remote-address']) ? (string)$vsec['remote-address'] : '';
+                            $vip = isset($vsec['remote_address']) ? (string)$vsec['remote_address'] : '';
                             $vg = isset($vsec['comment']) ? trim((string)$vsec['comment']) : '';
                             if ($vu === '') continue;
                             $vl = ($vg !== '' ? $vg . ' - ' : '') . $vu . ' - Voice Call';
@@ -1290,7 +1336,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 <input type="hidden" name="active_tab" value="bypass">
                                 <input type="hidden" name="bypass_user" value="<?= htmlspecialchars($vs['user']); ?>">
                                 <button type="submit" name="remove_whatsapp_bypass" class="btn bg-danger" style="padding:4px 9px;"><?= vpnText('Delete','ডিলিট'); ?></button>
-                              </form>
+                              <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                             </td>
                           </tr>
                         <?php } } ?>
@@ -1301,7 +1347,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
               </div>
               <script>
               var voiceSecretData={};
-              <?php foreach($routerPppSecrets as $vsd){$vu=isset($vsd['name'])?$vsd['name']:'';if($vu==='')continue;$vip=isset($vsd['remote-address'])?$vsd['remote-address']:'';$vg=isset($vsd['comment'])?$vsd['comment']:''; ?>
+              <?php foreach($routerPppSecrets as $vsd){$vu=isset($vsd['name'])?$vsd['name']:'';if($vu==='')continue;$vip=isset($vsd['remote_address'])?$vsd['remote_address']:'';$vg=isset($vsd['comment'])?$vsd['comment']:''; ?>
               voiceSecretData[<?= json_encode($vu); ?>]={ip:<?= json_encode($vip); ?>,group:<?= json_encode($vg); ?>};
               <?php } ?>
               function applySearchedVoiceVpnUser(value){var d=voiceSecretData[value];document.getElementById('selectVoiceVpnSecret').value=d?value:'';document.getElementById('bypass_client_ip').value=d?d.ip:'';document.getElementById('bypass_group').value=d?d.group:'';}
@@ -1310,9 +1356,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 var user=document.getElementById('scriptVpnUser').value, group=document.getElementById('scriptVpnGroup').value;
                 var ros=document.getElementById('whatsappMangleRos').value;
                 if(!user){alert('Select a VPN user first.');return;}
-                function q(v){return String(v).replace(/[\"\\\r\n]/g,'_');}
-                var ip=(voiceSecretData[user]||{}).ip||'';
-                if(!ip){alert('The selected PPP Secret has no static remote IP.');return;}
+                // Generate exactly two protocol rules: no src-address filter and no WhatsApp address-list rule.
                 var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
                 var comment=(group?group+' - ':'')+user+' - Voice Call';
                 var c=['# NextGan WiFi Solution | WhatsApp Voice Call Routing | RouterOS '+ros];
@@ -1322,8 +1366,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 } else {
                   c.push('/ip/route/add dst-address=0.0.0.0/0 gateway=\"Voice Calling\" routing-mark=voicecall comment=\"'+comment+' Route\"');
                 }
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=tcp dst-port='+ports+' comment=\"'+comment+' TCP\"');
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address='+q(ip)+' protocol=udp dst-port='+ports+' comment=\"'+comment+' UDP\"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=tcp dst-port='+ports+' comment=\"'+comment+' TCP\"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=udp dst-port='+ports+' comment=\"'+comment+' UDP\"');
                 document.getElementById('whatsappMangleOutput').value=c.join('\n');
               }
               function copyVpnInlineScript(){var e=document.getElementById('whatsappMangleOutput');if(!e.value){alert('Generate script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
@@ -1338,7 +1382,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 </div>
                 <div class="card-body">
                   <div class="overflow box-bordered">
-                    <table class="table table-bordered table-hover text-nowrap">
+                    <table class="table table-bordered table-hover text-nowrap vpn-searchable-list">
                       <thead>
                         <tr>
                           <th>Action</th>
@@ -1357,7 +1401,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                             $aId = isset($pa['.id']) ? $pa['.id'] : '';
                             $aName = isset($pa['name']) ? $pa['name'] : '-';
                             $aServ = isset($pa['service']) ? $pa['service'] : '-';
-                            $aCaller = isset($pa['caller-id']) ? $pa['caller-id'] : '-';
+                            $aCaller = isset($pa['caller_id']) ? $pa['caller_id'] : '-';
                             $aAddr = isset($pa['address']) ? $pa['address'] : '-';
                             $aUp = isset($pa['uptime']) ? formatDTM($pa['uptime']) : '-';
                         ?>
@@ -1370,7 +1414,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 <button type="submit" name="disconnect_active_vpn" class="btn bg-danger" style="padding:2px 8px; font-size:12px;" onclick="return confirm('Disconnect active VPN user <?= htmlspecialchars($aName, ENT_QUOTES); ?>?');">
                                   <i class="fa fa-power-off"></i> Disconnect
                                 </button>
-                              </form>
+                              <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
                             </td>
                             <td><b><?= htmlspecialchars($aName); ?></b></td>
                             <td><?= htmlspecialchars($aServ); ?></td>
@@ -1423,6 +1467,56 @@ document.addEventListener('DOMContentLoaded',function(){
   });});
 });
 </script>
+
+<script>
+(function () {
+  function addVpnListSearch(table) {
+    var wrapper = table.closest('.overflow') || table.parentElement;
+    if (!wrapper || !wrapper.parentNode) return;
+    var bar = document.createElement('div');
+    bar.className = 'vpn-list-search';
+    bar.style.cssText = 'display:flex;align-items:center;gap:6px;margin:0 0 8px;max-width:420px;';
+    var input = document.createElement('input');
+    input.type = 'search';
+    input.className = 'form-control';
+    input.placeholder = 'Find in this list…';
+    input.setAttribute('aria-label', 'Find in this list');
+    input.style.cssText = 'height:32px;padding:5px 9px;font-size:12px;min-width:0;flex:1;';
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn bg-secondary';
+    button.textContent = 'Find';
+    button.style.cssText = 'padding:5px 10px;font-size:12px;white-space:nowrap;';
+    var clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'btn bg-secondary';
+    clear.textContent = '×';
+    clear.title = 'Clear search';
+    clear.setAttribute('aria-label', 'Clear search');
+    clear.style.cssText = 'padding:5px 9px;font-size:12px;';
+    function filterRows() {
+      var query = input.value.trim().toLocaleLowerCase();
+      var body = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
+      if (!body) return;
+      Array.prototype.forEach.call(body.rows, function (row) {
+        row.style.display = (!query || (row.textContent || '').toLocaleLowerCase().indexOf(query) !== -1) ? '' : 'none';
+      });
+    }
+    input.addEventListener('input', filterRows);
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); filterRows(); }
+    });
+    button.addEventListener('click', filterRows);
+    clear.addEventListener('click', function () { input.value = ''; filterRows(); input.focus(); });
+    bar.appendChild(input);
+    bar.appendChild(button);
+    bar.appendChild(clear);
+    wrapper.parentNode.insertBefore(bar, wrapper);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('table.vpn-searchable-list'), addVpnListSearch);
+})();
+</script>
+
 <!-- MODAL: ADD VPN ROUTER -->
 <div id="modalAddVpnRouter" class="ngw-modal-backdrop" onclick="if(event.target===this)this.style.display='none';" style="display:none;">
   <div class="card ngw-modal-box">
@@ -1479,7 +1573,7 @@ document.addEventListener('DOMContentLoaded',function(){
         <button type="submit" name="save_vpn_router" id="vpnRouterSaveButton" class="btn bg-primary btn-block" style="margin-top:10px;">
           <i class="fa fa-save"></i> Save VPN Router
         </button>
-      </form>
+      <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
     </div>
   </div>
 </div>

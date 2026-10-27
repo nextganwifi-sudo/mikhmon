@@ -20,3 +20,17 @@ uploads/reseller-templates/*/*.bak.php
 Thumbs.db
 .idea/
 .vscode/
+
+# Runtime configuration and credentials (application lives in mikhmonv3-upstream/)
+/mikhmonv3-upstream/include/config.php
+/mikhmonv3-upstream/include/resellers.json
+/mikhmonv3-upstream/include/backup_admin.json
+/mikhmonv3-upstream/include/vpn_routers.json
+/mikhmonv3-upstream/include/*.log
+/mikhmonv3-upstream/backups/*
+!/mikhmonv3-upstream/backups/.gitkeep
+/mikhmonv3-upstream/uploads/reseller-logos/*
+!/mikhmonv3-upstream/uploads/reseller-logos/.gitkeep
+!/mikhmonv3-upstream/uploads/reseller-logos/.htaccess
+/mikhmonv3-upstream/uploads/reseller-templates/*/*.bak.php
+/mikhmonv3-upstream/uploads/reseller-templates/*/*.draft.php

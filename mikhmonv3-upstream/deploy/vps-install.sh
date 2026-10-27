@@ -79,6 +79,8 @@ if [[ -f "${APP_DIR}/include/config.php" ]]; then
   cp -a "${APP_DIR}/include/config.php" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/include/resellers.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/include/permission_groups.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
+  cp -a "${APP_DIR}/include/backup_admin.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
+  cp -a "${APP_DIR}/include/vpn_routers.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/include/quickbt.php" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/uploads/." "${BACKUP_TMP}/uploads/" 2>/dev/null || true
   cp -a "${APP_DIR}/voucher/template.php" "${BACKUP_TMP}/voucher/" 2>/dev/null || true
@@ -113,10 +115,66 @@ if [[ -d "$BACKUP_TMP" ]]; then
 fi
 
 echo "[3/6] Setting directory permissions for web-based Template Editor, Logo Upload & Safe Updater..."
+# Create a runtime config only when this is a fresh install; never overwrite live router credentials.
+if [[ ! -f "${APP_DIR}/include/config.php" && -f "${APP_DIR}/include/config.example.php" ]]; then
+  cp "${APP_DIR}/include/config.example.php" "${APP_DIR}/include/config.php"
+  # Generate unique initial admin credentials instead of deploying the public demo login.
+  ADMIN_USER="admin_$(openssl rand -hex 4)"
+  ADMIN_PASS="$(openssl rand -hex 12)"
+  ADMIN_ENC="$(php -r '$s=$argv[1];$key="128";$r="";for($i=0;$i<strlen($s);$i++){$r.=chr(ord($s[$i])+ord(substr($key,($i%strlen($key))-1,1)));}echo base64_encode($r);' "$ADMIN_PASS")"
+  APP_CONFIG="${APP_DIR}/include/config.php" ADMIN_USER="$ADMIN_USER" ADMIN_ENC="$ADMIN_ENC" php <<'PHP'
+<?php
+$p = getenv('APP_CONFIG');
+$user = getenv('ADMIN_USER');
+$enc = getenv('ADMIN_ENC');
+$s = @file_get_contents($p);
+if ($s === false || $user === '' || $enc === '') {
+    fwrite(STDERR, "Unable to read config or generate initial administrator credentials.\n");
+    exit(1);
+}
+$pattern = '/^\$data\[[\'"]mikhmon[\'"]\]\s*=\s*array\s*\(.*\);\s*$/m';
+$replacement = "\$data['mikhmon'] = array ('1'=>'mikhmon<|<" . $user . "','mikhmon>|>" . $enc . "');";
+$count = 0;
+$updated = preg_replace($pattern, $replacement, $s, 1, $count);
+if ($updated === null || $count !== 1) {
+    fwrite(STDERR, "Unable to locate the administrator config entry; refusing to install with a known default credential.\n");
+    exit(1);
+}
+if (@file_put_contents($p, $updated) === false) {
+    fwrite(STDERR, "Unable to save initial administrator credentials.\n");
+    exit(1);
+}
+PHP
+  CREDENTIAL_FILE="/root/nextgan-initial-credentials.txt"
+  umask 077
+  printf 'NextGan initial administrator login\nUsername: %s\nPassword: %s\nChange this password immediately after login.\n' "$ADMIN_USER" "$ADMIN_PASS" > "$CREDENTIAL_FILE"
+  chmod 600 "$CREDENTIAL_FILE"
+  echo "[!] Initial admin credentials were generated and saved to $CREDENTIAL_FILE"
+  echo "    Username: $ADMIN_USER"
+  echo "    Password: $ADMIN_PASS"
+fi
 mkdir -p "${APP_DIR}/uploads/reseller-templates" "${APP_DIR}/uploads/reseller-logos" "${APP_DIR}/backups" "${APP_DIR}/images"
-chown -R www-data:www-data "${APP_DIR}"
-chmod -R 755 "${APP_DIR}"
-chmod -R 775 "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups"
+# Ensure runtime JSON stores exist before restricting the include directory.
+[[ -f "${APP_DIR}/include/resellers.json" ]] || printf '[]\n' > "${APP_DIR}/include/resellers.json"
+[[ -f "${APP_DIR}/include/backup_admin.json" ]] || printf '{"username":"","password_enc":""}\n' > "${APP_DIR}/include/backup_admin.json"
+[[ -f "${APP_DIR}/include/vpn_routers.json" ]] || printf '[]\n' > "${APP_DIR}/include/vpn_routers.json"
+# Keep application source root-owned; PHP can write only intended runtime/editor files.
+chown -R root:www-data "${APP_DIR}"
+find "${APP_DIR}" -type d -exec chmod 755 {} +
+find "${APP_DIR}" -type f -exec chmod 644 {} +
+chmod 1770 "${APP_DIR}/include"
+chown -R www-data:www-data "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images"
+find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" -type d -exec chmod 750 {} +
+find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" -type f -exec chmod 640 {} +
+chown root:www-data "${APP_DIR}/include"
+for runtime_file in config.php resellers.json permission_groups.json backup_admin.json vpn_routers.json quickbt.php; do
+  if [[ -f "${APP_DIR}/include/${runtime_file}" ]]; then
+    chown www-data:www-data "${APP_DIR}/include/${runtime_file}"
+    chmod 640 "${APP_DIR}/include/${runtime_file}"
+  fi
+done
+chown root:www-data "${APP_DIR}/backups"
+chmod 750 "${APP_DIR}/backups"
 
 echo "[4/6] Configuring Nginx Virtual Host for domain: ${DOMAIN}..."
 cat > /etc/nginx/sites-available/nextgan-wifi <<EOF
@@ -132,13 +190,24 @@ server {
         try_files \$uri \$uri/ /index.php?\$args;
     }
 
-    # Block direct public access to sensitive data and backup files
-    location ~ ^/(include/(resellers|permission_groups)\.json|backups/|deploy/) {
+    # Never expose runtime configuration, backups, deployment files, Git metadata, or environment files.
+    location ~* ^/(include/|backups/|deploy/|\.git/|\.aistudio/|\.env) {
         deny all;
-        return 403;
+        return 404;
     }
 
-    location ~ \.php\$ {
+    # Uploaded templates may be included internally, but must not execute via direct HTTP requests.
+    location ~* ^/(uploads|voucher)/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$ {
+        deny all;
+        return 404;
+    }
+
+    location ~ /\.(?!well-known/) {
+        deny all;
+        return 404;
+    }
+
+    location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:${PHP_SOCK};
         fastcgi_read_timeout 180;
