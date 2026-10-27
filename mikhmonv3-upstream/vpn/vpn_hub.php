@@ -497,7 +497,6 @@ $baseVpnUrl = "./admin.php?id=vpn";
                   <table class="table table-bordered table-hover text-nowrap">
                     <thead>
                       <tr>
-                        <th>Action</th>
                         <th>Router Name</th>
                         <th>IP / Host</th>
                         <th>API Port</th>
@@ -508,22 +507,19 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     <tbody>
                       <?php foreach ($vpnRouters as $vr) { ?>
                         <tr>
-                          <td style="width:160px;">
-                            <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($vr['id']); ?>" class="btn bg-green" style="padding:3px 10px; font-size:12px; font-weight:bold;">
-                              <i class="fa fa-external-link"></i> Open
-                            </a>
-                            <form method="post" action="" style="display:inline;" onsubmit="return confirm('Remove VPN Router <?= htmlspecialchars($vr['name'], ENT_QUOTES); ?>?');">
-                              <input type="hidden" name="del_id" value="<?= htmlspecialchars($vr['id']); ?>">
-                              <button type="submit" name="delete_vpn_router" class="btn bg-danger" style="padding:3px 8px; font-size:12px;">
-                                <i class="fa fa-trash"></i>
-                              </button>
-                            </form>
-                          </td>
                           <td><b><?= htmlspecialchars($vr['name']); ?></b></td>
                           <td><code><?= htmlspecialchars($vr['host']); ?></code></td>
                           <td><?= htmlspecialchars($vr['port']); ?></td>
                           <td>v<?= htmlspecialchars(isset($vr['ros_ver']) ? $vr['ros_ver'] : '7'); ?></td>
-                          <td><?= htmlspecialchars($vr['created_at']); ?></td>
+                          <td><?= htmlspecialchars(isset($vr['created_at']) ? $vr['created_at'] : '-'); ?></td>
+                          <td class="text-right" style="white-space:nowrap;">
+                            <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($vr['id']); ?>" class="btn bg-green" style="padding:5px 9px;font-size:12px;"><i class="fa fa-external-link"></i> Open</a>
+                            <button type="button" class="btn bg-primary" style="padding:5px 9px;font-size:12px;" onclick='openVpnRouterEdit(<?= json_encode($vr, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i> Edit</button>
+                            <form method="post" action="" style="display:inline;" onsubmit="return confirm('Remove VPN Router <?= htmlspecialchars($vr['name'], ENT_QUOTES); ?>?');">
+                              <input type="hidden" name="del_id" value="<?= htmlspecialchars($vr['id']); ?>">
+                              <button type="submit" name="delete_vpn_router" class="btn bg-danger" style="padding:5px 9px;font-size:12px;" title="Delete"><i class="fa fa-trash"></i></button>
+                            </form>
+                          </td>
                         </tr>
                       <?php } ?>
                     </tbody>
@@ -1078,15 +1074,46 @@ $baseVpnUrl = "./admin.php?id=vpn";
   </div>
 </div>
 
+<script>
+function openVpnRouterEdit(router) {
+  var f=document.getElementById('vpnRouterForm');
+  f.querySelector('[name="vpn_router_id"]').value=router.id||'';
+  f.querySelector('[name="vpn_name"]').value=router.name||'';
+  f.querySelector('[name="vpn_host"]').value=router.host||'';
+  f.querySelector('[name="vpn_port"]').value=router.port||8728;
+  f.querySelector('[name="vpn_ros_ver"]').value=String(router.ros_ver||7);
+  f.querySelector('[name="vpn_user"]').value=router.user||'';
+  f.querySelector('[name="vpn_pass"]').value='';
+  f.querySelector('[name="vpn_pass"]').placeholder='Leave blank to keep current password';
+  document.getElementById('vpnRouterModalTitle').textContent='Edit VPN Router';
+  document.getElementById('vpnRouterSaveButton').name='save_vpn_router';
+  document.getElementById('vpnRouterSaveButton').innerHTML='<i class="fa fa-save"></i> Update VPN Router';
+  document.getElementById('modalAddVpnRouter').style.display='block';
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var addButtons=document.querySelectorAll('[onclick*="modalAddVpnRouter"].btn');
+  addButtons.forEach(function(btn){btn.addEventListener('click',function(){
+    if(this.textContent.toLowerCase().indexOf('edit')!==-1)return;
+    var f=document.getElementById('vpnRouterForm');
+    if(!f)return;
+    f.reset();f.querySelector('[name="vpn_router_id"]').value='';
+    document.getElementById('vpnRouterModalTitle').textContent='Add VPN Server Router';
+    document.getElementById('vpnRouterSaveButton').name='save_vpn_router';
+    document.getElementById('vpnRouterSaveButton').innerHTML='<i class="fa fa-save"></i> Save VPN Router';
+    f.querySelector('[name="vpn_pass"]').placeholder='Router password';
+  });});
+});
+</script>
 <!-- MODAL: ADD VPN ROUTER -->
 <div id="modalAddVpnRouter" class="ngw-modal-backdrop" onclick="if(event.target===this)this.style.display='none';" style="display:none;">
   <div class="card ngw-modal-box">
     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0;"><i class="fa fa-plus"></i> Add VPN Server Router</h3>
+      <h3 style="margin:0;"><i class="fa fa-plus"></i> <span id="vpnRouterModalTitle">Add VPN Server Router</span></h3>
       <span class="pointer" onclick="document.getElementById('modalAddVpnRouter').style.display='none';"><i class="fa fa-close text-red"></i></span>
     </div>
     <div class="card-body">
-      <form method="post" action="<?= $baseVpnUrl; ?>" autocomplete="off">
+      <form method="post" action="<?= $baseVpnUrl; ?>" autocomplete="off" id="vpnRouterForm">
+        <input type="hidden" name="vpn_router_id" id="vpn_router_id" value="">
         <div class="form-group mr-b-10">
           <label style="font-weight:bold; font-size:12px;">Router Name / Session:</label>
           <input type="text" name="vpn_name" class="form-control" required placeholder="e.g. Central-VPN-Server">
@@ -1130,7 +1157,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
           </div>
         </div>
 
-        <button type="submit" name="add_vpn_router" class="btn bg-primary btn-block" style="margin-top:10px;">
+        <button type="submit" name="save_vpn_router" id="vpnRouterSaveButton" class="btn bg-primary btn-block" style="margin-top:10px;">
           <i class="fa fa-save"></i> Save VPN Router
         </button>
       </form>
