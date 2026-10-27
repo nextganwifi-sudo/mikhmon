@@ -46,7 +46,7 @@ if (!isset($_SESSION["mikhmon"])) {
       }
     }
   }
-  if ($session === '' || (!$isAdminPreview && (!canAccessRouterSession($session) || (!hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher'))))) {
+  if ($session === '' || (!$isAdminPreview && (!canAccessRouterSession($session) || (!hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template'))))) {
     echo "Access Denied: You do not have permission to preview voucher templates for this router session.";
     exit;
   }
