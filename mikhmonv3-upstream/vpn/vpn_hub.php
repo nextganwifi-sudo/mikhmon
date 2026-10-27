@@ -930,17 +930,17 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <div class="row">
                             <div class="col-4">
                               <label style="font-size:11px;">Winbox · Internal Port</label>
-                              <input type="number" id="nat_winbox_external" name="port_winbox" class="form-control" min="1" max="65535" value="<?= $suggestedWinboxPort; ?>" required>
+                              <input type="number" id="nat_winbox_external" name="port_winbox" class="form-control" min="1" max="65535" data-default="<?= (int)$suggestedWinboxPort; ?>" value="<?= $suggestedWinboxPort; ?>" required>
                               <input type="hidden" id="nat_winbox_internal" value="8291">
                             </div>
                             <div class="col-4">
                               <label style="font-size:11px;">API · Internal Port</label>
-                              <input type="number" id="nat_api_external" name="port_api" class="form-control" min="1" max="65535" value="<?= $suggestedApiPort; ?>" required>
+                              <input type="number" id="nat_api_external" name="port_api" class="form-control" min="1" max="65535" data-default="<?= (int)$suggestedApiPort; ?>" value="<?= $suggestedApiPort; ?>" required>
                               <input type="hidden" id="nat_api_internal" value="8728">
                             </div>
                             <div class="col-4">
                               <label style="font-size:11px;">Web · Internal Port</label>
-                              <input type="number" id="nat_web_external" name="port_web" class="form-control" min="1" max="65535" value="<?= $suggestedWebPort; ?>" required>
+                              <input type="number" id="nat_web_external" name="port_web" class="form-control" min="1" max="65535" data-default="<?= (int)$suggestedWebPort; ?>" value="<?= $suggestedWebPort; ?>" required>
                               <input type="hidden" id="nat_web_internal" value="80">
                             </div>
                           </div>
@@ -978,6 +978,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <thead>
                             <tr>
                               <th>Action</th>
+                              <th>VPN Username</th>
                               <th>Dst Port (Ext)</th>
                               <th>To Address</th>
                               <th>To Port (Int)</th>
@@ -986,7 +987,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           </thead>
                           <tbody>
                             <?php if (empty($routerNatRules)) { ?>
-                              <tr><td colspan="5" class="text-center text-muted">No DST-NAT port forward rules found.</td></tr>
+                              <tr><td colspan="6" class="text-center text-muted">No DST-NAT port forward rules found.</td></tr>
                             <?php } else {
                               foreach ($routerNatRules as $nr) {
                                 $nId = isset($nr['.id']) ? $nr['.id'] : '';
@@ -994,8 +995,21 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                 $nToAddr = isset($nr['to-addresses']) ? $nr['to-addresses'] : '-';
                                 $nToPort = isset($nr['to-ports']) ? $nr['to-ports'] : '-';
                                 $nComm = isset($nr['comment']) ? $nr['comment'] : '-';
+                                $nUser = '-';
+                                foreach ($routerPppSecrets as $nSecret) {
+                                  if (isset($nSecret['name'], $nSecret['remote-address']) && (string)$nSecret['remote-address'] === (string)$nToAddr) {
+                                    $nUser = (string)$nSecret['name'];
+                                    break;
+                                  }
+                                }
+                                if ($nUser === '-' && $nComm !== '-') {
+                                  $nBaseComment = preg_replace('/ - (Winbox|API|Web)$/i', '', (string)$nComm);
+                                  $nParts = explode(' - ', $nBaseComment);
+                                  if (count($nParts) > 1) $nUser = trim((string)end($nParts));
+                                }
                             ?>
                               <tr>
+                                <td><strong><?= htmlspecialchars($nUser); ?></strong></td>
                                 <td>
                                   <form method="post" action="" style="display:inline;">
                                     <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
@@ -1021,6 +1035,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
 
               <script>
               var vpnSecretIndex = {};
+              var natPortIndex = {};
               <?php foreach ($routerPppSecrets as $s) {
                 $un = isset($s['name']) ? $s['name'] : '';
                 if ($un === '') continue;
@@ -1028,6 +1043,17 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 $group = isset($s['comment']) ? $s['comment'] : '';
               ?>
               vpnSecretIndex[<?= json_encode($un); ?>] = {ip:<?= json_encode($remote); ?>,user:<?= json_encode($un); ?>,group:<?= json_encode($group); ?>};
+              <?php } ?>
+              <?php foreach ($routerNatRules as $natIndexRule) {
+                $natIndexIp = isset($natIndexRule['to-addresses']) ? (string)$natIndexRule['to-addresses'] : '';
+                $natIndexExt = isset($natIndexRule['dst-port']) ? (string)$natIndexRule['dst-port'] : '';
+                $natIndexInt = isset($natIndexRule['to-ports']) ? (string)$natIndexRule['to-ports'] : '';
+                if ($natIndexIp === '' || $natIndexExt === '') continue;
+              ?>
+              if (!natPortIndex[<?= json_encode($natIndexIp); ?>]) natPortIndex[<?= json_encode($natIndexIp); ?>] = {};
+              <?php if ($natIndexInt === '8291') { ?>natPortIndex[<?= json_encode($natIndexIp); ?>].winbox = <?= json_encode($natIndexExt); ?>;<?php }
+                    elseif ($natIndexInt === '8728') { ?>natPortIndex[<?= json_encode($natIndexIp); ?>].api = <?= json_encode($natIndexExt); ?>;<?php }
+                    elseif ($natIndexInt === '80') { ?>natPortIndex[<?= json_encode($natIndexIp); ?>].web = <?= json_encode($natIndexExt); ?>;<?php } ?>
               <?php } ?>
               function openNatEdit(rule) {
                 var id=document.getElementById('nat_edit_id');
@@ -1044,10 +1070,23 @@ $baseVpnUrl = "./admin.php?id=vpn";
               }
               function applySearchedVpnUser(value) {
                 var u=vpnSecretIndex[value];
-                document.getElementById('selectVpnClient').value=value;
+                document.getElementById('selectVpnClient').value=u?value:'';
                 document.getElementById('forward_ip').value=u?u.ip:'';
                 document.getElementById('forward_user').value=u?u.user:'';
                 document.getElementById('forward_group').value=u?u.group:'';
+                var ports = u && u.ip ? natPortIndex[u.ip] : null;
+                var winbox = document.getElementById('nat_winbox_external');
+                var api = document.getElementById('nat_api_external');
+                var web = document.getElementById('nat_web_external');
+                if (ports) {
+                  winbox.value = ports.winbox || '';
+                  api.value = ports.api || '';
+                  web.value = ports.web || '';
+                } else {
+                  winbox.value = winbox.getAttribute('data-default') || '';
+                  api.value = api.getAttribute('data-default') || '';
+                  web.value = web.getAttribute('data-default') || '';
+                }
               }
               function applySearchedVpnClient(value){applySearchedVpnUser(value);}
               function applySearchedVoiceVpnUser(value) {
