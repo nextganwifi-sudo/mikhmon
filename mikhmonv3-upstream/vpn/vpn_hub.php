@@ -138,6 +138,7 @@ $routerNatRules = array();
 $routerPppSecrets = array();
 $routerPppActive = array();
 $routerMangleRules = array();
+$routerRoutes = array();
 
 // Lazy connection: Only connect if a specific VPN router is opened
 if ($currentVpnRouter !== null) {
@@ -360,7 +361,7 @@ if ($currentVpnRouter !== null) {
                 }
             }
 
-            // 6. Disable voice-call routing for one selected PPP Secret.
+            // 6. Delete all WhatsApp Voice Call rules belonging to one selected PPP Secret.
             if (isset($_POST['remove_whatsapp_bypass'])) {
                 $disableUser = trim((string)(isset($_POST['bypass_user']) ? $_POST['bypass_user'] : ''));
                 $secretsForDisable = $API->comm('/ppp/secret/print');
@@ -373,20 +374,53 @@ if ($currentVpnRouter !== null) {
                 } else {
                     $disableGroup = isset($disableSecret['comment']) ? trim((string)$disableSecret['comment']) : '';
                     $disableLabel = ($disableGroup !== '' ? $disableGroup . ' - ' : '') . $disableUser . ' - Voice Call';
+                    $removedMangles = 0;
                     $rulesToRemove = $API->comm('/ip/firewall/mangle/print');
                     if (is_array($rulesToRemove)) foreach ($rulesToRemove as $ruleToRemove) {
-                        $ruleComment = isset($ruleToRemove['comment']) ? $ruleToRemove['comment'] : '';
-                        if ($ruleComment === $disableLabel . ' TCP' || $ruleComment === $disableLabel . ' UDP') {
-                            if (isset($ruleToRemove['.id'])) $API->comm('/ip/firewall/mangle/remove', array('.id' => $ruleToRemove['.id']));
+                        $ruleComment = isset($ruleToRemove['comment']) ? (string)$ruleToRemove['comment'] : '';
+                        if (($ruleComment === $disableLabel . ' TCP' || $ruleComment === $disableLabel . ' UDP') && isset($ruleToRemove['.id'])) {
+                            $API->comm('/ip/firewall/mangle/remove', array('.id' => $ruleToRemove['.id']));
+                            $removedMangles++;
                         }
                     }
+                    $removedRoutes = 0;
                     $routesToRemove = $API->comm('/ip/route/print');
                     if (is_array($routesToRemove)) foreach ($routesToRemove as $routeToRemove) {
                         if (isset($routeToRemove['comment']) && $routeToRemove['comment'] === $disableLabel . ' Route' && isset($routeToRemove['.id'])) {
                             $API->comm('/ip/route/remove', array('.id' => $routeToRemove['.id']));
+                            $removedRoutes++;
                         }
                     }
-                    $vpnMsg = vpnText('Voice-call routing disabled for ', 'এই ইউজারের Voice Call Routing বন্ধ হয়েছে: ') . '<b>' . htmlspecialchars($disableUser) . '</b>.';
+
+                    // RouterOS 7 routing table is shared by voice-call users.
+                    // Remove it only after the last route/mangle rule using it is gone.
+                    if (isset($currentVpnRouter['ros_ver']) && (int)$currentVpnRouter['ros_ver'] >= 7) {
+                        $remainingRoutes = $API->comm('/ip/route/print');
+                        $remainingMangles = $API->comm('/ip/firewall/mangle/print');
+                        $voiceTableInUse = false;
+                        if (is_array($remainingRoutes)) foreach ($remainingRoutes as $remainingRoute) {
+                            if ((isset($remainingRoute['routing-table']) && $remainingRoute['routing-table'] === 'voicecall') ||
+                                (isset($remainingRoute['routing-mark']) && $remainingRoute['routing-mark'] === 'voicecall')) {
+                                $voiceTableInUse = true;
+                                break;
+                            }
+                        }
+                        if (!$voiceTableInUse && is_array($remainingMangles)) foreach ($remainingMangles as $remainingMangle) {
+                            if (isset($remainingMangle['new-routing-mark']) && $remainingMangle['new-routing-mark'] === 'voicecall') {
+                                $voiceTableInUse = true;
+                                break;
+                            }
+                        }
+                        if (!$voiceTableInUse) {
+                            $tablesToRemove = $API->comm('/routing/table/print');
+                            if (is_array($tablesToRemove)) foreach ($tablesToRemove as $tableToRemove) {
+                                if (isset($tableToRemove['name'], $tableToRemove['.id']) && $tableToRemove['name'] === 'voicecall') {
+                                    $API->comm('/routing/table/remove', array('.id' => $tableToRemove['.id']));
+                                }
+                            }
+                        }
+                    }
+                    $vpnMsg = vpnText('WhatsApp Voice Call rules, routes and unused routing table deleted for ', 'এই ইউজারের WhatsApp Voice Call Mangle Rule, Route এবং অব্যবহৃত Routing Table মুছে ফেলা হয়েছে: ') . '<b>' . htmlspecialchars($disableUser) . '</b>.';
                 }
             }
 
@@ -419,6 +453,8 @@ if ($currentVpnRouter !== null) {
         if ($tab === 'secrets' || $tab === 'bypass') {
             $mangles = $API->comm('/ip/firewall/mangle/print');
             $routerMangleRules = is_array($mangles) ? $mangles : array();
+            $routes = $API->comm('/ip/route/print');
+            $routerRoutes = is_array($routes) ? $routes : array();
         }
     } else {
         $vpnErr = "Could not connect to VPN Router at <b>" . htmlspecialchars($currentVpnRouter['host']) . "</b>. Please verify IP, API port, and credentials.";
@@ -685,11 +721,23 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                       $rc = isset($rr['comment']) ? (string)$rr['comment'] : '';
                                       if ($sName !== '' && strpos($rc, $sName) !== false) $relatedNat[] = $rr;
                                   }
-                                  $hasVoice = false;
+                                  $voiceLabel = ($sComm !== '' ? $sComm . ' - ' : '') . $sName . ' - Voice Call';
+                                  $hasVoiceTcp = false;
+                                  $hasVoiceUdp = false;
+                                  $voiceRoute = null;
                                   foreach ($routerMangleRules as $mr) {
                                       $mc = isset($mr['comment']) ? (string)$mr['comment'] : '';
-                                      if (stripos($mc, 'Voice Call') !== false && $sName !== '' && strpos($mc, $sName) !== false) $hasVoice = true;
+                                      if ($mc === $voiceLabel . ' TCP') $hasVoiceTcp = true;
+                                      if ($mc === $voiceLabel . ' UDP') $hasVoiceUdp = true;
                                   }
+                                  foreach ($routerRoutes as $vr) {
+                                      if (isset($vr['comment']) && $vr['comment'] === $voiceLabel . ' Route') {
+                                          $voiceRoute = $vr;
+                                          break;
+                                      }
+                                  }
+                                  $hasVoiceAny = $hasVoiceTcp || $hasVoiceUdp || $voiceRoute !== null;
+                                  $hasVoice = $hasVoiceTcp && $hasVoiceUdp && $voiceRoute !== null;
                                   $svc = in_array($sServ, array('sstp','l2tp','pptp','ovpn'), true) ? $sServ : 'sstp';
                                   $safeModalId = 'vpnDetail' . preg_replace('/[^A-Za-z0-9]/', '', $sId);
                                 ?>
@@ -725,7 +773,9 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                         <tr><th><?= vpnText('Remote IP','Remote IP'); ?></th><td><?= htmlspecialchars($sRem); ?></td></tr>
                                         <tr><th><?= vpnText('Group','Group'); ?></th><td><?= htmlspecialchars($sComm); ?></td></tr>
                                         <tr><th><?= vpnText('Status','Status'); ?></th><td><?= $sDis ? vpnText('Disabled','বন্ধ') : vpnText('Enabled','চালু'); ?></td></tr>
-                                        <tr><th><?= vpnText('WhatsApp Voice Call','WhatsApp Voice Call'); ?></th><td><?= $hasVoice ? vpnText('Configured','কনফিগার করা') : vpnText('Not configured','কনফিগার করা নেই'); ?></td></tr>
+                                        <tr><th><?= vpnText('WhatsApp Voice Call Routing','WhatsApp Voice Call Routing'); ?></th><td><?= $hasVoice ? '<span class="text-green">' . vpnText('Configured','কনফিগার করা') . '</span>' : ($hasVoiceAny ? '<span class="text-warning">' . vpnText('Incomplete — check rules/route','অসম্পূর্ণ — Rule/Route পরীক্ষা করুন') . '</span>' : vpnText('Not configured','কনফিগার করা নেই')); ?></td></tr>
+                                        <tr><th><?= vpnText('WhatsApp Route Gateway','WhatsApp Route Gateway'); ?></th><td><?= $voiceRoute !== null ? htmlspecialchars(isset($voiceRoute['gateway']) ? $voiceRoute['gateway'] : '-') : '-'; ?></td></tr>
+                                        <tr><th><?= vpnText('Routing Table / Mark','Routing Table / Mark'); ?></th><td><?= $voiceRoute !== null ? htmlspecialchars(isset($voiceRoute['routing-table']) ? $voiceRoute['routing-table'] : (isset($voiceRoute['routing-mark']) ? $voiceRoute['routing-mark'] : '-')) : '-'; ?></td></tr>
                                       </table>
                                       <h5><?= vpnText('Port Forwarding','Port Forwarding'); ?></h5>
                                       <table class="table table-bordered"><thead><tr><th><?= vpnText('External Port','External Port'); ?></th><th><?= vpnText('Internal Port','Internal Port'); ?></th><th><?= vpnText('Target IP','Target IP'); ?></th><th>Comment</th></tr></thead><tbody>
@@ -1090,34 +1140,55 @@ $baseVpnUrl = "./admin.php?id=vpn";
                       <thead><tr><th><?= vpnText('User','ইউজার'); ?></th><th><?= vpnText('Static IP','Static IP'); ?></th><th><?= vpnText('Voice Rules','Voice Rules'); ?></th><th class="text-right"><?= vpnText('Action','অ্যাকশন'); ?></th></tr></thead>
                       <tbody>
                         <?php
-                          $voiceStatusRows=array();
-                          foreach($routerPppSecrets as $vsec){
-                            $vu=isset($vsec['name'])?$vsec['name']:'';
-                            $vip=isset($vsec['remote-address'])?$vsec['remote-address']:'';
-                            $vg=isset($vsec['comment'])?$vsec['comment']:'';
-                            if($vu==='')continue;
-                            $vl=($vg!==''?$vg.' - ':'').$vu.' - Voice Call';
-                            $vOn=false;
-                            foreach($routerMangleRules as $vmr){
-                              $vcomment=isset($vmr['comment'])?$vmr['comment']:'';
-                              if(($vcomment===$vl.' TCP'||$vcomment===$vl.' UDP')&&empty($vmr['disabled']))$vOn=true;
+                          // Only show users with actual WhatsApp Voice Call rules/routes on this router.
+                          // This prevents every PPP Secret from appearing as a random list entry.
+                          $voiceStatusRows = array();
+                          foreach ($routerPppSecrets as $vsec) {
+                            $vu = isset($vsec['name']) ? (string)$vsec['name'] : '';
+                            $vip = isset($vsec['remote-address']) ? (string)$vsec['remote-address'] : '';
+                            $vg = isset($vsec['comment']) ? trim((string)$vsec['comment']) : '';
+                            if ($vu === '') continue;
+                            $vl = ($vg !== '' ? $vg . ' - ' : '') . $vu . ' - Voice Call';
+                            $vTcpExists = false;
+                            $vUdpExists = false;
+                            $vTcpEnabled = false;
+                            $vUdpEnabled = false;
+                            $vRoute = null;
+                            foreach ($routerMangleRules as $vmr) {
+                              $vcomment = isset($vmr['comment']) ? (string)$vmr['comment'] : '';
+                              if ($vcomment === $vl . ' TCP') {
+                                $vTcpExists = true;
+                                if (empty($vmr['disabled']) || $vmr['disabled'] === 'false' || $vmr['disabled'] === 'no') $vTcpEnabled = true;
+                              }
+                              if ($vcomment === $vl . ' UDP') {
+                                $vUdpExists = true;
+                                if (empty($vmr['disabled']) || $vmr['disabled'] === 'false' || $vmr['disabled'] === 'no') $vUdpEnabled = true;
+                              }
                             }
-                            $voiceStatusRows[]=array('user'=>$vu,'ip'=>$vip,'on'=>$vOn,'group'=>$vg);
+                            foreach ($routerRoutes as $vr) {
+                              if (isset($vr['comment']) && $vr['comment'] === $vl . ' Route') { $vRoute = $vr; break; }
+                            }
+                            if (!$vTcpExists && !$vUdpExists && $vRoute === null) continue;
+                            $vComplete = $vTcpEnabled && $vUdpEnabled && $vRoute !== null;
+                            $voiceStatusRows[] = array(
+                              'user' => $vu, 'ip' => $vip, 'complete' => $vComplete,
+                              'group' => $vg, 'tcp' => $vTcpExists, 'udp' => $vUdpExists,
+                              'route' => $vRoute !== null
+                            );
                           }
                         ?>
-                        <?php if(empty($voiceStatusRows)){ ?><tr><td colspan="4" class="text-center">No PPP Secrets found.</td></tr><?php } else { foreach($voiceStatusRows as $vs){ ?>
+                        <?php if (empty($voiceStatusRows)) { ?><tr><td colspan="4" class="text-center text-muted"><?= vpnText('No WhatsApp Voice Call rules have been pushed yet.','এখনো কোনো WhatsApp Voice Call Rule Push করা হয়নি।'); ?></td></tr><?php } else { foreach ($voiceStatusRows as $vs) { ?>
                           <tr>
-                            <td><?= htmlspecialchars($vs['user']); ?></td><td><code><?= htmlspecialchars($vs['ip']); ?></code></td>
-                            <td><?= $vs['on']?'<span class="text-green">Enabled</span>':'<span class="text-muted">Not configured</span>'; ?></td>
+                            <td><?= htmlspecialchars($vs['user']); ?></td>
+                            <td><code><?= htmlspecialchars($vs['ip']); ?></code></td>
+                            <td><?= $vs['complete'] ? '<span class="text-green">' . vpnText('Configured','কনফিগার করা') . '</span>' : '<span class="text-warning">' . vpnText('Incomplete — rules/route missing','অসম্পূর্ণ — Rule/Route নেই') . '</span>'; ?></td>
                             <td class="text-right">
-                              <?php if($vs['on']){ ?>
-                              <form method="post" action="<?= $baseVpnUrl; ?>&amp;vpn_id=<?= urlencode($activeVpnId); ?>&amp;tab=bypass" style="display:inline;" onsubmit="return confirm('Disable voice-call routing for this user?')">
-                                <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>"><input type="hidden" name="active_tab" value="bypass"><input type="hidden" name="bypass_user" value="<?= htmlspecialchars($vs['user']); ?>">
-                                <button type="submit" name="remove_whatsapp_bypass" class="btn bg-warning" style="padding:4px 8px;"><?= vpnText('Disable','বন্ধ করুন'); ?></button>
+                              <form method="post" action="<?= $baseVpnUrl; ?>&amp;vpn_id=<?= urlencode($activeVpnId); ?>&amp;tab=bypass" style="display:inline;" onsubmit="return confirm('<?= vpnText('Delete this user’s WhatsApp Mangle rules, route and unused routing table?','এই ইউজারের WhatsApp Mangle Rule, Route এবং অব্যবহৃত Routing Table মুছে ফেলবেন?'); ?>')">
+                                <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
+                                <input type="hidden" name="active_tab" value="bypass">
+                                <input type="hidden" name="bypass_user" value="<?= htmlspecialchars($vs['user']); ?>">
+                                <button type="submit" name="remove_whatsapp_bypass" class="btn bg-danger" style="padding:4px 9px;"><?= vpnText('Delete','ডিলিট'); ?></button>
                               </form>
-                              <?php } else { ?>
-                                <button type="button" class="btn bg-primary" style="padding:4px 8px;" onclick="document.getElementById('searchVoiceVpnSecret').value=<?= htmlspecialchars(json_encode($vs['user']), ENT_QUOTES); ?>;applySearchedVoiceVpnUser(<?= htmlspecialchars(json_encode($vs['user']), ENT_QUOTES); ?>);"><?= vpnText('Select','নির্বাচন'); ?></button>
-                              <?php } ?>
                             </td>
                           </tr>
                         <?php } } ?>
