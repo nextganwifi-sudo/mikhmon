@@ -40,7 +40,7 @@ if (session_status() === PHP_SESSION_ACTIVE) {
 }
 
 $vpnStoragePath = __DIR__ . '/../include/vpn_routers.json';
-$voiceCallStoragePath = __DIR__ . '/../include/voice_call_services.json';
+$voiceCallUsersPath = __DIR__ . '/../include/voice_call_users.json';
 
 /** Language-aware VPN Hub labels; $langid is set by the main application. */
 function vpnText($english, $bengali) {
@@ -73,21 +73,21 @@ function saveVpnRouters($routers) {
     return @file_put_contents($vpnStoragePath, json_encode(array_values($routers), JSON_PRETTY_PRINT), LOCK_EX) !== false;
 }
 
-function loadVoiceCallServices() {
-    global $voiceCallStoragePath;
-    if (!file_exists($voiceCallStoragePath)) return array();
-    $raw = @file_get_contents($voiceCallStoragePath);
+function loadVoiceCallUsers() {
+    global $voiceCallUsersPath;
+    if (!file_exists($voiceCallUsersPath)) return array();
+    $raw = @file_get_contents($voiceCallUsersPath);
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : array();
 }
 
-function saveVoiceCallServices($services) {
-    global $voiceCallStoragePath;
-    return @file_put_contents($voiceCallStoragePath, json_encode(array_values($services), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false;
+function saveVoiceCallUsers($users) {
+    global $voiceCallUsersPath;
+    return @file_put_contents($voiceCallUsersPath, json_encode(array_values($users), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false;
 }
 
 $vpnRouters = loadVpnRouters();
-$voiceCallServices = loadVoiceCallServices();
+$voiceCallUsers = loadVoiceCallUsers();
 $vpnMsg = '';
 $vpnErr = '';
 $vpnCsrfValid = true;
@@ -162,50 +162,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
             $vpnRouters = loadVpnRouters();
             $vpnErr = 'VPN Router could not be removed from storage. Check VPS file permissions and disk space.';
         }
-    } elseif (isset($_POST['add_voice_call_service'])) {
-        $serviceName = trim((string)(isset($_POST['voice_service_name']) ? $_POST['voice_service_name'] : ''));
-        $serviceHost = trim((string)(isset($_POST['voice_service_host']) ? $_POST['voice_service_host'] : ''));
-        $serviceInterface = trim((string)(isset($_POST['voice_service_interface']) ? $_POST['voice_service_interface'] : 'Voice Calling'));
-        $serviceRos = isset($_POST['voice_service_ros']) && (int)$_POST['voice_service_ros'] === 6 ? 6 : 7;
-        $serviceNotes = trim((string)(isset($_POST['voice_service_notes']) ? $_POST['voice_service_notes'] : ''));
-        if ($serviceName === '' || strlen($serviceName) > 100 || strlen($serviceHost) > 255 || strlen($serviceInterface) > 100 || strlen($serviceNotes) > 500) {
-            $vpnErr = vpnText('Enter a router/device name. Optional address, interface and notes must stay within their length limits.', 'রাউটার/ডিভাইসের নাম দিন। ঐচ্ছিক Address, Interface ও Notes নির্ধারিত দৈর্ঘ্যের মধ্যে রাখুন।');
+    } elseif (isset($_POST['add_voice_call_user'])) {
+        $noteVpnId = trim((string)(isset($_POST['active_vpn_id']) ? $_POST['active_vpn_id'] : ''));
+        $noteUsername = trim((string)(isset($_POST['voice_call_username']) ? $_POST['voice_call_username'] : ''));
+        $knownVpnId = false;
+        foreach ($vpnRouters as $knownRouter) {
+            if (isset($knownRouter['id']) && $knownRouter['id'] === $noteVpnId) { $knownVpnId = true; break; }
+        }
+        if (!$knownVpnId || $noteUsername === '' || strlen($noteUsername) > 100) {
+            $vpnErr = vpnText('Select a valid Secret username from the current VPN router.', 'বর্তমান VPN Router থেকে বৈধ Secret Username নির্বাচন করুন।');
         } else {
-            $voiceCallServices[] = array(
-                'id' => 'voice_service_' . time() . '_' . mt_rand(100, 999),
-                'name' => $serviceName,
-                'host' => $serviceHost,
-                'interface' => $serviceInterface !== '' ? $serviceInterface : 'Voice Calling',
-                'ros_ver' => $serviceRos,
-                'notes' => $serviceNotes,
-                'created_at' => date('Y-m-d H:i:s')
-            );
-            if (saveVoiceCallServices($voiceCallServices)) {
-                $vpnMsg = vpnText('Voice Call service device added to the manual list. No RouterOS configuration was changed.', 'Voice Call Service Device ম্যানুয়াল তালিকায় যোগ হয়েছে। RouterOS Configuration পরিবর্তন করা হয়নি।');
+            $alreadyAdded = false;
+            foreach ($voiceCallUsers as $noteEntry) {
+                if (isset($noteEntry['vpn_id'], $noteEntry['username']) && $noteEntry['vpn_id'] === $noteVpnId && strcasecmp($noteEntry['username'], $noteUsername) === 0) {
+                    $alreadyAdded = true;
+                    break;
+                }
+            }
+            if ($alreadyAdded) {
+                $vpnMsg = vpnText('This user is already in the Voice Call note list.', 'এই ইউজারটি Voice Call নোট তালিকায় আগে থেকেই আছে।');
             } else {
-                $voiceCallServices = loadVoiceCallServices();
-                $vpnErr = vpnText('Could not save the Voice Call Service List. Check VPS include-folder permissions and disk space.', 'Voice Call Service List সংরক্ষণ করা যায়নি। VPS-এর include ফোল্ডারের Permission ও Disk Space পরীক্ষা করুন।');
+                $voiceCallUsers[] = array(
+                    'id' => 'voice_user_' . time() . '_' . mt_rand(100, 999),
+                    'vpn_id' => $noteVpnId,
+                    'username' => $noteUsername,
+                    'created_at' => date('Y-m-d H:i:s')
+                );
+                if (saveVoiceCallUsers($voiceCallUsers)) {
+                    $vpnMsg = vpnText('User added to the Voice Call note list. Router configuration was not changed.', 'ইউজারটি Voice Call নোট তালিকায় যোগ হয়েছে। Router Configuration পরিবর্তন করা হয়নি।');
+                } else {
+                    $voiceCallUsers = loadVoiceCallUsers();
+                    $vpnErr = vpnText('Could not save the Voice Call note list. Check VPS include-folder permissions.', 'Voice Call নোট তালিকা সংরক্ষণ করা যায়নি। VPS-এর include ফোল্ডারের Permission পরীক্ষা করুন।');
+                }
             }
         }
-    } elseif (isset($_POST['delete_voice_call_service'])) {
-        $deleteServiceId = trim((string)(isset($_POST['voice_service_id']) ? $_POST['voice_service_id'] : ''));
-        $beforeCount = count($voiceCallServices);
-        $voiceCallServices = array_values(array_filter($voiceCallServices, function($service) use ($deleteServiceId) {
-            return !isset($service['id']) || $service['id'] !== $deleteServiceId;
+    } elseif (isset($_POST['remove_voice_call_user'])) {
+        $deleteNoteId = trim((string)(isset($_POST['voice_call_note_id']) ? $_POST['voice_call_note_id'] : ''));
+        $deleteVpnId = trim((string)(isset($_POST['active_vpn_id']) ? $_POST['active_vpn_id'] : ''));
+        $beforeCount = count($voiceCallUsers);
+        $voiceCallUsers = array_values(array_filter($voiceCallUsers, function($entry) use ($deleteNoteId, $deleteVpnId) {
+            return !(isset($entry['id'], $entry['vpn_id']) && $entry['id'] === $deleteNoteId && $entry['vpn_id'] === $deleteVpnId);
         }));
-        if (count($voiceCallServices) < $beforeCount && saveVoiceCallServices($voiceCallServices)) {
-            $vpnMsg = vpnText('Voice Call Service device removed from the manual list. The router itself was not changed.', 'Voice Call Service Device ম্যানুয়াল তালিকা থেকে সরানো হয়েছে। Router-এ কোনো পরিবর্তন করা হয়নি।');
-        } elseif (count($voiceCallServices) === $beforeCount) {
-            $vpnErr = vpnText('Voice Call Service entry was not found.', 'Voice Call Service Entry পাওয়া যায়নি।');
+        if (count($voiceCallUsers) < $beforeCount && saveVoiceCallUsers($voiceCallUsers)) {
+            $vpnMsg = vpnText('User removed from the Voice Call note list. Router configuration was not changed.', 'ইউজারটি Voice Call নোট তালিকা থেকে সরানো হয়েছে। Router Configuration পরিবর্তন করা হয়নি।');
+        } elseif (count($voiceCallUsers) === $beforeCount) {
+            $vpnErr = vpnText('Voice Call note entry was not found.', 'Voice Call নোট এন্ট্রি পাওয়া যায়নি।');
         } else {
-            $voiceCallServices = loadVoiceCallServices();
-            $vpnErr = vpnText('Could not update the Voice Call Service List.', 'Voice Call Service List আপডেট করা যায়নি।');
+            $voiceCallUsers = loadVoiceCallUsers();
+            $vpnErr = vpnText('Could not update the Voice Call note list.', 'Voice Call নোট তালিকা আপডেট করা যায়নি।');
+        }
         }
     }
 }
 
 // Active opened VPN router
 $activeVpnId = isset($_GET['vpn_id']) ? trim($_GET['vpn_id']) : (isset($_POST['active_vpn_id']) ? trim($_POST['active_vpn_id']) : '');
+$voiceCallUsersForRouter = array_values(array_filter($voiceCallUsers, function($entry) use ($activeVpnId) {
+    return isset($entry['vpn_id'], $entry['username']) && $entry['vpn_id'] === $activeVpnId;
+}));
 $currentVpnRouter = null;
 foreach ($vpnRouters as $vr) {
     if ($vr['id'] === $activeVpnId) {
@@ -1020,12 +1034,6 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 }
               }
               function applySearchedVpnClient(value){applySearchedVpnUser(value);}
-              function applySearchedVoiceVpnUser(value) {
-                var u=vpnSecretIndex[value];
-                document.getElementById('selectVoiceVpnSecret').value=u?u.user:'';
-                document.getElementById('bypass_client_ip').value=u?u.ip:'';
-                document.getElementById('bypass_group').value=u?u.group:'';
-              }
               </script>
             <?php } ?>
 
@@ -1064,46 +1072,29 @@ $baseVpnUrl = "./admin.php?id=vpn";
 
               <div class="card mr-t-10">
                 <div class="card-header">
-                  <h4 style="margin:0;"><i class="fa fa-list"></i> <?= vpnText('Voice Call Service List', 'Voice Call Service List'); ?> (<?= count($voiceCallServices); ?>)</h4>
+                  <h4 style="margin:0;"><i class="fa fa-list"></i> <?= vpnText('Voice Call User List', 'Voice Call User List'); ?> (<?= count($voiceCallUsersForRouter); ?>)</h4>
                 </div>
                 <div class="card-body">
-                  <p class="text-muted" style="margin-top:0;"><?= vpnText('Manually register each router/device where you have pasted the generated script and independently confirmed Voice Call routing works. Entries here are a reference list only; they do not test or change the router.', 'যে Router/Device-এ Script Paste করে নিজে Voice Call Routing কাজ করছে নিশ্চিত হয়েছেন, সেটি এখানে ম্যানুয়ালি যোগ করুন। এই তালিকা শুধু রেকর্ড রাখে; Router পরীক্ষা বা পরিবর্তন করে না।'); ?></p>
+                  <p class="text-muted" style="margin-top:0;"><?= vpnText('Search a PPP Secret username and add it here as a note after you have manually configured and tested Voice Calling. This list does not apply any router settings.', 'ম্যানুয়ালি Voice Calling কনফিগার ও পরীক্ষা করার পর PPP Secret Username সার্চ করে এখানে নোট হিসেবে যোগ করুন। এই তালিকা Router-এর কোনো Setting পরিবর্তন করে না।'); ?></p>
                   <form method="post" action="<?= $baseVpnUrl; ?>&amp;vpn_id=<?= urlencode($activeVpnId); ?>&amp;tab=bypass" autocomplete="off">
                     <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
                     <input type="hidden" name="active_tab" value="bypass">
                     <div class="row">
-                      <div class="col-3 col-box-12">
+                      <div class="col-8 col-box-12">
                         <div class="form-group">
-                          <label><?= vpnText('Router / Device Name', 'Router / Device Name'); ?> *</label>
-                          <input class="form-control" name="voice_service_name" maxlength="100" required placeholder="<?= vpnText('e.g. Dubai Voice Router', 'যেমন: Dubai Voice Router'); ?>">
+                          <label><?= vpnText('Search / Select Secret Username', 'Secret Username সার্চ / নির্বাচন করুন'); ?></label>
+                          <input id="voiceCallNoteUserSearch" class="form-control" name="voice_call_username" list="voiceCallSecretOptions" maxlength="100" placeholder="<?= vpnText('Type Secret username…', 'Secret Username লিখুন…'); ?>" autocomplete="off" required>
+                          <datalist id="voiceCallSecretOptions">
+                            <?php foreach ($routerPppSecrets as $voiceSecretOption) { $voiceOptionName = isset($voiceSecretOption['name']) ? (string)$voiceSecretOption['name'] : ''; if ($voiceOptionName !== '') { ?>
+                              <option value="<?= htmlspecialchars($voiceOptionName, ENT_QUOTES, 'UTF-8'); ?>"></option>
+                            <?php } } ?>
+                          </datalist>
                         </div>
                       </div>
-                      <div class="col-3 col-box-12">
-                        <div class="form-group">
-                          <label><?= vpnText('IP / Domain (optional)', 'IP / Domain (ঐচ্ছিক)'); ?></label>
-                          <input class="form-control" name="voice_service_host" maxlength="255" placeholder="mehedi.nextganwifi.xyz">
-                        </div>
-                      </div>
-                      <div class="col-2 col-box-6">
-                        <div class="form-group">
-                          <label><?= vpnText('Interface Name', 'Interface Name'); ?></label>
-                          <input class="form-control" name="voice_service_interface" maxlength="100" value="Voice Calling">
-                        </div>
-                      </div>
-                      <div class="col-2 col-box-6">
-                        <div class="form-group">
-                          <label>RouterOS</label>
-                          <select class="form-control" name="voice_service_ros"><option value="6">6</option><option value="7" selected>7</option></select>
-                        </div>
-                      </div>
-                      <div class="col-2 col-box-12">
-                        <div class="form-group">
-                          <label><?= vpnText('Notes (optional)', 'Notes (ঐচ্ছিক)'); ?></label>
-                          <input class="form-control" name="voice_service_notes" maxlength="500" placeholder="<?= vpnText('Confirmed working', 'কাজ করছে নিশ্চিত'); ?>">
-                        </div>
+                      <div class="col-4 col-box-12" style="display:flex;align-items:flex-end;padding-bottom:10px;">
+                        <button type="submit" name="add_voice_call_user" class="btn bg-primary"><i class="fa fa-plus"></i> <?= vpnText('Add to Voice Call', 'Add to Voice Call'); ?></button>
                       </div>
                     </div>
-                    <button type="submit" name="add_voice_call_service" class="btn bg-primary"><i class="fa fa-plus"></i> <?= vpnText('Add to Service List', 'Service List-এ যোগ করুন'); ?></button>
                     <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                   </form>
 
@@ -1111,32 +1102,24 @@ $baseVpnUrl = "./admin.php?id=vpn";
                     <table class="table table-bordered table-hover vpn-searchable-list">
                       <thead>
                         <tr>
-                          <th><?= vpnText('Router / Device', 'Router / Device'); ?></th>
-                          <th><?= vpnText('IP / Domain', 'IP / Domain'); ?></th>
-                          <th><?= vpnText('Interface', 'Interface'); ?></th>
-                          <th>RouterOS</th>
-                          <th><?= vpnText('Notes', 'Notes'); ?></th>
-                          <th><?= vpnText('Added', 'Added'); ?></th>
+                          <th><?= vpnText('Secret Username', 'Secret Username'); ?></th>
+                          <th><?= vpnText('Added to Note List', 'নোট তালিকায় যোগের সময়'); ?></th>
                           <th class="text-right"><?= vpnText('Action', 'Action'); ?></th>
                         </tr>
                       </thead>
                       <tbody>
-                        <?php if (empty($voiceCallServices)) { ?>
-                          <tr><td colspan="7" class="text-center text-muted"><?= vpnText('No Voice Call service devices registered yet.', 'এখনো কোনো Voice Call Service Device যোগ করা হয়নি।'); ?></td></tr>
-                        <?php } else { foreach (array_reverse($voiceCallServices) as $voiceService) { ?>
+                        <?php if (empty($voiceCallUsersForRouter)) { ?>
+                          <tr><td colspan="3" class="text-center text-muted"><?= vpnText('No users have been noted for Voice Call yet.', 'এখনো Voice Call-এর জন্য কোনো ইউজার নোট করা হয়নি।'); ?></td></tr>
+                        <?php } else { foreach (array_reverse($voiceCallUsersForRouter) as $voiceNoteUser) { ?>
                           <tr>
-                            <td><b><?= htmlspecialchars(isset($voiceService['name']) ? $voiceService['name'] : '-'); ?></b></td>
-                            <td><code><?= htmlspecialchars(isset($voiceService['host']) && $voiceService['host'] !== '' ? $voiceService['host'] : '-'); ?></code></td>
-                            <td><?= htmlspecialchars(isset($voiceService['interface']) ? $voiceService['interface'] : 'Voice Calling'); ?></td>
-                            <td><?= 'v' . htmlspecialchars(isset($voiceService['ros_ver']) ? $voiceService['ros_ver'] : '7'); ?></td>
-                            <td><?= htmlspecialchars(isset($voiceService['notes']) && $voiceService['notes'] !== '' ? $voiceService['notes'] : '-'); ?></td>
-                            <td><?= htmlspecialchars(isset($voiceService['created_at']) ? $voiceService['created_at'] : '-'); ?></td>
-                            <td class="text-right" style="white-space:nowrap;">
-                              <form method="post" action="<?= $baseVpnUrl; ?>&amp;vpn_id=<?= urlencode($activeVpnId); ?>&amp;tab=bypass" style="display:inline;" onsubmit="return confirm('<?= vpnText('Remove this entry from the local Voice Call Service List? This will not change the router.','এই Entry-টি Voice Call Service List থেকে সরাবেন? Router-এ কোনো পরিবর্তন হবে না।'); ?>')">
+                            <td><b><?= htmlspecialchars($voiceNoteUser['username']); ?></b></td>
+                            <td><?= htmlspecialchars(isset($voiceNoteUser['created_at']) ? $voiceNoteUser['created_at'] : '-'); ?></td>
+                            <td class="text-right">
+                              <form method="post" action="<?= $baseVpnUrl; ?>&amp;vpn_id=<?= urlencode($activeVpnId); ?>&amp;tab=bypass" style="display:inline;" onsubmit="return confirm('<?= vpnText('Remove this username from the Voice Call note list? Router configuration will not change.', 'এই Username-টি Voice Call নোট তালিকা থেকে সরাবেন? Router Configuration পরিবর্তন হবে না।'); ?>')">
                                 <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
                                 <input type="hidden" name="active_tab" value="bypass">
-                                <input type="hidden" name="voice_service_id" value="<?= htmlspecialchars(isset($voiceService['id']) ? $voiceService['id'] : ''); ?>">
-                                <button type="submit" name="delete_voice_call_service" class="btn bg-danger" style="padding:4px 9px;"><i class="fa fa-trash"></i> <?= vpnText('Remove', 'Remove'); ?></button>
+                                <input type="hidden" name="voice_call_note_id" value="<?= htmlspecialchars($voiceNoteUser['id']); ?>">
+                                <button type="submit" name="remove_voice_call_user" class="btn bg-danger" style="padding:4px 9px;"><i class="fa fa-trash"></i> <?= vpnText('Remove', 'Remove'); ?></button>
                                 <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                               </form>
                             </td>
@@ -1161,13 +1144,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 var comment=(group?group+' - ':'')+user+' - Voice Call';
                 var c=['# NextGan WiFi Solution | WhatsApp Voice Call Routing | RouterOS '+ros];
                 if(ros==='7'){
-                  c.push(':if ([:len [/routing/table/find where name=\\\"voicecall\\\"]]=0) do={/routing/table/add name=voicecall fib}');
-                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway=\\\"Voice Calling\\\" routing-table=voicecall comment=\\\"'+comment+' Route\\\"');
+                  c.push(':if ([:len [/routing/table/find where name="voicecall"]]=0) do={/routing/table/add name=voicecall fib}');
+                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="Voice Calling" routing-table=voicecall comment="'+comment+' Route"');
                 } else {
-                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway=\\\"Voice Calling\\\" routing-mark=voicecall comment=\\\"'+comment+' Route\\\"');
+                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="Voice Calling" routing-mark=voicecall comment="'+comment+' Route"');
                 }
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=tcp dst-port='+ports+' comment=\\\"'+comment+' TCP\\\"');
-                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=udp dst-port='+ports+' comment=\\\"'+comment+' UDP\\\"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
                 document.getElementById('whatsappMangleOutput').value=c.join('\\n');
               }
               function copyVpnInlineScript(){var e=document.getElementById('whatsappMangleOutput');if(!e.value){alert('Generate script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
