@@ -830,13 +830,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
               <div id="vpnClientScriptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;padding:20px;overflow:auto;">
                 <div class="card" style="max-width:850px;margin:20px auto;padding:15px;">
                   <button type="button" class="btn bg-secondary" style="float:right;" onclick="document.getElementById('vpnClientScriptModal').style.display='none'">&times;</button>
-                  <h4><?= vpnText('VPN Client Script','VPN Client Script'); ?> — <span id="vpnScriptUserLabel"></span></h4>
+                  <h4><?= vpnText('Voice Calling SSTP Client Script','Voice Calling SSTP Client Script'); ?> — <span id="vpnScriptUserLabel"></span></h4>
                   <div class="row">
                     <div class="col-4 col-box-12"><label><?= vpnText('RouterOS Version','RouterOS Version'); ?></label><select id="vpnScriptRos" class="form-control"><option value="7">7</option><option value="6">6</option></select></div>
-                    <div class="col-4 col-box-12"><label><?= vpnText('Service','Service'); ?></label><select id="vpnScriptService" class="form-control"><option value="sstp">SSTP</option><option value="l2tp">L2TP</option><option value="pptp">PPTP</option><option value="ovpn">OpenVPN</option></select></div>
+                    <div class="col-4 col-box-12"><label><?= vpnText('Interface Name','Interface Name'); ?></label><input class="form-control" value="Voice Calling" readonly></div>
                     <div class="col-4 col-box-12"><label><?= vpnText('VPN Password','VPN Password'); ?></label><input id="vpnScriptPass" type="password" class="form-control" autocomplete="new-password"></div>
                   </div>
-                  <label style="display:block;margin:12px 0;"><input type="checkbox" id="vpnScriptVoice"> <?= vpnText('Include Voice Call routing','Voice Call routing যুক্ত করুন'); ?></label>
+                  <p class="text-muted" style="margin:12px 0;"><?= vpnText('WhatsApp Voice Call routing is included automatically.','WhatsApp Voice Call Routing স্বয়ংক্রিয়ভাবে যুক্ত হবে।'); ?></p>
                   <button type="button" class="btn bg-primary" onclick="generateVpnClientScript()"><?= vpnText('Generate Script','Script তৈরি করুন'); ?></button>
                   <button type="button" class="btn bg-secondary" onclick="copyVpnClientScript()"><?= vpnText('Copy Script','Script কপি করুন'); ?></button>
                   <textarea id="vpnScriptOutput" class="form-control" rows="16" style="margin-top:10px;font-family:monospace;" readonly></textarea>
@@ -846,10 +846,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
               <script>
               var vpnScriptData = {};
               function openVpnScriptModal(btn) {
-                vpnScriptData = {user:btn.getAttribute('data-user')||'',group:btn.getAttribute('data-group')||'VPN',service:btn.getAttribute('data-service')||'sstp',voice:btn.getAttribute('data-voice')==='1'};
+                vpnScriptData = {user:btn.getAttribute('data-user')||'',group:btn.getAttribute('data-group')||'VPN'};
                 document.getElementById('vpnScriptUserLabel').textContent = vpnScriptData.user;
-                document.getElementById('vpnScriptService').value = vpnScriptData.service;
-                document.getElementById('vpnScriptVoice').checked = vpnScriptData.voice;
                 document.getElementById('vpnScriptPass').value = '';
                 document.getElementById('vpnScriptOutput').value = '';
                 document.getElementById('vpnClientScriptModal').style.display = 'block';
@@ -857,24 +855,21 @@ $baseVpnUrl = "./admin.php?id=vpn";
               function quoteRos(v){return String(v).replace(/[\\\"\r\n]/g,'_');}
               function generateVpnClientScript() {
                 var user=quoteRos(vpnScriptData.user), group=quoteRos(vpnScriptData.group), pass=quoteRos(document.getElementById('vpnScriptPass').value);
-                var svc=document.getElementById('vpnScriptService').value, ros=document.getElementById('vpnScriptRos').value, voice=document.getElementById('vpnScriptVoice').checked;
+                var ros=document.getElementById('vpnScriptRos').value;
                 if(!pass){alert('Enter the VPN password to generate the client command.');return;}
-                var safe=(group+'_'+user).replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').substring(0,30);
-                if(!safe)safe='vpn_'+user.replace(/[^A-Za-z0-9_-]/g,'').substring(0,20);
-                var name=(safe+(voice?'_voicecall':'')).substring(0,32), comment=group+' '+user+(voice?' Voice Call':'');
-                var c=['# NextGan WiFi Solution | RouterOS '+ros+' | '+svc.toUpperCase()];
-                if(svc==='sstp') c.push('/interface sstp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" port=4520 user="'+user+'" password="'+pass+'" profile=default-encryption add-default-route=no disabled=no comment="'+comment+'"');
-                else if(svc==='l2tp') c.push('/interface l2tp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" user="'+user+'" password="'+pass+'" use-ipsec=no add-default-route=no disabled=no comment="'+comment+'"');
-                else if(svc==='pptp') c.push('/interface pptp-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" user="'+user+'" password="'+pass+'" add-default-route=no disabled=no comment="'+comment+'"');
-                else c.push('/interface ovpn-client add name="'+name+'" connect-to="mehedi.xgenwifi.xyz" port=1194 mode=ip user="'+user+'" password="'+pass+'" add-default-route=no disabled=no comment="'+comment+'"');
-                if(voice){
-                  var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
-                  if(ros==='7'){c.push('/routing/table/add name=voicecall fib');c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="'+name+'" routing-table=voicecall comment="'+comment+' Route"');}
-                  else c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="'+name+'" routing-mark=voicecall comment="'+comment+' Route"');
-                  c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
-                  c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
+                var comment=(group?group+' - ':'')+user+' Voice Call';
+                var ports='3478,3480,3481,34784,45395,50318,59234,5222,4244,5223,5228,5242,27526,48320';
+                var c=['# NextGan WiFi Solution | RouterOS '+ros+' | WhatsApp Voice Call SSTP'];
+                c.push('/interface sstp-client add name="Voice Calling" connect-to="mehedi.xgenwifi.xyz" port=4520 user="'+user+'" password="'+pass+'" profile=default-encryption add-default-route=no disabled=no comment="'+comment+'"');
+                if(ros==='7'){
+                  c.push(':if ([:len [/routing/table/find where name="voicecall"]]=0) do={/routing/table/add name=voicecall fib}');
+                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="Voice Calling" routing-table=voicecall comment="'+comment+' Route"');
+                } else {
+                  c.push('/ip/route/add dst-address=0.0.0.0/0 gateway="Voice Calling" routing-mark=voicecall comment="'+comment+' Route"');
                 }
-                document.getElementById('vpnScriptOutput').value=c.join('\n');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=tcp dst-port='+ports+' comment="'+comment+' TCP"');
+                c.push('/ip/firewall/mangle/add chain=prerouting action=mark-routing new-routing-mark=voicecall passthrough=no src-address=0.0.0.0/0 protocol=udp dst-port='+ports+' comment="'+comment+' UDP"');
+                document.getElementById('vpnScriptOutput').value=c.join('\\n');
               }
               function copyVpnClientScript(){var e=document.getElementById('vpnScriptOutput');if(!e.value){alert('Generate the script first.');return;}e.focus();e.select();try{document.execCommand('copy');}catch(err){}}
               </script>
