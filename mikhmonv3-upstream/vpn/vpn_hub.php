@@ -654,16 +654,16 @@ $baseVpnUrl = "./admin.php?id=vpn";
                       <h4 style="margin:0;"><i class="fa fa-list"></i> <?= vpnText('Secret List', 'VPN তালিকা'); ?> (<?= count($routerPppSecrets); ?>)</h4>
                     </div>
                     <div class="card-body">
-                      <div class="overflow box-bordered" style="max-height:600px;">
-                        <table class="table table-bordered table-hover text-nowrap">
+                      <div class="overflow box-bordered vpn-secret-table-wrap" style="max-height:600px;">
+                        <table class="table table-bordered table-hover vpn-secret-table" style="width:100%;table-layout:auto;">
                           <thead>
                             <tr>
-                              <th>Action</th>
                               <th>Username</th>
                               <th>Service</th>
                               <th>Remote IP</th>
                               <th>Group / Comment</th>
                               <th>Status</th>
+                              <th class="text-right">Action</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -693,10 +693,17 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                   $svc = in_array($sServ, array('sstp','l2tp','pptp','ovpn'), true) ? $sServ : 'sstp';
                                   $safeModalId = 'vpnDetail' . preg_replace('/[^A-Za-z0-9]/', '', $sId);
                                 ?>
+                                <td><b><?= htmlspecialchars($sName); ?></b></td>
+                                <td><?= htmlspecialchars($sServ); ?></td>
+                                <td><code><?= htmlspecialchars($sRem); ?></code></td>
+                                <td><?= htmlspecialchars($sComm); ?></td>
                                 <td>
-                                  <details style="position:relative;display:inline-block;">
-                                    <summary class="btn bg-secondary" style="cursor:pointer;list-style:none;padding:3px 9px;">&#8942;</summary>
-                                    <div style="position:absolute;right:0;z-index:99;min-width:145px;background:var(--card-bg,#fff);border:1px solid #aaa;border-radius:5px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.18);">
+                                  <?= $sDis ? "<span class='text-red'>Disabled</span>" : "<span class='text-green'>Active</span>"; ?>
+                                </td>
+                                <td class="text-right vpn-secret-actions" style="text-align:right;white-space:nowrap;min-width:90px;">
+                                  <details class="vpn-secret-menu" style="position:relative;display:inline-block;">
+                                    <summary class="btn bg-secondary" style="cursor:pointer;list-style:none;padding:5px 10px;min-width:38px;text-align:center;">&#8942;</summary>
+                                    <div class="vpn-secret-menu-panel" style="position:fixed;right:auto;z-index:99999;min-width:155px;max-width:calc(100vw - 24px);background:var(--card-bg,#fff);border:1px solid #aaa;border-radius:6px;padding:7px;box-shadow:0 4px 16px rgba(0,0,0,.22);">
                                       <button type="button" class="btn bg-info btn-block" onclick="document.getElementById('<?= $safeModalId; ?>').style.display='block';"><?= vpnText('Details','বিস্তারিত'); ?></button>
                                       <button type="button" class="btn bg-primary btn-block" onclick="openVpnScriptModal(this)" data-user="<?= htmlspecialchars($sName, ENT_QUOTES); ?>" data-group="<?= htmlspecialchars($sComm, ENT_QUOTES); ?>" data-service="<?= htmlspecialchars($svc, ENT_QUOTES); ?>" data-voice="<?= $hasVoice ? '1' : '0'; ?>"><?= vpnText('Script','স্ক্রিপ্ট'); ?></button>
                                       <form method="post" action="">
@@ -708,33 +715,6 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                       </form>
                                     </div>
                                   </details>
-                                  <div id="<?= $safeModalId; ?>" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:20px;overflow:auto;">
-                                    <div class="card" style="max-width:760px;margin:25px auto;padding:15px;">
-                                      <button type="button" class="btn bg-secondary" style="float:right;" onclick="document.getElementById('<?= $safeModalId; ?>').style.display='none'">&times;</button>
-                                      <h4><?= vpnText('Secret Details','Secret-এর বিস্তারিত'); ?> — <?= htmlspecialchars($sName); ?></h4>
-                                      <table class="table table-bordered">
-                                        <tr><th><?= vpnText('Username','ইউজারনেম'); ?></th><td><?= htmlspecialchars($sName); ?></td></tr>
-                                        <tr><th><?= vpnText('Service','Service'); ?></th><td><?= htmlspecialchars(strtoupper($sServ)); ?></td></tr>
-                                        <tr><th><?= vpnText('Remote IP','Remote IP'); ?></th><td><?= htmlspecialchars($sRem); ?></td></tr>
-                                        <tr><th><?= vpnText('Group','Group'); ?></th><td><?= htmlspecialchars($sComm); ?></td></tr>
-                                        <tr><th><?= vpnText('Status','Status'); ?></th><td><?= $sDis ? vpnText('Disabled','বন্ধ') : vpnText('Enabled','চালু'); ?></td></tr>
-                                        <tr><th><?= vpnText('WhatsApp Voice Call','WhatsApp Voice Call'); ?></th><td><?= $hasVoice ? vpnText('Configured','কনফিগার করা') : vpnText('Not configured','কনফিগার করা নেই'); ?></td></tr>
-                                      </table>
-                                      <h5><?= vpnText('Port Forwarding','Port Forwarding'); ?></h5>
-                                      <table class="table table-bordered"><thead><tr><th><?= vpnText('External Port','External Port'); ?></th><th><?= vpnText('Internal Port','Internal Port'); ?></th><th><?= vpnText('Target IP','Target IP'); ?></th><th>Comment</th></tr></thead><tbody>
-                                        <?php if (!$relatedNat) { ?><tr><td colspan="4"><?= vpnText('No matching NAT rules','মিল থাকা NAT Rule নেই'); ?></td></tr><?php } else { foreach ($relatedNat as $rr) { ?>
-                                          <tr><td><?= htmlspecialchars(isset($rr['dst-port']) ? $rr['dst-port'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-ports']) ? $rr['to-ports'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['to-addresses']) ? $rr['to-addresses'] : '-'); ?></td><td><?= htmlspecialchars(isset($rr['comment']) ? $rr['comment'] : '-'); ?></td></tr>
-                                        <?php } } ?>
-                                      </tbody></table>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td><b><?= htmlspecialchars($sName); ?></b></td>
-                                <td><?= htmlspecialchars($sServ); ?></td>
-                                <td><code><?= htmlspecialchars($sRem); ?></code></td>
-                                <td><?= htmlspecialchars($sComm); ?></td>
-                                <td>
-                                  <?= $sDis ? "<span class='text-red'>Disabled</span>" : "<span class='text-green'>Active</span>"; ?>
                                 </td>
                               </tr>
                             <?php } } ?>
@@ -747,6 +727,36 @@ $baseVpnUrl = "./admin.php?id=vpn";
               </div>
             <?php } ?>
 
+<script>
+(function(){
+  function closeMenus(except){
+    document.querySelectorAll('.vpn-secret-menu[open]').forEach(function(d){if(d!==except)d.removeAttribute('open');});
+  }
+  document.addEventListener('click',function(e){
+    var summary=e.target.closest('.vpn-secret-menu > summary');
+    if(summary){
+      var details=summary.parentElement;
+      setTimeout(function(){
+        if(details.open){
+          closeMenus(details);
+          var panel=details.querySelector('.vpn-secret-menu-panel');
+          var rect=summary.getBoundingClientRect();
+          var width=Math.min(180,window.innerWidth-24);
+          var left=Math.max(12,Math.min(rect.right-width,window.innerWidth-width-12));
+          var top=rect.bottom+5;
+          panel.style.width=width+'px';
+          if(top+panel.offsetHeight>window.innerHeight-8)top=Math.max(8,rect.top-panel.offsetHeight-5);
+          panel.style.left=left+'px';panel.style.top=top+'px';panel.style.right='auto';
+        }else{closeMenus(null);}
+      },0);
+      return;
+    }
+    if(!e.target.closest('.vpn-secret-menu'))closeMenus(null);
+  });
+  window.addEventListener('scroll',function(){closeMenus(null);},true);
+  window.addEventListener('resize',function(){closeMenus(null);});
+})();
+</script>
               <div id="vpnClientScriptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;padding:20px;overflow:auto;">
                 <div class="card" style="max-width:850px;margin:20px auto;padding:15px;">
                   <button type="button" class="btn bg-secondary" style="float:right;" onclick="document.getElementById('vpnClientScriptModal').style.display='none'">&times;</button>
