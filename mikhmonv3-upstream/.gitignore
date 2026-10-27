@@ -20,3 +20,11 @@ uploads/reseller-templates/*/*.bak.php
 Thumbs.db
 .idea/
 .vscode/
+
+# Runtime configuration and credentials (keep only the example in Git)
+/include/config.php
+/include/resellers.json
+/include/backup_admin.json
+/include/*.log
+/backups/*
+!/backups/.gitkeep
