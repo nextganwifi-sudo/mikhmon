@@ -79,6 +79,8 @@ if [[ -f "${APP_DIR}/include/config.php" ]]; then
   cp -a "${APP_DIR}/include/config.php" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/include/resellers.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/include/permission_groups.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
+  cp -a "${APP_DIR}/include/backup_admin.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
+  cp -a "${APP_DIR}/include/vpn_routers.json" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/include/quickbt.php" "${BACKUP_TMP}/include/" 2>/dev/null || true
   cp -a "${APP_DIR}/uploads/." "${BACKUP_TMP}/uploads/" 2>/dev/null || true
   cp -a "${APP_DIR}/voucher/template.php" "${BACKUP_TMP}/voucher/" 2>/dev/null || true
@@ -152,13 +154,27 @@ PHP
   echo "    Password: $ADMIN_PASS"
 fi
 mkdir -p "${APP_DIR}/uploads/reseller-templates" "${APP_DIR}/uploads/reseller-logos" "${APP_DIR}/backups" "${APP_DIR}/images"
-chown -R www-data:www-data "${APP_DIR}"
-# Source code should be readable but not writable by group/other; only runtime directories need write access.
+# Ensure runtime JSON stores exist before restricting the include directory.
+[[ -f "${APP_DIR}/include/resellers.json" ]] || printf '[]\n' > "${APP_DIR}/include/resellers.json"
+[[ -f "${APP_DIR}/include/backup_admin.json" ]] || printf '{"username":"","password_enc":""}\n' > "${APP_DIR}/include/backup_admin.json"
+[[ -f "${APP_DIR}/include/vpn_routers.json" ]] || printf '[]\n' > "${APP_DIR}/include/vpn_routers.json"
+# Keep application source root-owned; PHP can write only intended runtime/editor files.
+chown -R root:www-data "${APP_DIR}"
 find "${APP_DIR}" -type d -exec chmod 755 {} +
 find "${APP_DIR}" -type f -exec chmod 644 {} +
-chmod 750 "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups"
-chmod 640 "${APP_DIR}/include/config.php" 2>/dev/null || true
-chmod 640 "${APP_DIR}/include/resellers.json" "${APP_DIR}/include/permission_groups.json" "${APP_DIR}/include/backup_admin.json" 2>/dev/null || true
+chmod 1770 "${APP_DIR}/include"
+chown -R www-data:www-data "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images"
+find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" -type d -exec chmod 750 {} +
+find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" -type f -exec chmod 640 {} +
+chown root:www-data "${APP_DIR}/include"
+for runtime_file in config.php resellers.json permission_groups.json backup_admin.json vpn_routers.json quickbt.php; do
+  if [[ -f "${APP_DIR}/include/${runtime_file}" ]]; then
+    chown www-data:www-data "${APP_DIR}/include/${runtime_file}"
+    chmod 640 "${APP_DIR}/include/${runtime_file}"
+  fi
+done
+chown root:www-data "${APP_DIR}/backups"
+chmod 750 "${APP_DIR}/backups"
 
 echo "[4/6] Configuring Nginx Virtual Host for domain: ${DOMAIN}..."
 cat > /etc/nginx/sites-available/nextgan-wifi <<EOF
@@ -174,10 +190,21 @@ server {
         try_files \$uri \$uri/ /index.php?\$args;
     }
 
-    # Block direct public access to sensitive data and backup files
-    location ~ ^/(include/(resellers|permission_groups)\.json|backups/|deploy/) {
+    # Never expose runtime configuration, backups, deployment files, Git metadata, or environment files.
+    location ~* ^/(include/|backups/|deploy/|\.git/|\.aistudio/|\.env) {
         deny all;
-        return 403;
+        return 404;
+    }
+
+    # Uploaded templates may be included internally, but must not execute via direct HTTP requests.
+    location ~* ^/(uploads|voucher)/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)\$ {
+        deny all;
+        return 404;
+    }
+
+    location ~ /\.(?!well-known/) {
+        deny all;
+        return 404;
     }
 
     location ~ \.php\$ {
