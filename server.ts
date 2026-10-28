@@ -1149,10 +1149,12 @@ const proxyServer = http.createServer(async (req, res) => {
   const requestAction = parsedRequestUrl.searchParams.get('hotspot-user');
   const routeLabel = parsedRequestUrl.pathname +
     (requestAction ? '?hotspot-user=' + requestAction : '');
-  const isVoucherGenerationSubmit = req.method === 'POST' && requestAction === 'generate';
-  // PHP voucher generation allows up to 300s. Leave a safety margin below that
-  // limit so larger batches can complete before the PHP worker terminates.
-  const upstreamTimeoutMs = isVoucherGenerationSubmit ? 630000 : 60000;
+  // Both the voucher-generation POST and its follow-up GET result page can be
+  // slow on high-latency routers. Give both requests enough time; otherwise the
+  // router may have created the users while the browser receives a timeout page.
+  const isVoucherGenerationPage = requestAction === 'generate';
+  const isVoucherGenerationSubmit = req.method === 'POST' && isVoucherGenerationPage;
+  const upstreamTimeoutMs = isVoucherGenerationPage ? 630000 : 60000;
   res.on('finish', () => {
     const durationMs = Date.now() - requestStartedAt;
     if (durationMs >= 10000) {
@@ -1207,8 +1209,10 @@ const proxyServer = http.createServer(async (req, res) => {
       res.writeHead(isTimeout ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(
         isTimeout
-          ? (isVoucherGenerationSubmit
-              ? 'NextGan WiFi Solution: Voucher generation timed out. Check the router Hotspot Users list before retrying to avoid duplicate vouchers. Verify RouterOS API port 8728 and PHP backend health.'
+          ? (isVoucherGenerationPage
+              ? (isVoucherGenerationSubmit
+                  ? 'NextGan WiFi Solution: Voucher generation response timed out. Some or all vouchers may already exist. Check Router Hotspot Users before retrying to avoid duplicates.'
+                  : 'NextGan WiFi Solution: Voucher generation may have completed, but the result page timed out. Check Router Hotspot Users before retrying to avoid duplicates.')
               : 'NextGan WiFi Solution: Backend request timed out. Verify RouterOS API port 8728 and PHP backend health.')
           : `NextGan WiFi Solution: PHP Engine warming up... (${err.message})`
       );
