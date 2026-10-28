@@ -102,7 +102,16 @@ if (!isset($_SESSION["mikhmon"])) {
     
   
 
-  $logo = resolveActiveVoucherLogo($session, '../', true);
+  // Admin printing must use the explicitly assigned reseller's own template/logo.
+  // For reseller sessions, retain the authenticated reseller's own assignment.
+  $printResellerId = null;
+  if (isMikhmonAdmin()) {
+    $assignedPrintReseller = findResellerAssignedToRouterSession($session);
+    if (is_array($assignedPrintReseller) && isset($assignedPrintReseller['id'])) {
+      $printResellerId = (string)$assignedPrintReseller['id'];
+    }
+  }
+  $logo = resolveActiveVoucherLogo($session, '../', true, $printResellerId);
 
   $requestedVariant = 'assigned';
   if ($userp != "") {
@@ -110,7 +119,7 @@ if (!isset($_SESSION["mikhmon"])) {
   } elseif ($small == "yes") {
     $requestedVariant = 'small';
   }
-  $resolvedTemplatePath = resolveActiveVoucherTemplatePath($requestedVariant);
+  $resolvedTemplatePath = resolveActiveVoucherTemplatePath($requestedVariant, $printResellerId);
 
 }
 ?>
