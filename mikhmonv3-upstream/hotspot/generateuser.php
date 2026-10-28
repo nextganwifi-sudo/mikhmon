@@ -263,11 +263,11 @@ date_default_timezone_set($_SESSION['timezone']);
 		}
 
 
-		if ($qty < 2) {
-			echo "<script>window.location='./?hotspot-user=" . $u[1] . "&session=" . $session . "'</script>";
-		} else {
-			echo "<script>window.location='./?hotspot-user=generate&session=" . $session . "'</script>";
-		}
+        if ($qty < 2) {
+            echo "<script>window.location='./?hotspot-user=" . rawurlencode($u[1]) . "&session=" . rawurlencode($session) . "&voucher-result=1'</script>";
+        } else {
+            echo "<script>window.location='./?hotspot-user=generate&session=" . rawurlencode($session) . "&voucher-result=1'</script>";
+        }
 	}
 
 	$getprofile = $API->comm("/ip/hotspot/user/profile/print");
