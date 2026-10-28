@@ -978,9 +978,9 @@ function startPhpServer() {
       '-d',
       'log_errors=1',
       '-d',
-      'max_execution_time=60',
+      'max_execution_time=600',
       '-d',
-      'default_socket_timeout=10',
+      'default_socket_timeout=35',
       '-S',
       `127.0.0.1:${PHP_PORT}`,
       '-t',
@@ -1152,7 +1152,7 @@ const proxyServer = http.createServer(async (req, res) => {
   const isVoucherGenerationSubmit = req.method === 'POST' && requestAction === 'generate';
   // PHP voucher generation allows up to 300s. Leave a safety margin below that
   // limit so larger batches can complete before the PHP worker terminates.
-  const upstreamTimeoutMs = isVoucherGenerationSubmit ? 270000 : 60000;
+  const upstreamTimeoutMs = isVoucherGenerationSubmit ? 630000 : 60000;
   res.on('finish', () => {
     const durationMs = Date.now() - requestStartedAt;
     if (durationMs >= 10000) {
