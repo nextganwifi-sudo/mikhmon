@@ -164,7 +164,7 @@ if (!isset($_SESSION["mikhmon"])) {
     }}
   </script>
   <?php if (hasResellerPermission('print_voucher')) { ?>
-  <button class="btn bg-primary" title='Print' onclick="printV('qr','no');"><i class="fa fa-print"></i> <?= $_print_default ?></button>
+  <button class="btn bg-primary" title="Print" onclick="printV('qr','no');"><i class="fa fa-print"></i> <?= isset($_print) ? $_print : 'Print' ?></button>
   <button class="btn bg-primary" title='Print QR' onclick="printV('qr','yes');"><i class="fa fa-print"></i> <?= $_print_qr ?></button>
   <button class="btn bg-primary" title='Print Small'onclick="printV('small','yes');"><i class="fa fa-print"></i> <?= $_print_small ?></button>
   <?php } ?>
