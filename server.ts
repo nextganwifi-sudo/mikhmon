@@ -1152,7 +1152,8 @@ const proxyServer = http.createServer(async (req, res) => {
   // Both the voucher-generation POST and its follow-up GET result page can be
   // slow on high-latency routers. Give both requests enough time; otherwise the
   // router may have created the users while the browser receives a timeout page.
-  const isVoucherGenerationPage = requestAction === 'generate';
+  const isVoucherGenerationPage =
+    requestAction === 'generate' || parsedRequestUrl.searchParams.get('voucher-result') === '1';
   const isVoucherGenerationSubmit = req.method === 'POST' && isVoucherGenerationPage;
   const upstreamTimeoutMs = isVoucherGenerationPage ? 630000 : 60000;
   res.on('finish', () => {
