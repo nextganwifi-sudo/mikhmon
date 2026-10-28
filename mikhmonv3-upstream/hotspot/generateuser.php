@@ -19,7 +19,7 @@ session_start();
 // hide all error
 error_reporting(0);
 
-ini_set('max_execution_time', 300);
+ini_set('max_execution_time', 600);
 
 if (!isset($_SESSION["mikhmon"])) {
 	header("Location:../admin.php?id=login");
@@ -96,6 +96,40 @@ date_default_timezone_set($_SESSION['timezone']);
 		$getlock = explode(",", $ponlogin)[6];
 		$_SESSION['ubp'] = $profile;
 		$commt = $user . "-" . rand(100, 999) . "-" . date("m.d.y") . "-" . $adcomment;
+
+        // Record progress and stop safely if a high-latency RouterOS API connection drops.
+        $createdCount = 0;
+        $generationStartedAt = microtime(true);
+        error_log('[Voucher Generation] started qty=' . (int)$qty . ' mode=' . preg_replace('/[^a-z]/i', '', (string)$user));
+        $addVoucherUser = function ($params) use ($API, &$createdCount, $qty, $generationStartedAt) {
+            $startedAt = microtime(true);
+            $response = $API->comm("/ip/hotspot/user/add", $params);
+            $elapsed = microtime(true) - $startedAt;
+            if ($elapsed >= 2) {
+                error_log('[Voucher Generation] slow API add elapsedSec=' . round($elapsed, 2) . ' progress=' . $createdCount . '/' . (int)$qty);
+            }
+            if (isset($response['!trap']) || isset($response['!fatal'])) {
+                $details = $response['!trap'][0]['message'] ?? $response['!fatal'][0]['message'] ?? 'RouterOS rejected the add request';
+                error_log('[Voucher Generation] RouterOS rejected add at progress=' . $createdCount . '/' . (int)$qty . ': ' . preg_replace('/[^a-zA-Z0-9 _.,:;()\-]/', '', (string)$details));
+                return array('ok' => false, 'reason' => 'RouterOS rejected a voucher request. Check the router API log and Hotspot Users list before retrying.');
+            }
+            if (!$API->connected) {
+                error_log('[Voucher Generation] API connection lost at progress=' . $createdCount . '/' . (int)$qty . ' totalElapsedSec=' . round(microtime(true) - $generationStartedAt, 2));
+                return array('ok' => false, 'reason' => 'The RouterOS API connection timed out or disconnected during generation.');
+            }
+            $createdCount++;
+            if (($createdCount % 25) === 0 || $createdCount >= (int)$qty) {
+                error_log('[Voucher Generation] progress=' . $createdCount . '/' . (int)$qty . ' totalElapsedSec=' . round(microtime(true) - $generationStartedAt, 2));
+            }
+            return array('ok' => true, 'reason' => '');
+        };
+        $abortVoucherGeneration = function ($reason) use (&$createdCount, $qty) {
+            $safeReason = htmlspecialchars((string)$reason, ENT_QUOTES, 'UTF-8');
+            echo "<div class='alert alert-danger'><b>Voucher generation interrupted.</b> " . $safeReason .
+                " Confirmed completed requests: " . (int)$createdCount . " of " . (int)$qty .
+                ". Check Hotspot &gt; Users before retrying to avoid duplicate vouchers.</div>";
+            exit;
+        };
 		$gentemp = $commt . "|~" . $profile . "~" . $getvalid . "~" . $getprice . "!".$getsprice."~" . $timelimit . "~" . $datalimit . "~" . $getlock;
 		$gen = '<?php $genu="'.encrypt($gentemp).'";?>';
 		$temp = './voucher/temp.php';
@@ -138,15 +172,18 @@ date_default_timezone_set($_SESSION['timezone']);
 			}
 
 			for ($i = 1; $i <= $qty; $i++) {
-				$API->comm("/ip/hotspot/user/add", array(
-					"server" => "$server",
-					"name" => "$u[$i]",
-					"password" => "$p[$i]",
-					"profile" => "$profile",
-					"limit-uptime" => "$timelimit",
-					"limit-bytes-total" => "$datalimit",
-					"comment" => "$commt",
-				));
+                $addResult = $addVoucherUser(array(
+                    "server" => "$server",
+                    "name" => "$u[$i]",
+                    "password" => "$p[$i]",
+                    "profile" => "$profile",
+                    "limit-uptime" => "$timelimit",
+                    "limit-bytes-total" => "$datalimit",
+                    "comment" => "$commt",
+                ));
+                if (!$addResult['ok']) {
+                    $abortVoucherGeneration($addResult['reason']);
+                }
 			}
 		}
 
@@ -210,15 +247,18 @@ date_default_timezone_set($_SESSION['timezone']);
 
 			}
 			for ($i = 1; $i <= $qty; $i++) {
-				$API->comm("/ip/hotspot/user/add", array(
-					"server" => "$server",
-					"name" => "$u[$i]",
-					"password" => "$u[$i]",
-					"profile" => "$profile",
-					"limit-uptime" => "$timelimit",
-					"limit-bytes-total" => "$datalimit",
-					"comment" => "$commt",
-				));
+                $addResult = $addVoucherUser(array(
+                    "server" => "$server",
+                    "name" => "$u[$i]",
+                    "password" => "$u[$i]",
+                    "profile" => "$profile",
+                    "limit-uptime" => "$timelimit",
+                    "limit-bytes-total" => "$datalimit",
+                    "comment" => "$commt",
+                ));
+                if (!$addResult['ok']) {
+                    $abortVoucherGeneration($addResult['reason']);
+                }
 			}
 		}
 
