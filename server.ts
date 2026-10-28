@@ -1143,6 +1143,24 @@ const proxyServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // Track slow PHP requests without logging router/session query values.
+  const requestStartedAt = Date.now();
+  const parsedRequestUrl = new URL(req.url || '/', 'http://localhost');
+  const requestAction = parsedRequestUrl.searchParams.get('hotspot-user');
+  const routeLabel = parsedRequestUrl.pathname +
+    (requestAction ? '?hotspot-user=' + requestAction : '');
+  const isVoucherGenerationSubmit = req.method === 'POST' && requestAction === 'generate';
+  // Batch generation can legitimately take longer than ordinary page loads.
+  // Keep normal navigation bounded at 60s, but allow voucher POSTs up to 180s
+  // (the generator itself permits up to 300s).
+  const upstreamTimeoutMs = isVoucherGenerationSubmit ? 180000 : 60000;
+  res.on('finish', () => {
+    const durationMs = Date.now() - requestStartedAt;
+    if (durationMs >= 10000) {
+      console.warn(`[PHP Proxy] Slow request: ${req.method} ${routeLabel} status=${res.statusCode} durationMs=${durationMs}`);
+    }
+  });
+
   const isHttpsForwarded =
     req.headers['x-forwarded-proto'] === 'https' ||
     (typeof req.headers.referer === 'string' && req.headers.referer.startsWith('https://'));
@@ -1178,8 +1196,10 @@ const proxyServer = http.createServer(async (req, res) => {
     proxyRes.pipe(res, { end: true });
   });
 
-  proxyReq.setTimeout(60000, () => {
-    proxyReq.destroy(new Error('Upstream PHP request timed out after 60s'));
+  proxyReq.setTimeout(upstreamTimeoutMs, () => {
+    const timeoutSeconds = Math.round(upstreamTimeoutMs / 1000);
+    console.error(`[PHP Proxy] Upstream timeout after ${timeoutSeconds}s: ${req.method} ${routeLabel}`);
+    proxyReq.destroy(new Error(`Upstream PHP request timed out after ${timeoutSeconds}s`));
   });
 
   proxyReq.on('error', (err) => {
@@ -1188,7 +1208,9 @@ const proxyServer = http.createServer(async (req, res) => {
       res.writeHead(isTimeout ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(
         isTimeout
-          ? 'NextGan WiFi Solution: Backend request timed out. Please check if your router IP is reachable and port 22/8728 is open.'
+          ? (isVoucherGenerationSubmit
+              ? 'NextGan WiFi Solution: Voucher generation timed out. Check the router Hotspot Users list before retrying to avoid duplicate vouchers. Verify RouterOS API port 8728 and PHP backend health.'
+              : 'NextGan WiFi Solution: Backend request timed out. Verify RouterOS API port 8728 and PHP backend health.')
           : `NextGan WiFi Solution: PHP Engine warming up... (${err.message})`
       );
     } else {
