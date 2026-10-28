@@ -40,7 +40,13 @@ if (!isset($_SESSION["mikhmon"])) {
 
   if (isset($_POST['save'])) {
     $raw_ipmik = preg_replace('/\\s+/', '', isset($_POST['ipmik']) ? $_POST['ipmik'] : '');
-    $siphost = preg_replace('#^ssh://#i', '', $raw_ipmik);
+    $siphost = $raw_ipmik;
+    if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $siphost, $schemeMatch)) {
+      $siphost = substr($siphost, strlen($schemeMatch[0]));
+      if (preg_match('/:\\d+$/', $siphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+        $siphost = substr($siphost, 0, -strlen($portMatch[0]));
+      }
+    }
     $suserhost = isset($_POST['usermik']) ? trim($_POST['usermik']) : '';
     $spasswdhost = encrypt(isset($_POST['passmik']) ? $_POST['passmik'] : '');
     $shotspotname = str_replace("'", '', isset($_POST['hotspotname']) ? $_POST['hotspotname'] : '');
@@ -54,8 +60,8 @@ if (!isset($_SESSION["mikhmon"])) {
     $sesname = preg_replace('/\\s+/', '-', trim(isset($_POST['sessname']) ? $_POST['sessname'] : $session));
     $slivereport = isset($_POST['livereport']) ? $_POST['livereport'] : 'disable';
 
-    // Read the exact stored host token. readcfg.php removes legacy ssh:// from $iphost,
-    // but config.php may still contain it; using $iphost here prevented those edits saving.
+    // Read the exact stored host token because readcfg.php normalizes display values,
+    // while config.php may retain a legacy URL-shaped host until this save completes.
     $storedIpHost = isset($data[$session][1]) ? explode('!', $data[$session][1], 2)[1] : $iphost;
     $storedIpHost = isset($storedIpHost) ? $storedIpHost : $iphost;
     $search = array(
@@ -113,7 +119,13 @@ if (!isset($_SESSION["mikhmon"])) {
   if ($currency == "") {
     echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";
   }
-  $display_iphost = preg_replace('#^ssh://#i', '', $iphost);
+  $display_iphost = $iphost;
+  if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $display_iphost, $schemeMatch)) {
+    $display_iphost = substr($display_iphost, strlen($schemeMatch[0]));
+    if (preg_match('/:\\d+$/', $display_iphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+      $display_iphost = substr($display_iphost, 0, -strlen($portMatch[0]));
+    }
+  }
 }
 ?>
 <script>
