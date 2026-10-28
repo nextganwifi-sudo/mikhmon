@@ -1150,10 +1150,9 @@ const proxyServer = http.createServer(async (req, res) => {
   const routeLabel = parsedRequestUrl.pathname +
     (requestAction ? '?hotspot-user=' + requestAction : '');
   const isVoucherGenerationSubmit = req.method === 'POST' && requestAction === 'generate';
-  // Batch generation can legitimately take longer than ordinary page loads.
-  // Keep normal navigation bounded at 60s, but allow voucher POSTs up to 180s
-  // (the generator itself permits up to 300s).
-  const upstreamTimeoutMs = isVoucherGenerationSubmit ? 180000 : 60000;
+  // PHP voucher generation allows up to 300s. Leave a safety margin below that
+  // limit so larger batches can complete before the PHP worker terminates.
+  const upstreamTimeoutMs = isVoucherGenerationSubmit ? 270000 : 60000;
   res.on('finish', () => {
     const durationMs = Date.now() - requestStartedAt;
     if (durationMs >= 10000) {
