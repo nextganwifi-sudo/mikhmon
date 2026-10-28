@@ -24,13 +24,14 @@ if (substr($_SERVER["REQUEST_URI"], -11) == "readcfg.php") {
 // read config
 
 $iphost = explode('!', $data[$session][1])[1];
-// Legacy SSH session URLs are normalized; all connections now use RouterOS API.
-if (stripos($iphost, 'ssh://') === 0) {
-    $iphost = substr($iphost, 6);
-    if (preg_match('/\\:22$/', $iphost)) { $iphost = substr($iphost, 0, -3); }
+// Normalize stored host values; all router traffic uses the RouterOS binary API.
+if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $iphost, $schemeMatch)) {
+    $iphost = substr($iphost, strlen($schemeMatch[0]));
+    if (preg_match('/:\\d+$/', $iphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+        $iphost = substr($iphost, 0, -strlen($portMatch[0]));
+    }
 }
 $connmode = 'api';
-$iphost_clean = $iphost;
 $userhost = explode('@|@', $data[$session][2])[1];
 $passwdhost = explode('#|#', $data[$session][3])[1];
 $hotspotname = explode('%', $data[$session][4])[1];
