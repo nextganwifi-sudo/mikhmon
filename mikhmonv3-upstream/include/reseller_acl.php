@@ -818,6 +818,31 @@ function canAccessRouterSession($sessionName) {
 }
 
 /**
+ * Find the one active reseller explicitly assigned to a router session.
+ * Wildcard access is not treated as ownership. If multiple resellers explicitly
+ * claim the same router, return null rather than selecting an arbitrary template.
+ */
+function findResellerAssignedToRouterSession($sessionName) {
+    $sessionName = trim((string)$sessionName);
+    if ($sessionName === '') {
+        return null;
+    }
+    $matches = array();
+    foreach (loadResellers() as $reseller) {
+        if (!isset($reseller['id']) || !isset($reseller['allowed_routers']) || !is_array($reseller['allowed_routers'])) {
+            continue;
+        }
+        if (isset($reseller['status']) && $reseller['status'] !== 'active') {
+            continue;
+        }
+        if (in_array($sessionName, $reseller['allowed_routers'], true)) {
+            $matches[] = $reseller;
+        }
+    }
+    return count($matches) === 1 ? $matches[0] : null;
+}
+
+/**
  * Verify if current session user has a specific granular permission
  */
 function hasResellerPermission($permKey) {
