@@ -34,7 +34,8 @@ if (!isset($_SESSION["mikhmon"])) {
     $content = file_get_contents("./include/config.php");
     $newcontent = str_replace((string)$search, (string)$replace, "$content");
     file_put_contents("./include/config.php", "$newcontent");
-    echo "<script>window.location='./admin.php?id=settings&session=" . $router . "'</script>";
+    echo "<script>window.location='./admin.php?id=settings&session=" . rawurlencode($router) . "'</script>";
+    exit;
   }
 
   if (isset($_POST['save'])) {
