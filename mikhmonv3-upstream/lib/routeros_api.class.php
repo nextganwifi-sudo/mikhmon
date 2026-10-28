@@ -21,7 +21,7 @@ class RouterosAPI
     var $connected = false; //  Connection state
     var $port      = 8728;  //  Port to connect to (default 8729 for ssl)
     var $ssl       = false; //  Connect using SSL (must enable api-ssl in IP/Services)
-    var $timeout   = 8;     // API connect/read idle timeout; tolerate temporarily busy routers
+    var $timeout   = 30;    // API connect/read timeout for high-latency or busy routers
     var $attempts  = 1;     //  Connection attempt count (1 attempt prevents worker pool starvation)
     var $delay     = 0;     //  Delay between connection attempts in seconds
 
