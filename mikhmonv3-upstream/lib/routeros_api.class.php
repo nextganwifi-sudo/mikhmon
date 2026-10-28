@@ -21,7 +21,7 @@ class RouterosAPI
     var $connected = false; //  Connection state
     var $port      = 8728;  //  Port to connect to (default 8729 for ssl)
     var $ssl       = false; //  Connect using SSL (must enable api-ssl in IP/Services)
-    var $timeout   = 3;     //  Connection attempt timeout and data read timeout (fail fast on offline routers)
+    var $timeout   = 8;     // API connect/read idle timeout; tolerate temporarily busy routers
     var $attempts  = 1;     //  Connection attempt count (1 attempt prevents worker pool starvation)
     var $delay     = 0;     //  Delay between connection attempts in seconds
 
@@ -94,11 +94,12 @@ class RouterosAPI
     public function connect($ip, $login, $password)
     {
         $rawIp = trim((string)$ip);
-        // Compatibility for old configs: retire the ssh:// scheme and use API.
-        if (stripos($rawIp, 'ssh://') === 0) {
-            $rawIp = substr($rawIp, 6);
-            if (preg_match('/\\:22$/', $rawIp)) {
-                $rawIp = substr($rawIp, 0, -3);
+        // Router connections use the binary API only. Normalize URL-shaped legacy
+        // host values into host[:api-port] before opening the API socket.
+        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $rawIp, $schemeMatch)) {
+            $rawIp = substr($rawIp, strlen($schemeMatch[0]));
+            if (preg_match('/:\\d+$/', $rawIp, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+                $rawIp = substr($rawIp, 0, -strlen($portMatch[0]));
             }
         }
 
@@ -387,6 +388,8 @@ class RouterosAPI
             }
         } catch (Exception $e) {
             $this->error_str = 'RouterOS API read failed: ' . $e->getMessage();
+            // Log transport failures for diagnosis without exposing router credentials.
+            error_log('[RouterOS API] ' . $this->error_str);
             $this->connected = false;
             return array();
         }
