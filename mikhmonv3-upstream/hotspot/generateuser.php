@@ -27,6 +27,7 @@ if (!isset($_SESSION["mikhmon"])) {
 // time zone
 date_default_timezone_set($_SESSION['timezone']);
 
+    $isVoucherResultRequest = isset($_GET['voucher-result']) && $_GET['voucher-result'] === '1';
 	$genprof = $_GET['genprof'];
 	if ($genprof != "") {
 		$getprofile = $API->comm("/ip/hotspot/user/profile/print", array(
@@ -58,7 +59,18 @@ date_default_timezone_set($_SESSION['timezone']);
 	} else {
 	}
 
-	$srvlist = $API->comm("/ip/hotspot/print");
+    // Cache the hotspot server list on normal page loads. Reuse it on form POSTs
+    // and result rendering instead of making unnecessary API calls.
+    if (isset($_SESSION['voucher_generation_cache']['servers']) && is_array($_SESSION['voucher_generation_cache']['servers'])) {
+        $srvlist = $_SESSION['voucher_generation_cache']['servers'];
+    } elseif (!$isVoucherResultRequest) {
+        $srvlist = $API->comm("/ip/hotspot/print");
+        if (is_array($srvlist)) {
+            $_SESSION['voucher_generation_cache']['servers'] = $srvlist;
+        }
+    } else {
+        $srvlist = array();
+    }
 
 	if (isset($_POST['qty'])) {
 		
@@ -263,14 +275,25 @@ date_default_timezone_set($_SESSION['timezone']);
 		}
 
 
-        if ($qty < 2) {
-            echo "<script>window.location='./?hotspot-user=" . rawurlencode($u[1]) . "&session=" . rawurlencode($session) . "&voucher-result=1'</script>";
-        } else {
-            echo "<script>window.location='./?hotspot-user=generate&session=" . rawurlencode($session) . "&voucher-result=1'</script>";
+        // All quantities return to the same local result page. End the POST request
+        // immediately so it cannot fall through into another RouterOS profile-list call.
+        echo "<script>window.location='./?hotspot-user=generate&session=" . rawurlencode($session) . "&voucher-result=1'</script>";
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
         }
+        exit;
 	}
 
-	$getprofile = $API->comm("/ip/hotspot/user/profile/print");
+    if ($isVoucherResultRequest) {
+        $getprofile = (isset($_SESSION['voucher_generation_cache']['profiles']) && is_array($_SESSION['voucher_generation_cache']['profiles']))
+            ? $_SESSION['voucher_generation_cache']['profiles']
+            : array();
+    } else {
+        $getprofile = $API->comm("/ip/hotspot/user/profile/print");
+        if (is_array($getprofile)) {
+            $_SESSION['voucher_generation_cache']['profiles'] = $getprofile;
+        }
+    }
 	include_once('./voucher/temp.php');
 	$genuser = explode("-", decrypt($genu));
 	$genuser1 = explode("~", decrypt($genu));
