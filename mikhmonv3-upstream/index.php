@@ -188,7 +188,10 @@ if (!isset($_SESSION["mikhmon"])) {
   $API->debug = false;
   $localOnlyHotspotPages = array('resellers', 'system-update', 'admin-settings', 'template-editor', 'uplogo', 'about', 'logout', 'reset-voucher');
   $curHotspotReq = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
-  if (!in_array($curHotspotReq, $localOnlyHotspotPages, true)) {
+  // Render the completed voucher result from session data only; do not reconnect
+  // to a slow router after the voucher creation POST has already succeeded.
+  $isVoucherResultRequest = isset($_GET['voucher-result']) && $_GET['voucher-result'] === '1';
+  if (!$isVoucherResultRequest && !in_array($curHotspotReq, $localOnlyHotspotPages, true)) {
     $API->connect($iphost, $userhost, decrypt($passwdhost));
     if (!empty($_SESSION[$session . '_identity'])) {
       $identity = $_SESSION[$session . '_identity'];
