@@ -190,7 +190,8 @@ if (!isset($_SESSION["mikhmon"])) {
   $curHotspotReq = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
   // Render the completed voucher result from session data only; do not reconnect
   // to a slow router after the voucher creation POST has already succeeded.
-  $isVoucherResultRequest = isset($_GET['voucher-result']) && $_GET['voucher-result'] === '1';
+  require_once __DIR__ . '/include/voucher_request.php';
+  $isVoucherResultRequest = isLocalVoucherResultRequest($_SERVER['REQUEST_METHOD'], $_GET);
   if (!$isVoucherResultRequest && !in_array($curHotspotReq, $localOnlyHotspotPages, true)) {
     $API->connect($iphost, $userhost, decrypt($passwdhost));
     if (!empty($_SESSION[$session . '_identity'])) {
