@@ -27,9 +27,12 @@ if (!isset($_SESSION["mikhmon"])) {
 // time zone
 date_default_timezone_set($_SESSION['timezone']);
 
-    $isVoucherResultRequest = isset($_GET['voucher-result']) && $_GET['voucher-result'] === '1';
+    require_once __DIR__ . '/../include/voucher_request.php';
+    $isVoucherResultRequest = isLocalVoucherResultRequest($_SERVER['REQUEST_METHOD'], $_GET);
+    // Keep server/profile choices isolated to the selected router.
+    $voucherCacheKey = (string)$session;
 	$genprof = $_GET['genprof'];
-	if ($genprof != "") {
+	if (!$isVoucherResultRequest && $genprof != "") {
 		$getprofile = $API->comm("/ip/hotspot/user/profile/print", array(
 			"?name" => "$genprof",
 		));
@@ -61,12 +64,12 @@ date_default_timezone_set($_SESSION['timezone']);
 
     // Cache the hotspot server list on normal page loads. Reuse it on form POSTs
     // and result rendering instead of making unnecessary API calls.
-    if (isset($_SESSION['voucher_generation_cache']['servers']) && is_array($_SESSION['voucher_generation_cache']['servers'])) {
-        $srvlist = $_SESSION['voucher_generation_cache']['servers'];
+    if (($isVoucherResultRequest || isset($_POST['qty'])) && isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['servers']) && is_array($_SESSION['voucher_generation_cache'][$voucherCacheKey]['servers'])) {
+        $srvlist = $_SESSION['voucher_generation_cache'][$voucherCacheKey]['servers'];
     } elseif (!$isVoucherResultRequest) {
         $srvlist = $API->comm("/ip/hotspot/print");
         if (is_array($srvlist)) {
-            $_SESSION['voucher_generation_cache']['servers'] = $srvlist;
+            $_SESSION['voucher_generation_cache'][$voucherCacheKey]['servers'] = $srvlist;
         }
     } else {
         $srvlist = array();
@@ -285,13 +288,13 @@ date_default_timezone_set($_SESSION['timezone']);
 	}
 
     if ($isVoucherResultRequest) {
-        $getprofile = (isset($_SESSION['voucher_generation_cache']['profiles']) && is_array($_SESSION['voucher_generation_cache']['profiles']))
-            ? $_SESSION['voucher_generation_cache']['profiles']
+        $getprofile = (isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles']) && is_array($_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles']))
+            ? $_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles']
             : array();
     } else {
         $getprofile = $API->comm("/ip/hotspot/user/profile/print");
         if (is_array($getprofile)) {
-            $_SESSION['voucher_generation_cache']['profiles'] = $getprofile;
+            $_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles'] = $getprofile;
         }
     }
 	include_once('./voucher/temp.php');
@@ -354,7 +357,7 @@ date_default_timezone_set($_SESSION['timezone']);
 	<h3><i class="fa fa-user-plus"></i> <?= $_generate_user ?> <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> <?= $_processing ?> </i></small></h3> 
 	</div>
 	<div class="card-body">
-<form autocomplete="off" method="post" action="">
+<form autocomplete="off" method="post" action="./?hotspot-user=generate&amp;session=<?= htmlspecialchars(rawurlencode($session), ENT_QUOTES, 'UTF-8') ?>">
 	<div>
 		<?php if ($_SESSION['ubp'] != "") {
 		echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";

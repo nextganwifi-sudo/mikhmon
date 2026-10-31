@@ -211,7 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
             $voiceCallUsers = loadVoiceCallUsers();
             $vpnErr = vpnText('Could not update the Voice Call note list.', 'Voice Call নোট তালিকা আপডেট করা যায়নি।');
         }
-        }
     }
 }
 
