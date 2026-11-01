@@ -252,6 +252,8 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
   for (var i = 0; i < events.length; i++) {
     window.addEventListener(events[i], recordUserActivity, { passive: true });
   }
+  // Successful voucher batch steps are active work, including long batches.
+  window.addEventListener('ngw-voucher-progress', recordUserActivity);
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
       checkIdleExpiration();

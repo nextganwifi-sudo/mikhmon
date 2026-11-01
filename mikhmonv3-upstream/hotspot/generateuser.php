@@ -75,217 +75,15 @@ date_default_timezone_set($_SESSION['timezone']);
         $srvlist = array();
     }
 
-	if (isset($_POST['qty'])) {
-		
-		$qty = ($_POST['qty']);
-		$server = ($_POST['server']);
-		$user = ($_POST['user']);
-		$userl = ($_POST['userl']);
-		$prefix = ($_POST['prefix']);
-		$char = ($_POST['char']);
-		$profile = ($_POST['profile']);
-		$timelimit = ($_POST['timelimit']);
-		$datalimit = ($_POST['datalimit']);
-		$adcomment = ($_POST['adcomment']);
-		$mbgb = ($_POST['mbgb']);
-		if ($timelimit == "") {
-			$timelimit = "0";
-		} else {
-			$timelimit = $timelimit;
-		}
-		if ($datalimit == "") {
-			$datalimit = "0";
-		} else {
-			$datalimit = $datalimit * $mbgb;
-		}
-		if ($adcomment == "") {
-			$adcomment = "";
-		} else {
-			$adcomment = $adcomment;
-		}
-		$getprofile = $API->comm("/ip/hotspot/user/profile/print", array("?name" => "$profile"));
-		$ponlogin = $getprofile[0]['on-login'];
-		$getvalid = explode(",", $ponlogin)[3];
-		$getprice = explode(",", $ponlogin)[2];
-		$getsprice = explode(",", $ponlogin)[4];
-		$getlock = explode(",", $ponlogin)[6];
-		$_SESSION['ubp'] = $profile;
-		$commt = $user . "-" . rand(100, 999) . "-" . date("m.d.y") . "-" . $adcomment;
-
-        // Record progress and stop safely if a high-latency RouterOS API connection drops.
-        $createdCount = 0;
-        $generationStartedAt = microtime(true);
-        error_log('[Voucher Generation] started qty=' . (int)$qty . ' mode=' . preg_replace('/[^a-z]/i', '', (string)$user));
-        $addVoucherUser = function ($params) use ($API, &$createdCount, $qty, $generationStartedAt) {
-            $startedAt = microtime(true);
-            $response = $API->comm("/ip/hotspot/user/add", $params);
-            $elapsed = microtime(true) - $startedAt;
-            if ($elapsed >= 2) {
-                error_log('[Voucher Generation] slow API add elapsedSec=' . round($elapsed, 2) . ' progress=' . $createdCount . '/' . (int)$qty);
-            }
-            if (isset($response['!trap']) || isset($response['!fatal'])) {
-                $details = $response['!trap'][0]['message'] ?? $response['!fatal'][0]['message'] ?? 'RouterOS rejected the add request';
-                error_log('[Voucher Generation] RouterOS rejected add at progress=' . $createdCount . '/' . (int)$qty . ': ' . preg_replace('/[^a-zA-Z0-9 _.,:;()\-]/', '', (string)$details));
-                return array('ok' => false, 'reason' => 'RouterOS rejected a voucher request. Check the router API log and Hotspot Users list before retrying.');
-            }
-            if (!$API->connected) {
-                error_log('[Voucher Generation] API connection lost at progress=' . $createdCount . '/' . (int)$qty . ' totalElapsedSec=' . round(microtime(true) - $generationStartedAt, 2));
-                return array('ok' => false, 'reason' => 'The RouterOS API connection timed out or disconnected during generation.');
-            }
-            $createdCount++;
-            if (($createdCount % 25) === 0 || $createdCount >= (int)$qty) {
-                error_log('[Voucher Generation] progress=' . $createdCount . '/' . (int)$qty . ' totalElapsedSec=' . round(microtime(true) - $generationStartedAt, 2));
-            }
-            return array('ok' => true, 'reason' => '');
-        };
-        $abortVoucherGeneration = function ($reason) use (&$createdCount, $qty) {
-            $safeReason = htmlspecialchars((string)$reason, ENT_QUOTES, 'UTF-8');
-            echo "<div class='alert alert-danger'><b>Voucher generation interrupted.</b> " . $safeReason .
-                " Confirmed completed requests: " . (int)$createdCount . " of " . (int)$qty .
-                ". Check Hotspot &gt; Users before retrying to avoid duplicate vouchers.</div>";
-            exit;
-        };
-		$gentemp = $commt . "|~" . $profile . "~" . $getvalid . "~" . $getprice . "!".$getsprice."~" . $timelimit . "~" . $datalimit . "~" . $getlock;
-		$gen = '<?php $genu="'.encrypt($gentemp).'";?>';
-		$temp = './voucher/temp.php';
-		$handle = fopen($temp, 'w') or die('Cannot open file:  ' . $temp);
-		$data = $gen;
-		fwrite($handle, $data);
-
-		$a = array("1" => "", "", 1, 2, 2, 3, 3, 4);
-
-		if ($user == "up") {
-			for ($i = 1; $i <= $qty; $i++) {
-				if ($char == "lower") {
-					$u[$i] = randLC($userl);
-				} elseif ($char == "upper") {
-					$u[$i] = randUC($userl);
-				} elseif ($char == "upplow") {
-					$u[$i] = randULC($userl);
-				} elseif ($char == "mix") {
-					$u[$i] = randNLC($userl);
-				} elseif ($char == "mix1") {
-					$u[$i] = randNUC($userl);
-				} elseif ($char == "mix2") {
-					$u[$i] = randNULC($userl);
-				}
-				if ($userl == 3) {
-					$p[$i] = randN(3);
-				} elseif ($userl == 4) {
-					$p[$i] = randN(4);
-				} elseif ($userl == 5) {
-					$p[$i] = randN(5);
-				} elseif ($userl == 6) {
-					$p[$i] = randN(6);
-				} elseif ($userl == 7) {
-					$p[$i] = randN(7);
-				} elseif ($userl == 8) {
-					$p[$i] = randN(8);
-				}
-
-				$u[$i] = "$prefix$u[$i]";
-			}
-
-			for ($i = 1; $i <= $qty; $i++) {
-                $addResult = $addVoucherUser(array(
-                    "server" => "$server",
-                    "name" => "$u[$i]",
-                    "password" => "$p[$i]",
-                    "profile" => "$profile",
-                    "limit-uptime" => "$timelimit",
-                    "limit-bytes-total" => "$datalimit",
-                    "comment" => "$commt",
-                ));
-                if (!$addResult['ok']) {
-                    $abortVoucherGeneration($addResult['reason']);
-                }
-			}
-		}
-
-		if ($user == "vc") {
-			$shuf = ($userl - $a[$userl]);
-			for ($i = 1; $i <= $qty; $i++) {
-				if ($char == "lower") {
-					$u[$i] = randLC($shuf);
-				} elseif ($char == "upper") {
-					$u[$i] = randUC($shuf);
-				} elseif ($char == "upplow") {
-					$u[$i] = randULC($shuf);
-				}
-				if ($userl == 3) {
-					$p[$i] = randN(1);
-				} elseif ($userl == 4 || $userl == 5) {
-					$p[$i] = randN(2);
-				} elseif ($userl == 6 || $userl == 7) {
-					$p[$i] = randN(3);
-				} elseif ($userl == 8) {
-					$p[$i] = randN(4);
-				}
-
-				$u[$i] = "$prefix$u[$i]$p[$i]";
-
-				if ($char == "num") {
-					if ($userl == 3) {
-						$p[$i] = randN(3);
-					} elseif ($userl == 4) {
-						$p[$i] = randN(4);
-					} elseif ($userl == 5) {
-						$p[$i] = randN(5);
-					} elseif ($userl == 6) {
-						$p[$i] = randN(6);
-					} elseif ($userl == 7) {
-						$p[$i] = randN(7);
-					} elseif ($userl == 8) {
-						$p[$i] = randN(8);
-					}
-
-					$u[$i] = "$prefix$p[$i]";
-				}
-				if ($char == "mix") {
-					$p[$i] = randNLC($userl);
-
-
-					$u[$i] = "$prefix$p[$i]";
-				}
-				if ($char == "mix1") {
-					$p[$i] = randNUC($userl);
-
-
-					$u[$i] = "$prefix$p[$i]";
-				}
-				if ($char == "mix2") {
-					$p[$i] = randNULC($userl);
-
-
-					$u[$i] = "$prefix$p[$i]";
-				}
-
-			}
-			for ($i = 1; $i <= $qty; $i++) {
-                $addResult = $addVoucherUser(array(
-                    "server" => "$server",
-                    "name" => "$u[$i]",
-                    "password" => "$u[$i]",
-                    "profile" => "$profile",
-                    "limit-uptime" => "$timelimit",
-                    "limit-bytes-total" => "$datalimit",
-                    "comment" => "$commt",
-                ));
-                if (!$addResult['ok']) {
-                    $abortVoucherGeneration($addResult['reason']);
-                }
-			}
-		}
-
-
-        // All quantities return to the same local result page. End the POST request
-        // immediately so it cannot fall through into another RouterOS profile-list call.
-        echo "<script>window.location='./?hotspot-user=generate&session=" . rawurlencode($session) . "&voucher-result=1'</script>";
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_write_close();
-        }
-        exit;
-	}
+    // Generation now uses short authenticated JSON requests, never one long POST.
+    if (isset($_POST['qty'])) {
+        echo '<div class="alert alert-warning">Reload this page and enable JavaScript to generate vouchers in batches.</div>';
+        return;
+    }
+    if (empty($_SESSION['voucher_batch_csrf'])) {
+        $_SESSION['voucher_batch_csrf'] = bin2hex(random_bytes(32));
+    }
+    $voucherBatchId = bin2hex(random_bytes(16));
 
     if ($isVoucherResultRequest) {
         $getprofile = (isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles']) && is_array($_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles']))
@@ -297,9 +95,14 @@ date_default_timezone_set($_SESSION['timezone']);
             $_SESSION['voucher_generation_cache'][$voucherCacheKey]['profiles'] = $getprofile;
         }
     }
-	include_once('./voucher/temp.php');
-	$genuser = explode("-", decrypt($genu));
-	$genuser1 = explode("~", decrypt($genu));
+    if (isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['summary'])) {
+        $lastVoucherSummary = $_SESSION['voucher_generation_cache'][$voucherCacheKey]['summary'];
+    } else {
+        include_once('./voucher/temp.php');
+        $lastVoucherSummary = isset($genu) ? decrypt($genu) : '';
+    }
+	$genuser = explode("-", $lastVoucherSummary);
+	$genuser1 = explode("~", $lastVoucherSummary);
 	$umode = $genuser[0];
 	$ucode = $genuser[1];
 	$udate = $genuser[2];
@@ -337,7 +140,7 @@ date_default_timezone_set($_SESSION['timezone']);
 	}
 	$ulock = $genuser1[6];
 	//$urlprint = "$umode-$ucode-$udate-$ucommt";
-	$urlprint = explode("|", decrypt($genu))[0];
+	$urlprint = explode("|", $lastVoucherSummary)[0];
 	if ($currency == in_array($currency, $cekindo['indo'])) {
 		$uprice = $currency . " " . number_format((float)$uprice, 0, ",", ".");
 		$suprice = $currency . " " . number_format((float)$suprice, 0, ",", ".");
@@ -357,7 +160,7 @@ date_default_timezone_set($_SESSION['timezone']);
 	<h3><i class="fa fa-user-plus"></i> <?= $_generate_user ?> <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> <?= $_processing ?> </i></small></h3> 
 	</div>
 	<div class="card-body">
-<form autocomplete="off" method="post" action="./?hotspot-user=generate&amp;session=<?= htmlspecialchars(rawurlencode($session), ENT_QUOTES, 'UTF-8') ?>">
+<form id="voucher-generate-form" autocomplete="off" method="post" action="./?hotspot-user=generate&amp;session=<?= htmlspecialchars(rawurlencode($session), ENT_QUOTES, 'UTF-8') ?>">
 	<div>
 		<?php if ($_SESSION['ubp'] != "") {
 		echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";
@@ -379,11 +182,18 @@ date_default_timezone_set($_SESSION['timezone']);
 } else {
 	echo $uprofile;
 } ?>&session=<?= $session; ?>"> <i class="fa fa-users"></i> <?= $_user_list ?></a>
-    <button type="submit" name="save" onclick="loader()" class="btn bg-primary" title="Generate User"> <i class="fa fa-save"></i> <?= $_generate ?></button>
+    <button type="submit" name="save" class="btn bg-primary" title="Generate User"> <i class="fa fa-save"></i> <?= $_generate ?></button>
     <a class="btn bg-secondary" title="Print Default" href="./voucher/print.php?id=<?= $urlprint; ?>&qr=no&session=<?= $session; ?>" target="_blank"> <i class="fa fa-print"></i> <?= $_print ?></a>
     <a class="btn bg-danger" title="Print QR" href="./voucher/print.php?id=<?= $urlprint; ?>&qr=yes&session=<?= $session; ?>" target="_blank"> <i class="fa fa-qrcode"></i> <?= $_print_qr ?></a>
     <a class="btn bg-info" title="Print Small" href="./voucher/print.php?id=<?= $urlprint; ?>&small=yes&session=<?= $session; ?>" target="_blank"> <i class="fa fa-print"></i> <?= $_print_small ?></a>
 </div>
+<div id="voucher-batch-status" role="status" aria-live="polite" style="margin:12px 0;"></div>
+<progress id="voucher-batch-progress" value="0" max="100" style="display:none;width:100%;"></progress>
+<button type="button" id="voucher-batch-resume" class="btn bg-warning" style="display:none;">Resume this batch</button>
+<noscript><p>Enable JavaScript to generate vouchers.</p></noscript>
+<?php if ($isVoucherResultRequest && isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'])) { ?>
+<div class="alert alert-success"><?= (int)$_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'] ?> vouchers generated successfully.</div>
+<?php } ?>
 <table class="table">
   <tr>
     <td class="align-middle"><?= $_qty ?></td><td><div><input class="form-control " type="number" name="qty" min="1" max="500" value="1" required="1"></div></td>
@@ -545,3 +355,8 @@ function GetVP(){
 } 
 </script>
 </div>
+
+<script>
+window.ngwVoucherBatch = <?= json_encode(array('router'=>(string)$session, 'csrf'=>$_SESSION['voucher_batch_csrf'], 'job'=>$voucherBatchId), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>
+<script src="./js/voucher-batch.js?v=1"></script>
