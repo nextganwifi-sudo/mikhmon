@@ -32,7 +32,7 @@ if (!isset($_SESSION["mikhmon"])) {
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i>
+        <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> <small id="router-count" style="font-size:12px;font-weight:normal;"></small> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i>
           <input type="search" id="router-search" placeholder="Search" aria-label="Search routers" style="display:inline-block;width:170px;max-width:45%;margin-left:10px;padding:4px 7px;font-size:13px;font-weight:normal;">
         </h3>
       </div>
@@ -86,6 +86,7 @@ if (!isset($_SESSION["mikhmon"])) {
 (function () {
   var search = document.getElementById('router-search');
   var cards = document.querySelectorAll('[data-router-card]');
+  document.getElementById('router-count').textContent = '(' + cards.length + ')';
   search.addEventListener('input', function () {
     var query = search.value.trim().toLowerCase();
     for (var i = 0; i < cards.length; i++) {
