@@ -32,7 +32,9 @@ if (!isset($_SESSION["mikhmon"])) {
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i></h3>
+        <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i>
+          <input type="search" id="router-search" placeholder="Search" aria-label="Search routers" style="display:inline-block;width:170px;max-width:45%;margin-left:10px;padding:4px 7px;font-size:13px;font-weight:normal;">
+        </h3>
       </div>
       <div class="card-body">
         <?php if (!empty($_SESSION['router_settings_notice'])) { ?>
@@ -47,7 +49,7 @@ if (!isset($_SESSION["mikhmon"])) {
             $value = explode("'", $line)[1];
             if ($value == "" || $value == "mikhmon" || !canAccessRouterSession($value)) {
             } else { ?>
-              <div class="col-6">
+              <div class="col-6" data-router-card>
                 <div class="box bmh-75 box-bordered <?= $color[rand(1, 11)]; ?>">
                   <div class="box-group">
                     <div class="box-group-icon">
@@ -79,3 +81,16 @@ if (!isset($_SESSION["mikhmon"])) {
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var search = document.getElementById('router-search');
+  var cards = document.querySelectorAll('[data-router-card]');
+  search.addEventListener('input', function () {
+    var query = search.value.trim().toLowerCase();
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].style.display = cards[i].textContent.toLowerCase().indexOf(query) !== -1 ? '' : 'none';
+    }
+  });
+})();
+</script>

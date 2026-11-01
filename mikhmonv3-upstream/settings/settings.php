@@ -106,12 +106,12 @@ if (!isset($_SESSION["mikhmon"])) {
       } elseif (@file_put_contents($configPath, $newcontent, LOCK_EX) === false) {
         echo "<div class='alert alert-danger'>Could not save router settings: config.php is not writable.</div>";
       } else {
-        // Post/Redirect/Get: return to the router list after a confirmed config write.
+        // Post/Redirect/Get: reopen the saved router form.
         // This prevents the edit form from being re-submitted or appearing to cycle through previews.
         $_SESSION['connect'] = '';
         $_SESSION['router_settings_notice'] = 'Router settings saved successfully for ' . $sesname . '.';
         session_write_close();
-        echo "<script>window.location='./admin.php?id=sessions'</script>";
+        echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
         exit;
       }
     }
@@ -154,6 +154,9 @@ if (!isset($_SESSION["mikhmon"])) {
   				<h3 class="card-title"><i class="fa fa-gear"></i> <?= $_session_settings ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer " title="Reload data"></i></h3>
   			</div>
         <div class="card-body">
+          <?php if (!empty($_SESSION['router_settings_notice'])) { ?>
+          <div class="alert alert-success" role="status"><?= htmlspecialchars($_SESSION['router_settings_notice'], ENT_QUOTES, 'UTF-8'); ?></div>
+          <?php unset($_SESSION['router_settings_notice']); } ?>
     	   <div class="row">
 			     <div class="col-6">
             <div class="col-12">
