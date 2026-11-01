@@ -125,7 +125,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $comments=array_count_values($ocomment) ;
     foreach ($comments as $tcomment=>$value) {
 
-      if (is_numeric(substr($tcomment, 3, 3))) {
+      if (preg_match('/^(?:vc|up)-(?:[0-9]{3}|[a-f0-9]{12})-[0-9]{2}\.[0-9]{2}\.[0-9]{2}-/i', $tcomment)) {
        
         echo "<option value='" . explode("#",$tcomment)[0] . "' >". explode("#",$tcomment)[0]." ".explode("#",$tcomment)[1]. " [".$value. "]</option>";
        }
