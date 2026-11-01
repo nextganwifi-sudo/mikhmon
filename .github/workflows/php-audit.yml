@@ -37,3 +37,8 @@ jobs:
           bash -n mikhmonv3-upstream/deploy/safe-update.sh
       - name: Check voucher result regression
         run: php tests/voucher-result.php
+      - name: Check bulk voucher generation
+        run: |
+          php tests/voucher-batch.php
+          node tests/voucher-batch-client.mjs
+          python3 tests/voucher-batch-http.py
