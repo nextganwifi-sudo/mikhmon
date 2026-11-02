@@ -500,9 +500,7 @@ $(document).ready(function(){
     <?php } ?>
     <?php if (hasResellerPermission('generate_voucher')) { ?>
     <a href="./?hotspot-user=generate&session=<?= $session; ?>" class="<?= $sgenuser; ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-user-plus"></i> <?= $_generate ?> </a>        
-    <?php if (hasResellerPermission('export_users')) { ?>
-    <a href="./hotspot/usertransfer.php?session=<?= rawurlencode($session); ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-exchange"></i> User Transfer</a>
-    <?php } ?>
+
     <?php } ?>
   </div>
   <?php } ?>
@@ -561,11 +559,14 @@ $(document).ready(function(){
   </div>
   <?php } ?>
   <!--system-->
-  <?php if (hasResellerPermission('view_scheduler') || hasResellerPermission('reboot_shutdown')) { ?>
+  <?php if (hasResellerPermission('view_scheduler') || hasResellerPermission('reboot_shutdown') || (hasResellerPermission('export_users') && hasResellerPermission('generate_voucher'))) { ?>
   <div class="dropdown-btn <?= $sysmenu; ?>"><i class=" fa fa-gear"></i> <?= $_system ?>
     <i class="fa fa-caret-down"></i> &nbsp;
   </div>
   <div class="dropdown-container <?= $schmenu; ?>">
+    <?php if (hasResellerPermission('export_users') && hasResellerPermission('generate_voucher')) { ?>
+    <a href="./hotspot/usertransfer.php?session=<?= rawurlencode($session); ?>"><i class="fa fa-exchange"></i> User Transfer</a>
+    <?php } ?>
     <?php if (hasResellerPermission('view_scheduler')) { ?>
     <a href="./?system=scheduler&session=<?= $session; ?>" class="<?= $ssch; ?>"> <i class="fa fa-clock-o "></i> <?= $_system_scheduler ?> </a>
     <?php } ?>
