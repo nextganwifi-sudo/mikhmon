@@ -3,12 +3,17 @@ session_start(); error_reporting(0);
 chdir(dirname(__DIR__));
 require_once './include/reseller_acl.php';
 require_once './include/user_transfer.php';
+require_once './include/user_transfer_ui.php';
+include './include/theme.php';
+$transferTheme = $_SESSION['theme'] ?? $theme;
+if (!in_array($transferTheme, array('dark','light','blue','green','pink'), true)) $transferTheme='dark';
+
 $session=is_string($_GET['session']??null)?$_GET['session']:'';
-if(!isset($_SESSION['mikhmon'])||!canAccessRouterSession($session)||!hasResellerPermission('export_users')||!hasResellerPermission('generate_voucher')) { http_response_code(403);exit('Access denied'); }
+if(!isset($_SESSION['mikhmon'])||!canAccessRouterSession($session)||!hasResellerPermission('export_users')||!hasResellerPermission('generate_voucher')) { http_response_code(403);exit(transferText('Access denied')); }
 if(empty($_SESSION['transfer_csrf']))$_SESSION['transfer_csrf']=bin2hex(random_bytes(32));
 $csrf=$_SESSION['transfer_csrf'];
-if(isset($_SESSION['mikhmon_last_activity'])&&time()-(int)$_SESSION['mikhmon_last_activity']>300){http_response_code(401);exit('Session expired. Sign in again.');}
-function transferReply($value,$status=200){http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');session_write_close();echo json_encode($value);exit;}
+if(isset($_SESSION['mikhmon_last_activity'])&&time()-(int)$_SESSION['mikhmon_last_activity']>300){http_response_code(401);exit(transferText('Session expired. Sign in again.'));}
+function transferReply($value,$status=200){http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');session_write_close();if(isset($value['error']))$value['error']=transferText($value['error']);if(isset($value['message']))$value['message']=transferText($value['message']);echo json_encode($value);exit;}
 if($_SERVER['REQUEST_METHOD']==='POST') {
  try {
     if(!is_string($_POST['csrf']??null)||!hash_equals($csrf,$_POST['csrf']))throw new Exception('Reload this page.');
@@ -66,9 +71,43 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 }
 header('Cache-Control: no-store');
 ?>
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hotspot User Transfer</title><style>body{font:15px system-ui;max-width:850px;margin:25px auto;padding:15px;background:#f5f7fa}section{background:white;padding:20px;margin:16px 0;border:1px solid #ddd;border-radius:8px}input,select,button{padding:8px;margin:5px;max-width:95%}button{cursor:pointer}#status{white-space:pre-wrap}</style></head><body>
-<a href="../?session=<?=htmlspecialchars(rawurlencode($session),ENT_QUOTES)?>">← Router</a><h2>Hotspot User Transfer</h2>
-<p>Comments and expiry dates are copied exactly. Source users remain on their router. Native uptime/data counters cannot be restored; remaining allowances are applied. Users must log in again.</p>
-<section><h3>Export</h3><form id="export"><label>Destination OS <select name="target"><option value="6">RouterOS 6</option><option value="7">RouterOS 7</option></select></label><br><select name="filter"><option value="all">All Hotspot users</option><option value="batch">Batch — exact comment</option><option value="profile">Specific profile</option></select><input name="value" placeholder="Batch comment or profile name" list="transfer-values"><button>Download file</button></form><p>The file contains passwords. Store it securely. Usage is a snapshot taken at export time.</p></section>
-<section><h3>Import</h3><p>Select a destination profile whose validity/expiry rules match the source. OS selection checks compatibility; it does not convert or install profile scripts or schedulers.</p><form id="import"><input type="file" name="file" accept=".json" required><br><label>Destination profile <select name="profile" id="profile" required></select></label><label>Hotspot server <select name="server" id="server"><option>all</option></select></label><button>Validate file</button></form><button id="start" hidden>Start import</button><button id="resume" hidden>Resume import</button></section><datalist id="transfer-values"></datalist><p id="status" role="status"></p>
-<script>window.transferConfig=<?=json_encode(['csrf'=>$csrf],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="../js/user-transfer.js?v=1"></script></body></html>
+<!doctype html>
+<html lang="<?= $transferLanguage === 'bn' ? 'bn' : 'en' ?>">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title><?= transferHtml('User Transfer') ?></title>
+<link rel="stylesheet" href="../css/mikhmon-ui.<?= $transferTheme ?>.min.css">
+<link rel="stylesheet" href="../css/font-awesome/css/font-awesome.min.css">
+<style>
+.ngw-transfer{max-width:1100px;margin:0 auto;padding:16px;box-sizing:border-box}
+.ngw-transfer .transfer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.ngw-transfer .card{height:100%;box-sizing:border-box}
+.ngw-transfer .field{margin-bottom:16px}.ngw-transfer label{display:block;margin-bottom:6px;font-weight:600}
+.ngw-transfer .form-control{width:100%;box-sizing:border-box;min-height:36px}
+.ngw-transfer .transfer-help{font-size:13px;line-height:1.6;opacity:.85}
+.ngw-transfer .transfer-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.ngw-transfer .transfer-status{margin-top:16px;padding:14px;border:1px solid currentColor;border-radius:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ngw-transfer [hidden]{display:none!important}
+.ngw-transfer progress{width:100%;margin-top:12px;accent-color:currentColor}
+@media(max-width:720px){.ngw-transfer .transfer-grid{grid-template-columns:1fr}.ngw-transfer{padding:10px}}
+</style></head><body><main class="ngw-transfer">
+<div class="card"><div class="card-header"><h3><i class="fa fa-exchange"></i> <?= transferHtml('User Transfer') ?></h3></div>
+<div class="card-body"><a class="btn bg-secondary" href="../?session=<?=htmlspecialchars(rawurlencode($session),ENT_QUOTES)?>"><i class="fa fa-arrow-left"></i> <?= transferHtml('Back to router') ?></a>
+<p class="transfer-help"><?= transferHtml('Comments and expiry dates are copied exactly. Source users remain on their router. Native uptime/data counters cannot be restored; remaining allowances are applied. Users must log in again.') ?></p></div></div>
+<div class="transfer-grid">
+<section class="card box-bordered"><div class="card-header"><h3><i class="fa fa-download"></i> <?= transferHtml('Export users') ?></h3></div><div class="card-body">
+<form id="export"><div class="field"><label for="target"><?= transferHtml('Destination OS') ?></label><select class="form-control" id="target" name="target"><option value="6">RouterOS 6</option><option value="7">RouterOS 7</option></select></div>
+<div class="field"><label for="filter"><?= transferHtml('Filter users') ?></label><select class="form-control" id="filter" name="filter"><option value="all"><?= transferHtml('All Hotspot users') ?></option><option value="batch"><?= transferHtml('Batch — exact comment') ?></option><option value="profile"><?= transferHtml('Specific profile') ?></option></select></div>
+<div class="field" id="filter-value-field" hidden><label for="filter-value"><?= transferHtml('Batch comment or profile name') ?></label><input class="form-control" id="filter-value" name="value" list="transfer-values" autocomplete="off"></div>
+<button class="btn bg-primary" type="submit"><i class="fa fa-download"></i> <?= transferHtml('Download file') ?></button></form>
+<p class="transfer-help"><?= transferHtml('The file contains passwords. Store it securely. Usage is a snapshot taken at export time.') ?></p></div></section>
+<section class="card box-bordered"><div class="card-header"><h3><i class="fa fa-upload"></i> <?= transferHtml('Import users') ?></h3></div><div class="card-body">
+<p class="transfer-help"><?= transferHtml('Select a destination profile whose validity/expiry rules match the source. OS selection checks compatibility; it does not convert or install profile scripts or schedulers.') ?></p>
+<form id="import"><div class="field"><label for="transfer-file"><?= transferHtml('Transfer file') ?></label><input class="form-control" type="file" id="transfer-file" name="file" accept=".json" required></div>
+<div class="field"><label for="profile"><?= transferHtml('Destination profile') ?></label><select class="form-control" name="profile" id="profile" required></select></div>
+<div class="field"><label for="server"><?= transferHtml('Hotspot server') ?></label><select class="form-control" name="server" id="server"><option value="all"><?= transferHtml('All servers') ?></option></select></div>
+<button class="btn bg-primary" type="submit"><i class="fa fa-check"></i> <?= transferHtml('Validate file') ?></button></form>
+<div class="transfer-actions"><button class="btn bg-success" id="start" hidden><?= transferHtml('Start import') ?></button><button class="btn bg-warning" id="resume" hidden><?= transferHtml('Resume import') ?></button></div>
+</div></section></div><datalist id="transfer-values"></datalist>
+<div class="transfer-status" role="status" aria-live="polite"><span id="status"><?= transferHtml('Loading router data…') ?></span><progress id="transfer-progress" hidden></progress></div>
+<script>window.transferConfig=<?=json_encode(['csrf'=>$csrf,'text'=>$transferStrings],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="../js/user-transfer.js?v=2"></script>
+</main></body></html>
