@@ -155,12 +155,12 @@ $API=new NoCalls(); include './hotspot/generateuser.php';
         assert code==200,ready
         code,done=call('step',dict(job=ready['job']))
         assert code==200 and done['added']==1,done
-        assert users['source']['comment']==comment and users['source']['limit-uptime']=='25200s'
+        assert users['source']['comment']==comment and 'limit-uptime' not in users['source'] and 'uptime' not in users['source']
         assert call('step',dict(job=ready['job']))[1]['added']==1
         code,ready=call('prepare',dict(profile='daily',server='all'),package)
         code,done=call('step',dict(job=ready['job']))
         assert done['skipped']==1 and adds==1,done
-        print('PASS: real PHP export, OS7-to-OS6 destination validation, upload, exact comment, remaining uptime, duplicate skip and repeat step')
+        print('PASS: real PHP export, OS7-to-OS6 destination validation, upload, exact comment, usage fields excluded, duplicate skip and repeat step')
     finally:
         proc.terminate()
         proc.wait(timeout=5)

@@ -1,10 +1,9 @@
 <?php
-require __DIR__.'/../mikhmonv3-upstream/include/user_transfer.php';
-$r=['name'=>'abc','password'=>'p&\"ass','comment'=>"nov/04/2026 12:00:00 note,#&'\nবাংলা",'limit-uptime'=>'10h','uptime'=>'3h','limit-bytes-total'=>'1000','bytes-in'=>'100','bytes-out'=>'200'];
-$j=json_decode(json_encode(['users'=>[$r]],JSON_UNESCAPED_UNICODE),true);
-$u=transferUser($j['users'][0],'destination-profile','all');
-if($u['comment']!==$r['comment']||$u['password']!==$r['password']||$u['profile']!=='destination-profile'||$u['limit-uptime']!=='25200s'||$u['limit-bytes-total']!=='700')throw new Exception('Transfer changed fields');
-$r['uptime']='10h';$u=transferUser($r,'p','all');if($u['disabled']!=='yes'||$u['limit-uptime']==='0s')throw new Exception('Exhausted user became unlimited');
-foreach(['1w2d03:04:05'=>788645,'1d2h3m4s'=>93784,'00:00:00'=>0] as $v=>$want)if(transferSeconds($v)!==$want)throw new Exception('Duration '.$v);
-unset($r['password']);try{transferUser($r,'p','all');throw new LogicException('Missing password accepted');}catch(InvalidArgumentException $e){}
-echo "PASS: exact Unicode/special-character comments and passwords, destination profile, remaining limits, exhausted users, OS-neutral durations and missing-password rejection\n";
+require __DIR__ . '/../mikhmonv3-upstream/include/user_transfer.php';
+$row = array('name'=>'abc','password'=>'secret','profile'=>'source','comment'=>"date,#&' বাংলা\n",
+'mac-address'=>'AA:BB:CC:DD:EE:FF','uptime'=>'3h','bytes-in'=>'100','limit-uptime'=>'1s','disabled'=>'yes','email'=>'x');
+$out=transferUser($row,'destination');
+if(array_keys($out)!==array('name','password','profile','comment','mac-address'))throw new Exception('Unexpected fields');
+if($out['comment']!==$row['comment']||$out['password']!==$row['password']||$out['profile']!=='destination')throw new Exception('Changed data');
+unset($row['mac-address']);if(isset(transferUser($row,'destination')['mac-address']))throw new Exception('Invented MAC');
+echo "PASS: only username/password/profile/comment/optional MAC; usage and limits ignored\n";

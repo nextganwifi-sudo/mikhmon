@@ -37,7 +37,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         if($mode!=='all'&&reset($args)==='')throw new Exception('Enter a profile or exact batch comment.');
         $rows=$call('/ip/hotspot/user/print',$args);$users=[];
         foreach($rows as $row) {if(!is_array($row)||!isset($row['name'])||$row['name']==='default-trial'||($row['dynamic']??'false')==='true')continue;
-            transferUser($row,$row['profile']??'default','all');unset($row['.id']);$users[]=$row;
+            $users[]=transferUser($row,$row['profile']??'default');
         }
         transferReply(['format'=>'ngw-hotspot-users','version'=>1,'target_os'=>$target,'exported_at'=>gmdate('c'),'users'=>$users]);
     }
@@ -107,7 +107,7 @@ header('Cache-Control: no-store');
 
 <form id="import"><div class="field"><label for="transfer-file"><?= transferHtml('Transfer file') ?></label><input class="form-control" type="file" id="transfer-file" name="file" accept=".json" required></div>
 <div class="field"><label for="profile"><?= transferHtml('Destination profile') ?></label><select class="form-control" name="profile" id="profile" required></select></div>
-<div class="field"><label for="server"><?= transferHtml('Hotspot server') ?></label><select class="form-control" name="server" id="server"><option value="all"><?= transferHtml('All servers') ?></option></select></div>
+
 <button class="btn bg-primary" type="submit"><i class="fa fa-check"></i> <?= transferHtml('Validate file') ?></button></form>
 <div class="transfer-actions"><button class="btn bg-success" id="start" hidden><?= transferHtml('Start import') ?></button><button class="btn bg-warning" id="resume" hidden><?= transferHtml('Resume import') ?></button></div>
 </div></section></div><datalist id="transfer-values"></datalist>
