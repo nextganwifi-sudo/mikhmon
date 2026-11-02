@@ -500,6 +500,9 @@ $(document).ready(function(){
     <?php } ?>
     <?php if (hasResellerPermission('generate_voucher')) { ?>
     <a href="./?hotspot-user=generate&session=<?= $session; ?>" class="<?= $sgenuser; ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-user-plus"></i> <?= $_generate ?> </a>        
+    <?php if (hasResellerPermission('export_users')) { ?>
+    <a href="./hotspot/usertransfer.php?session=<?= rawurlencode($session); ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-exchange"></i> User Transfer</a>
+    <?php } ?>
     <?php } ?>
   </div>
   <?php } ?>
