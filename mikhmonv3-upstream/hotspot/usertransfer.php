@@ -28,7 +28,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         $batches=[];foreach($call('/ip/hotspot/user/print',['.proplist'=>'comment']) as $row){$comment=$row['comment']??'';if(preg_match('/^(vc|up)-/',$comment))$batches[$comment]=true;}
         transferReply(['profiles'=>$call('/ip/hotspot/user/profile/print',['.proplist'=>'name']),'servers'=>$call('/ip/hotspot/print',['.proplist'=>'name']),'batches'=>array_keys($batches)]);
     }
-    if($action==='export') {
+    if($action==='export' || $action==='export-rsc') {
         $target=(int)($_POST['target']??0);if(!in_array($target,[6,7],true))throw new Exception('Select destination OS.');
         $mode=$_POST['filter']??'all';$args=[];
         if($mode==='profile')$args['?profile']=(string)($_POST['value']??'');
@@ -39,6 +39,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         foreach($rows as $row) {if(!is_array($row)||!isset($row['name'])||$row['name']==='default-trial'||($row['dynamic']??'false')==='true')continue;
             $users[]=transferUser($row,$row['profile']??'default');
         }
+        if($action==='export-rsc')transferReply(['rsc'=>transferRsc($users,$target),'target_os'=>$target,'count'=>count($users)]);
         transferReply(['format'=>'ngw-hotspot-users','version'=>1,'target_os'=>$target,'exported_at'=>gmdate('c'),'users'=>$users]);
     }
     if($action==='prepare') {
@@ -101,7 +102,8 @@ header('Cache-Control: no-store');
 <form id="export"><div class="field"><label for="target"><?= transferHtml('Destination OS') ?></label><select class="form-control" id="target" name="target"><option value="6">RouterOS 6</option><option value="7">RouterOS 7</option></select></div>
 <div class="field"><label for="filter"><?= transferHtml('Filter users') ?></label><select class="form-control" id="filter" name="filter"><option value="all"><?= transferHtml('All Hotspot users') ?></option><option value="batch"><?= ($transferLanguage === 'bn' ? 'ব্যাচ' : 'Batch') ?></option><option value="profile"><?= transferHtml('Specific profile') ?></option></select></div>
 <div class="field" id="filter-value-field" hidden><label for="filter-value"><?= transferHtml('Batch comment or profile name') ?></label><input class="form-control" id="filter-value" name="value" list="transfer-values" autocomplete="off"></div>
-<button class="btn bg-primary" type="submit"><i class="fa fa-download"></i> <?= transferHtml('Download file') ?></button></form>
+<button class="btn bg-primary" type="submit"><i class="fa fa-download"></i> <?= transferHtml('Download file') ?></button>
+<button class="btn bg-success" type="submit" value="rsc"><i class="fa fa-terminal"></i> <?= $transferLanguage === 'bn' ? 'RSC ডাউনলোড' : 'Download RSC' ?></button></form>
 </div></section>
 <section class="card box-bordered"><div class="card-header bg-success"><h3><i class="fa fa-upload"></i> <?= transferHtml('Import users') ?></h3></div><div class="card-body">
 
