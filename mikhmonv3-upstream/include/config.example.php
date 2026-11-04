@@ -5,11 +5,13 @@
  * Setup Instructions:
  * 1. Copy this file to `include/config.php`:
  *      cp include/config.example.php include/config.php
- * 2. Default Administrator Login:
+ * 2. Initial setup login (for first-time setup only):
  *      Username: mikhmon
- *      Password: 1234
- * 3. After logging in at `/admin.php?id=login`, open Admin Settings to change
- *    the administrator username/password and configure RouterOS 6.x / 7.x sessions using the RouterOS API service.
+ *      Password: 123
+ * 3. The application forces the default administrator password to be changed
+ *    before any normal use. Do not expose a fresh installation to the Internet
+ *    until this first-login password change has been completed.
+ * 4. Configure RouterOS 6.x / 7.x sessions using the RouterOS API service.
  */
 if(substr($_SERVER["REQUEST_URI"], -10) == "config.php"){header("Location:./");}; 
 if(!isset($data) || !is_array($data)){$data = array();}
