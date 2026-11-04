@@ -57,8 +57,13 @@ if (!isset($_SESSION["mikhmon"])) {
     }
     $getlock = ($_POST['lockunlock']);
 
-    $randstarttime = "0".rand(1,5).":".rand(10,59).":".rand(10,59);
-    $randinterval = "00:02:".rand(10,59);
+    $routerClock = $API->comm("/system/clock/print");
+    $routerClockRow = (is_array($routerClock) && isset($routerClock[0]) && is_array($routerClock[0])) ? $routerClock[0] : array();
+    $randstarttime = isset($routerClockRow["time"]) ? $routerClockRow["time"] : date("H:i:s");
+    $randstartdate = isset($routerClockRow["date"]) ? $routerClockRow["date"] : date("M/d/Y");
+    // Anchor the repeating expiry monitor to the router's current clock.
+    // A random fixed start-time can already be in the past, delaying the first run until the next day.
+    $randinterval = "00:02:00";
 
     $parent = ($_POST['parent']);
     
@@ -83,6 +88,7 @@ if (!isset($_SESSION["mikhmon"])) {
       if (empty($monid)){
         $API->comm("/system/scheduler/add", array(
           "name" => "$name",
+          "start-date" => "$randstartdate",
           "start-time" => "$randstarttime",
           "interval" => "$randinterval",
           "on-event" => "$bgservice",
@@ -93,6 +99,7 @@ if (!isset($_SESSION["mikhmon"])) {
       $API->comm("/system/scheduler/set", array(
         ".id" => "$monid",
         "name" => "$name",
+        "start-date" => "$randstartdate",
         "start-time" => "$randstarttime",
         "interval" => "$randinterval",
         "on-event" => "$bgservice",
