@@ -205,12 +205,21 @@ class RouterosAPI
                         $CURRENT =& $PARSED[$x][];
                     }
                 } elseif ($x != '!done') {
-                    $MATCHES = array();
-                    if (preg_match_all('/[^=]+/i', $x, $MATCHES)) {
-                        if ($MATCHES[0][0] == 'ret') {
-                            $singlevalue = $MATCHES[0][1];
+                    // RouterOS API words are =key=value. Split only at the
+                    // first separator after the key; script values (on-login /
+                    // on-event) legitimately contain many additional '=' signs.
+                    $word = $x;
+                    if (isset($word[0]) && $word[0] === '=') {
+                        $word = substr($word, 1);
+                    }
+                    $separator = strpos($word, '=');
+                    if ($separator !== false) {
+                        $key = substr($word, 0, $separator);
+                        $value = substr($word, $separator + 1);
+                        if ($key === 'ret') {
+                            $singlevalue = $value;
                         }
-                        $CURRENT[$MATCHES[0][0]] = (isset($MATCHES[0][1]) ? $MATCHES[0][1] : '');
+                        $CURRENT[$key] = $value;
                     }
                 }
             }
@@ -247,12 +256,21 @@ class RouterosAPI
                         $CURRENT =& $PARSED[$x][];
                     }
                 } elseif ($x != '!done') {
-                    $MATCHES = array();
-                    if (preg_match_all('/[^=]+/i', $x, $MATCHES)) {
-                        if ($MATCHES[0][0] == 'ret') {
-                            $singlevalue = $MATCHES[0][1];
+                    // RouterOS API words are =key=value. Split only at the
+                    // first separator after the key; script values (on-login /
+                    // on-event) legitimately contain many additional '=' signs.
+                    $word = $x;
+                    if (isset($word[0]) && $word[0] === '=') {
+                        $word = substr($word, 1);
+                    }
+                    $separator = strpos($word, '=');
+                    if ($separator !== false) {
+                        $key = substr($word, 0, $separator);
+                        $value = substr($word, $separator + 1);
+                        if ($key === 'ret') {
+                            $singlevalue = $value;
                         }
-                        $CURRENT[$MATCHES[0][0]] = (isset($MATCHES[0][1]) ? $MATCHES[0][1] : '');
+                        $CURRENT[$key] = $value;
                     }
                 }
             }
