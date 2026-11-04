@@ -22,6 +22,7 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
 
+  include_once('./include/ros_version.php');
 
   if (substr($userprofile, 0, 1) == "*") {
     $userprofile = $userprofile;
