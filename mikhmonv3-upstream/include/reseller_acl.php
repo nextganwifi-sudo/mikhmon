@@ -687,6 +687,11 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
         )
     );
 
+    // Upgrade legacy reversible backup-admin credentials to a one-way password hash after successful login.
+    if ($isBackupAdmin && $backupHash === '' && !empty($backupAdmin['password'])) {
+        saveBackupAdminCredentials($username, $password);
+    }
+
     if ($isPrimaryAdmin || $isBackupAdmin) {
         return array(
             'authenticated' => true,
