@@ -37,6 +37,10 @@ jobs:
           bash -n mikhmonv3-upstream/deploy/safe-update.sh
       - name: Check voucher result regression
         run: php tests/voucher-result.php
+      - name: Check RouterOS 6 and 7 profile expiry generator
+        run: php tests/ros7-profile-expiry-generator.php
+      - name: Check security helper regressions
+        run: php tests/security-helpers.php
       - name: Check bulk voucher generation
         run: |
           php tests/voucher-batch.php
