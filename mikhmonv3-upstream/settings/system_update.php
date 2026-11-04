@@ -392,15 +392,14 @@ if (isset($_POST['apply_git_safe_update'])) {
     $gitDir = is_dir($appRoot . '/.git') ? $appRoot : (is_dir(dirname($appRoot) . '/.git') ? dirname($appRoot) : '');
 
     if ($gitRepoUrl !== '' && function_exists('shell_exec')) {
-        // 1. Save current software state as a rollback snapshot BEFORE updating
-        $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
-
         $tmpClone = sys_get_temp_dir() . '/ngw_git_sync_' . uniqid();
         $cmd = 'git clone --depth 1 ' . escapeshellarg($gitRepoUrl) . ' ' . escapeshellarg($tmpClone) . ' 2>&1';
         $out = @shell_exec($cmd);
         $srcRoot = is_dir($tmpClone . '/mikhmonv3-upstream') ? ($tmpClone . '/mikhmonv3-upstream') : $tmpClone;
         if (is_file($srcRoot . '/admin.php') && is_file($srcRoot . '/index.php')) {
-            $updatedCount = 0;
+            // Compare remote source files with the live installation first.
+            // Do not snapshot, bump the version, or show success when nothing changed.
+            $changedFiles = array();
             $it = new RecursiveIteratorIterator(
                 new RecursiveDirectoryIterator($srcRoot, RecursiveDirectoryIterator::SKIP_DOTS),
                 RecursiveIteratorIterator::SELF_FIRST
@@ -413,32 +412,72 @@ if (isset($_POST['apply_git_safe_update'])) {
                         continue;
                     }
                     $dest = $appRoot . '/' . $rel;
-                    if (!is_dir(dirname($dest))) {
-                        @mkdir(dirname($dest), 0755, true);
-                    }
-                    if (@copy($full, $dest)) {
-                        $updatedCount++;
+                    $remoteHash = @hash_file('sha256', $full);
+                    $localHash = is_file($dest) ? @hash_file('sha256', $dest) : false;
+                    if ($remoteHash !== false && ($localHash === false || !hash_equals($localHash, $remoteHash))) {
+                        $changedFiles[] = array(
+                            'path' => $rel,
+                            'status' => is_file($dest) ? 'modified' : 'new',
+                            'source' => $full,
+                            'destination' => $dest
+                        );
                     }
                 }
             }
-            restoreProtectedDataFiles($appRoot, $protectedBefore);
-            @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
 
-            // 2. Push snapshot to history, increment version, and auto-prune beyond 10 versions
-            if ($snapEntry !== null) {
-                array_unshift($versionState['history'], $snapEntry);
+            if (count($changedFiles) === 0) {
+                restoreProtectedDataFiles($appRoot, $protectedBefore);
+                @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
+                $updateNotice = '';
+                $updateInfo = 'No new files or changes were found. The installed software is already up to date.';
+            } else {
+                // Only create a rollback snapshot when a real code change exists.
+                $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
+                $updatedCount = 0;
+                $newFileCount = 0;
+                $modifiedFileCount = 0;
+                $changedFileLabels = array();
+
+                foreach ($changedFiles as $change) {
+                    $dest = $change['destination'];
+                    if (!is_dir(dirname($dest))) {
+                        @mkdir(dirname($dest), 0755, true);
+                    }
+                    if (@copy($change['source'], $dest)) {
+                        $updatedCount++;
+                        if ($change['status'] === 'new') {
+                            $newFileCount++;
+                        } else {
+                            $modifiedFileCount++;
+                        }
+                        $changedFileLabels[] = $change['status'] . ': ' . $change['path'];
+                    }
+                }
+
+                restoreProtectedDataFiles($appRoot, $protectedBefore);
+                @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
+
+                if ($updatedCount > 0) {
+                    if ($snapEntry !== null) {
+                        array_unshift($versionState['history'], $snapEntry);
+                    }
+                    $versionState['current_version'] = incrementVersionNumber($versionState['current_version']);
+                    $versionState['updated_at'] = date('Y-m-d H:i');
+                    $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
+
+                    $updateNotice = 'Update applied: <b>' . (int)$updatedCount . ' files changed</b> ('
+                        . (int)$newFileCount . ' new, ' . (int)$modifiedFileCount . ' modified). '
+                        . 'Software version: <b>v' . htmlspecialchars($versionState['current_version']) . '</b>.';
+                    $updateChangedFiles = $changedFileLabels;
+                } else {
+                    if ($snapEntry !== null && !empty($snapEntry['file'])) {
+                        @unlink($versionSnapDir . '/' . basename($snapEntry['file']));
+                    }
+                    $updateNotice = '';
+                    $updateInfo = 'No files could be updated; no software version was changed.';
+                }
             }
-            $versionState['current_version'] = incrementVersionNumber($versionState['current_version']);
-            $versionState['updated_at'] = date('Y-m-d H:i');
-            $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
-
-            $msgDone = isset($_git_update_success) ? $_git_update_success : 'Git Safe Update completed successfully! Updated code files from GitHub while keeping all routers, resellers, templates, and logos 100% intact.';
-            $updateNotice = $msgDone . ' (<b>v' . htmlspecialchars($versionState['current_version']) . '</b> — ' . (int)$updatedCount . ' files synced)';
         } else {
-            // Update failed; delete the temporary pre-update snapshot so no extra version is created
-            if ($snapEntry !== null && !empty($snapEntry['file'])) {
-                @unlink($versionSnapDir . '/' . basename($snapEntry['file']));
-            }
             restoreProtectedDataFiles($appRoot, $protectedBefore);
             @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
             $updateError = (isset($_git_update_failed) ? $_git_update_failed : 'Could not fetch application files from the provided GitHub URL.') . ' ' . htmlspecialchars((string)$out);
@@ -447,16 +486,28 @@ if (isset($_POST['apply_git_safe_update'])) {
         $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
         $out = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' pull --ff-only 2>&1');
         restoreProtectedDataFiles($appRoot, $protectedBefore);
+        $pullOutput = (string)$out;
+        $alreadyCurrent = (stripos($pullOutput, 'Already up to date') !== false)
+            || (stripos($pullOutput, 'Already up-to-date') !== false)
+            || (stripos($pullOutput, 'up to date') !== false && stripos($pullOutput, 'Updating') === false);
 
-        if ($snapEntry !== null) {
-            array_unshift($versionState['history'], $snapEntry);
+        if ($alreadyCurrent) {
+            if ($snapEntry !== null && !empty($snapEntry['file'])) {
+                @unlink($versionSnapDir . '/' . basename($snapEntry['file']));
+            }
+            $updateNotice = '';
+            $updateInfo = 'No new commits or file changes were found. The installed software is already up to date.';
+        } else {
+            if ($snapEntry !== null) {
+                array_unshift($versionState['history'], $snapEntry);
+            }
+            $versionState['current_version'] = incrementVersionNumber($versionState['current_version']);
+            $versionState['updated_at'] = date('Y-m-d H:i');
+            $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
+
+            $msgDone = isset($_git_update_success) ? $_git_update_success : 'Git Safe Update completed successfully! All routers, resellers, templates, and logos are 100% intact.';
+            $updateNotice = $msgDone . ' (<b>v' . htmlspecialchars($versionState['current_version']) . '</b>)<br><small>' . htmlspecialchars($pullOutput) . '</small>';
         }
-        $versionState['current_version'] = incrementVersionNumber($versionState['current_version']);
-        $versionState['updated_at'] = date('Y-m-d H:i');
-        $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
-
-        $msgDone = isset($_git_update_success) ? $_git_update_success : 'Git Safe Update completed successfully! All routers, resellers, templates, and logos are 100% intact.';
-        $updateNotice = $msgDone . ' (<b>v' . htmlspecialchars($versionState['current_version']) . '</b>)<br><small>' . htmlspecialchars((string)$out) . '</small>';
     } else {
         restoreProtectedDataFiles($appRoot, $protectedBefore);
         $updateError = isset($_git_url_required) ? $_git_url_required : 'Please enter your GitHub Repository URL to pull updates.';
