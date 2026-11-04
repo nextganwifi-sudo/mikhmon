@@ -58,7 +58,7 @@ if (!isset($_SESSION["mikhmon"])) {
 				$sprice = isset($meta[4]) ? trim($meta[4]) : '0';
 				$getlock = isset($meta[6]) ? trim($meta[6]) : 'Disable';
 				if ($expmode === 'rem' || $expmode === 'ntf' || $expmode === 'remc' || $expmode === 'ntfc') {
-					$uScripts = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock);
+					$uScripts = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock, detectRouterOSMajorVersion($API));
 					$API->comm("/ip/hotspot/user/profile/set", array(
 						".id" => $pr['.id'],
 						"on-login" => $uScripts['onlogin'],
