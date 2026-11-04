@@ -12,9 +12,10 @@ function assertGenerated($condition, $message) {
 
 $ros7 = buildUniversalMikhmonScripts("30Days-30SR", "remc", "30", "30d", "0", "Enable", 7);
 assertGenerated(strpos($ros7["onlogin"], ':local validity "30d";') !== false, "ROS7 validity was not injected");
-assertGenerated(strpos($ros7["onlogin"], '$alreadyActivated') !== false, "ROS7 first-activation guard missing");
-assertGenerated(strpos($ros7["onlogin"], '$expComment') !== false, "ROS7 calendar expiry comment missing");
+assertGenerated(strpos($ros7["onlogin"], '$originalComment') !== false, "ROS7 original comment preservation missing");
+assertGenerated(strpos($ros7["onlogin"], '/ip hotspot user set comment=') !== false, "ROS7 calendar expiry comment update missing");
 assertGenerated(strpos($ros7["onlogin"], 'mac-address=$mac') !== false, "ROS7 MAC lock logic missing");
+assertGenerated(strpos($ros7["onlogin"], '$days') !== false, "ROS7 day/hour calendar arithmetic missing");
 assertGenerated(strpos($ros7["onlogin"], 'comment="mikhmon"') !== false, "ROS7 sales record logic missing");
 assertGenerated(strpos($ros7["bgservice"], 'profile="30Days-30SR"') !== false, "Scheduler profile filter is not dynamic");
 assertGenerated(strpos($ros7["bgservice"], '/ip hotspot active remove') !== false, "Active session removal missing");
