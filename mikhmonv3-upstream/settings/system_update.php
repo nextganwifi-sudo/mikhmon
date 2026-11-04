@@ -1,8 +1,8 @@
 <?php
 /*
- *  NextGan WiFi Solution — Minimal 1-Click GitHub Safe Update + Software Version & 4-Step Rollback
+ *  NextGan WiFi Solution — Minimal 1-Click GitHub Safe Update + Software Version & 10-Step Rollback
  *  Connects to a GitHub Repository URL, pulls code updates, increments Software Version,
- *  and maintains at most 4 rollback snapshots (auto-deleting older ones to keep VPS storage clean)
+ *  and maintains at most 10 rollback snapshots (auto-deleting older ones to keep VPS storage clean)
  *  while strictly preserving all live routers, resellers, templates, and logos.
  */
 session_start();
@@ -31,7 +31,7 @@ if (!is_dir($versionSnapDir)) {
 }
 
 /**
- * Load current software version & rollback history (max 4 entries)
+ * Load current software version & rollback history (max 10 entries)
  */
 function loadVersionState($stateFile) {
     $default = array(
@@ -60,13 +60,13 @@ function loadVersionState($stateFile) {
 }
 
 /**
- * Save version state & strictly prune history to maximum 4 snapshots on disk
+ * Save version state & strictly prune history to maximum 10 snapshots on disk
  */
 function saveAndPruneVersionState($stateFile, $snapDir, $state) {
-    $maxSnapshots = 4;
+    $maxSnapshots = 10;
     $history = isset($state['history']) && is_array($state['history']) ? array_values($state['history']) : array();
 
-    // Remove entries beyond the 4th slot and delete their archive files
+    // Remove entries beyond the 10th slot and delete their archive files
     if (count($history) > $maxSnapshots) {
         for ($i = $maxSnapshots; $i < count($history); $i++) {
             if (!empty($history[$i]['file'])) {
@@ -79,7 +79,7 @@ function saveAndPruneVersionState($stateFile, $snapDir, $state) {
         $history = array_slice($history, 0, $maxSnapshots);
     }
 
-    // Also remove any orphan files inside backups/version-history/ not referenced by the kept 4 entries
+    // Also remove any orphan files inside backups/version-history/ not referenced by the kept 10 entries
     $keptFiles = array();
     foreach ($history as $item) {
         if (!empty($item['file'])) {
@@ -424,7 +424,7 @@ if (isset($_POST['apply_git_safe_update'])) {
             restoreProtectedDataFiles($appRoot, $protectedBefore);
             @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
 
-            // 2. Push snapshot to history, increment version, and auto-prune beyond 4 versions
+            // 2. Push snapshot to history, increment version, and auto-prune beyond 10 versions
             if ($snapEntry !== null) {
                 array_unshift($versionState['history'], $snapEntry);
             }
@@ -504,8 +504,8 @@ if (isset($_POST['apply_git_safe_update'])) {
 
         <div style="border-top: 1px solid rgba(150,150,150,0.25); padding-top: 10px; margin-top: 6px;">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-            <b style="font-size:13px;"><i class="fa fa-history"></i> <?= htmlspecialchars(isset($_version_history_title) ? $_version_history_title : 'Version List (Max 4 Previous Versions)'); ?></b>
-            <small style="opacity:0.75;"><?= count($versionState['history']); ?> / 4</small>
+            <b style="font-size:13px;"><i class="fa fa-history"></i> <?= htmlspecialchars(isset($_version_history_title) ? $_version_history_title : 'Version List (Max 10 Previous Versions)'); ?></b>
+            <small style="opacity:0.75;"><?= count($versionState['history']); ?> / 10</small>
           </div>
 
           <?php if (empty($versionState['history'])) { ?>
