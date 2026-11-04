@@ -178,72 +178,88 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
     // Universal sales record script snippet: adds script into /system script with comment="mikhmon"
     $record = '; :local time [/system clock get time]; :if ([:len [/system script find where comment="mikhmon" and name~("\\-\\|\\-" . $user . "\\-\\|\\-")]] = 0) do={ /system script add name=("$curdate6-|-$time-|-$user-|-' . $price . '-|-$address-|-$mac-|-' . $validity . '-|-' . $name . '-|-$comment") owner=("$curmonth$curyear") source="$curdate6" comment="mikhmon" }';
 
-    // Keep the legacy ROS6 generator intact. ROS7 uses the user's proven
-    // calendar-expiration approach: add validity to the router clock, roll the
-    // calendar date correctly, and stamp the resulting mmm/dd/yyyy HH:MM:SS.
+    // ROS7 follows the user's supplied MikroTik calendar arithmetic on-login script.
+    // The configured profile validity is injected dynamically (e.g. 3h, 1d, 7d, 30d).
+    // ROS6 keeps its original temporary-scheduler next-run implementation below.
     if ((int)$routerOsMajor === 7) {
-        $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {' . "\n" . str_replace('__VALIDITY__', addslashes((string)$validity), <<<'ROS7'
-:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment];
-:local alreadyActivated false;
-:if ([:pick $comment 3 4] = "/" and ([:pick $comment 5 6] = "/" or [:pick $comment 6 7] = "/")) do={ :set alreadyActivated true; };
-:if ([:pick $comment 4 5] = "-") do={ :set alreadyActivated true; };
-:if ($alreadyActivated = false) do={
-    :local validity "__VALIDITY__";
-    :local cdate [/system clock get date];
-    :local ctime [/system clock get time];
-    :local mac $"mac-address";
-    :local hsProfile [/ip hotspot user get [/ip hotspot user find where name="$user"] profile];
-    :local originalComment $comment;
-    :local monthNames {"jan";"feb";"mar";"apr";"may";"jun";"jul";"aug";"sep";"oct";"nov";"dec"};
-    :local monthDays {31;28;31;30;31;30;31;31;30;31;30;31};
-    :local yy [:tonum [:pick $cdate 0 4]];
-    :local mm [:tonum [:pick $cdate 5 7]];
-    :local dd [:tonum [:pick $cdate 8 10]];
+        $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {' . "\n" . str_replace(
+            array('__VALIDITY__', '__LOCK__'),
+            array(addslashes((string)$validity), addslashes((string)$getlock)),
+            <<<'ROS7'
+:local comment [/ip hotspot user get [/ip hotspot user find where name=$user] comment];
+:local cdate [/system clock get date];
+:local ctime [/system clock get time];
+:local validity "__VALIDITY__";
+:local lockmac "__LOCK__";
+:local addsales "__ADDSALES__";
+:local price "__PRICE__";
+:local tlimit "__TLIMIT__";
+:local hsProfile [/ip hotspot user get [/ip hotspot user find where name=$user] profile];
+:local mac $"mac-address";
+:local originalComment $comment;
+:if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={} else={
+    :local mdays {31;28;31;30;31;30;31;31;30;31;30;31};
+    :local monthr {"jan";"feb";"mar";"apr";"may";"jun";"jul";"aug";"sep";"oct";"nov";"dec"};
+    :local tday [:tonum [:pick $cdate 8 10]];
+    :local tyear [:tonum [:pick $cdate 0 4]];
+    :local month [:pick $cdate 5 7];
+    :local yy $tyear;
+    :local mm [:tonum $month];
+    :local dd $tday;
     :local addtime ($ctime + $validity);
     :local days ($addtime / 24h);
     :local ndays ($days * 24h);
     :local exptime ($addtime - $ndays);
     :set dd ($dd + $days);
-    :local dm [:pick $monthDays ($mm - 1)];
+    :local dm [:pick $mdays ($mm - 1)];
     :if (($mm = 2) && ((($yy % 4) = 0) && ((($yy % 100) != 0) || (($yy % 400) = 0)))) do={ :set dm 29; };
     :while ($dd > $dm) do={
         :set dd ($dd - $dm);
         :set mm ($mm + 1);
         :if ($mm > 12) do={ :set mm 1; :set yy ($yy + 1); };
-        :set dm [:pick $monthDays ($mm - 1)];
+        :set dm [:pick $mdays ($mm - 1)];
         :if (($mm = 2) && ((($yy % 4) = 0) && ((($yy % 100) != 0) || (($yy % 400) = 0)))) do={ :set dm 29; };
     };
-    :local expMonth [:pick $monthNames ($mm - 1)];
-    :local dayText [:tostr $dd];
-    :if ($dd < 10) do={ :set dayText ("0" . $dayText); };
+    :local vdate ([:pick $monthr ($mm - 1)] . "/");
+    :if ($dd < 10) do={ :set vdate ($vdate . "0"); };
+    :set vdate ($vdate . $dd . "/" . $yy);
     :local expTime [:tostr $exptime];
     :if ([:pick $expTime 1 2] = ":") do={ :set expTime ("0" . $expTime); };
-    :local expComment ($expMonth . "/" . $dayText . "/" . $yy . " " . $expTime);
-    :local curMonth [:pick $monthNames ([:tonum [:pick $cdate 5 7]] - 1)];
-    :local curDay [:pick $cdate 8 10];
-    :local curYear [:pick $cdate 0 4];
-    :local curdate6 ($curMonth . "/" . $curDay . "/" . $curYear);
-    :local curmonth $curMonth;
-    :local curyear $curYear;
-    :local time $ctime;
-    /ip hotspot user set comment=$expComment [find where name="$user"];
-    :if ([:len $mac] > 0) do={
-        :if ("__LOCK__" = "Enable") do={ /ip hotspot user set mac-address=$mac [find where name="$user"]; };
+    /ip hotspot user set comment=($vdate . " " . $expTime) [find where name=$user];
+    :if (($lockmac = "YES") && ([:len $mac] > 0)) do={
+        /ip hotspot user set mac-address=$mac [find where name=$user];
     };
+    :local curmonth [:pick $monthr ($mm - 1)];
+    :local curyear [:tostr $yy];
+    :local curdate6 ($curmonth . "/" . $dd . "/" . $curyear);
+    :local Tmonth [:pick $monthr ([:tonum $month] - 1)];
+    :local zero "";
+    :if ($tday < 10) do={ :set zero "0"; };
+    :local salesDate ($Tmonth . "/" . $zero . $tday . "/" . $tyear);
+    :if ($addsales = "YES") do={
+        :if ([:len [/system script find where comment="mikhmon" and name~("\\-\\|\\-" . $user . "\\-\\|\\-")]] = 0) do={
+            /system script add name=("$salesDate-|-$ctime-|-$user-|-$price-|-$address-|-$mac-|-$tlimit-|-$hsProfile-|-$originalComment") owner=("$Tmonth$tyear") source=$salesDate comment="mikhmon";
+        };
+    };
+};
 ROS7
-        ) . ' ';
-        $onloginBase = str_replace('__LOCK__', addslashes((string)$getlock), $onloginBase);
-        // ROS7 activation handles MAC locking inside its calendar-expiry block.
-        // Avoid appending the legacy duplicate MAC declaration.
+        );
+        $onloginBase = str_replace(
+            array('"__ADDSALES__"', '"__PRICE__"', '"__TLIMIT__"'),
+            array(
+                '"' . (($expmode == "remc" || $expmode == "ntfc") ? "YES" : "NO") . '"',
+                '"' . addslashes((string)$price) . '"',
+                '"' . addslashes((string)$validity) . '"'
+            ),
+            $onloginBase
+        );
+        // MAC locking and sales recording are performed inside the first-login block.
         $lock = "";
-        // The ROS7 activation block already declares $time and $mac.
-        // Reuse those locals in the existing sales-record snippet.
-        $record = str_replace(':local time [/system clock get time];', '', $record);
+        $record = "";
     } else {
         // Existing ROS6 implementation: intentionally preserved.
         $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pick $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local cdate [/system clock get date]; :local ctime [/system clock get time]; :local marray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :local curyear ""; :local curmonth ""; :local curday ""; :if ([:pick $cdate 4 5] = "-") do={ :set curyear [:pick $cdate 0 4]; :local mnum [:tonum [:pick $cdate 5 7]]; :set curmonth [:pick $marray ($mnum - 1)]; :set curday [:pick $cdate 8 10]; } else={ :set curyear [:pick $cdate 7 11]; :set curmonth [:pick $cdate 0 3]; :set curday [:pick $cdate 4 6]; }; :local curdate6 ($curmonth . "/" . $curday . "/" . $curyear); :local expFinal ""; /system scheduler remove [find where name="$user"]; /system scheduler add name="$user" disabled=no start-date=$cdate start-time=$ctime interval="' . $validity . '" on-event=""; :delay 2s; :local exp [/system scheduler get [/system scheduler find where name="$user"] next-run]; /system scheduler remove [find where name="$user"]; :local getxp [:len $exp]; :if ($getxp > 0) do={ :if ([:pick $exp 4 5] = "-") do={ :local ey [:pick $exp 0 4]; :local emn [:tonum [:pick $exp 5 7]]; :local em [:pick $marray ($emn - 1)]; :local ed [:pick $exp 8 10]; :local et [:pick $exp 11 19]; :set expFinal ($em . "/" . $ed . "/" . $ey . " " . $et); } else={ :if ([:pick $exp 6 7] = "/") do={ :set expFinal $exp; } else={ :if ([:pick $exp 5 6] = "/") do={ :set expFinal $exp; } else={ :if ([:pick $exp 3 4] = "/") do={ :local space [:find $exp " "]; :if ([:typeof $space] != "nil") do={ :local d [:pick $exp 0 $space]; :local t [:pick $exp ($space + 1) [:len $exp]]; :set expFinal ($d . "/" . $curyear . " " . $t); }; } else={ :if ($getxp = 8) do={ :set expFinal ($curdate6 . " " . $exp); } else={ :set expFinal $exp; }; }; }; }; }; }; :if ([:len $expFinal] = 0) do={ :set expFinal ($curdate6 . " " . $ctime); }; /ip hotspot user set comment="$expFinal" [find where name="$user"]';
     }
-
     $mode = "";
     if ($expmode == "rem") {
         $onlogin = $onloginBase . $lock . "}}";
