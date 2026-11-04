@@ -34,6 +34,7 @@ session_start();
       </div>
       <center>
       <form autocomplete="off" action="" method="post">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(isset($loginCsrfToken) ? $loginCsrfToken : '', ENT_QUOTES, 'UTF-8'); ?>">
       <table class="table" style="width:90%">
         <tr>
           <td class="align-middle text-center">

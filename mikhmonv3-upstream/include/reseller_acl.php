@@ -592,6 +592,7 @@ function getBackupAdminCredentials() {
     $default = array(
         'username' => '',
         'password_enc' => '',
+        'password_hash' => '',
         'password' => '',
     );
     if (!is_file($path)) {
@@ -604,6 +605,7 @@ function getBackupAdminCredentials() {
     }
     $u = isset($decoded['username']) ? trim((string)$decoded['username']) : '';
     $pEnc = isset($decoded['password_enc']) ? (string)$decoded['password_enc'] : '';
+    $pHash = isset($decoded['password_hash']) ? (string)$decoded['password_hash'] : '';
     $pPlain = '';
     if ($pEnc !== '' && function_exists('decrypt')) {
         $pPlain = (string)decrypt($pEnc);
@@ -613,6 +615,7 @@ function getBackupAdminCredentials() {
     return array(
         'username' => $u,
         'password_enc' => $pEnc,
+        'password_hash' => $pHash,
         'password' => $pPlain,
     );
 }
@@ -623,13 +626,16 @@ function getBackupAdminCredentials() {
 function saveBackupAdminCredentials($username2, $plainPassword2) {
     $username2 = trim((string)$username2);
     $plainPassword2 = (string)$plainPassword2;
-    $pEnc = '';
-    if ($plainPassword2 !== '' && function_exists('encrypt')) {
-        $pEnc = encrypt($plainPassword2);
+    $pHash = '';
+    if ($plainPassword2 !== '') {
+        $pHash = password_hash($plainPassword2, PASSWORD_DEFAULT);
+        if (!is_string($pHash) || $pHash === '') {
+            return false;
+        }
     }
     $data = array(
         'username' => $username2,
-        'password_enc' => $pEnc,
+        'password_hash' => $pHash,
         'updated_at' => date('Y-m-d H:i:s'),
     );
     return @file_put_contents(getBackupAdminStoragePath(), json_encode($data, JSON_PRETTY_PRINT)) !== false;
@@ -670,13 +676,21 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
 
     $isPrimaryAdmin = ($username !== '' && $username === $useradm && $password === $passadm_decrypted);
     $backupAdmin = getBackupAdminCredentials();
+    $backupHash = isset($backupAdmin['password_hash']) ? (string)$backupAdmin['password_hash'] : '';
     $isBackupAdmin = (
         !$isPrimaryAdmin &&
         $backupAdmin['username'] !== '' &&
-        $backupAdmin['password'] !== '' &&
         $username === $backupAdmin['username'] &&
-        $password === $backupAdmin['password']
+        (
+            ($backupHash !== '' && password_verify($password, $backupHash)) ||
+            ($backupHash === '' && $backupAdmin['password'] !== '' && $password === $backupAdmin['password'])
+        )
     );
+
+    // Upgrade legacy reversible backup-admin credentials to a one-way password hash after successful login.
+    if ($isBackupAdmin && $backupHash === '' && !empty($backupAdmin['password'])) {
+        saveBackupAdminCredentials($username, $password);
+    }
 
     if ($isPrimaryAdmin || $isBackupAdmin) {
         return array(
