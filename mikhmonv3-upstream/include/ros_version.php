@@ -230,7 +230,6 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
     :if ([:len $mac] > 0) do={
         :if ("__LOCK__" = "Enable") do={ /ip hotspot user set mac-address=$mac [find where name="$user"]; };
     };
-};
 ROS7
         ) . ' ';
         $onloginBase = str_replace('__LOCK__', addslashes((string)$getlock), $onloginBase);
