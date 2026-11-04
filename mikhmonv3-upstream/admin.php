@@ -15,6 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+require_once __DIR__ . '/include/security.php';
+ngwConfigureSecureSession();
 session_start();
 // hide all error
 error_reporting(0);
@@ -78,11 +80,26 @@ enforceMikhmonSessionSecurity($id == "login" || $id == "logout" || substr($url, 
 <?php
 if ($id == "login" || substr($url, -1) == "p") {
 
+  $loginCsrfToken = ngwCsrfToken('ngw_login_csrf');
   if (isset($_POST['login'])) {
-    $user = $_POST['user'];
-    $pass = $_POST['pass'];
-    $auth = authenticateMikhmonUser($user, $pass, $useradm, decrypt($passadm));
-    if ($auth['authenticated']) {
+    $user = isset($_POST['user']) ? (string)$_POST['user'] : '';
+    $pass = isset($_POST['pass']) ? (string)$_POST['pass'] : '';
+    if (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_login_csrf')) {
+      $auth = array('authenticated' => false);
+      $errText = 'Security token expired or invalid. Reload the login page and try again.';
+      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+    } elseif (ngwLoginIsThrottled($user)) {
+      $auth = array('authenticated' => false);
+      $errText = 'Too many failed login attempts. Wait 15 minutes before trying again.';
+      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+    } else {
+      $auth = authenticateMikhmonUser($user, $pass, $useradm, decrypt($passadm));
+      if (!$auth['authenticated']) {
+        ngwRecordLoginFailure($user);
+      }
+    }
+    if (!empty($auth['authenticated'])) {
+      ngwClearLoginFailures($user);
       // Rotate the session ID after successful authentication to mitigate session fixation.
       if (session_status() === PHP_SESSION_ACTIVE) {
         session_regenerate_id(true);
@@ -106,8 +123,10 @@ if ($id == "login" || substr($url, -1) == "p") {
       }
       exit;
     } else {
-      $errText = isset($auth['error']) ? $auth['error'] : 'Invalid username or password.';
-      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+      if (!isset($error) || $error === '') {
+        $errText = isset($auth['error']) ? $auth['error'] : 'Invalid username or password.';
+        $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+      }
     }
   }
   
