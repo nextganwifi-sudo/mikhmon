@@ -540,7 +540,7 @@ if (isset($_POST['apply_git_safe_update'])) {
             </table>
           <?php } ?>
           <div style="font-size:11px; opacity:0.7;">
-            <i class="fa fa-shield"></i> <?= htmlspecialchars(isset($_max_4_versions_note) ? $_max_4_versions_note : 'Auto-keeps maximum 4 versions (older versions are automatically removed on 5th update to save VPS storage).'); ?>
+            <i class="fa fa-shield"></i> <?= htmlspecialchars(isset($_max_4_versions_note) ? $_max_4_versions_note : 'Auto-keeps maximum 10 versions (the oldest version is automatically removed on the 11th update to save VPS storage).'); ?>
           </div>
         </div>
       </div>
