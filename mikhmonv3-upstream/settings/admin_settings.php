@@ -27,6 +27,7 @@ if (empty($_SESSION['admin_settings_csrf'])) {
   }
 }
 $csrfToken = (string)$_SESSION['admin_settings_csrf'];
+$forcePasswordChange = !empty($_SESSION['mikhmon_force_password_change']);
 if (session_status() === PHP_SESSION_ACTIVE) {
   session_write_close();
 }
@@ -48,7 +49,9 @@ if (isset($_POST['save'])) {
     $spassadm2_plain = isset($_POST['passadm2']) ? (string)$_POST['passadm2'] : '';
     $qrbt = isset($_POST['qrbt']) ? strtolower(trim((string)$_POST['qrbt'])) : '';
 
-    if (!preg_match('/^[A-Za-z0-9_.@-]{3,64}$/', $suseradm)) {
+    if ($forcePasswordChange && $plainPass === '123') {
+      $settingsError = 'You must choose a new administrator password; the published default password is not allowed.';
+    } elseif (!preg_match('/^[A-Za-z0-9_.@-]{3,64}$/', $suseradm)) {
       $settingsError = 'Primary admin username must be 3–64 characters and use only letters, numbers, dot, underscore, @ or hyphen.';
     } elseif (strlen($plainPass) < 8 || strlen($plainPass) > 256 || preg_match('/[\r\n]/', $plainPass)) {
       $settingsError = 'Primary admin password must be at least 8 characters and no more than 256 characters.';
@@ -100,6 +103,12 @@ if (isset($_POST['save'])) {
                 $passadm = $encryptedPass;
                 $useradm2 = $suseradm2;
                 $passadm2_plain = $spassadm2_plain;
+                if (session_status() !== PHP_SESSION_ACTIVE) {
+                  @session_start();
+                }
+                $_SESSION['mikhmon'] = $suseradm;
+                unset($_SESSION['mikhmon_force_password_change']);
+                session_write_close();
                 echo "<script>window.location='./admin.php?id=admin-settings&saved=1'</script>";
                 exit;
               }
@@ -131,6 +140,11 @@ if (isset($_POST['save'])) {
           <h3 class="card-title"><i class="fa fa-gear"></i> <?= htmlspecialchars(isset($_settings) ? $_settings : 'Settings'); ?></h3>
         </div>
         <div class="card-body">
+          <?php if ($forcePasswordChange) { ?>
+          <div role="alert" style="padding:8px 12px; margin-bottom:10px; border-radius:4px; background:rgba(220,53,69,0.12); border:1px solid #dc3545; color:#dc3545; font-weight:bold;">
+            First login security: change the published default administrator password before using the software.
+          </div>
+          <?php } ?>
           <?php if (!empty($settingsError)) { ?>
           <div role="alert" style="padding:8px 12px; margin-bottom:10px; border-radius:4px; background:rgba(220,53,69,0.12); border:1px solid #dc3545; color:#dc3545; font-weight:bold;">
             <?= htmlspecialchars($settingsError, ENT_QUOTES, 'UTF-8'); ?>
@@ -156,7 +170,7 @@ if (isset($_POST['save'])) {
               <td>
                 <div class="input-group">
                   <div class="input-group-11 col-box-10">
-                    <input class="group-item group-item-l" id="passadm" type="password" size="10" name="passadm" title="Primary Admin Password" value="<?= htmlspecialchars(decrypt($passadm)); ?>" required="1"/>
+                    <input class="group-item group-item-l" id="passadm" type="password" size="10" name="passadm" title="Primary Admin Password" value="" placeholder="Enter new password" autocomplete="new-password" required="1"/>
                   </div>
                   <div class="input-group-1 col-box-2">
                     <div class="group-item group-item-r pd-2p5 text-center align-middle">
