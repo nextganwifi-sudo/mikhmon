@@ -45,7 +45,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
                 $backupExport .= "/ip hotspot user profile set [find where name=\"$pname\"] on-login=" . json_encode($ponlogin) . "\n";
 
-                $universal = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock);
+                $universal = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock, $rosMajor);
                 $API->comm("/ip/hotspot/user/profile/set", array(
                     ".id" => $pid,
                     "on-login" => $universal['onlogin']
