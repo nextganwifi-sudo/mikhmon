@@ -127,13 +127,18 @@ if (!isset($_SESSION["mikhmon"])) {
     }
     $getlock = ($_POST['lockunlock']);
 
-    $routerClock = $API->comm("/system/clock/print");
-    $routerClockRow = (is_array($routerClock) && isset($routerClock[0]) && is_array($routerClock[0])) ? $routerClock[0] : array();
-    $randstarttime = isset($routerClockRow["time"]) ? $routerClockRow["time"] : date("H:i:s");
-    $randstartdate = isset($routerClockRow["date"]) ? $routerClockRow["date"] : date("M/d/Y");
-    // Anchor the repeating expiry monitor to the router's current clock.
-    // A random fixed start-time can already be in the past, delaying the first run until the next day.
-    $randinterval = "00:02:00";
+    // Keep ROS6 scheduling unchanged; apply clock-anchored scheduling only to ROS7.
+    $routerOsMajor = detectRouterOSMajorVersion($API);
+    $randstarttime = "0".rand(1,5).":".rand(10,59).":".rand(10,59);
+    $randinterval = "00:02:".rand(10,59);
+    $randstartdate = "";
+    if ($routerOsMajor === 7) {
+      $routerClock = $API->comm("/system/clock/print");
+      $routerClockRow = (is_array($routerClock) && isset($routerClock[0]) && is_array($routerClock[0])) ? $routerClock[0] : array();
+      $randstarttime = isset($routerClockRow["time"]) ? $routerClockRow["time"] : date("H:i:s");
+      $randstartdate = isset($routerClockRow["date"]) ? $routerClockRow["date"] : date("M/d/Y");
+      $randinterval = "00:02:00";
+    }
 
     $parent = ($_POST['parent']);
 
@@ -164,26 +169,28 @@ if (!isset($_SESSION["mikhmon"])) {
     ));
     if($expmode != "0"){
     if (empty($monid)){
-      $API->comm("/system/scheduler/add", array(
+      $schedulerParams = array(
         "name" => "$name",
-        "start-date" => "$randstartdate",
           "start-time" => "$randstarttime",
         "interval" => "$randinterval",
         "on-event" => "$bgservice",
         "disabled" => "no",
         "comment" => "Monitor Profile $name",
-        ));
+        );
+if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-date"] = $randstartdate; }
+        $API->comm("/system/scheduler/add", $schedulerParams);
     }else{
-    $API->comm("/system/scheduler/set", array(
+    $schedulerParams = array(
       ".id" => "$monid",
       "name" => "$name",
-      "start-date" => "$randstartdate",
         "start-time" => "$randstarttime",
       "interval" => "$randinterval",
       "on-event" => "$bgservice",
       "disabled" => "no",
       "comment" => "Monitor Profile $name",
-      ));
+      );
+if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-date"] = $randstartdate; }
+        $API->comm("/system/scheduler/set", $schedulerParams);
     }}else{
       $API->comm("/system/scheduler/remove", array(
         ".id" => "$monid"));
