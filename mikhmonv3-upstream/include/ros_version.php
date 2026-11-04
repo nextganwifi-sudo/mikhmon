@@ -182,9 +182,10 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
     // The configured profile validity is injected dynamically (e.g. 3h, 1d, 7d, 30d).
     // ROS6 keeps its original temporary-scheduler next-run implementation below.
     if ((int)$routerOsMajor === 7) {
+        $ros7LockMac = ($getlock == "Enable") ? "YES" : "NO";
         $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {' . "\n" . str_replace(
             array('__VALIDITY__', '__LOCK__'),
-            array(addslashes((string)$validity), addslashes((string)$getlock)),
+            array(addslashes((string)$validity), $ros7LockMac),
             <<<'ROS7'
 :local comment [/ip hotspot user get [/ip hotspot user find where name=$user] comment];
 :local cdate [/system clock get date];
