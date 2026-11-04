@@ -11,11 +11,27 @@
 
 // hide all error
 error_reporting(0);
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  session_start();
+}
+$logoCsrfToken = ngwCsrfToken('ngw_logo_csrf');
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_logo_csrf')) {
+  $galat = '<div class="box bg-danger">Security token expired or invalid. Reload this page and try again.</div>';
+  $_POST = array();
+}
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
+  exit;
 } else {
   include_once('./include/reseller_acl.php');
   $isAdminUser = isMikhmonAdmin();
+  if (!$isAdminUser && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
+    http_response_code(403);
+    exit('Access denied.');
+  }
   $currentReseller = getCurrentResellerRecord();
   $allResellersList = $isAdminUser ? loadResellers() : array();
 
@@ -164,6 +180,7 @@ if (!isset($_SESSION["mikhmon"])) {
       <?php } ?>
 
       <form action="" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($logoCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
           <?php if ($targetReseller !== null) { ?>
             <div class="pd-10">
               <b>Upload Logo for Reseller #<?= htmlspecialchars($targetReseller['id']); ?> (<?= htmlspecialchars($targetReseller['name']); ?>)</b> — Any PNG, JPG, or WebP file (Max 2 MB). Stored isolated in <code>uploads/reseller-logos/<?= htmlspecialchars($targetReseller['id']); ?>/</code>
@@ -212,6 +229,7 @@ if (!isset($_SESSION["mikhmon"])) {
             <td>
               <?php if (!empty($targetReseller['logo_filename'])) { ?>
                 <form action="" method="post" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($logoCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                   <button type="submit" name="reset_reseller_logo" value="1" class="btn bg-danger"><i class="fa fa-trash"></i> Reset to Default Logo</button>
                 </form>
               <?php } else { ?>
