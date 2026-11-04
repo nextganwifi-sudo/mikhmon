@@ -46,7 +46,8 @@ function ngwValidateCsrf($postedToken, $sessionKey = 'ngw_csrf_token') {
  */
 function ngwLoginThrottlePath($username) {
     $ip = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : 'unknown';
-    $key = hash('sha256', $ip . "\0" . strtolower(trim((string)$username)));
+    // IP-wide bucket prevents attackers bypassing the limit by cycling usernames.
+    $key = hash('sha256', $ip);
     return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'ngw-login-' . $key . '.json';
 }
 
