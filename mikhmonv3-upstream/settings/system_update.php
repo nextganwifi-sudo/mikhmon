@@ -508,10 +508,10 @@ if (isset($_POST['apply_git_safe_update'])) {
             $versionState['updated_at'] = date('Y-m-d H:i');
             $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
 
-            $changedLines = preg_split('/\\r?\\n/', trim($pullOutput));
+            $changedPathOutput = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' diff --name-status ORIG_HEAD..HEAD 2>&1');
             $updateChangedFiles = array();
-            foreach ($changedLines as $line) {
-                if (preg_match('/^\\s*[A-Z]\\s+(.+)$/', $line, $match)) {
+            foreach (preg_split('/\\r?\\n/', trim((string)$changedPathOutput)) as $line) {
+                if (preg_match('/^[A-Z][0-9]*\\s+(.+)$/', $line, $match)) {
                     $updateChangedFiles[] = $match[1];
                 }
             }
