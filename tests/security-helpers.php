@@ -20,6 +20,7 @@ for ($i = 0; $i < 10; $i++) {
     ngwSecurityAssert(ngwRecordLoginFailure($username), 'Failed login counter could not be persisted.');
 }
 ngwSecurityAssert(ngwLoginIsThrottled($username), 'Ten failed attempts should trigger the throttle.');
+ngwSecurityAssert(ngwLoginIsThrottled('different-username'), 'Changing usernames must not bypass the IP throttle.');
 ngwClearLoginFailures($username);
 ngwSecurityAssert(!ngwLoginIsThrottled($username), 'Successful-login cleanup did not clear the throttle.');
 
