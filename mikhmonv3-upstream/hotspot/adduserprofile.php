@@ -72,7 +72,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
     $parent = ($_POST['parent']);
     
-    $universalScripts = buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $sprice, $getlock);
+    $universalScripts = buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $sprice, $getlock, $routerOsMajor);
     $onlogin = $universalScripts['onlogin'];
     $bgservice = $universalScripts['bgservice'];
     $mode = $universalScripts['mode'];
