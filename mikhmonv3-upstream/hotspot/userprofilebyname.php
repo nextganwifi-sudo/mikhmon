@@ -22,6 +22,7 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
 
+  include_once('./include/ros_version.php');
 
   if (substr($userprofile, 0, 1) == "*") {
     $userprofile = $userprofile;
@@ -149,7 +150,7 @@ if (!isset($_SESSION["mikhmon"])) {
       exit;
     }
 
-    $universalScripts = buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $sprice, $getlock);
+    $universalScripts = buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $sprice, $getlock, $routerOsMajor);
     $onlogin = $universalScripts['onlogin'];
     $bgservice = $universalScripts['bgservice'];
     $mode = $universalScripts['mode'];

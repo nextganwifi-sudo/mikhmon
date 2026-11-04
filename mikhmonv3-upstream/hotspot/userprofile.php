@@ -31,6 +31,12 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 	include_once('./include/ros_version.php');
 	include_once('./include/reseller_acl.php');
+	$routerOsMajor = detectRouterOSMajorVersion($API);
+	$routerClockRow = array();
+	if ($routerOsMajor === 7) {
+		$routerClock = $API->comm("/system/clock/print");
+		$routerClockRow = (is_array($routerClock) && isset($routerClock[0]) && is_array($routerClock[0])) ? $routerClock[0] : array();
+	}
 
 	if ((isset($_GET['migrate-ros7']) && $_GET['migrate-ros7'] == '1') || (isset($_GET['sync_ros7']) && $_GET['sync_ros7'] == '1')) {
 		requireResellerPermission('edit_profile', './?hotspot=user-profiles&session=' . $session);
@@ -58,29 +64,41 @@ if (!isset($_SESSION["mikhmon"])) {
 				$sprice = isset($meta[4]) ? trim($meta[4]) : '0';
 				$getlock = isset($meta[6]) ? trim($meta[6]) : 'Disable';
 				if ($expmode === 'rem' || $expmode === 'ntf' || $expmode === 'remc' || $expmode === 'ntfc') {
-					$uScripts = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock);
+					$uScripts = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock, $routerOsMajor);
 					$API->comm("/ip/hotspot/user/profile/set", array(
 						".id" => $pr['.id'],
 						"on-login" => $uScripts['onlogin'],
 					));
 					$randstarttime = "0" . rand(1, 5) . ":" . rand(10, 59) . ":" . rand(10, 59);
 					$randinterval = "00:02:" . rand(10, 59);
+					if ($routerOsMajor === 7) {
+						$randstarttime = isset($routerClockRow["time"]) ? $routerClockRow["time"] : date("H:i:s");
+						$randinterval = "00:02:00";
+					}
 					if (!isset($schedMap[$pname])) {
-						$API->comm("/system/scheduler/add", array(
+						$schedulerParams = array(
 							"name" => $pname,
 							"start-time" => $randstarttime,
 							"interval" => $randinterval,
 							"on-event" => $uScripts['bgservice'],
 							"disabled" => "no",
 							"comment" => "Monitor Profile $pname",
-						));
+						);
+						if ($routerOsMajor === 7 && isset($routerClockRow["date"])) $schedulerParams["start-date"] = $routerClockRow["date"];
+						$API->comm("/system/scheduler/add", $schedulerParams);
 					} else {
-						$API->comm("/system/scheduler/set", array(
+						$schedulerParams = array(
 							".id" => $schedMap[$pname]['.id'],
 							"on-event" => $uScripts['bgservice'],
 							"disabled" => "no",
 							"comment" => "Monitor Profile $pname",
-						));
+						);
+						if ($routerOsMajor === 7) {
+							$schedulerParams["interval"] = "00:02:00";
+							if (isset($routerClockRow["time"])) $schedulerParams["start-time"] = $routerClockRow["time"];
+							if (isset($routerClockRow["date"])) $schedulerParams["start-date"] = $routerClockRow["date"];
+						}
+						$API->comm("/system/scheduler/set", $schedulerParams);
 					}
 				}
 			}

@@ -23,6 +23,11 @@ if (!isset($_SESSION["mikhmon"])) {
     }
 
     $rosMajor = detectRouterOSMajorVersion($API);
+    $routerClockRow = array();
+    if ($rosMajor === 7) {
+        $routerClock = $API->comm("/system/clock/print");
+        $routerClockRow = (is_array($routerClock) && isset($routerClock[0]) && is_array($routerClock[0])) ? $routerClock[0] : array();
+    }
     $profiles = $API->comm("/ip/hotspot/user/profile/print");
     $schedulers = $API->comm("/system/scheduler/print");
 
@@ -45,7 +50,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
                 $backupExport .= "/ip hotspot user profile set [find where name=\"$pname\"] on-login=" . json_encode($ponlogin) . "\n";
 
-                $universal = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock);
+                $universal = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock, $rosMajor);
                 $API->comm("/ip/hotspot/user/profile/set", array(
                     ".id" => $pid,
                     "on-login" => $universal['onlogin']
@@ -54,21 +59,31 @@ if (!isset($_SESSION["mikhmon"])) {
                 $monSch = $API->comm("/system/scheduler/print", array("?name" => $pname));
                 if ($expmode != "0" && $expmode != "") {
                     if (empty($monSch[0]['.id'])) {
-                        $API->comm("/system/scheduler/add", array(
+                        $schedulerParams = array(
                             "name" => $pname,
-                            "start-time" => "01:15:00",
-                            "interval" => "00:02:30",
+                            "start-time" => ($rosMajor === 7 && isset($routerClockRow['time'])) ? $routerClockRow['time'] : "01:15:00",
+                            "interval" => ($rosMajor === 7) ? "00:02:00" : "00:02:30",
                             "on-event" => $universal['bgservice'],
                             "disabled" => "no",
                             "comment" => "Monitor Profile $pname"
-                        ));
+                        );
+                        if ($rosMajor === 7 && isset($routerClockRow['date'])) {
+                            $schedulerParams["start-date"] = $routerClockRow['date'];
+                        }
+                        $API->comm("/system/scheduler/add", $schedulerParams);
                     } else {
-                        $API->comm("/system/scheduler/set", array(
+                        $schedulerParams = array(
                             ".id" => $monSch[0]['.id'],
                             "on-event" => $universal['bgservice'],
                             "disabled" => "no",
                             "comment" => "Monitor Profile $pname"
-                        ));
+                        );
+                        if ($rosMajor === 7) {
+                            $schedulerParams["interval"] = "00:02:00";
+                            if (isset($routerClockRow['time'])) $schedulerParams["start-time"] = $routerClockRow['time'];
+                            if (isset($routerClockRow['date'])) $schedulerParams["start-date"] = $routerClockRow['date'];
+                        }
+                        $API->comm("/system/scheduler/set", $schedulerParams);
                     }
                 }
                 $migrationReport[] = array(
