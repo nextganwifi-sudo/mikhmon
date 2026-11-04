@@ -63,6 +63,7 @@ if (!isset($_SESSION["mikhmon"])) {
   		<form action="" method="post" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($routerActionCsrf, ENT_QUOTES, 'UTF-8'); ?>">
         <div>
+          <?php if ($actionError !== '') { ?><div class="alert alert-danger"><?= htmlspecialchars($actionError, ENT_QUOTES, 'UTF-8'); ?></div><?php } ?>
           <h3><?= $_reboot.' '. $session; ?>?</h3>
         </div>
   	  <button class="btn bg-warning" type="submit" title="Yes" name="submit"><?= $_yes ?></button>
