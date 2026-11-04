@@ -115,7 +115,15 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon_permissions"] = $auth['permissions'];
       $_SESSION["mikhmon_last_activity"] = time();
       $_SESSION["mikhmon_login_handshake"] = 1;
+      $forceDefaultCredentialChange = ($auth['role'] === 'admin' && $user === 'mikhmon' && $pass === '123');
+      if ($forceDefaultCredentialChange) {
+        $_SESSION['mikhmon_force_password_change'] = 1;
+      }
       session_write_close();
+      if ($forceDefaultCredentialChange) {
+        echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=admin-settings'</script>";
+        exit;
+      }
       if (isResetOnlyReseller()) {
         echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=reset-voucher'</script>";
       } else {
@@ -135,6 +143,10 @@ if ($id == "login" || substr($url, -1) == "p") {
 } elseif (!isset($_SESSION["mikhmon"])) {
   session_write_close();
   echo "<script>window.location='./admin.php?id=login'</script>";
+} elseif (!empty($_SESSION['mikhmon_force_password_change']) && !in_array($id, array('admin-settings', 'logout'), true)) {
+  session_write_close();
+  echo "<script>window.location='./admin.php?id=admin-settings'</script>";
+  exit;
 } elseif ($id == "return-to-admin" && !empty($_SESSION['mikhmon_impersonator_admin'])) {
   // Rotate the session ID when returning from reseller impersonation to admin.
   if (session_status() === PHP_SESSION_ACTIVE) {
