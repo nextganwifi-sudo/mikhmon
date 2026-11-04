@@ -340,6 +340,8 @@ function incrementVersionNumber($verStr) {
 $versionState = loadVersionState($versionStateFile);
 $updateNotice = '';
 $updateError = '';
+$updateInfo = '';
+$updateChangedFiles = array();
 
 // Handle Rollback / Switch to a Previous Version
 if (isset($_POST['rollback_version_id'])) {
@@ -488,8 +490,9 @@ if (isset($_POST['apply_git_safe_update'])) {
         restoreProtectedDataFiles($appRoot, $protectedBefore);
         $pullOutput = (string)$out;
         $alreadyCurrent = (stripos($pullOutput, 'Already up to date') !== false)
-            || (stripos($pullOutput, 'Already up-to-date') !== false)
-            || (stripos($pullOutput, 'up to date') !== false && stripos($pullOutput, 'Updating') === false);
+            || (stripos($pullOutput, 'Already up-to-date') !== false);
+        $pullChanged = (stripos($pullOutput, 'Updating ') !== false)
+            || (stripos($pullOutput, 'Fast-forward') !== false);
 
         if ($alreadyCurrent) {
             if ($snapEntry !== null && !empty($snapEntry['file'])) {
@@ -497,7 +500,7 @@ if (isset($_POST['apply_git_safe_update'])) {
             }
             $updateNotice = '';
             $updateInfo = 'No new commits or file changes were found. The installed software is already up to date.';
-        } else {
+        } elseif ($pullChanged) {
             if ($snapEntry !== null) {
                 array_unshift($versionState['history'], $snapEntry);
             }
@@ -505,8 +508,20 @@ if (isset($_POST['apply_git_safe_update'])) {
             $versionState['updated_at'] = date('Y-m-d H:i');
             $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
 
-            $msgDone = isset($_git_update_success) ? $_git_update_success : 'Git Safe Update completed successfully! All routers, resellers, templates, and logos are 100% intact.';
-            $updateNotice = $msgDone . ' (<b>v' . htmlspecialchars($versionState['current_version']) . '</b>)<br><small>' . htmlspecialchars($pullOutput) . '</small>';
+            $changedLines = preg_split('/\\r?\\n/', trim($pullOutput));
+            $updateChangedFiles = array();
+            foreach ($changedLines as $line) {
+                if (preg_match('/^\\s*[A-Z]\\s+(.+)$/', $line, $match)) {
+                    $updateChangedFiles[] = $match[1];
+                }
+            }
+            $updateNotice = 'Update applied. Changed files: <b>' . count($updateChangedFiles) . '</b>. Software version: <b>v'
+                . htmlspecialchars($versionState['current_version']) . '</b>.';
+        } else {
+            if ($snapEntry !== null && !empty($snapEntry['file'])) {
+                @unlink($versionSnapDir . '/' . basename($snapEntry['file']));
+            }
+            $updateError = 'Git pull did not confirm an update. No success was reported. ' . htmlspecialchars($pullOutput);
         }
     } else {
         restoreProtectedDataFiles($appRoot, $protectedBefore);
@@ -532,6 +547,19 @@ if (isset($_POST['apply_git_safe_update'])) {
         <?php } ?>
         <?php if ($updateError !== '') { ?>
           <div class="bg-danger pd-10 radius-3 mr-b-10"><i class="fa fa-ban"></i> <?= $updateError; ?></div>
+        <?php } ?>
+        <?php if ($updateInfo !== '') { ?>
+          <div class="pd-10 radius-3 mr-b-10" style="background:rgba(128,128,128,0.12);"><i class="fa fa-info-circle"></i> <?= htmlspecialchars($updateInfo); ?></div>
+        <?php } ?>
+        <?php if (!empty($updateChangedFiles)) { ?>
+          <div class="pd-10 radius-3 mr-b-10" style="background:rgba(46,160,67,0.08);">
+            <b><i class="fa fa-list"></i> Changed files</b>
+            <ul style="margin:6px 0 0 18px; padding:0; font-size:12px;">
+              <?php foreach ($updateChangedFiles as $changedFile) { ?>
+                <li><?= htmlspecialchars($changedFile); ?></li>
+              <?php } ?>
+            </ul>
+          </div>
         <?php } ?>
 
         <form method="post" action="" autocomplete="off">
