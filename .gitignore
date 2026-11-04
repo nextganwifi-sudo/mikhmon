@@ -11,3 +11,11 @@ coverage/
 /backups/*.tar.gz
 /backups/*.zip
 /backups/*.sql
+
+# Never commit live application credentials or runtime account data.
+mikhmonv3-upstream/include/config.php
+mikhmonv3-upstream/include/backup_admin.json
+mikhmonv3-upstream/include/resellers.json
+mikhmonv3-upstream/include/vpn_routers.json
+mikhmonv3-upstream/include/permission_groups.json
+mikhmonv3-upstream/uploads/
