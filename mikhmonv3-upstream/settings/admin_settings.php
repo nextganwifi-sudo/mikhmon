@@ -48,6 +48,7 @@ if (isset($_POST['save'])) {
     $suseradm2 = isset($_POST['useradm2']) ? trim((string)$_POST['useradm2']) : '';
     $spassadm2_plain = isset($_POST['passadm2']) ? (string)$_POST['passadm2'] : '';
     $qrbt = isset($_POST['qrbt']) ? strtolower(trim((string)$_POST['qrbt'])) : '';
+    $backupPasswordUnchanged = ($suseradm2 !== '' && $spassadm2_plain === '' && $suseradm2 === $useradm2);
 
     if ($forcePasswordChange && $plainPass === '123') {
       $settingsError = 'You must choose a new administrator password; the published default password is not allowed.';
@@ -55,9 +56,9 @@ if (isset($_POST['save'])) {
       $settingsError = 'Primary admin username must be 3–64 characters and use only letters, numbers, dot, underscore, @ or hyphen.';
     } elseif (strlen($plainPass) < 8 || strlen($plainPass) > 256 || preg_match('/[\r\n]/', $plainPass)) {
       $settingsError = 'Primary admin password must be at least 8 characters and no more than 256 characters.';
-    } elseif (($suseradm2 === '') !== ($spassadm2_plain === '')) {
+    } elseif (($suseradm2 === '') !== ($spassadm2_plain === '') && !$backupPasswordUnchanged) {
       $settingsError = 'Enter both the secondary admin username and password, or clear both fields to disable the secondary admin.';
-    } elseif ($suseradm2 !== '' && (!preg_match('/^[A-Za-z0-9_.@-]{3,64}$/', $suseradm2) || strlen($spassadm2_plain) < 8 || strlen($spassadm2_plain) > 256 || preg_match('/[\r\n]/', $spassadm2_plain))) {
+    } elseif ($suseradm2 !== '' && (!preg_match('/^[A-Za-z0-9_.@-]{3,64}$/', $suseradm2) || (!$backupPasswordUnchanged && (strlen($spassadm2_plain) < 8 || strlen($spassadm2_plain) > 256 || preg_match('/[\r\n]/', $spassadm2_plain))))) {
       $settingsError = 'Secondary admin credentials are invalid. Use a 3–64 character username and a password of at least 8 characters.';
     } elseif (!in_array($qrbt, array('enable', 'disable'), true)) {
       $settingsError = 'Invalid Quick Print QR setting.';
@@ -85,7 +86,7 @@ if (isset($_POST['save'])) {
               @unlink($tmpPath);
               $settingsError = 'Unable to atomically replace config.php. No success was reported.';
             } else {
-              $backupSaved = saveBackupAdminCredentials($suseradm2, $spassadm2_plain);
+              $backupSaved = $backupPasswordUnchanged ? true : saveBackupAdminCredentials($suseradm2, $spassadm2_plain);
               $quickPath = './include/quickbt.php';
               $quickContent = '<?php $qrbt = ' . var_export($qrbt, true) . ';' . "\n";
               $quickTmp = @tempnam(dirname($quickPath), '.quickbt-');
@@ -194,7 +195,7 @@ if (isset($_POST['save'])) {
               <td>
                 <div class="input-group">
                   <div class="input-group-11 col-box-10">
-                    <input class="group-item group-item-l" id="passadm2" type="password" size="10" name="passadm2" placeholder="<?= htmlspecialchars(isset($_backup_pass_placeholder) ? $_backup_pass_placeholder : 'Second Admin Password'); ?>" title="Secondary / Backup Admin Password" value="<?= htmlspecialchars($passadm2_plain); ?>"/>
+                    <input class="group-item group-item-l" id="passadm2" type="password" size="10" name="passadm2" placeholder="<?= htmlspecialchars(isset($_backup_pass_placeholder) ? $_backup_pass_placeholder : 'Second Admin Password'); ?>" title="Secondary / Backup Admin Password" value="" placeholder="Leave blank to keep the current password" autocomplete="new-password"/>
                   </div>
                   <div class="input-group-1 col-box-2">
                     <div class="group-item group-item-r pd-2p5 text-center align-middle">
