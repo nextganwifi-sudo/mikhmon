@@ -432,12 +432,13 @@ class RouterosAPI
     public function write($command, $param2 = true)
     {
         if ($command) {
-            $data = explode("\n", $command);
-            foreach ($data as $com) {
-                $com = trim($com);
-                fwrite($this->socket, $this->encodeLength(strlen($com)) . $com);
-                $this->debug('<<< [' . strlen($com) . '] ' . $com);
-            }
+            // A RouterOS API argument may legitimately contain newlines,
+            // especially multiline Hotspot on-login and Scheduler on-event
+            // scripts. Each write() call is already one API word/sentence;
+            // splitting on newline corrupts the script after its first line.
+            $com = trim($command);
+            fwrite($this->socket, $this->encodeLength(strlen($com)) . $com);
+            $this->debug('<<< [' . strlen($com) . '] ' . $com);
 
             if (gettype($param2) == 'integer') {
                 fwrite($this->socket, $this->encodeLength(strlen('.tag=' . $param2)) . '.tag=' . $param2 . chr(0));
