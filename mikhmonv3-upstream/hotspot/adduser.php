@@ -67,6 +67,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $getuser = $API->comm("/ip/hotspot/user/print", array(
       "?name" => "$name",
     ));
+    ngwRecordActivity('hotspot_user_created', array('router' => $session, 'profile' => $profile));
     $uid = $getuser[0]['.id'];
     echo "<script>window.location='./?hotspot-user=" . $uid . "&session=" . $session . "'</script>";
   }
