@@ -100,6 +100,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     }
     if (!empty($auth['authenticated'])) {
       ngwClearLoginFailures($user);
+      ngwRecordActivity('login');
       // Rotate the session ID after successful authentication to mitigate session fixation.
       if (session_status() === PHP_SESSION_ACTIVE) {
         session_regenerate_id(true);
@@ -199,6 +200,15 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./include/menu.php');
   session_write_close();
   include_once('./settings/resellers.php');
+} elseif ($id == "activity") {
+  if (!isMikhmonAdmin()) {
+    session_write_close();
+    http_response_code(403);
+    exit('Access denied.');
+  }
+  include_once('./include/menu.php');
+  session_write_close();
+  include_once('./settings/activity.php');
 } elseif ($id == "admin-settings") {
   if (!isMikhmonAdmin()) {
     session_write_close();
@@ -302,6 +312,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   include_once('./include/about.php');
 } elseif ($id == "logout") {
+  ngwRecordActivity('logout');
   include_once('./include/menu.php');
   echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Logout...</b>";
   $_SESSION = array();
