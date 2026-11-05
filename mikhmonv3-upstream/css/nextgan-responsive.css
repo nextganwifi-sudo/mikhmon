@@ -220,7 +220,7 @@
   align-items: center;
   justify-content: center;
 }
-.ngw-reseller-page .ngw-action-menu-floating {
+.ngw-action-menu-floating {
   position: fixed !important;
   min-width: 180px;
   max-width: min(260px, calc(100vw - 16px));
