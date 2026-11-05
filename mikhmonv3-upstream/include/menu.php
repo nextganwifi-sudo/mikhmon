@@ -354,6 +354,7 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
   <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
+  <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>"><i class="fa fa-history"></i> Activity History</a>
   <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>"><i class="fa fa-gear"></i> <?= $_settings ?></a>
   <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
   <?php if (!isset($id) || $id !== 'vpn') { ?>
