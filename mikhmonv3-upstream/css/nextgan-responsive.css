@@ -55,10 +55,31 @@
 }
 .ngw-reseller-page .ngw-action-menu,
 .ngw-reseller-page .ngw-router-dd-panel {
-  background-color: inherit;
-  color: inherit;
   border: 1px solid rgba(127, 127, 127, .55);
   box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
+.ngw-reseller-page[data-theme="dark"] .ngw-action-menu,
+.ngw-reseller-page[data-theme="dark"] .ngw-router-dd-panel {
+  background-color: #3a4149;
+  color: #f3f4f5;
+}
+.ngw-reseller-page[data-theme="blue"] .ngw-action-menu,
+.ngw-reseller-page[data-theme="blue"] .ngw-router-dd-panel {
+  background-color: #ffffff;
+  color: #3e3e3e;
+  border-color: #008bc9;
+}
+.ngw-reseller-page .ngw-action-menu.card {
+  padding: 4px 0;
+}
+.ngw-reseller-page .ngw-action-menu a {
+  display: block;
+  padding: 7px 12px;
+  color: inherit !important;
+}
+.ngw-reseller-page .ngw-action-menu a:hover {
+  background-color: #20a8d8;
+  color: #ffffff !important;
 }
 .ngw-reseller-page .ngw-action-menu a {
   color: inherit !important;
@@ -69,10 +90,21 @@
   background-color: rgba(127, 127, 127, .18);
   color: inherit !important;
 }
-.ngw-reseller-page .ngw-dots-btn {
-  color: inherit;
-  border: 1px solid rgba(127, 127, 127, .55);
-  background: transparent;
+.ngw-reseller-page .ngw-dots-btn.btn.bg-primary {
+  min-width: 34px;
+  min-height: 32px;
+  padding: 4px 9px;
+  color: #ffffff;
+  background-color: #20a8d8;
+  border: 1px solid #20a8d8;
+  border-radius: 4px;
+  opacity: 1;
+}
+.ngw-reseller-page .ngw-dots-btn.btn.bg-primary:hover,
+.ngw-reseller-page .ngw-dots-btn.btn.bg-primary:focus {
+  color: #ffffff;
+  background-color: #1985ac;
+  border-color: #1985ac;
 }
 .ngw-reseller-page .ngw-modal-box {
   width: 100%;
@@ -105,6 +137,40 @@
   }
   .ngw-reseller-page .overflow {
     max-height: 65vh;
+  }
+  .ngw-reseller-page .ngw-login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+  }
+  .ngw-reseller-page .ngw-action-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ngw-reseller-page .ngw-action-menu {
+    left: auto;
+    right: 0;
+    min-width: 165px;
+    max-width: min(82vw, 220px);
+  }
+  .ngw-reseller-page .ngw-action-menu a {
+    padding: 9px 11px;
+    white-space: normal;
+  }
+  .ngw-reseller-page .ngw-dots-btn.btn.bg-primary {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px 8px;
+  }
+  .ngw-reseller-page .ngw-modal-box .table td {
+    padding: 6px;
+    overflow-wrap: anywhere;
   }
   .ngw-reseller-page .table {
     min-width: 620px;
