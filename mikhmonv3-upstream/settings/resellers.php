@@ -873,10 +873,10 @@ function closeResellerDetailsModal() {
                   <?php foreach ($groupPerms as $pKey => $pLabel) {
                     $isProtected = isProtectedAdminPermission($pKey);
                   ?>
-                    <div class="col-6" style="padding: 2px 6px; font-size:12px;">
-                      <label style="cursor:<?= $isProtected ? 'not-allowed' : 'pointer'; ?>; font-weight:normal; opacity:<?= $isProtected ? '0.5' : '1'; ?>;">
+                    <div class="col-6 ngw-permission-col" style="padding: 3px 6px; font-size:12px;">
+                      <label class="ngw-permission-tile" style="cursor:<?= $isProtected ? 'not-allowed' : 'pointer'; ?>; opacity:<?= $isProtected ? '0.55' : '1'; ?>;">
                         <input type="checkbox" class="perm-checkbox" data-perm="<?= htmlspecialchars($pKey); ?>" name="r_perms[<?= htmlspecialchars($pKey); ?>]" value="1" <?= $isProtected ? 'disabled' : ''; ?>>
-                        <?= htmlspecialchars($pLabel); ?>
+                        <span><?= htmlspecialchars($pLabel); ?></span>
                       </label>
                     </div>
                   <?php } ?>
