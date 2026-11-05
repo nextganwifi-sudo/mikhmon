@@ -17,6 +17,7 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 
 include_once('./include/reseller_acl.php');
+include_once('./include/vpn_api_normalize.php');
 include_once('./include/config.php');
 include_once('./lib/routeros_api.class.php');
 include_once('./lib/formatbytesbites.php');
@@ -387,27 +388,28 @@ if ($currentVpnRouter !== null) {
 
         // Fetch fresh state from connected RouterOS
         $res = $API->comm('/system/resource/print');
-        $routerResource = is_array($res) && isset($res[0]) ? $res[0] : array();
+        $res = vpnNormalizeApiRows($res);
+        $routerResource = isset($res[0]) ? $res[0] : array();
         
         $pools = $API->comm('/ip/pool/print');
-        $routerPools = is_array($pools) ? $pools : array();
+        $routerPools = vpnNormalizeApiRows($pools);
 
         $profs = $API->comm('/ppp/profile/print');
-        $routerProfiles = is_array($profs) ? $profs : array();
+        $routerProfiles = vpnNormalizeApiRows($profs);
 
         $secs = $API->comm('/ppp/secret/print');
-        $routerPppSecrets = is_array($secs) ? $secs : array();
+        $routerPppSecrets = vpnNormalizeApiRows($secs);
 
         $acts = $API->comm('/ppp/active/print');
-        $routerPppActive = is_array($acts) ? $acts : array();
+        $routerPppActive = vpnNormalizeApiRows($acts);
 
         $nats = $API->comm('/ip/firewall/nat/print', array('?chain' => 'dstnat'));
-        $routerNatRules = is_array($nats) ? $nats : array();
+        $routerNatRules = vpnNormalizeApiRows($nats);
         if ($tab === 'secrets' || $tab === 'bypass') {
             $mangles = $API->comm('/ip/firewall/mangle/print');
-            $routerMangleRules = is_array($mangles) ? $mangles : array();
+            $routerMangleRules = vpnNormalizeApiRows($mangles);
             $routes = $API->comm('/ip/route/print');
-            $routerRoutes = is_array($routes) ? $routes : array();
+            $routerRoutes = vpnNormalizeApiRows($routes);
         }
     } else {
         $vpnErr = "Could not connect to VPN Router at <b>" . htmlspecialchars($currentVpnRouter['host']) . "</b>. Please verify IP, API port, and credentials.";
@@ -433,7 +435,7 @@ $suggestedWebPort = $suggestedWinboxPort + 2;
 
 $baseVpnUrl = "./admin.php?id=vpn";
 ?>
-<div class="row vpn-hub-page">
+<div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
