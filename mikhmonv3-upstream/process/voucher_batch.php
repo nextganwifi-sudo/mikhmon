@@ -3,6 +3,7 @@ session_start();
 error_reporting(0);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+require_once __DIR__ . '/../include/security.php';
 require_once __DIR__ . '/../include/reseller_acl.php';
 require_once __DIR__ . '/../include/voucher_batch.php';
 
