@@ -528,3 +528,41 @@
     font-size: 11px;
   }
 }
+
+
+/* Reseller router details: one distinct hotspot server per numbered row */
+.ngw-reseller-page .ngw-router-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.ngw-reseller-page .ngw-router-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(127,127,127,.32);
+  border-radius: 5px;
+  background: rgba(127,127,127,.07);
+}
+.ngw-reseller-page .ngw-router-detail-number {
+  display: inline-flex;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #20a8d8;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ngw-reseller-page .ngw-router-detail-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.4;
+}
