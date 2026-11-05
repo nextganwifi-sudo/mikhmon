@@ -246,8 +246,14 @@ foreach ($resellers as $r) {
     $rRoutersList = isset($r['allowed_routers']) && is_array($r['allowed_routers'])
         ? array_values(array_unique(array_filter($r['allowed_routers'], 'is_string')))
         : array();
-    // Use the router connection/session name once; do not repeat its Hotspot alias in brackets.
-    $rRouterLabels = array_values(array_unique($rRoutersList));
+    // Display only the configured Hotspot name; keep session names internally for API routing.
+    $rRouterLabels = array();
+    foreach ($rRoutersList as $routerSessionName) {
+        $hotspotDisplayName = isset($routerHotspotMap[$routerSessionName]) && trim((string)$routerHotspotMap[$routerSessionName]) !== ''
+            ? trim((string)$routerHotspotMap[$routerSessionName])
+            : 'Hotspot name unavailable';
+        $rRouterLabels[] = $hotspotDisplayName;
+    }
     $rEffectivePermissions = resolveEffectiveResellerPermissions($r);
     $rGrantedPermissionCount = is_array($rEffectivePermissions) ? count(array_filter($rEffectivePermissions)) : 0;
     $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
@@ -258,7 +264,8 @@ foreach ($resellers as $r) {
         'name' => (string)$r['name'],
         'status' => (string)$r['status'],
         'permission_mode' => isset($r['permission_mode']) ? (string)$r['permission_mode'] : 'Write',
-        'allowed_routers' => $rRouterLabels,
+        'allowed_routers' => $rRoutersList,
+        'allowed_router_labels' => $rRouterLabels,
         'allowed_routers_count' => count($rRouterLabels),
         'allowed_routers_text' => !empty($rRouterLabels) ? implode(', ', $rRouterLabels) : 'None',
         'granted_permissions_count' => $rGrantedPermissionCount,
@@ -591,20 +598,27 @@ function openResellerDetailsModal(id) {
         ? '<b class="text-green">Active</b>'
         : '<b class="text-red">Disabled</b>';
     document.getElementById('det_mode').textContent = r.permission_mode;
-    var routerList = Array.isArray(r.allowed_routers) ? Array.from(new Set(r.allowed_routers)) : [];
+    var routerList = Array.isArray(r.allowed_router_labels) ? r.allowed_router_labels : [];
     document.getElementById('det_router_count').textContent = Number(r.allowed_routers_count || routerList.length);
     var routerContainer = document.getElementById('det_routers');
     routerContainer.textContent = '';
     if (routerList.length) {
-        var routerGrid = document.createElement('div');
-        routerGrid.className = 'ngw-router-detail-grid';
+        var routerListElement = document.createElement('div');
+        routerListElement.className = 'ngw-router-detail-list';
         routerList.forEach(function(routerName, index) {
-            var item = document.createElement('span');
-            item.className = 'ngw-router-detail-chip';
-            item.textContent = (index + 1) + '. ' + routerName;
-            routerGrid.appendChild(item);
+            var item = document.createElement('div');
+            item.className = 'ngw-router-detail-item';
+            var number = document.createElement('span');
+            number.className = 'ngw-router-detail-number';
+            number.textContent = String(index + 1);
+            var label = document.createElement('span');
+            label.className = 'ngw-router-detail-name';
+            label.textContent = routerName;
+            item.appendChild(number);
+            item.appendChild(label);
+            routerListElement.appendChild(item);
         });
-        routerContainer.appendChild(routerGrid);
+        routerContainer.appendChild(routerListElement);
     } else {
         routerContainer.textContent = 'No routers assigned';
     }
