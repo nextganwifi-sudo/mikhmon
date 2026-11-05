@@ -102,3 +102,65 @@ function ngwClearLoginFailures($username) {
         @unlink($path);
     }
 }
+
+
+/**
+ * Append a compact, privacy-conscious activity event.
+ * Stored as PHP-protected JSONL in include/ so direct web requests cannot expose it.
+ */
+function ngwActivityLogPath() {
+    return __DIR__ . '/activity_log.php';
+}
+
+function ngwRecordActivity($action, $details = array()) {
+    $allowed = array('login', 'logout', 'voucher_batch_created', 'hotspot_user_created',
+        'reseller_created', 'reseller_updated', 'reseller_deleted', 'reseller_status_changed',
+        'permission_groups_updated', 'reseller_impersonation');
+    if (!in_array($action, $allowed, true)) return false;
+
+    $username = isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : 'unknown';
+    $role = isset($_SESSION['mikhmon_role']) ? (string)$_SESSION['mikhmon_role'] : 'admin';
+    $safe = array(
+        'time' => date('Y-m-d H:i:s'),
+        'actor' => substr($username, 0, 80),
+        'role' => substr($role, 0, 20),
+        'action' => $action,
+        'details' => array()
+    );
+    if (is_array($details)) {
+        foreach (array('router', 'profile', 'quantity', 'target', 'status') as $key) {
+            if (isset($details[$key]) && is_scalar($details[$key])) {
+                $safe['details'][$key] = substr((string)$details[$key], 0, 120);
+            }
+        }
+    }
+    $path = ngwActivityLogPath();
+    $fp = @fopen($path, 'c+');
+    if (!$fp) return false;
+    @chmod($path, 0600);
+    if (!flock($fp, LOCK_EX)) { fclose($fp); return false; }
+    $size = fstat($fp);
+    if (!$size || (int)$size['size'] === 0) {
+        fwrite($fp, "<?php http_response_code(404); exit; ?>\n");
+    }
+    fseek($fp, 0, SEEK_END);
+    $ok = fwrite($fp, json_encode($safe, JSON_UNESCAPED_SLASHES) . "\n") !== false;
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return $ok;
+}
+
+function ngwReadActivityLog($limit = 100) {
+    $path = ngwActivityLogPath();
+    if (!is_file($path) || !is_readable($path)) return array();
+    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) return array();
+    array_shift($lines); // PHP access guard
+    $events = array();
+    foreach (array_slice(array_reverse($lines), 0, max(1, min(300, (int)$limit))) as $line) {
+        $event = json_decode($line, true);
+        if (is_array($event) && isset($event['time'], $event['actor'], $event['action'])) $events[] = $event;
+    }
+    return $events;
+}
