@@ -100,12 +100,12 @@ if ($id == "login" || substr($url, -1) == "p") {
     }
     if (!empty($auth['authenticated'])) {
       ngwClearLoginFailures($user);
-      ngwRecordActivity('login');
       // Rotate the session ID after successful authentication to mitigate session fixation.
       if (session_status() === PHP_SESSION_ACTIVE) {
         session_regenerate_id(true);
       }
       $_SESSION["mikhmon"] = $user;
+      ngwRecordActivity('login');
       $_SESSION["mikhmon_role"] = $auth['role'];
       $_SESSION["mikhmon_reseller_id"] = isset($auth['id']) ? $auth['id'] : '';
       $_SESSION["mikhmon_permission_mode"] = isset($auth['permission_mode']) ? $auth['permission_mode'] : '';
