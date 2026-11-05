@@ -105,8 +105,8 @@ if ($id == "login" || substr($url, -1) == "p") {
         session_regenerate_id(true);
       }
       $_SESSION["mikhmon"] = $user;
-      ngwRecordActivity('login');
       $_SESSION["mikhmon_role"] = $auth['role'];
+      ngwRecordActivity('login');
       $_SESSION["mikhmon_reseller_id"] = isset($auth['id']) ? $auth['id'] : '';
       $_SESSION["mikhmon_permission_mode"] = isset($auth['permission_mode']) ? $auth['permission_mode'] : '';
       $_SESSION["mikhmon_template_code"] = isset($auth['template_code']) ? $auth['template_code'] : '';
