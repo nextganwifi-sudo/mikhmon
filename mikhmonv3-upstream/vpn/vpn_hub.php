@@ -926,7 +926,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                               <th style="width:72px;">Details</th>
                               <th>VPN Username</th>
                               <th>To Address</th>
-                              <th>Port Forwardings</th>
+                              <th>Port Forwardings (External → Internal)</th>
                               <th style="width:76px;">Rules</th>
                             </tr>
                           </thead>
@@ -1006,9 +1006,9 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                     <?php foreach ($vpnForwardGroup['rules'] as $summaryRule) { ?>
                                       <span style="display:inline-block;padding:3px 7px;border:1px solid rgba(127,127,127,.45);border-radius:4px;font-size:11px;line-height:1.5;">
                                         <b><?= htmlspecialchars(strtoupper($summaryRule['protocol']), ENT_QUOTES, 'UTF-8'); ?></b>
-                                        <?= htmlspecialchars($summaryRule['external'], ENT_QUOTES, 'UTF-8'); ?>
+                                        <span style="color:#2673c9;">EXT <?= htmlspecialchars($summaryRule['external'], ENT_QUOTES, 'UTF-8'); ?></span>
                                         <i class="fa fa-long-arrow-right" style="margin:0 3px;"></i>
-                                        <?= htmlspecialchars($summaryRule['internal'], ENT_QUOTES, 'UTF-8'); ?>
+                                        <span>INT <?= htmlspecialchars($summaryRule['internal'], ENT_QUOTES, 'UTF-8'); ?></span>
                                       </span>
                                     <?php } ?>
                                   </div>
