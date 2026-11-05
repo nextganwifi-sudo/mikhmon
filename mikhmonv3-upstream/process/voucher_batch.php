@@ -40,6 +40,11 @@ try {
         foreach ($_SESSION['voucher_batches'] as $old) { if ($old['completed'] < $old['total']) { $activeCount++; } }
         if ($activeCount >= 5) { throw new InvalidArgumentException('Resume an existing batch before starting another one.'); }
         $_SESSION['voucher_batches'][$id] = voucherBatchCreate($_POST, $router, $id);
+        ngwRecordActivity('voucher_batch_created', array(
+            'router' => $router,
+            'profile' => isset($_POST['profile']) ? $_POST['profile'] : '',
+            'quantity' => isset($_POST['qty']) ? (int)$_POST['qty'] : ''
+        ));
     }
     if (!isset($_SESSION['voucher_batches'][$id]) || $_SESSION['voucher_batches'][$id]['router'] !== $router) {
         voucherBatchReply(array('error'=>'This batch is unavailable in the current session. Check Hotspot Users before starting again.', 'retryable'=>false), 404);
