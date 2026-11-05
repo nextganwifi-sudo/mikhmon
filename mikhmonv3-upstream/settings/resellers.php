@@ -243,11 +243,13 @@ foreach ($allRouters as $rSess) {
 $resellersClientMap = array();
 foreach ($resellers as $r) {
     $rId = (string)$r['id'];
-    $rRoutersList = isset($r['allowed_routers']) && is_array($r['allowed_routers']) ? $r['allowed_routers'] : array();
-    $rRouterLabels = array();
-    foreach ($rRoutersList as $rs) {
-        $rRouterLabels[] = isset($routerHotspotMap[$rs]) ? ($rs . ' (' . $routerHotspotMap[$rs] . ')') : $rs;
-    }
+    $rRoutersList = isset($r['allowed_routers']) && is_array($r['allowed_routers'])
+        ? array_values(array_unique(array_filter($r['allowed_routers'], 'is_string')))
+        : array();
+    // Use the router connection/session name once; do not repeat its Hotspot alias in brackets.
+    $rRouterLabels = array_values(array_unique($rRoutersList));
+    $rEffectivePermissions = resolveEffectiveResellerPermissions($r);
+    $rGrantedPermissionCount = is_array($rEffectivePermissions) ? count(array_filter($rEffectivePermissions)) : 0;
     $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
     $rLogoUrl = resolveActiveVoucherLogo($defaultLinkSession, './', true, $rId);
     $resellersClientMap[$rId] = array(
@@ -256,14 +258,16 @@ foreach ($resellers as $r) {
         'name' => (string)$r['name'],
         'status' => (string)$r['status'],
         'permission_mode' => isset($r['permission_mode']) ? (string)$r['permission_mode'] : 'Write',
-        'allowed_routers' => $rRoutersList,
+        'allowed_routers' => $rRouterLabels,
+        'allowed_routers_count' => count($rRouterLabels),
         'allowed_routers_text' => !empty($rRouterLabels) ? implode(', ', $rRouterLabels) : 'None',
+        'granted_permissions_count' => $rGrantedPermissionCount,
         'template_code' => isset($r['template_code']) ? (string)$r['template_code'] : 'NGW-001',
         'assigned_template' => ucfirst($rAssignedVariant),
         'logo_filename' => isset($r['logo_filename']) && $r['logo_filename'] !== '' ? (string)$r['logo_filename'] : 'Default Logo',
         'logo_url' => $rLogoUrl,
         'created_at' => isset($r['created_at']) ? (string)$r['created_at'] : '-',
-        'permissions' => resolveEffectiveResellerPermissions($r),
+        'permissions' => $rEffectivePermissions,
         'tpl_url' => $tplEditorBaseUrl . '&template=' . urlencode($rAssignedVariant) . '&session=' . urlencode($defaultLinkSession) . '&reseller_id=' . urlencode($rId),
         'logo_edit_url' => $upLogoBaseUrl . '&session=' . urlencode($defaultLinkSession) . '&reseller_id=' . urlencode($rId),
     );
@@ -587,7 +591,25 @@ function openResellerDetailsModal(id) {
         ? '<b class="text-green">Active</b>'
         : '<b class="text-red">Disabled</b>';
     document.getElementById('det_mode').textContent = r.permission_mode;
-    document.getElementById('det_routers').textContent = r.allowed_routers_text;
+    var routerList = Array.isArray(r.allowed_routers) ? Array.from(new Set(r.allowed_routers)) : [];
+    document.getElementById('det_router_count').textContent = Number(r.allowed_routers_count || routerList.length);
+    var routerContainer = document.getElementById('det_routers');
+    routerContainer.textContent = '';
+    if (routerList.length) {
+        var routerGrid = document.createElement('div');
+        routerGrid.className = 'ngw-router-detail-grid';
+        routerList.forEach(function(routerName, index) {
+            var item = document.createElement('span');
+            item.className = 'ngw-router-detail-chip';
+            item.textContent = (index + 1) + '. ' + routerName;
+            routerGrid.appendChild(item);
+        });
+        routerContainer.appendChild(routerGrid);
+    } else {
+        routerContainer.textContent = 'No routers assigned';
+    }
+    var permissionCount = Number(r.granted_permissions_count || 0);
+    document.getElementById('det_permission_count').textContent = permissionCount + ' permissions available';
     document.getElementById('det_template').textContent = r.template_code + ' (' + r.assigned_template + ')';
     document.getElementById('det_created').textContent = r.created_at;
     document.getElementById('det_logo_img').src = r.logo_url;
@@ -700,18 +722,16 @@ function closeResellerDetailsModal() {
                         <th><?= $_user_name ?></th>
                         <th><?= $_name ?></th>
                         <th>Mode</th>
-                        <th>Routers</th>
                         <th class="text-center"><?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?></th>
                         <th><?= isset($_status) ? $_status : 'Status' ?></th>
                       </tr>
                     </thead>
                     <tbody>
                       <?php if (empty($resellers)) { ?>
-                        <tr><td colspan="7" class="text-center">No reseller accounts configured.</td></tr>
+                        <tr><td colspan="6" class="text-center">No reseller accounts configured.</td></tr>
                       <?php } else {
                         foreach ($resellers as $r) {
                           $rId = (string)$r['id'];
-                          $rRouters = isset($r['allowed_routers']) && !empty($r['allowed_routers']) ? implode(', ', $r['allowed_routers']) : 'None';
                           $rModeBadge = isset($r['permission_mode']) ? $r['permission_mode'] : 'Custom';
                           $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
                           $statusBadge = ($r['status'] === 'active')
@@ -743,7 +763,6 @@ function closeResellerDetailsModal() {
                           <td><b><?= htmlspecialchars($r['username']); ?></b></td>
                           <td><?= htmlspecialchars($r['name']); ?></td>
                           <td><span class="ngw-mode-chip"><?= htmlspecialchars($rModeBadge); ?></span></td>
-                          <td><?= htmlspecialchars($rRouters); ?></td>
                           <td class="text-center">
                             <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>" class="btn bg-green pd-2p5 radius-3 ngw-login-btn" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
                               <i class="fa fa-sign-in"></i> <?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?>
@@ -927,7 +946,14 @@ function closeResellerDetailsModal() {
         </tr>
         <tr>
           <td><b>Assigned Routers</b></td>
-          <td id="det_routers"></td>
+          <td>
+            <div class="ngw-router-detail-summary"><b id="det_router_count">0</b> assigned</div>
+            <div id="det_routers" class="ngw-router-detail-list"></div>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Access Permissions</b></td>
+          <td id="det_permission_count"></td>
         </tr>
         <tr>
           <td><b>Template</b></td>
