@@ -52,6 +52,7 @@ if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
         $_SESSION["mikhmon_permissions"] = $effectivePerms;
         $_SESSION["mikhmon_last_activity"] = time();
         $_SESSION["mikhmon_login_handshake"] = 1;
+        ngwRecordActivity('reseller_impersonation', array('target' => $targetReseller['username']));
         $isResetOnly = isResetOnlyReseller();
         $allowedR = $_SESSION["mikhmon_routers"];
         session_write_close();
@@ -78,6 +79,7 @@ if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
         }
     }
     saveResellers($resellers);
+    ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $resellers[$idx]['status']));
     echo "<script>window.location='" . $baseResellerUrl . "'</script>";
     exit;
 }
@@ -92,6 +94,7 @@ if (isset($_GET['remove-reseller']) && $_GET['remove-reseller'] !== '') {
         }
     }
     saveResellers($filtered);
+    ngwRecordActivity('reseller_deleted', array('target' => $rid));
     echo "<script>window.location='" . $baseResellerUrl . "'</script>";
     exit;
 }
@@ -193,6 +196,7 @@ if (isset($_POST['save_reseller'])) {
                     }
                 }
                 saveResellers($resellers);
+                ngwRecordActivity('reseller_updated', array('target' => $rUser, 'status' => $rStatus));
                 ensureResellerTemplateFiles($editId);
                 $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> updated successfully.</div>";
             } else {
@@ -219,6 +223,7 @@ if (isset($_POST['save_reseller'])) {
                     'created_at' => date('Y-m-d H:i:s'),
                 );
                 saveResellers($resellers);
+                ngwRecordActivity('reseller_created', array('target' => $rUser, 'status' => $rStatus));
                 ensureResellerTemplateFiles($newId);
                 $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> created successfully.</div>";
             }
