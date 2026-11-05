@@ -932,8 +932,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           </thead>
                           <tbody>
                             <?php
-                              // Group all DST-NAT rules by VPN username + target address.
-                              // A user with Winbox/API/Web forwarding appears only once.
+                              // Group all DST-NAT rules by VPN username.
+                              // A user with multiple target addresses still appears only once.
                               $vpnForwardGroups = array();
                               foreach ($routerNatRules as $nr) {
                                 $nId = isset($nr['.id']) ? (string)$nr['.id'] : '';
@@ -953,16 +953,20 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                   $nParts = explode(' - ', $nBaseComment);
                                   if (count($nParts) > 1) $nUser = trim((string)end($nParts));
                                 }
-                                $groupKey = $nUser . '|' . $nToAddr;
+                                $groupKey = $nUser;
                                 if (!isset($vpnForwardGroups[$groupKey])) {
                                   $vpnForwardGroups[$groupKey] = array(
                                     'user' => $nUser,
-                                    'address' => $nToAddr,
+                                    'addresses' => array(),
                                     'rules' => array()
                                   );
                                 }
+                                if (!in_array($nToAddr, $vpnForwardGroups[$groupKey]['addresses'], true)) {
+                                  $vpnForwardGroups[$groupKey]['addresses'][] = $nToAddr;
+                                }
                                 $vpnForwardGroups[$groupKey]['rules'][] = array(
                                   'id' => $nId,
+                                  'address' => $nToAddr,
                                   'external' => $nDstPort,
                                   'internal' => $nToPort,
                                   'comment' => $nComm,
@@ -980,12 +984,23 @@ $baseVpnUrl = "./admin.php?id=vpn";
                             ?>
                               <tr>
                                 <td class="text-center">
-                                  <button type="button" class="btn bg-primary" style="padding:4px 8px;" aria-expanded="false" aria-controls="<?= $detailId; ?>" title="View forwarding details" onclick="var d=document.getElementById('<?= $detailId; ?>');var opening=d.style.display==='none';d.style.display=opening?'table-row':'none';this.setAttribute('aria-expanded',opening?'true':'false');this.innerHTML=opening?'<i class=&quot;fa fa-ellipsis-h&quot;></i>':'<i class=&quot;fa fa-ellipsis-v&quot;></i>';">
-                                    <i class="fa fa-ellipsis-v"></i>
-                                  </button>
+                                  <div style="position:relative;display:inline-block;">
+                                    <button type="button" class="btn bg-secondary" style="padding:4px 9px;" aria-expanded="false" aria-controls="vpnForwardMenu<?= $vpnForwardGroupIndex; ?>" title="More actions" onclick="var m=document.getElementById('vpnForwardMenu<?= $vpnForwardGroupIndex; ?>');var opening=m.style.display==='none';m.style.display=opening?'block':'none';this.setAttribute('aria-expanded',opening?'true':'false');">
+                                      <i class="fa fa-ellipsis-v"></i>
+                                    </button>
+                                    <div id="vpnForwardMenu<?= $vpnForwardGroupIndex; ?>" style="display:none;position:absolute;right:0;top:100%;z-index:20;min-width:125px;padding:5px;border:1px solid rgba(127,127,127,.5);border-radius:4px;background:inherit;box-shadow:0 4px 12px rgba(0,0,0,.2);">
+                                      <button type="button" class="btn btn-block" style="text-align:left;padding:5px 8px;" onclick="document.getElementById('vpnForwardMenu<?= $vpnForwardGroupIndex; ?>').style.display='none';var d=document.getElementById('<?= $detailId; ?>');d.style.display=d.style.display==='none'?'table-row':'none';">
+                                        <i class="fa fa-list"></i> <?= vpnText('Details', 'বিস্তারিত'); ?>
+                                      </button>
+                                    </div>
+                                  </div>
                                 </td>
                                 <td><strong><?= htmlspecialchars($vpnForwardGroup['user'], ENT_QUOTES, 'UTF-8'); ?></strong></td>
-                                <td><code><?= htmlspecialchars($vpnForwardGroup['address'], ENT_QUOTES, 'UTF-8'); ?></code></td>
+                                <td>
+                                  <?php foreach ($vpnForwardGroup['addresses'] as $groupAddress) { ?>
+                                    <code style="display:inline-block;margin:2px 4px 2px 0;"><?= htmlspecialchars($groupAddress, ENT_QUOTES, 'UTF-8'); ?></code>
+                                  <?php } ?>
+                                </td>
                                 <td>
                                   <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
                                     <?php foreach ($vpnForwardGroup['rules'] as $summaryRule) { ?>
@@ -1013,11 +1028,11 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                           <span><b><?= htmlspecialchars(strtoupper($detailRule['protocol']), ENT_QUOTES, 'UTF-8'); ?></b></span>
                                           <span><?= vpnText('External Port', 'External Port'); ?>: <b class="text-primary"><?= htmlspecialchars($detailRule['external'], ENT_QUOTES, 'UTF-8'); ?></b></span>
                                           <span><?= vpnText('Internal Port', 'Internal Port'); ?>: <b><?= htmlspecialchars($detailRule['internal'], ENT_QUOTES, 'UTF-8'); ?></b></span>
-                                          <span><?= vpnText('To Address', 'To Address'); ?>: <code><?= htmlspecialchars($vpnForwardGroup['address'], ENT_QUOTES, 'UTF-8'); ?></code></span>
+                                          <span><?= vpnText('To Address', 'To Address'); ?>: <code><?= htmlspecialchars($detailRule['address'], ENT_QUOTES, 'UTF-8'); ?></code></span>
                                           <span class="text-muted"><?= htmlspecialchars($detailRule['comment'], ENT_QUOTES, 'UTF-8'); ?></span>
                                         </div>
                                         <div style="display:flex;gap:5px;align-items:center;">
-                                          <button type="button" class="btn bg-primary" style="padding:3px 7px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$detailRule["id"],"dst"=>$detailRule["external"],"ip"=>$vpnForwardGroup["address"],"to"=>$detailRule["internal"],"comment"=>$detailRule["comment"],"protocol"=>$detailRule["protocol"]), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i> <?= vpnText('Edit', 'Edit'); ?></button>
+                                          <button type="button" class="btn bg-primary" style="padding:3px 7px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$detailRule["id"],"dst"=>$detailRule["external"],"ip"=>$detailRule["address"],"to"=>$detailRule["internal"],"comment"=>$detailRule["comment"],"protocol"=>$detailRule["protocol"]), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i> <?= vpnText('Edit', 'Edit'); ?></button>
                                           <form method="post" action="" style="display:inline-flex;margin:0;">
                                             <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId, ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="active_tab" value="nat">
