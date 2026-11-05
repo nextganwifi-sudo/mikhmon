@@ -330,3 +330,144 @@
   background: #dff4fc;
   border-color: #20a8d8;
 }
+
+
+/* Reseller modal: compact router selector and neutral permission checklist */
+.ngw-reseller-page #routerDropdownWrap,
+.ngw-reseller-page .ngw-router-dd-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.ngw-reseller-page #routerDropdownWrap .ngw-router-dd-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  overflow: hidden;
+  text-align: left;
+}
+.ngw-reseller-page #routerDropdownLabel {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ngw-reseller-page #routerDropdownWrap .ngw-router-dd-btn > i {
+  flex: 0 0 auto;
+}
+.ngw-reseller-page #routerDropdownPanel,
+.ngw-reseller-page .ngw-router-dd-panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  max-height: 220px;
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+}
+.ngw-reseller-page .ngw-router-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 7px 5px;
+  margin: 0;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.ngw-reseller-page .ngw-router-dd-item input {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.ngw-reseller-page .ngw-router-dd-item b,
+.ngw-reseller-page .ngw-router-dd-item small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page #resellerFormModal .table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.ngw-reseller-page #resellerFormModal .table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  height: auto;
+  margin: 0;
+  padding: 3px 2px;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: inherit;
+  box-shadow: none !important;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile:has(input:checked) {
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile input {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-col {
+  min-width: 0;
+}
+.ngw-reseller-page #customPermChecklist .card-body > div > div:first-child {
+  padding: 3px 0 !important;
+  border-bottom: 1px solid rgba(127,127,127,.28) !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+@media (max-width: 767px) {
+  .ngw-reseller-page #resellerFormModal .table {
+    table-layout: fixed;
+  }
+  .ngw-reseller-page #resellerFormModal .table tr {
+    display: grid;
+    grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
+    align-items: center;
+    width: 100%;
+  }
+  .ngw-reseller-page #resellerFormModal .table td {
+    width: auto !important;
+    min-width: 0;
+    padding: 6px 4px;
+    overflow-wrap: anywhere;
+  }
+  .ngw-reseller-page #customPermChecklist .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+  .ngw-reseller-page #customPermChecklist .ngw-permission-col {
+    width: 50%;
+    max-width: 50%;
+    flex: 0 0 50%;
+    padding: 2px 4px !important;
+  }
+}
