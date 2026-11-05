@@ -175,3 +175,37 @@
     margin: 3px 0;
   }
 }
+
+/* Modal overlays are siblings of the page content in the legacy PHP router. */
+.ngw-modal-backdrop {
+  box-sizing: border-box;
+  padding: clamp(10px, 3vw, 30px) 12px;
+}
+.ngw-modal-backdrop .ngw-modal-box {
+  width: 100%;
+  max-width: 580px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ngw-modal-backdrop .ngw-modal-box .card-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .ngw-modal-backdrop .ngw-modal-box {
+    max-height: calc(100dvh - 20px);
+    margin: 0 auto;
+  }
+  .ngw-modal-backdrop .ngw-modal-box .row [class*="col-"] {
+    width: 100%;
+    float: none;
+    max-width: 100%;
+  }
+  .ngw-modal-backdrop .ngw-modal-box table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
