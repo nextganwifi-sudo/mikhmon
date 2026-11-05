@@ -923,52 +923,128 @@ $baseVpnUrl = "./admin.php?id=vpn";
                         <table class="table table-bordered table-hover text-nowrap vpn-searchable-list">
                           <thead>
                             <tr>
-                              <th>Action</th>
+                              <th style="width:72px;">Details</th>
                               <th>VPN Username</th>
-                              <th>Dst Port (Ext)</th>
                               <th>To Address</th>
-                              <th>To Port (Int)</th>
-                              <th>Comment</th>
+                              <th>Port Forwardings (External → Internal)</th>
+                              <th style="width:76px;">Rules</th>
                             </tr>
                           </thead>
                           <tbody>
-                            <?php if (empty($routerNatRules)) { ?>
-                              <tr><td colspan="6" class="text-center text-muted">No DST-NAT port forward rules found.</td></tr>
-                            <?php } else {
+                            <?php
+                              // Group all DST-NAT rules by VPN username.
+                              // A user with multiple target addresses still appears only once.
+                              $vpnForwardGroups = array();
                               foreach ($routerNatRules as $nr) {
-                                $nId = isset($nr['.id']) ? $nr['.id'] : '';
-                                $nDstPort = isset($nr['dst_port']) ? $nr['dst_port'] : '-';
-                                $nToAddr = isset($nr['to_addresses']) ? $nr['to_addresses'] : '-';
-                                $nToPort = isset($nr['to_ports']) ? $nr['to_ports'] : '-';
-                                $nComm = isset($nr['comment']) ? $nr['comment'] : '-';
+                                $nId = isset($nr['.id']) ? (string)$nr['.id'] : '';
+                                $nDstPort = isset($nr['dst_port']) ? (string)$nr['dst_port'] : '-';
+                                $nToAddr = isset($nr['to_addresses']) ? (string)$nr['to_addresses'] : '-';
+                                $nToPort = isset($nr['to_ports']) ? (string)$nr['to_ports'] : '-';
+                                $nComm = isset($nr['comment']) ? (string)$nr['comment'] : '-';
                                 $nUser = '-';
                                 foreach ($routerPppSecrets as $nSecret) {
-                                  if (isset($nSecret['name'], $nSecret['remote_address']) && (string)$nSecret['remote_address'] === (string)$nToAddr) {
+                                  if (isset($nSecret['name'], $nSecret['remote_address']) && (string)$nSecret['remote_address'] === $nToAddr) {
                                     $nUser = (string)$nSecret['name'];
                                     break;
                                   }
                                 }
                                 if ($nUser === '-' && $nComm !== '-') {
-                                  $nBaseComment = preg_replace('/ - (Winbox|API|Web)$/i', '', (string)$nComm);
+                                  $nBaseComment = preg_replace('/ - (Winbox|API|Web)$/i', '', $nComm);
                                   $nParts = explode(' - ', $nBaseComment);
                                   if (count($nParts) > 1) $nUser = trim((string)end($nParts));
                                 }
+                                $groupKey = ($nUser !== '-') ? 'user:' . $nUser : 'unmatched:' . $nToAddr;
+                                if (!isset($vpnForwardGroups[$groupKey])) {
+                                  $vpnForwardGroups[$groupKey] = array(
+                                    'user' => $nUser,
+                                    'addresses' => array(),
+                                    'rules' => array()
+                                  );
+                                }
+                                if (!in_array($nToAddr, $vpnForwardGroups[$groupKey]['addresses'], true)) {
+                                  $vpnForwardGroups[$groupKey]['addresses'][] = $nToAddr;
+                                }
+                                $vpnForwardGroups[$groupKey]['rules'][] = array(
+                                  'id' => $nId,
+                                  'address' => $nToAddr,
+                                  'external' => $nDstPort,
+                                  'internal' => $nToPort,
+                                  'comment' => $nComm,
+                                  'protocol' => isset($nr['protocol']) ? (string)$nr['protocol'] : 'tcp'
+                                );
+                              }
+                            ?>
+                            <?php if (empty($vpnForwardGroups)) { ?>
+                              <tr><td colspan="5" class="text-center text-muted">No DST-NAT port forward rules found.</td></tr>
+                            <?php } else {
+                              $vpnForwardGroupIndex = 0;
+                              foreach ($vpnForwardGroups as $vpnForwardGroup) {
+                                $vpnForwardGroupIndex++;
+                                $detailId = 'vpnForwardDetails' . $vpnForwardGroupIndex;
                             ?>
                               <tr>
-                                <td class="text-center" style="white-space:nowrap; min-width:88px;">
-                                  <form method="post" action="" style="display:inline-flex; align-items:center; justify-content:center; gap:4px; margin:0;">
-                                    <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId); ?>">
-                                    <input type="hidden" name="active_tab" value="nat">
-                                    <input type="hidden" name="nat_id" value="<?= htmlspecialchars($nId); ?>">
-                                    <button type="button" class="btn bg-primary" style="padding:2px 6px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$nId,"dst"=>$nDstPort,"ip"=>$nToAddr,"to"=>$nToPort,"comment"=>$nComm,"protocol"=>isset($nr["protocol"])?$nr["protocol"]:"tcp"), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i></button>
-                                    <button type="submit" name="remove_nat_rule" class="btn bg-danger" style="padding:2px 6px;" title="Remove NAT Rule" onclick="return confirm('Remove NAT Rule for port <?= htmlspecialchars($nDstPort, ENT_QUOTES); ?>?');"><i class="fa fa-trash"></i></button>
-                                  <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
+                                <td class="text-center">
+                                  <div style="position:relative;display:inline-block;">
+                                    <button type="button" class="btn bg-secondary" style="padding:4px 9px;" aria-expanded="false" aria-controls="vpnForwardMenu<?= $vpnForwardGroupIndex; ?>" title="More actions" onclick="var m=document.getElementById('vpnForwardMenu<?= $vpnForwardGroupIndex; ?>');var opening=m.style.display==='none';m.style.display=opening?'block':'none';this.setAttribute('aria-expanded',opening?'true':'false');">
+                                      <i class="fa fa-ellipsis-v"></i>
+                                    </button>
+                                    <div id="vpnForwardMenu<?= $vpnForwardGroupIndex; ?>" style="display:none;position:absolute;right:0;top:100%;z-index:20;min-width:125px;padding:5px;border:1px solid rgba(127,127,127,.5);border-radius:4px;background:inherit;box-shadow:0 4px 12px rgba(0,0,0,.2);">
+                                      <button type="button" class="btn btn-block" style="text-align:left;padding:5px 8px;" onclick="document.getElementById('vpnForwardMenu<?= $vpnForwardGroupIndex; ?>').style.display='none';var d=document.getElementById('<?= $detailId; ?>');d.style.display=d.style.display==='none'?'table-row':'none';">
+                                        <i class="fa fa-list"></i> <?= vpnText('Details', 'বিস্তারিত'); ?>
+                                      </button>
+                                    </div>
+                                  </div>
                                 </td>
-                                <td><strong><?= htmlspecialchars($nUser); ?></strong></td>
-                                <td><b class="text-primary"><?= htmlspecialchars($nDstPort); ?></b></td>
-                                <td><code><?= htmlspecialchars($nToAddr); ?></code></td>
-                                <td><?= htmlspecialchars($nToPort); ?></td>
-                                <td><?= htmlspecialchars($nComm); ?></td>
+                                <td><strong><?= htmlspecialchars($vpnForwardGroup['user'], ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                                <td>
+                                  <?php foreach ($vpnForwardGroup['addresses'] as $groupAddress) { ?>
+                                    <code style="display:inline-block;margin:2px 4px 2px 0;"><?= htmlspecialchars($groupAddress, ENT_QUOTES, 'UTF-8'); ?></code>
+                                  <?php } ?>
+                                </td>
+                                <td>
+                                  <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+                                    <?php foreach ($vpnForwardGroup['rules'] as $summaryRule) { ?>
+                                      <span style="display:inline-block;padding:3px 7px;border:1px solid rgba(127,127,127,.45);border-radius:4px;font-size:11px;line-height:1.5;">
+                                        <b><?= htmlspecialchars(strtoupper($summaryRule['protocol']), ENT_QUOTES, 'UTF-8'); ?></b>
+                                        <span style="color:#2673c9;">EXT <?= htmlspecialchars($summaryRule['external'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <i class="fa fa-long-arrow-right" style="margin:0 3px;"></i>
+                                        <span>INT <?= htmlspecialchars($summaryRule['internal'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                      </span>
+                                    <?php } ?>
+                                  </div>
+                                </td>
+                                <td class="text-center"><span class="label label-info"><?= count($vpnForwardGroup['rules']); ?></span></td>
+                              </tr>
+                              <tr id="<?= $detailId; ?>" style="display:none;">
+                                <td colspan="5" style="padding:10px;background:rgba(127,127,127,.07);">
+                                  <div style="font-weight:bold;margin-bottom:8px;">
+                                    <?= vpnText('Port forwarding details', 'Port Forwarding বিস্তারিত'); ?> —
+                                    <?= htmlspecialchars($vpnForwardGroup['user'], ENT_QUOTES, 'UTF-8'); ?>
+                                  </div>
+                                  <div style="display:flex;flex-direction:column;gap:7px;">
+                                    <?php foreach ($vpnForwardGroup['rules'] as $detailRule) { ?>
+                                      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid rgba(127,127,127,.35);border-radius:4px;">
+                                        <div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;">
+                                          <span><b><?= htmlspecialchars(strtoupper($detailRule['protocol']), ENT_QUOTES, 'UTF-8'); ?></b></span>
+                                          <span><?= vpnText('External Port', 'External Port'); ?>: <b class="text-primary"><?= htmlspecialchars($detailRule['external'], ENT_QUOTES, 'UTF-8'); ?></b></span>
+                                          <span><?= vpnText('Internal Port', 'Internal Port'); ?>: <b><?= htmlspecialchars($detailRule['internal'], ENT_QUOTES, 'UTF-8'); ?></b></span>
+                                          <span><?= vpnText('To Address', 'To Address'); ?>: <code><?= htmlspecialchars($detailRule['address'], ENT_QUOTES, 'UTF-8'); ?></code></span>
+                                          <span class="text-muted"><?= htmlspecialchars($detailRule['comment'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <div style="display:flex;gap:5px;align-items:center;">
+                                          <button type="button" class="btn bg-primary" style="padding:3px 7px;" title="Edit rule" onclick='openNatEdit(<?= json_encode(array("id"=>$detailRule["id"],"dst"=>$detailRule["external"],"ip"=>$detailRule["address"],"to"=>$detailRule["internal"],"comment"=>$detailRule["comment"],"protocol"=>$detailRule["protocol"]), JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i> <?= vpnText('Edit', 'Edit'); ?></button>
+                                          <form method="post" action="" style="display:inline-flex;margin:0;">
+                                            <input type="hidden" name="active_vpn_id" value="<?= htmlspecialchars($activeVpnId, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="active_tab" value="nat">
+                                            <input type="hidden" name="nat_id" value="<?= htmlspecialchars($detailRule['id'], ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <button type="submit" name="remove_nat_rule" class="btn bg-danger" style="padding:3px 7px;" onclick="return confirm('Remove NAT Rule for external port <?= htmlspecialchars($detailRule['external'], ENT_QUOTES, 'UTF-8'); ?>?');"><i class="fa fa-trash"></i> <?= vpnText('Delete', 'Delete'); ?></button>
+                                          </form>
+                                        </div>
+                                      </div>
+                                    <?php } ?>
+                                  </div>
+                                </td>
                               </tr>
                             <?php } } ?>
                           </tbody>
