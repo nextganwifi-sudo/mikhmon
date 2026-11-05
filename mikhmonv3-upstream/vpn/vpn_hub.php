@@ -953,7 +953,7 @@ $baseVpnUrl = "./admin.php?id=vpn";
                                   $nParts = explode(' - ', $nBaseComment);
                                   if (count($nParts) > 1) $nUser = trim((string)end($nParts));
                                 }
-                                $groupKey = $nUser;
+                                $groupKey = ($nUser !== '-') ? 'user:' . $nUser : 'unmatched:' . $nToAddr;
                                 if (!isset($vpnForwardGroups[$groupKey])) {
                                   $vpnForwardGroups[$groupKey] = array(
                                     'user' => $nUser,
