@@ -471,3 +471,60 @@
     padding: 2px 4px !important;
   }
 }
+
+
+/* Reseller details: clean, deduplicated assigned-router presentation */
+.ngw-reseller-page .ngw-router-detail-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: inherit;
+  font-size: 12px;
+}
+.ngw-reseller-page .ngw-router-detail-summary b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 27px;
+  min-height: 24px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #fff;
+  background: #20a8d8;
+}
+.ngw-reseller-page .ngw-router-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.ngw-reseller-page .ngw-router-detail-chip {
+  display: block;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(127,127,127,.35);
+  border-radius: 5px;
+  background: rgba(127,127,127,.08);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page #resellerDetailsModal .table td {
+  vertical-align: middle;
+}
+.ngw-reseller-page #resellerDetailsModal #det_routers {
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 767px) {
+  .ngw-reseller-page .ngw-router-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .ngw-reseller-page .ngw-router-detail-chip {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+}
