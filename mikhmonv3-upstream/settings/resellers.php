@@ -677,13 +677,10 @@ function closeResellerDetailsModal() {
                         <tr>
                           <td class="text-center">
                             <div class="ngw-action-wrap">
-                              <button type="button" class="ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>')" title="<?= htmlspecialchars($_action); ?>">
+                              <button type="button" class="btn bg-primary ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>')" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
                                 <i class="fa fa-ellipsis-v"></i>
                               </button>
-                              <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu">
-                                <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>">
-                                  <i class="fa fa-sign-in text-green"></i> <?= htmlspecialchars(isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller'); ?>
-                                </a>
+                              <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu card">
                                 <a href="javascript:void(0)" onclick="openResellerDetailsModal('<?= htmlspecialchars($rId, ENT_QUOTES); ?>')">
                                   <i class="fa fa-info-circle text-info"></i> <?= htmlspecialchars(isset($_details_label) ? $_details_label : 'Details'); ?>
                                 </a>
@@ -704,7 +701,7 @@ function closeResellerDetailsModal() {
                           <td><span class="pd-2p5 radius-3 bg-primary"><?= htmlspecialchars($rModeBadge); ?></span></td>
                           <td><?= htmlspecialchars($rRouters); ?></td>
                           <td class="text-center">
-                            <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>" class="btn bg-green pd-2p5 radius-3" style="padding: 3px 10px; font-weight: bold; font-size: 12px; text-decoration: none; display: inline-block;" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
+                            <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>" class="btn bg-green pd-2p5 radius-3 ngw-login-btn" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
                               <i class="fa fa-sign-in"></i> <?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?>
                             </a>
                           </td>
