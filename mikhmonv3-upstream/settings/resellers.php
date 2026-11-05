@@ -563,7 +563,7 @@ function closeResellerDetailsModal() {
 }
 </script>
 
-<div class="row">
+<div class="row ngw-reseller-page">
   <div class="col-12">
     <div class="card">
       <div class="card-header">

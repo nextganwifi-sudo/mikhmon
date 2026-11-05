@@ -34,6 +34,8 @@ error_reporting(0);
 		<link rel="stylesheet" type="text/css" href="css/font-awesome/css/font-awesome.min.css" />
 		<!-- NextGan UI -->
 		<link rel="stylesheet" href="css/mikhmon-ui.<?= $theme; ?>.min.css">
+		<!-- Shared theme-aware responsive refinements for VPN and Reseller modules -->
+		<link rel="stylesheet" href="css/nextgan-responsive.css?v=20261105">
 		<!-- favicon -->
 		<link rel="icon" type="image/png" href="./img/favicon.png?v=nextgan" />
 		<!-- jQuery -->

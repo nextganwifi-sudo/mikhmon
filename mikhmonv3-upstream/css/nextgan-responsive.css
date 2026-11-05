@@ -1,0 +1,211 @@
+/*
+ * NextGan WiFi Solution — shared responsive UI refinements.
+ * Uses the active Mikhmon theme; intentionally does not set page/card backgrounds
+ * or replace the theme's existing color palette.
+ */
+.vpn-hub-page,
+.ngw-reseller-page {
+  width: 100%;
+  min-width: 0;
+}
+.vpn-hub-page *,
+.ngw-reseller-page * {
+  box-sizing: border-box;
+}
+.vpn-hub-page .card,
+.ngw-reseller-page .card {
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 4px;
+}
+.vpn-hub-page .card-header,
+.ngw-reseller-page .card-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.vpn-hub-page .card-header h3,
+.vpn-hub-page .card-header h4,
+.ngw-reseller-page .card-header h3,
+.ngw-reseller-page .card-header h4 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.vpn-hub-page .card-body,
+.ngw-reseller-page .card-body {
+  min-width: 0;
+}
+.vpn-hub-page .row,
+.ngw-reseller-page .row {
+  min-width: 0;
+}
+.vpn-hub-page .overflow,
+.ngw-reseller-page .overflow {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.vpn-hub-page table,
+.ngw-reseller-page table {
+  max-width: 100%;
+}
+.vpn-hub-page .form-control,
+.ngw-reseller-page .form-control,
+.vpn-hub-page input,
+.vpn-hub-page select,
+.vpn-hub-page textarea,
+.ngw-reseller-page input,
+.ngw-reseller-page select,
+.ngw-reseller-page textarea {
+  max-width: 100%;
+}
+.vpn-hub-page .btn,
+.ngw-reseller-page .btn {
+  min-height: 32px;
+  max-width: 100%;
+  white-space: normal;
+}
+.vpn-hub-page .ngw-modal-backdrop,
+.ngw-reseller-page .ngw-modal-backdrop {
+  padding: clamp(10px, 3vw, 30px) 12px;
+}
+.vpn-hub-page .ngw-modal-box,
+.ngw-reseller-page .ngw-modal-box {
+  width: 100%;
+  max-width: 580px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ngw-reseller-page .ngw-action-menu,
+.ngw-reseller-page .ngw-router-dd-panel {
+  background-color: inherit;
+  color: inherit;
+  border-color: currentColor;
+  border-color: rgba(127, 127, 127, .55);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
+.ngw-reseller-page .ngw-action-menu a {
+  color: inherit !important;
+}
+.ngw-reseller-page .ngw-action-menu a:hover,
+.ngw-reseller-page .ngw-router-dd-item:hover {
+  background-color: rgba(127, 127, 127, .18);
+  color: inherit !important;
+}
+.ngw-reseller-page .ngw-dots-btn {
+  color: inherit;
+  border-color: rgba(127, 127, 127, .55);
+  background: transparent;
+}
+.ngw-reseller-page .ngw-dots-btn:hover {
+  background: rgba(127, 127, 127, .18);
+  color: inherit;
+}
+.ngw-reseller-page .ngw-modal-box {
+  margin: 10px auto;
+}
+.ngw-reseller-page .ngw-modal-box .card-body {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .vpn-hub-page > .row > [class*="col-"],
+  .ngw-reseller-page > .row > [class*="col-"] {
+    width: 100%;
+    max-width: 100%;
+    float: none;
+  }
+  .vpn-hub-page .card,
+  .ngw-reseller-page .card {
+    margin: 5px 0;
+  }
+  .vpn-hub-page .card-body,
+  .ngw-reseller-page .card-body {
+    padding: 8px;
+  }
+  .vpn-hub-page .card-header,
+  .ngw-reseller-page .card-header {
+    padding: 8px 10px;
+  }
+  .vpn-hub-page .card-header > div,
+  .ngw-reseller-page .card-header > div {
+    width: 100%;
+  }
+  .vpn-hub-page .card-header .btn,
+  .ngw-reseller-page .card-header .btn {
+    margin: 3px 4px 3px 0;
+  }
+  .vpn-hub-page .overflow,
+  .ngw-reseller-page .overflow {
+    max-height: 65vh;
+  }
+  .vpn-hub-page .vpn-searchable-list,
+  .ngw-reseller-page .table {
+    min-width: 620px;
+  }
+  .vpn-hub-page .row [class*="col-"],
+  .ngw-reseller-page .row [class*="col-"] {
+    min-width: 0;
+  }
+  .vpn-hub-page .ngw-modal-box,
+  .ngw-reseller-page .ngw-modal-box {
+    max-height: calc(100dvh - 20px);
+    margin: 0 auto;
+  }
+  .vpn-hub-page .ngw-modal-box .row [class*="col-"],
+  .ngw-reseller-page .ngw-modal-box .row [class*="col-"] {
+    width: 100%;
+    float: none;
+  }
+}
+@media (max-width: 420px) {
+  .vpn-hub-page .btn,
+  .ngw-reseller-page .btn {
+    margin: 3px 2px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .vpn-hub-page .box,
+  .ngw-reseller-page .box {
+    margin: 3px 0;
+  }
+}
+
+/* Modal overlays are siblings of the page content in the legacy PHP router. */
+.ngw-modal-backdrop {
+  box-sizing: border-box;
+  padding: clamp(10px, 3vw, 30px) 12px;
+}
+.ngw-modal-backdrop .ngw-modal-box {
+  width: 100%;
+  max-width: 580px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ngw-modal-backdrop .ngw-modal-box .card-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .ngw-modal-backdrop .ngw-modal-box {
+    max-height: calc(100dvh - 20px);
+    margin: 0 auto;
+  }
+  .ngw-modal-backdrop .ngw-modal-box .row [class*="col-"] {
+    width: 100%;
+    float: none;
+    max-width: 100%;
+  }
+  .ngw-modal-backdrop .ngw-modal-box table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
