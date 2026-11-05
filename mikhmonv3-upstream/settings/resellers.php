@@ -563,7 +563,8 @@ function closeResellerDetailsModal() {
 }
 </script>
 
-<div class="row ngw-reseller-page">
+<?php $resellerTheme = isset($_SESSION['theme']) && $_SESSION['theme'] !== '' ? $_SESSION['theme'] : 'dark'; ?>
+<div class="row ngw-reseller-page" data-theme="<?= htmlspecialchars($resellerTheme, ENT_QUOTES, 'UTF-8'); ?>">
   <div class="col-12">
     <div class="card">
       <div class="card-header">
