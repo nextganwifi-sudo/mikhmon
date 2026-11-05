@@ -383,25 +383,61 @@ foreach ($resellers as $r) {
 <script>
 var NGW_RESELLERS = <?= json_encode($resellersClientMap); ?>;
 
-function toggleActionMenu(ev, id) {
-    if (ev) ev.stopPropagation();
+function closeResellerActionMenus(exceptId) {
     var allMenus = document.querySelectorAll('.ngw-action-menu');
-    var targetId = 'actionMenu_' + id;
     for (var i = 0; i < allMenus.length; i++) {
-        if (allMenus[i].id !== targetId) {
+        if (!exceptId || allMenus[i].id !== exceptId) {
             allMenus[i].style.display = 'none';
         }
     }
-    var el = document.getElementById(targetId);
-    if (el) {
-        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+}
+
+function toggleActionMenu(ev, id, trigger) {
+    if (ev) ev.stopPropagation();
+    var targetId = 'actionMenu_' + id;
+    var menu = document.getElementById(targetId);
+    if (!menu) return;
+
+    var wasOpen = menu.style.display === 'block';
+    closeResellerActionMenus();
+    if (wasOpen) return;
+
+    // Render the menu at document level so table overflow/scroll containers
+    // cannot clip it or push the reseller row down.
+    if (menu.parentNode !== document.body) {
+        document.body.appendChild(menu);
     }
+    menu.classList.add('ngw-action-menu-floating');
+    var page = document.querySelector('.ngw-reseller-page');
+    menu.setAttribute('data-theme', page ? (page.getAttribute('data-theme') || 'dark') : 'dark');
+    menu.style.display = 'block';
+    menu.style.position = 'fixed';
+    menu.style.zIndex = '5000';
+    menu.style.visibility = 'hidden';
+    menu.style.maxHeight = 'min(260px, calc(100vh - 24px))';
+    menu.style.overflowY = 'auto';
+
+    var rect = trigger ? trigger.getBoundingClientRect() : null;
+    var menuRect = menu.getBoundingClientRect();
+    var margin = 8;
+    var left = rect ? rect.left : margin;
+    left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
+
+    var below = rect ? window.innerHeight - rect.bottom : window.innerHeight;
+    var above = rect ? rect.top : 0;
+    var top = (below >= menuRect.height + 8 || below >= above)
+        ? (rect ? rect.bottom + 5 : margin)
+        : (rect.top - menuRect.height - 5);
+    top = Math.max(margin, Math.min(top, window.innerHeight - menuRect.height - margin));
+
+    menu.style.left = Math.round(left) + 'px';
+    menu.style.top = Math.round(top) + 'px';
+    menu.style.visibility = 'visible';
 }
 
 document.addEventListener('click', function(e) {
-    var allMenus = document.querySelectorAll('.ngw-action-menu');
-    for (var i = 0; i < allMenus.length; i++) {
-        allMenus[i].style.display = 'none';
+    if (!e.target.closest('.ngw-action-wrap') && !e.target.closest('.ngw-action-menu-floating')) {
+        closeResellerActionMenus();
     }
     var ddWrap = document.getElementById('routerDropdownWrap');
     var ddPanel = document.getElementById('routerDropdownPanel');
@@ -409,6 +445,13 @@ document.addEventListener('click', function(e) {
         ddPanel.style.display = 'none';
     }
 });
+
+window.addEventListener('resize', function() {
+    closeResellerActionMenus();
+});
+window.addEventListener('scroll', function() {
+    closeResellerActionMenus();
+}, true);
 
 function toggleRouterDropdown(ev) {
     if (ev) ev.stopPropagation();
@@ -678,7 +721,7 @@ function closeResellerDetailsModal() {
                         <tr>
                           <td class="text-center">
                             <div class="ngw-action-wrap">
-                              <button type="button" class="btn bg-primary ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>')" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
+                              <button type="button" class="btn bg-primary ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>', this)" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
                                 <i class="fa fa-ellipsis-v"></i>
                               </button>
                               <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu card">
@@ -699,7 +742,7 @@ function closeResellerDetailsModal() {
                           </td>
                           <td><b><?= htmlspecialchars($r['username']); ?></b></td>
                           <td><?= htmlspecialchars($r['name']); ?></td>
-                          <td><span class="pd-2p5 radius-3 bg-primary"><?= htmlspecialchars($rModeBadge); ?></span></td>
+                          <td><span class="ngw-mode-chip"><?= htmlspecialchars($rModeBadge); ?></span></td>
                           <td><?= htmlspecialchars($rRouters); ?></td>
                           <td class="text-center">
                             <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>" class="btn bg-green pd-2p5 radius-3 ngw-login-btn" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
