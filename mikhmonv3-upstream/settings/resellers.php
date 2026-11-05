@@ -72,14 +72,16 @@ if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
 // Toggle active / disabled
 if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
     $tid = $_GET['toggle-reseller'];
+    $statusChanged = '';
     foreach ($resellers as $idx => $r) {
         if ((string)$r['id'] === (string)$tid) {
             $resellers[$idx]['status'] = ($r['status'] === 'active') ? 'disabled' : 'active';
+            $statusChanged = $resellers[$idx]['status'];
             break;
         }
     }
     saveResellers($resellers);
-    ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $resellers[$idx]['status']));
+    if ($statusChanged !== '') ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $statusChanged));
     echo "<script>window.location='" . $baseResellerUrl . "'</script>";
     exit;
 }
@@ -120,6 +122,7 @@ if (isset($_POST['save_permission_groups'])) {
             }
         }
         saveResellers($resellers);
+        ngwRecordActivity('permission_groups_updated');
         $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups updated successfully.</div>";
     }
 }
