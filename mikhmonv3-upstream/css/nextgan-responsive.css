@@ -197,3 +197,136 @@
     margin: 3px 0;
   }
 }
+
+
+/* Reseller management: refined inputs, permission tiles and floating actions */
+.ngw-reseller-page .ngw-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  color: #fff;
+  background: #20a8d8;
+  border: 1px solid #20a8d8;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.ngw-reseller-page .ngw-action-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ngw-reseller-page .ngw-action-menu-floating {
+  position: fixed !important;
+  min-width: 180px;
+  max-width: min(260px, calc(100vw - 16px));
+  margin: 0 !important;
+  padding: 5px !important;
+  border-radius: 7px !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .42) !important;
+  transform: none !important;
+}
+.ngw-reseller-page .ngw-action-menu-floating[data-theme="dark"] {
+  background: #252b31 !important;
+  color: #f3f4f5 !important;
+  border: 1px solid #56616b !important;
+}
+.ngw-reseller-page .ngw-action-menu-floating[data-theme="blue"] {
+  background: #fff !important;
+  color: #303840 !important;
+  border: 1px solid #008bc9 !important;
+}
+.ngw-reseller-page .ngw-action-menu-floating a {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 10px !important;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.ngw-reseller-page .ngw-action-menu-floating a:hover {
+  background: #20a8d8 !important;
+  color: #fff !important;
+}
+.ngw-reseller-page #resellerFormModal .form-control,
+.ngw-reseller-page #resellerFormModal input[type="text"],
+.ngw-reseller-page #resellerFormModal input[type="password"],
+.ngw-reseller-page #resellerFormModal select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid #56616b;
+  border-radius: 6px;
+  background: #252b31;
+  color: #f3f4f5;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .16);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.ngw-reseller-page #resellerFormModal .form-control:focus,
+.ngw-reseller-page #resellerFormModal input:focus,
+.ngw-reseller-page #resellerFormModal select:focus {
+  outline: none;
+  border-color: #20a8d8;
+  box-shadow: 0 0 0 3px rgba(32, 168, 216, .18);
+}
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal .form-control,
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal input[type="text"],
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal input[type="password"],
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal select {
+  background: #fff;
+  color: #303840;
+  border-color: #b8c7d1;
+}
+.ngw-reseller-page #resellerFormModal table,
+.ngw-reseller-page #resellerFormModal tbody,
+.ngw-reseller-page #resellerFormModal tr,
+.ngw-reseller-page #resellerFormModal td {
+  border: 0 !important;
+  background: transparent !important;
+}
+.ngw-reseller-page #resellerFormModal td {
+  padding: 7px 6px;
+  vertical-align: middle;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  height: 100%;
+  margin: 2px 0;
+  padding: 8px 10px;
+  border: 1px solid #46515b;
+  border-radius: 6px;
+  background: #252b31;
+  color: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile:has(input:checked) {
+  background: rgba(32, 168, 216, .18);
+  border: 1px solid #20a8d8;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #20a8d8;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile span {
+  line-height: 1.35;
+}
+.ngw-reseller-page[data-theme="blue"] #customPermChecklist .ngw-permission-tile {
+  background: #f5f9fc;
+  color: #303840;
+  border-color: #c8d8e3;
+}
+.ngw-reseller-page[data-theme="blue"] #customPermChecklist .ngw-permission-tile:has(input:checked) {
+  background: #dff4fc;
+  border-color: #20a8d8;
+}
