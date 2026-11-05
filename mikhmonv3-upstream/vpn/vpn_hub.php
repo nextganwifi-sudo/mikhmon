@@ -433,7 +433,7 @@ $suggestedWebPort = $suggestedWinboxPort + 2;
 
 $baseVpnUrl = "./admin.php?id=vpn";
 ?>
-<div class="row">
+<div class="row vpn-hub-page">
   <div class="col-12">
     <div class="card">
       <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
