@@ -38,12 +38,20 @@ session_start();
       <table class="table" style="width:90%">
         <tr>
           <td class="align-middle text-center">
-            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="text" name="user" id="_username" placeholder="Username" required="1" autofocus>
+            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="text" name="user" id="_username" placeholder="Username" required="1" autofocus autocomplete="username">
           </td>
         </tr>
         <tr>
           <td class="align-middle text-center">
-            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="password" name="pass" placeholder="Password" required="1">
+            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="password" name="pass" id="_password" placeholder="Password" required="1" autocomplete="current-password">
+          </td>
+        </tr>
+        <tr>
+          <td class="align-middle" style="text-align:left; padding:8px 5%;">
+            <label for="ngw_remember_username" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:normal;">
+              <input type="checkbox" id="ngw_remember_username" style="width:16px;height:16px;">
+              <span>Remember username</span>
+            </label>
           </td>
         </tr>
         <tr>
@@ -58,6 +66,25 @@ session_start();
         </tr>
       </table>
       </form>
+      <script>
+      (function () {
+        var form = document.querySelector('.login-box form');
+        var username = document.getElementById('_username');
+        var remember = document.getElementById('ngw_remember_username');
+        var storageKey = 'ngw_remembered_username';
+        if (!form || !username || !remember) return;
+        try {
+          var saved = localStorage.getItem(storageKey);
+          if (saved) { username.value = saved; remember.checked = true; }
+        } catch (e) {}
+        form.addEventListener('submit', function () {
+          try {
+            if (remember.checked) localStorage.setItem(storageKey, username.value.trim());
+            else localStorage.removeItem(storageKey);
+          } catch (e) {}
+        });
+      })();
+      </script>
       </center>
     </div>
   </div>
