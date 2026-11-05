@@ -187,6 +187,7 @@ if (!empty($_SESSION['mikhmon_login_handshake'])) {
   unset($_SESSION['mikhmon_login_handshake']);
 }
 $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
+$isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings', 'activity', 'system-update'), true);
 ?>
 <span style="display:none;" id="idto"><?= $idleto ;?></span>
 <?php if (!$isLogoutReq) { ?>
@@ -354,13 +355,20 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
   <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
-  <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>"><i class="fa fa-history"></i> Activity History</a>
-  <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>"><i class="fa fa-gear"></i> <?= $_settings ?></a>
+  <a href="javascript:void(0)" id="ngw-settings-dropdown-toggle" class="menu <?= $isSettingsDropdownOpen ? 'active' : ''; ?>" role="button" aria-controls="ngw-settings-dropdown" aria-expanded="<?= $isSettingsDropdownOpen ? 'true' : 'false'; ?>" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+    <span><i class="fa fa-gear"></i> <?= $_settings ?></span>
+    <i id="ngw-settings-dropdown-chevron" class="fa fa-chevron-<?= $isSettingsDropdownOpen ? 'up' : 'down'; ?>" style="font-size:11px;"></i>
+  </a>
+  <div id="ngw-settings-dropdown" style="display:<?= $isSettingsDropdownOpen ? 'block' : 'none'; ?>;background:rgba(0,0,0,0.08);">
+    <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>" style="padding-left:34px;"><i class="fa fa-sliders"></i> <?= $_settings ?></a>
+    <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-history"></i> Activity History</a>
+    <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>" style="padding-left:34px;"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
+  </div>
   <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
   <?php if (!isset($id) || $id !== 'vpn') { ?>
   <a href="./admin.php?id=editor" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?></a>
   <?php } ?>
-  <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
+
   <?php } else { ?>
   <?php if ((hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template') || hasResellerPermission('preview_assigned_template') || hasResellerPermission('use_assigned_template') || hasResellerPermission('print_voucher')) && (!isset($id) || $id !== 'vpn')) { ?>
   <a href="./admin.php?id=editor" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?></a>
@@ -373,6 +381,14 @@ $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
 
 <script>
 $(document).ready(function(){
+  $('#ngw-settings-dropdown-toggle').on('click', function(e) {
+    e.preventDefault();
+    var $menu = $('#ngw-settings-dropdown');
+    var isOpen = $menu.is(':visible');
+    $menu.stop(true, true).slideToggle(140);
+    $(this).attr('aria-expanded', isOpen ? 'false' : 'true');
+    $('#ngw-settings-dropdown-chevron').toggleClass('fa-chevron-down', isOpen).toggleClass('fa-chevron-up', !isOpen);
+  });
   $(".connect").click(function(){
     notify("<?= $_connecting ?>");
     connect(this.id)
