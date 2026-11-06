@@ -37,6 +37,8 @@ jobs:
           bash -n mikhmonv3-upstream/deploy/safe-update.sh
       - name: Check single Add User stay-on-page flow
         run: php tests/single-add-user-flow.php
+      - name: Check profile and local clock features
+        run: php tests/profile-features.php
       - name: Check voucher result regression
         run: php tests/voucher-result.php
       - name: Check RouterOS 6 and 7 profile expiry generator
