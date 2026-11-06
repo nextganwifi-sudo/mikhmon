@@ -466,13 +466,6 @@ function toggleActionMenu(ev, id, trigger) {
 }
 
 document.addEventListener('click', function(e) {
-    var trigger = e.target.closest ? e.target.closest('.ngw-dots-btn') : null;
-    if (trigger) {
-        var menuId = trigger.getAttribute('data-menu-id');
-        var resellerId = trigger.getAttribute('data-reseller-id');
-        if (menuId && resellerId) toggleActionMenu(e, resellerId, trigger);
-        return;
-    }
     if (!(e.target.closest && e.target.closest('.ngw-action-menu-floating'))) {
         closeResellerActionMenus();
     }
@@ -792,7 +785,7 @@ function closeResellerDetailsModal() {
                         <tr>
                           <td class="text-center">
                             <div class="ngw-action-wrap">
-                              <button type="button" class="btn bg-primary ngw-dots-btn" data-reseller-id="<?= htmlspecialchars($rId, ENT_QUOTES); ?>" data-menu-id="actionMenu_<?= htmlspecialchars($rId, ENT_QUOTES); ?>" aria-expanded="false" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
+                              <button type="button" class="btn bg-primary ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>', this)" aria-expanded="false" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
                                 <i class="fa fa-ellipsis-v"></i>
                               </button>
                               <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu card">
