@@ -330,7 +330,37 @@ foreach ($resellers as $r) {
 /* The menu is portalled to body so table overflow cannot clip it. */
 .ngw-action-wrap { position: relative; display: inline-block; }
 .ngw-action-menu.ngw-action-menu-floating {
-    display: none;
+    display: block !important;
+    position: fixed !important;
+    z-index: 5000 !important;
+    margin: 0 !important;
+    min-width: 175px;
+    max-width: min(260px, calc(100vw - 16px));
+    background: #23282c !important;
+    background-color: #23282c !important;
+    color: #f0f6fc !important;
+    opacity: 1 !important;
+    visibility: visible;
+    pointer-events: auto !important;
+    border: 1px solid #3b4248 !important;
+    border-radius: 5px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45) !important;
+    box-sizing: border-box;
+}
+.ngw-action-menu-floating a {
+    display: block !important;
+    position: relative;
+    z-index: 1;
+    padding: 7px 12px !important;
+    background: #23282c !important;
+    color: #e6edf3 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+.ngw-action-menu-floating a:hover {
+    background: #1f6feb !important;
+    color: #fff !important;
 }
 .ngw-action-menu a {
     display: block;
@@ -410,7 +440,76 @@ foreach ($resellers as $r) {
 <script>
 var NGW_RESELLERS = <?= json_encode($resellersClientMap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
-// Action menus are toggled directly by the button's own inline handler.
+function closeResellerActionMenus(exceptId) {
+    var allMenus = document.querySelectorAll('.ngw-action-menu');
+    for (var i = 0; i < allMenus.length; i++) {
+        if (!exceptId || allMenus[i].id !== exceptId) {
+            allMenus[i].style.display = 'none';
+        }
+    }
+}
+
+function toggleActionMenu(ev, id, trigger) {
+    if (ev) ev.stopPropagation();
+    var targetId = 'actionMenu_' + id;
+    var menu = document.getElementById(targetId);
+    if (!menu) return;
+
+    var wasOpen = menu.style.display === 'block';
+    closeResellerActionMenus();
+    if (wasOpen) return;
+
+    // Render the menu at document level so table overflow/scroll containers
+    // cannot clip it or push the reseller row down.
+    if (menu.parentNode !== document.body) {
+        document.body.appendChild(menu);
+    }
+    menu.classList.add('ngw-action-menu-floating');
+    var page = document.querySelector('.ngw-reseller-page');
+    menu.setAttribute('data-theme', page ? (page.getAttribute('data-theme') || 'dark') : 'dark');
+    menu.style.display = 'block';
+    menu.style.position = 'fixed';
+    menu.style.zIndex = '5000';
+    menu.style.visibility = 'hidden';
+    menu.style.maxHeight = 'min(260px, calc(100vh - 24px))';
+    menu.style.overflowY = 'auto';
+
+    var rect = trigger ? trigger.getBoundingClientRect() : null;
+    var menuRect = menu.getBoundingClientRect();
+    var margin = 8;
+    var left = rect ? rect.left : margin;
+    left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
+
+    var below = rect ? window.innerHeight - rect.bottom : window.innerHeight;
+    var above = rect ? rect.top : 0;
+    var top = (below >= menuRect.height + 8 || below >= above)
+        ? (rect ? rect.bottom + 5 : margin)
+        : (rect.top - menuRect.height - 5);
+    top = Math.max(margin, Math.min(top, window.innerHeight - menuRect.height - margin));
+
+    menu.style.left = Math.round(left) + 'px';
+    menu.style.top = Math.round(top) + 'px';
+    menu.style.visibility = 'visible';
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.ngw-action-wrap') && !e.target.closest('.ngw-action-menu-floating')) {
+        closeResellerActionMenus();
+    }
+    var ddWrap = document.getElementById('routerDropdownWrap');
+    var ddPanel = document.getElementById('routerDropdownPanel');
+    if (ddWrap && ddPanel && !ddWrap.contains(e.target)) {
+        ddPanel.style.display = 'none';
+    }
+});
+
+window.addEventListener('resize', function() {
+    closeResellerActionMenus();
+});
+window.addEventListener('scroll', function() {
+    closeResellerActionMenus();
+}, true);
+
 
 function toggleRouterDropdown(ev) {
     if (ev) ev.stopPropagation();
