@@ -188,7 +188,7 @@ if (!isset($_SESSION["mikhmon"])) {
   include_once('./lib/formatbytesbites.php');
   $API = new RouterosAPI();
   $API->debug = false;
-  $localOnlyHotspotPages = array('resellers', 'system-update', 'admin-settings', 'template-editor', 'uplogo', 'about', 'logout', 'reset-voucher');
+  $localOnlyHotspotPages = array('resellers', 'system-update', 'admin-settings', 'my-profile', 'template-editor', 'uplogo', 'about', 'logout', 'reset-voucher');
   $curHotspotReq = isset($_GET['hotspot']) ? $_GET['hotspot'] : '';
   // Render the completed voucher result from session data only; do not reconnect
   // to a slow router after the voucher creation POST has already succeeded.
@@ -247,6 +247,10 @@ if (!isset($_SESSION["mikhmon"])) {
       exit;
     }
     include_once('./settings/resellers.php');
+  }
+// Self-service account profile
+  elseif ($hotspot == "my-profile") {
+    include_once('./settings/my_profile.php');
   }
 // vpn hub
   elseif ($hotspot == "vpn") {
