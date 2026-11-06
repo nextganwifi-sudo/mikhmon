@@ -35,6 +35,7 @@ if ($isResellerProfile) {
     $profileIsBackupAdmin = !empty($backupProfile['username']) && $profileUsername === $backupProfile['username']
         && $profileUsername !== (string)$useradm;
     $profileName = $profileIsBackupAdmin ? 'Backup Administrator' : 'Administrator';
+    $profileId = 'Next Gyan WiFi Solution';
 }
 
 if (empty($_SESSION['ngw_profile_csrf'])) {
