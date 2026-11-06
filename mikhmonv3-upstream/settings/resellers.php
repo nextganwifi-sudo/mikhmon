@@ -324,41 +324,6 @@ foreach ($resellers as $r) {
     text-align: left;
     padding: 4px 0;
 }
-/* The menu is portalled to body so table overflow cannot clip it. */
-.ngw-action-wrap { position: relative; display: inline-block; }
-.ngw-action-menu.ngw-action-menu-floating {
-    display: block !important;
-    position: fixed !important;
-    z-index: 5000 !important;
-    margin: 0 !important;
-    min-width: 175px;
-    max-width: min(260px, calc(100vw - 16px));
-    background: #23282c !important;
-    background-color: #23282c !important;
-    color: #f0f6fc !important;
-    opacity: 1 !important;
-    visibility: visible;
-    pointer-events: auto !important;
-    border: 1px solid #3b4248 !important;
-    border-radius: 5px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.45) !important;
-    box-sizing: border-box;
-}
-.ngw-action-menu-floating a {
-    display: block !important;
-    position: relative;
-    z-index: 1;
-    padding: 7px 12px !important;
-    background: #23282c !important;
-    color: #e6edf3 !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    cursor: pointer;
-}
-.ngw-action-menu-floating a:hover {
-    background: #1f6feb !important;
-    color: #fff !important;
-}
 .ngw-action-menu a {
     display: block;
     padding: 7px 12px;
@@ -506,7 +471,6 @@ window.addEventListener('resize', function() {
 window.addEventListener('scroll', function() {
     closeResellerActionMenus();
 }, true);
-
 
 function toggleRouterDropdown(ev) {
     if (ev) ev.stopPropagation();
@@ -799,7 +763,7 @@ function closeResellerDetailsModal() {
                         <tr>
                           <td class="text-center">
                             <div class="ngw-action-wrap">
-                              <button type="button" class="btn bg-primary ngw-dots-btn" aria-expanded="false" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true" onclick="var m=this.parentNode.querySelector('.ngw-action-menu');var o=m && m.style.display==='block';document.querySelectorAll('.ngw-action-menu').forEach(function(x){x.style.display='none';});document.querySelectorAll('.ngw-dots-btn').forEach(function(b){b.setAttribute('aria-expanded','false');});if(m&&!o){m.style.display='block';this.setAttribute('aria-expanded','true');}">
+                              <button type="button" class="btn bg-primary ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>', this)" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
                                 <i class="fa fa-ellipsis-v"></i>
                               </button>
                               <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu card">
