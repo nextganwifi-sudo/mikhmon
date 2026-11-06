@@ -22,8 +22,8 @@ checkProfileFeature(strpos($admin, '$id == "my-profile"') !== false, 'Admin prof
 checkProfileFeature(strpos($index, '$hotspot == "my-profile"') !== false && strpos($index, "'my-profile'") !== false, 'Reseller profile route avoids router connection');
 checkProfileFeature(strpos($resellers, "'password_reveal'") !== false && strpos($resellers, 'det_password_toggle') !== false, 'Admin reseller details include explicit password reveal');
 checkProfileFeature(strpos($resellers, 'JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT') !== false, 'Reseller JSON is HTML-safe encoded');
-checkProfileFeature(strpos($resellers, 'onclick="toggleActionMenu(event,') !== false && strpos($resellers, 'function toggleActionMenu(ev, id, trigger)') !== false, 'Reseller action menu uses direct click handling');
-checkProfileFeature(strpos($resellers, 'ngw-action-menu-floating') !== false && strpos($resellers, "document.body.appendChild(menu)") !== false, 'Reseller action menu escapes table overflow safely');
-checkProfileFeature(substr_count($menu, 'class="ngw-profile-nav"') === 2, 'Admin and reseller profile shortcuts are both beside the local clock');
+checkProfileFeature(strpos($resellers, "onclick=\"var m=this.parentNode.querySelector('.ngw-action-menu')") !== false, 'Reseller action menu toggles directly from its button');
+checkProfileFeature(strpos($resellers, '.ngw-action-wrap { position: relative;') !== false && strpos($resellers, 'document.querySelectorAll(\'.ngw-action-menu\')') !== false, 'Reseller action menu is anchored to its own action cell');
+checkProfileFeature(substr_count($menu, 'class="ngw-profile-nav"') === 2 && strpos($menu, 'ngw-profile-nav') < strpos($menu, 'id="timer"') === false, 'Each role has one profile shortcut placed after the navbar controls');
 
 echo "PASS: profile, password-change, local clock, and admin reseller credential-detail regressions\n";
