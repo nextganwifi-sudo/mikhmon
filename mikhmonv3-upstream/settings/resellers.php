@@ -282,6 +282,9 @@ foreach ($resellers as $r) {
         'logo_filename' => isset($r['logo_filename']) && $r['logo_filename'] !== '' ? (string)$r['logo_filename'] : 'Default Logo',
         'logo_url' => $rLogoUrl,
         'created_at' => isset($r['created_at']) ? (string)$r['created_at'] : '-',
+        // Only this Admin-only page receives the reversible credential for the
+        // explicit Details reveal control. Hash-only legacy records stay masked.
+        'password_reveal' => !empty($r['password_enc']) && function_exists('decrypt') ? (string)decrypt($r['password_enc']) : '',
         'permissions' => $rEffectivePermissions,
         'tpl_url' => $tplEditorBaseUrl . '&template=' . urlencode($rAssignedVariant) . '&session=' . urlencode($defaultLinkSession) . '&reseller_id=' . urlencode($rId),
         'logo_edit_url' => $upLogoBaseUrl . '&session=' . urlencode($defaultLinkSession) . '&reseller_id=' . urlencode($rId),
@@ -400,7 +403,7 @@ foreach ($resellers as $r) {
 </style>
 
 <script>
-var NGW_RESELLERS = <?= json_encode($resellersClientMap); ?>;
+var NGW_RESELLERS = <?= json_encode($resellersClientMap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
 function closeResellerActionMenus(exceptId) {
     var allMenus = document.querySelectorAll('.ngw-action-menu');
@@ -602,6 +605,19 @@ function openResellerDetailsModal(id) {
     document.getElementById('det_id').textContent = '#' + r.id;
     document.getElementById('det_username').textContent = r.username;
     document.getElementById('det_name').textContent = r.name;
+    var passwordValue = typeof r.password_reveal === 'string' ? r.password_reveal : '';
+    var passwordValueEl = document.getElementById('det_password');
+    var passwordToggle = document.getElementById('det_password_toggle');
+    passwordValueEl.textContent = passwordValue !== '' ? '••••••••' : 'Unavailable — reset password to set a new one';
+    passwordToggle.style.display = passwordValue !== '' ? 'inline-block' : 'none';
+    passwordToggle.textContent = 'Show';
+    passwordToggle.setAttribute('aria-pressed', 'false');
+    passwordToggle.onclick = function () {
+        var shown = passwordToggle.getAttribute('aria-pressed') === 'true';
+        passwordValueEl.textContent = shown ? '••••••••' : passwordValue;
+        passwordToggle.textContent = shown ? 'Show' : 'Hide';
+        passwordToggle.setAttribute('aria-pressed', shown ? 'false' : 'true');
+    };
     document.getElementById('det_status').innerHTML = (r.status === 'active')
         ? '<b class="text-green">Active</b>'
         : '<b class="text-red">Disabled</b>';
@@ -957,6 +973,10 @@ function closeResellerDetailsModal() {
         <tr>
           <td><b><?= $_name ?></b></td>
           <td id="det_name"></td>
+        </tr>
+        <tr>
+          <td><b>Password</b></td>
+          <td><span id="det_password">••••••••</span> <button type="button" id="det_password_toggle" class="btn bg-primary" style="display:none;padding:2px 8px;font-size:11px;margin-left:6px;">Show</button></td>
         </tr>
         <tr>
           <td><b><?= isset($_status) ? $_status : 'Status' ?></b></td>
