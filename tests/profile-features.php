@@ -22,7 +22,7 @@ checkProfileFeature(strpos($admin, '$id == "my-profile"') !== false, 'Admin prof
 checkProfileFeature(strpos($index, '$hotspot == "my-profile"') !== false && strpos($index, "'my-profile'") !== false, 'Reseller profile route avoids router connection');
 checkProfileFeature(strpos($resellers, "'password_reveal'") !== false && strpos($resellers, 'det_password_toggle') !== false, 'Admin reseller details include explicit password reveal');
 checkProfileFeature(strpos($resellers, 'JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT') !== false, 'Reseller JSON is HTML-safe encoded');
-checkProfileFeature(strpos($resellers, 'data-menu-id=') !== false && strpos($resellers, "e.target.closest('.ngw-dots-btn')") !== false, 'Reseller action menu uses delegated click handling');
+checkProfileFeature(strpos($resellers, 'onclick="toggleActionMenu(event,') !== false && strpos($resellers, 'function toggleActionMenu(ev, id, trigger)') !== false, 'Reseller action menu uses direct click handling');
 checkProfileFeature(strpos($resellers, 'ngw-action-menu-floating') !== false && strpos($resellers, "document.body.appendChild(menu)") !== false, 'Reseller action menu escapes table overflow safely');
 checkProfileFeature(substr_count($menu, 'class="ngw-profile-nav"') === 2, 'Admin and reseller profile shortcuts are both beside the local clock');
 
