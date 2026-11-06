@@ -102,8 +102,10 @@ if (!isset($_SESSION["mikhmon"])) {
               'target' => $name
             ));
             $_SESSION['ngw_adduser_success'] = 'User "' . $name . '" added successfully.';
-            // Stay on Add User; do not open the Edit User route.
-            header('Location: ./?hotspot-user=add&session=' . rawurlencode((string)$session));
+            // The main index template may already have emitted HTML, so use a
+            // same-page client redirect rather than a PHP header redirect.
+            $addUserReturnUrl = './?hotspot-user=add&session=' . rawurlencode((string)$session);
+            echo '<script>window.location.replace(' . json_encode($addUserReturnUrl) . ');</script>';
             exit;
           }
           $addUserError = 'Router confirmation failed. Check the user list before trying again.';
