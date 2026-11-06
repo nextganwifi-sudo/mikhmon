@@ -327,6 +327,15 @@ foreach ($resellers as $r) {
     text-align: left;
     padding: 4px 0;
 }
+/* The menu is portalled to body so table overflow cannot clip it. */
+.ngw-action-menu.ngw-action-menu-floating {
+    display: block !important;
+    position: fixed !important;
+    z-index: 5000 !important;
+    margin: 0 !important;
+    max-width: min(260px, calc(100vw - 16px));
+    box-sizing: border-box;
+}
 .ngw-action-menu a {
     display: block;
     padding: 7px 12px;
@@ -409,63 +418,67 @@ function closeResellerActionMenus(exceptId) {
     var allMenus = document.querySelectorAll('.ngw-action-menu');
     for (var i = 0; i < allMenus.length; i++) {
         if (!exceptId || allMenus[i].id !== exceptId) {
-            allMenus[i].style.display = 'none';
+            allMenus[i].style.setProperty('display', 'none', 'important');
+            var btn = document.querySelector('[data-menu-id="' + allMenus[i].id + '"]');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
         }
     }
 }
 
 function toggleActionMenu(ev, id, trigger) {
-    if (ev) ev.stopPropagation();
+    if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+    }
     var targetId = 'actionMenu_' + id;
     var menu = document.getElementById(targetId);
-    if (!menu) return;
+    if (!menu || !trigger) return;
 
-    var wasOpen = menu.style.display === 'block';
+    var wasOpen = menu.classList.contains('ngw-action-menu-floating') &&
+        menu.style.display !== 'none';
     closeResellerActionMenus();
     if (wasOpen) return;
 
-    // Render the menu at document level so table overflow/scroll containers
-    // cannot clip it or push the reseller row down.
-    if (menu.parentNode !== document.body) {
-        document.body.appendChild(menu);
-    }
+    // Keep the actual menu node (and its existing actions) but move it outside
+    // overflow-hidden table wrappers. Delegated button handling survives this.
+    if (menu.parentNode !== document.body) document.body.appendChild(menu);
     menu.classList.add('ngw-action-menu-floating');
-    var page = document.querySelector('.ngw-reseller-page');
-    menu.setAttribute('data-theme', page ? (page.getAttribute('data-theme') || 'dark') : 'dark');
-    menu.style.display = 'block';
-    menu.style.position = 'fixed';
-    menu.style.zIndex = '5000';
+    menu.style.setProperty('display', 'block', 'important');
     menu.style.visibility = 'hidden';
     menu.style.maxHeight = 'min(260px, calc(100vh - 24px))';
     menu.style.overflowY = 'auto';
 
-    var rect = trigger ? trigger.getBoundingClientRect() : null;
+    var rect = trigger.getBoundingClientRect();
     var menuRect = menu.getBoundingClientRect();
     var margin = 8;
-    var left = rect ? rect.left : margin;
-    left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
-
-    var below = rect ? window.innerHeight - rect.bottom : window.innerHeight;
-    var above = rect ? rect.top : 0;
+    var left = Math.max(margin, Math.min(rect.left, window.innerWidth - menuRect.width - margin));
+    var below = window.innerHeight - rect.bottom;
+    var above = rect.top;
     var top = (below >= menuRect.height + 8 || below >= above)
-        ? (rect ? rect.bottom + 5 : margin)
-        : (rect.top - menuRect.height - 5);
+        ? rect.bottom + 5
+        : rect.top - menuRect.height - 5;
     top = Math.max(margin, Math.min(top, window.innerHeight - menuRect.height - margin));
 
     menu.style.left = Math.round(left) + 'px';
     menu.style.top = Math.round(top) + 'px';
     menu.style.visibility = 'visible';
+    trigger.setAttribute('aria-expanded', 'true');
 }
 
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.ngw-action-wrap') && !e.target.closest('.ngw-action-menu-floating')) {
+    var trigger = e.target.closest ? e.target.closest('.ngw-dots-btn') : null;
+    if (trigger) {
+        var menuId = trigger.getAttribute('data-menu-id');
+        var resellerId = trigger.getAttribute('data-reseller-id');
+        if (menuId && resellerId) toggleActionMenu(e, resellerId, trigger);
+        return;
+    }
+    if (!(e.target.closest && e.target.closest('.ngw-action-menu-floating'))) {
         closeResellerActionMenus();
     }
     var ddWrap = document.getElementById('routerDropdownWrap');
     var ddPanel = document.getElementById('routerDropdownPanel');
-    if (ddWrap && ddPanel && !ddWrap.contains(e.target)) {
-        ddPanel.style.display = 'none';
-    }
+    if (ddWrap && ddPanel && !ddWrap.contains(e.target)) ddPanel.style.display = 'none';
 });
 
 window.addEventListener('resize', function() {
@@ -779,7 +792,7 @@ function closeResellerDetailsModal() {
                         <tr>
                           <td class="text-center">
                             <div class="ngw-action-wrap">
-                              <button type="button" class="btn bg-primary ngw-dots-btn" onclick="toggleActionMenu(event, '<?= htmlspecialchars($rId, ENT_QUOTES); ?>', this)" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
+                              <button type="button" class="btn bg-primary ngw-dots-btn" data-reseller-id="<?= htmlspecialchars($rId, ENT_QUOTES); ?>" data-menu-id="actionMenu_<?= htmlspecialchars($rId, ENT_QUOTES); ?>" aria-expanded="false" title="<?= htmlspecialchars($_action); ?>" aria-label="<?= htmlspecialchars($_action); ?>" aria-haspopup="true">
                                 <i class="fa fa-ellipsis-v"></i>
                               </button>
                               <div id="actionMenu_<?= htmlspecialchars($rId); ?>" class="ngw-action-menu card">
