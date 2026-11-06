@@ -25,51 +25,91 @@ if (!isset($_SESSION["mikhmon"])) {
   $getprofile = $API->comm("/ip/hotspot/user/profile/print");
   $srvlist = $API->comm("/ip/hotspot/print");
 
-  if (isset($_POST['name'])) {
-    $server = ($_POST['server']);
-    $name = ($_POST['name']);
-    $password = ($_POST['pass']);
-    $profile = ($_POST['profile']);
-    $disabled = ($_POST['disabled']);
-    $timelimit = ($_POST['timelimit']);
-    $datalimit = ($_POST['datalimit']);
-    $comment = ($_POST['comment']);
-    $chkvalid = ($_POST['valid']);
-    $mbgb = ($_POST['mbgb']);
-    if ($timelimit == "") {
-      $timelimit = "0";
+  // One-time success message after POST/Redirect/GET.
+  $addUserSuccess = '';
+  if (isset($_SESSION['ngw_adduser_success'])) {
+    $addUserSuccess = (string)$_SESSION['ngw_adduser_success'];
+    unset($_SESSION['ngw_adduser_success']);
+  }
+  $addUserError = '';
+
+  if (isset($_POST['save']) && isset($_POST['name'])) {
+    $server = isset($_POST['server']) ? trim((string)$_POST['server']) : 'all';
+    $name = trim((string)$_POST['name']);
+    $password = isset($_POST['pass']) ? (string)$_POST['pass'] : '';
+    $profile = isset($_POST['profile']) ? trim((string)$_POST['profile']) : '';
+    $timelimit = isset($_POST['timelimit']) ? trim((string)$_POST['timelimit']) : '';
+    $datalimit = isset($_POST['datalimit']) ? trim((string)$_POST['datalimit']) : '';
+    $comment = isset($_POST['comment']) ? trim((string)$_POST['comment']) : '';
+    $mbgb = isset($_POST['mbgb']) ? (float)$_POST['mbgb'] : 1048576;
+
+    if ($timelimit === '') $timelimit = '0';
+    $datalimit = ($datalimit === '') ? '0' : (string)((float)$datalimit * $mbgb);
+
+    if ($name === '' || $password === '' || $profile === '') {
+      $addUserError = 'Username, password and profile are required.';
     } else {
-      $timelimit = $timelimit;
+      $usermode = ($name === $password) ? 'vc-' : 'up-';
+      $routerComment = $usermode . $comment;
+
+      // Prevent a duplicate username from being mistaken for a successful new add.
+      $existingUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
+      $duplicate = false;
+      if (is_array($existingUsers)) {
+        foreach ($existingUsers as $existingUser) {
+          if (isset($existingUser['name']) && (string)$existingUser['name'] === $name) {
+            $duplicate = true;
+            break;
+          }
+        }
+      }
+
+      if ($duplicate) {
+        $addUserError = 'This username already exists on the selected router.';
+      } else {
+        $addResult = $API->comm('/ip/hotspot/user/add', array(
+          'server' => $server,
+          'name' => $name,
+          'password' => $password,
+          'profile' => $profile,
+          'disabled' => 'no',
+          'limit-uptime' => $timelimit,
+          'limit-bytes-total' => $datalimit,
+          'comment' => $routerComment,
+        ));
+
+        $apiRejected = is_array($addResult) && (isset($addResult['!trap']) || isset($addResult['!fatal']));
+        if ($apiRejected) {
+          $addUserError = 'MikroTik rejected the user creation request. Check the username, profile and router permissions.';
+        } else {
+          // Verify the account on the router before showing a success message.
+          $verifiedUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
+          $createdUser = false;
+          if (is_array($verifiedUsers)) {
+            foreach ($verifiedUsers as $verifiedUser) {
+              if (isset($verifiedUser['name']) && (string)$verifiedUser['name'] === $name
+                  && isset($verifiedUser['profile']) && (string)$verifiedUser['profile'] === $profile) {
+                $createdUser = true;
+                break;
+              }
+            }
+          }
+
+          if ($createdUser) {
+            ngwRecordActivity('hotspot_user_created', array(
+              'router' => $session,
+              'profile' => $profile,
+              'target' => $name
+            ));
+            $_SESSION['ngw_adduser_success'] = 'User "' . $name . '" added successfully.';
+            // Stay on Add User; do not open the Edit User route.
+            header('Location: ./?hotspot-user=add&session=' . rawurlencode((string)$session));
+            exit;
+          }
+          $addUserError = 'Router confirmation failed. Check the user list before trying again.';
+        }
+      }
     }
-    if ($datalimit == "") {
-      $datalimit = "0";
-    } else {
-      $datalimit = $datalimit * $mbgb;
-    }
-    if ($name == $password) {
-      $usermode = "vc-";
-    }else{
-      $usermode = "up-";
-    }
-    
-      $comment = $usermode.$comment;
-    
-    $API->comm("/ip/hotspot/user/add", array(
-      "server" => "$server",
-      "name" => "$name",
-      "password" => "$password",
-      "profile" => "$profile",
-      "disabled" => "no",
-      "limit-uptime" => "$timelimit",
-      "limit-bytes-total" => "$datalimit",
-      "comment" => "$comment",
-    ));
-    $getuser = $API->comm("/ip/hotspot/user/print", array(
-      "?name" => "$name",
-    ));
-    ngwRecordActivity('hotspot_user_created', array('router' => $session, 'profile' => $profile));
-    $uid = $getuser[0]['.id'];
-    echo "<script>window.location='./?hotspot-user=" . $uid . "&session=" . $session . "'</script>";
   }
 }
 ?>
@@ -89,6 +129,12 @@ if (!isset($_SESSION["mikhmon"])) {
   <h3><i class="fa fa-user-plus"></i> <?= $_add_user ?> <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> <?= $_processing ?> </i></small></h3> 
   </div>
   <div class="card-body">
+  <?php if ($addUserSuccess !== '') { ?>
+    <div class="alert alert-success" role="status"><i class="fa fa-check-circle"></i> <?= htmlspecialchars($addUserSuccess, ENT_QUOTES, 'UTF-8'); ?></div>
+  <?php } ?>
+  <?php if ($addUserError !== '') { ?>
+    <div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-circle"></i> <?= htmlspecialchars($addUserError, ENT_QUOTES, 'UTF-8'); ?></div>
+  <?php } ?>
 <form autocomplete="off" method="post" action="">  
   <div>
   <?php if ($_SESSION['ubp'] != "") {
@@ -115,7 +161,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		</td>
 	</tr>
   <tr>
-    <td class="align-middle"><?= $_name ?></td><td><input class="form-control" type="text" autocomplete="off" name="name" value="" required="1" autofocus></td>
+    <td class="align-middle"><?= $_name ?></td><td><input class="form-control" type="text" autocomplete="off" name="name" value="<?= isset($name) ? htmlspecialchars($name, ENT_QUOTES, 'UTF-8') : ''; ?>" required="1" autofocus></td>
   </tr>
   <tr>
     <td class="align-middle"><?= $_password ?></td><td>
@@ -161,7 +207,7 @@ if (!isset($_SESSION["mikhmon"])) {
     </td>
   </tr>
   <tr>
-    <td class="align-middle"><?= $_comment ?></td><td><input class="form-control" type="text" title="No special characters" id="comment" autocomplete="off" name="comment" value=""></td>
+    <td class="align-middle"><?= $_comment ?></td><td><input class="form-control" type="text" title="No special characters" id="comment" autocomplete="off" name="comment" value="<?= isset($_POST['comment']) ? htmlspecialchars((string)$_POST['comment'], ENT_QUOTES, 'UTF-8') : ''; ?>"></td>
   </tr>
   <tr >
     <td  colspan="4" class="align-middle"  id="GetValidPrice"></td>
