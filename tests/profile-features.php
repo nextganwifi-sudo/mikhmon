@@ -14,7 +14,7 @@ checkProfileFeature(is_string($profile) && strpos($profile, 'change_my_password'
 checkProfileFeature(strpos($profile, 'hash_equals($profileCsrf') !== false, 'Profile password changes validate CSRF');
 checkProfileFeature(strpos($profile, 'verifyResellerPassword') !== false, 'Reseller must verify current password');
 checkProfileFeature(strpos($profile, 'password_hash($newPassword') !== false, 'New passwords are hashed');
-checkProfileFeature(strpos($profile, "preg_match('/^\\s*\\$data") !== false, 'Primary admin config update is anchored');
+checkProfileFeature(strpos($profile, '$newConfig = preg_replace(') !== false, 'Primary admin config update uses a bounded config-line replacement');
 checkProfileFeature(strpos($menu, 'Intl.DateTimeFormat().resolvedOptions().timeZone') !== false, 'Clock uses browser local time zone');
 checkProfileFeature(substr_count($menu, 'id="ngw-local-datetime"') === 2, 'Clock is present in both admin and reseller navigation');
 checkProfileFeature(strpos($menu, 'admin.php?id=my-profile') !== false && strpos($menu, 'hotspot=my-profile') !== false, 'Both roles have profile navigation');
