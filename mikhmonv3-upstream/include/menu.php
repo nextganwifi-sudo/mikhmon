@@ -331,7 +331,6 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
     ?>
   </select>
   <a title="Idle Timeout (5m)" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
-  <a href="./admin.php?id=my-profile" class="ngw-profile-nav" title="My Profile"><i class="fa fa-user-circle" aria-hidden="true"></i><span>Profile</span></a>
 
 
 </div>
@@ -492,7 +491,6 @@ $(document).ready(function(){
     
   </select>
   <a title="Idle Timeout (5m)" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
-  <a href="./?hotspot=my-profile&session=<?= urlencode((string)$session); ?>" class="ngw-profile-nav" title="My Profile"><i class="fa fa-user-circle" aria-hidden="true"></i><span>Profile</span></a>
 </div>
 </div>
 
@@ -703,9 +701,6 @@ $(document).ready(function(){
 <?php } ?>
 
 <style>
-.navbar-right .ngw-profile-nav{display:inline-flex;align-items:center;justify-content:center;align-self:center;position:relative;top:-2px;gap:3px;margin:0 0 0 8px;padding:2px 6px;border:1px solid rgba(128,128,128,.35);border-radius:4px;color:inherit;text-decoration:none!important;font-size:10px;font-weight:600;line-height:1.1;white-space:nowrap;vertical-align:middle;float:none}
-.navbar-right .ngw-profile-nav:hover{background:#1f6feb;color:#fff!important;border-color:#1f6feb}
-@media(max-width:760px){.navbar-right .ngw-profile-nav{margin-left:4px;padding:2px 5px;top:-1px}}
 </style>
 <script>
 (function () {
