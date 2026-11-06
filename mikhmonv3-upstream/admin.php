@@ -209,6 +209,10 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./include/menu.php');
   session_write_close();
   include_once('./settings/activity.php');
+} elseif ($id == "my-profile") {
+  include_once('./include/menu.php');
+  session_write_close();
+  include_once('./settings/my_profile.php');
 } elseif ($id == "admin-settings") {
   if (!isMikhmonAdmin()) {
     session_write_close();
