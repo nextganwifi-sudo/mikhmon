@@ -300,12 +300,14 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
   </span>
 </span>
 <?php } ?>
+<span id="ngw-local-datetime" class="navbar-left" title="Your browser's local date and time" style="display:inline-flex;align-items:center;gap:5px;padding:10px 7px;font-size:10px;line-height:1.2;opacity:.86;white-space:nowrap;"><i class="fa fa-calendar-o" aria-hidden="true"></i><span>--</span></span>
 </div>
  <div class="navbar-right">
   <?php if (!empty($_SESSION['mikhmon_impersonator_admin'])) { ?>
   <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
   <?php } ?>
-  <a id="logout" href="./admin.php?id=logout" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
+  <a href="./admin.php?id=my-profile" title="My Profile" style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;margin-right:6px;border:1px solid rgba(128,128,128,.25);border-radius:5px;font-size:12px;"><i class="fa fa-user-circle"></i> Profile</a>
+   <a id="logout" href="./admin.php?id=logout" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
   <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
     <option> <?= $_theme?></option>
@@ -439,12 +441,14 @@ $(document).ready(function(){
   </span>
 </span>
 <?php } ?>
+<span id="ngw-local-datetime" class="navbar-left" title="Your browser's local date and time" style="display:inline-flex;align-items:center;gap:5px;padding:10px 7px;font-size:10px;line-height:1.2;opacity:.86;white-space:nowrap;"><i class="fa fa-calendar-o" aria-hidden="true"></i><span>--</span></span>
 </div>
  <div class="navbar-right">
   <?php if (!empty($_SESSION['mikhmon_impersonator_admin'])) { ?>
   <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
   <?php } ?>
-  <a id="logout" href="./?hotspot=logout&session=<?= $session; ?>" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
+  <a href="./?hotspot=my-profile&session=<?= urlencode((string)$session); ?>" title="My Profile" style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;margin-right:6px;border:1px solid rgba(128,128,128,.25);border-radius:5px;font-size:12px;"><i class="fa fa-user-circle"></i> Profile</a>
+   <a id="logout" href="./?hotspot=logout&session=<?= $session; ?>" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
   <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
     <option> <?= $_theme ?></option>
@@ -694,6 +698,28 @@ $(document).ready(function(){
 </script>
 <?php } ?>
 
+<script>
+(function () {
+  var el = document.getElementById('ngw-local-datetime');
+  if (!el) return;
+  var out = el.querySelector('span');
+  var zone = '';
+  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+  function updateLocalClock() {
+    var now = new Date();
+    try {
+      var date = new Intl.DateTimeFormat(undefined, {year:'numeric',month:'short',day:'2-digit'}).format(now);
+      var time = new Intl.DateTimeFormat(undefined, {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).format(now);
+      out.textContent = date + ' · ' + time;
+      el.title = 'Browser local time' + (zone ? ' (' + zone + ')' : '');
+    } catch (e) {
+      out.textContent = now.toLocaleString();
+    }
+  }
+  updateLocalClock();
+  window.setInterval(updateLocalClock, 1000);
+})();
+</script>
 <div id="main">  
 <div id="loading" class="lds-dual-ring"></div>
 <?php if($hotspot == 'template-editor' || $id == 'editor'){
