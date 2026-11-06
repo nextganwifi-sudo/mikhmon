@@ -307,7 +307,7 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
   <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
   <?php } ?>
    <a id="logout" href="./admin.php?id=logout" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
-  <a href="./admin.php?id=my-profile" class="ngw-profile-nav" title="My Profile"><i class="fa fa-user-circle" aria-hidden="true"></i><span>Profile</span></a>
+
   <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
     <option> <?= $_theme?></option>
@@ -331,6 +331,8 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
     ?>
   </select>
   <a title="Idle Timeout (5m)" style="<?= $didleto; ?>"><span style="width:70px;" class="pd-5 radius-3"><i class="fa fa-clock-o mr-1"></i>  <span class="mr-1" id="timer"></span></span></a>
+  <a href="./?hotspot=my-profile&session=<?= urlencode((string)$session); ?>" class="ngw-profile-nav" title="My Profile"><i class="fa fa-user-circle" aria-hidden="true"></i><span>Profile</span></a>
+  <a href="./admin.php?id=my-profile" class="ngw-profile-nav" title="My Profile"><i class="fa fa-user-circle" aria-hidden="true"></i><span>Profile</span></a>
 </div>
 </div>
 
@@ -448,7 +450,7 @@ $(document).ready(function(){
   <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
   <?php } ?>
    <a id="logout" href="./?hotspot=logout&session=<?= $session; ?>" ><i class="fa fa-sign-out mr-1"></i> <?= $_logout ?></a>
-  <a href="./?hotspot=my-profile&session=<?= urlencode((string)$session); ?>" class="ngw-profile-nav" title="My Profile"><i class="fa fa-user-circle" aria-hidden="true"></i><span>Profile</span></a>
+
   <?php $urlSep = (strpos($url, '?') !== false) ? '&' : '?'; ?>
   <select class="stheme ses text-right mr-t-10 pd-5">
     <option> <?= $_theme ?></option>
@@ -699,9 +701,9 @@ $(document).ready(function(){
 <?php } ?>
 
 <style>
-.ngw-profile-nav{display:inline-flex;align-items:center;justify-content:center;gap:4px;margin-left:8px;padding:3px 7px;border:1px solid rgba(128,128,128,.35);border-radius:5px;color:inherit;text-decoration:none!important;font-size:11px;font-weight:600;line-height:1.15;white-space:nowrap;flex:0 0 auto;vertical-align:middle}
+.ngw-profile-nav{display:inline-flex;align-items:center;justify-content:center;gap:3px;margin-left:8px;padding:2px 6px;border:1px solid rgba(128,128,128,.35);border-radius:4px;color:inherit;text-decoration:none!important;font-size:10px;font-weight:600;line-height:1.1;white-space:nowrap;flex:0 0 auto;vertical-align:middle}
 .ngw-profile-nav:hover{background:#1f6feb;color:#fff!important;border-color:#1f6feb}
-@media(max-width:760px){.ngw-profile-nav{margin-left:4px;padding:3px 6px}.ngw-profile-nav span{display:inline}}
+@media(max-width:760px){.ngw-profile-nav{margin-left:4px;padding:2px 5px}.ngw-profile-nav span{display:inline}}
 </style>
 <script>
 (function () {
