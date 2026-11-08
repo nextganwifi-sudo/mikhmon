@@ -48,8 +48,8 @@ function parseRouterOSDate($dateStr) {
     // Format 1: ROS 7 ISO YYYY-MM-DD (or YYYY/MM/DD)
     if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/', $dateStr, $m)) {
         $y = $m[1];
-        $mo = $m[2];
-        $d = $m[3];
+        $mo = str_pad($m[2], 2, '0', STR_PAD_LEFT);
+        $d = str_pad($m[3], 2, '0', STR_PAD_LEFT);
         if (isset($revMonths[$mo])) {
             $mName = $revMonths[$mo];
             return array(
@@ -69,7 +69,7 @@ function parseRouterOSDate($dateStr) {
     // Format 2: ROS 6 legacy mmm/dd/yyyy
     if (preg_match('/^([a-z]{3})\/(\d{1,2})\/(\d{4})/', $dateStr, $m)) {
         $mName = $m[1];
-        $d = $m[2];
+        $d = str_pad($m[2], 2, '0', STR_PAD_LEFT);
         $y = $m[3];
         if (isset($months[$mName])) {
             $mo = $months[$mName];
@@ -226,7 +226,7 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
     :set vdate ($vdate . $dd . "/" . $yy);
     :local expTime [:tostr $exptime];
     :if ([:pick $expTime 1 2] = ":") do={ :set expTime ("0" . $expTime); };
-    /ip hotspot user set comment=($vdate . " " . $expTime) [find where name=$user];
+    :local expiryStamp ($vdate . " " . $expTime); :if ([:len $originalComment] > 0) do={ :set expiryStamp ($expiryStamp . " " . $originalComment); }; /ip hotspot user set comment=$expiryStamp [find where name=$user];
     :if (($lockmac = "YES") && ([:len $mac] > 0)) do={
         /ip hotspot user set mac-address=$mac [find where name=$user];
     };
