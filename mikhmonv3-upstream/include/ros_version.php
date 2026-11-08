@@ -46,7 +46,7 @@ function parseRouterOSDate($dateStr) {
     $revMonths = array_flip($months);
 
     // Format 1: ROS 7 ISO YYYY-MM-DD (or YYYY/MM/DD)
-    if (preg_match('/^(\d{4})[-\/](\d{2})[-\/](\d{2})/', $dateStr, $m)) {
+    if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/', $dateStr, $m)) {
         $y = $m[1];
         $mo = $m[2];
         $d = $m[3];
@@ -67,7 +67,7 @@ function parseRouterOSDate($dateStr) {
     }
 
     // Format 2: ROS 6 legacy mmm/dd/yyyy
-    if (preg_match('/^([a-z]{3})\/(\d{2})\/(\d{4})/', $dateStr, $m)) {
+    if (preg_match('/^([a-z]{3})\/(\d{1,2})\/(\d{4})/', $dateStr, $m)) {
         $mName = $m[1];
         $d = $m[2];
         $y = $m[3];
