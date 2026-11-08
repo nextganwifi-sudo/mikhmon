@@ -108,6 +108,7 @@ function parseExpiryFromComment($comment) {
         $d = parseRouterOSDate($m[1]);
         if ($d['valid']) {
             $t = (strlen($m[2]) === 5) ? ($m[2] . ':00') : $m[2];
+            if (preg_match('/^\\d:/', $t)) $t = '0' . $t;
             return array(
                 'is_expiry' => true,
                 'format' => 'ros7',
