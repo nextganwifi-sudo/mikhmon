@@ -202,7 +202,7 @@ export function parseRouterOSDate(raw: string): ParsedRouterOSDate {
   const cleaned = (raw || '').trim().toLowerCase();
 
   // Check RouterOS 7 ISO format: YYYY-MM-DD or YYYY/MM/DD
-  const isoMatch = cleaned.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (isoMatch) {
     const year = parseInt(isoMatch[1], 10);
     const month = parseInt(isoMatch[2], 10);
@@ -227,7 +227,7 @@ export function parseRouterOSDate(raw: string): ParsedRouterOSDate {
   }
 
   // Check RouterOS 6 format: mmm/dd/yyyy
-  const ros6Match = cleaned.match(/^([a-z]{3})\/(\d{2})\/(\d{4})$/);
+  const ros6Match = cleaned.match(/^([a-z]{3})\/(\d{1,2})\/(\d{4})$/);
   if (ros6Match) {
     const monthShort = ros6Match[1];
     const monthIdx = MONTHS_SHORT.indexOf(monthShort as (typeof MONTHS_SHORT)[number]);
@@ -332,7 +332,7 @@ export function parseHotspotUserComment(comment: string): ParsedExpiryComment {
   const rawComment = (comment || '').trim();
 
   // 1. Check ROS 7 activated expiry comment: YYYY-MM-DD HH:MM:SS [optional note]
-  const ros7Match = rawComment.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})(?:\s+(.*))?$/);
+  const ros7Match = rawComment.match(/^(\d{4}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{1,2}:\d{1,2})(?:\s+(.*))?$/);
   if (ros7Match) {
     const d = parseRouterOSDate(ros7Match[1]);
     const tSec = parseTimeSeconds(ros7Match[2]);
@@ -355,7 +355,7 @@ export function parseHotspotUserComment(comment: string): ParsedExpiryComment {
   }
 
   // 2. Check ROS 6 activated expiry comment: mmm/dd/yyyy HH:MM:SS [optional note]
-  const ros6Match = rawComment.match(/^([a-zA-Z]{3}\/\d{2}\/\d{4})\s+(\d{2}:\d{2}:\d{2})(?:\s+(.*))?$/);
+  const ros6Match = rawComment.match(/^([a-zA-Z]{3}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{1,2}:\d{1,2})(?:\s+(.*))?$/);
   if (ros6Match) {
     const d = parseRouterOSDate(ros6Match[1]);
     const tSec = parseTimeSeconds(ros6Match[2]);
