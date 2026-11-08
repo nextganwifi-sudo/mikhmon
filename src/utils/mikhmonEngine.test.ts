@@ -471,3 +471,24 @@ test('19 & 20. Reseller RBAC restrictions across routers, profiles, batch limits
     false
   );
 });
+
+test('21. Single-digit RouterOS date/time fields are normalized without losing expiry notes', () => {
+  const isoDate = parseRouterOSDate('2026-1-2');
+  assert.equal(isoDate.valid, true);
+  assert.equal(isoDate.isoDate, '2026-01-02');
+
+  const legacyDate = parseRouterOSDate('jan/2/2026');
+  assert.equal(legacyDate.valid, true);
+  assert.equal(legacyDate.legacyDate, 'jan/02/2026');
+
+  const ros7 = parseHotspotUserComment('2026-1-2 9:05:00 kiosk-note');
+  assert.equal(ros7.isActivatedExpiry, true);
+  assert.equal(ros7.isoDateTime, '2026-01-02 09:05:00');
+  assert.equal(ros7.note, 'kiosk-note');
+
+  const ros6 = parseHotspotUserComment('jan/2/2026 9:05:00 kiosk-note');
+  assert.equal(ros6.isActivatedExpiry, true);
+  assert.equal(ros6.legacyDateTime, 'jan/02/2026 09:05:00');
+  assert.equal(ros6.note, 'kiosk-note');
+});
+
