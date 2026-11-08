@@ -231,7 +231,7 @@ export function parseRouterOSDate(raw: string): ParsedRouterOSDate {
   if (ros6Match) {
     const monthShort = ros6Match[1];
     const monthIdx = MONTHS_SHORT.indexOf(monthShort as (typeof MONTHS_SHORT)[number]);
-    const day = parseInt(ros6Match[2], 10);
+    const day = parseInt(ros6Time, 10);
     const year = parseInt(ros6Match[3], 10);
     if (monthIdx !== -1 && year >= 1970 && day >= 1 && day <= getDaysInMonth(year, monthIdx + 1)) {
       const month = monthIdx + 1;
@@ -335,7 +335,8 @@ export function parseHotspotUserComment(comment: string): ParsedExpiryComment {
   const ros7Match = rawComment.match(/^(\d{4}-\d{1,2}-\d{1,2})\s+(\d{1,2}:\d{1,2}:\d{1,2})(?:\s+(.*))?$/);
   if (ros7Match) {
     const d = parseRouterOSDate(ros7Match[1]);
-    const tSec = parseTimeSeconds(ros7Match[2]);
+    const ros7Time = ros7Match[2].length === 5 ? `${ros7Match[2]}:00` : ros7Match[2].padStart(8, '0');
+    const tSec = parseTimeSeconds(ros7Time);
     if (d.valid && tSec >= 0) {
       return {
         isActivatedExpiry: true,
@@ -343,9 +344,9 @@ export function parseHotspotUserComment(comment: string): ParsedExpiryComment {
         voucherMode: null,
         format: 'ros7',
         expiryDateStr: d.isoDate,
-        expiryTimeStr: ros7Match[2],
-        isoDateTime: `${d.isoDate} ${ros7Match[2]}`,
-        legacyDateTime: `${d.legacyDate} ${ros7Match[2]}`,
+        expiryTimeStr: ros7Time,
+        isoDateTime: `${d.isoDate} ${ros7Time}`,
+        legacyDateTime: `${d.legacyDate} ${ros7Time}`,
         dateInt: d.dateInt,
         timeSeconds: tSec,
         note: (ros7Match[3] || '').trim(),
@@ -358,7 +359,8 @@ export function parseHotspotUserComment(comment: string): ParsedExpiryComment {
   const ros6Match = rawComment.match(/^([a-zA-Z]{3}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{1,2}:\d{1,2})(?:\s+(.*))?$/);
   if (ros6Match) {
     const d = parseRouterOSDate(ros6Match[1]);
-    const tSec = parseTimeSeconds(ros6Match[2]);
+    const ros6Time = ros6Match[2].length === 5 ? `${ros6Match[2]}:00` : ros6Match[2].padStart(8, '0');
+    const tSec = parseTimeSeconds(ros6Time);
     if (d.valid && tSec >= 0) {
       return {
         isActivatedExpiry: true,
@@ -366,9 +368,9 @@ export function parseHotspotUserComment(comment: string): ParsedExpiryComment {
         voucherMode: null,
         format: 'ros6',
         expiryDateStr: d.legacyDate,
-        expiryTimeStr: ros6Match[2],
-        isoDateTime: `${d.isoDate} ${ros6Match[2]}`,
-        legacyDateTime: `${d.legacyDate} ${ros6Match[2]}`,
+        expiryTimeStr: ros6Time,
+        isoDateTime: `${d.isoDate} ${ros6Time}`,
+        legacyDateTime: `${d.legacyDate} ${ros6Time}`,
         dateInt: d.dateInt,
         timeSeconds: tSec,
         note: (ros6Match[3] || '').trim(),
