@@ -21,6 +21,14 @@ assertGenerated(strpos($ros7["bgservice"], 'profile="30Days-30SR"') !== false, "
 assertGenerated(strpos($ros7["bgservice"], '/ip hotspot active remove') !== false, "Active session removal missing");
 assertGenerated(strpos($ros7["bgservice"], '/ip hotspot cookie remove') !== false, "Hotspot cookie removal missing");
 
+$singleDigitIso = parseRouterOSDate("2026-1-2");
+assertGenerated($singleDigitIso["valid"] && $singleDigitIso["iso"] === "2026-01-02", "ROS7 single-digit month/day normalization failed");
+$singleDigitLegacy = parseRouterOSDate("jan/2/2026");
+assertGenerated($singleDigitLegacy["valid"] && $singleDigitLegacy["legacy"] === "jan/02/2026", "ROS6 single-digit day normalization failed");
+$singleDigitComment = parseExpiryFromComment("jan/2/2026 9:05:00 kiosk-note");
+assertGenerated($singleDigitComment["is_expiry"] && $singleDigitComment["time_str"] === "09:05:00" && $singleDigitComment["note"] === "kiosk-note", "ROS6 single-digit expiry comment or note parsing failed");
+assertGenerated(strpos($ros7["onlogin"], '$originalComment') !== false, "ROS7 original comment must remain available for note preservation");
+
 $ros7Hours = buildUniversalMikhmonScripts("3Hours-Test", "rem", "0", "3h", "0", "Disable", 7);
 assertGenerated(strpos($ros7Hours["onlogin"], ':local validity "3h";') !== false, "ROS7 hour validity was not injected");
 assertGenerated(strpos($ros7Hours["onlogin"], '__VALIDITY__') === false, "Unexpanded validity placeholder remains");
