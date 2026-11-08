@@ -231,7 +231,7 @@ export function parseRouterOSDate(raw: string): ParsedRouterOSDate {
   if (ros6Match) {
     const monthShort = ros6Match[1];
     const monthIdx = MONTHS_SHORT.indexOf(monthShort as (typeof MONTHS_SHORT)[number]);
-    const day = parseInt(ros6Time, 10);
+    const day = parseInt(ros6Match[2], 10);
     const year = parseInt(ros6Match[3], 10);
     if (monthIdx !== -1 && year >= 1970 && day >= 1 && day <= getDaysInMonth(year, monthIdx + 1)) {
       const month = monthIdx + 1;
