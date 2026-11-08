@@ -119,7 +119,7 @@ function getFormattedClockTime(): string {
   ].join(':');
 }
 
-function buildUniversalOnLogin(expmode: string, validity: string, price: string, sprice: string, getlock: string): string {
+function buildUniversalOnLogin(expmode: string, validity: string, price: string, sprice: string, getlock: string, profileName: string): string {
   const lockPart =
     getlock === 'Enable'
       ? '; :local mac $"mac-address"; :if ([:len $mac] > 0) do={ /ip hotspot user set mac-address=$mac [find where name="$user"] }'
@@ -131,7 +131,7 @@ function buildUniversalOnLogin(expmode: string, validity: string, price: string,
         price +
         '-|-$address-|-$mac-|-' +
         validity +
-        '-|-$profile-|-$comment") owner=("$curmonth$curyear") source="$curdate6" comment="mikhmon" }'
+        '-|-' + profileName + '-|-$comment") owner=("$curmonth$curyear") source="$curdate6" comment="mikhmon" }'
       : '';
 
   const onloginBase =
@@ -202,7 +202,7 @@ function createInitialRouterState(
         'address-pool': 'hs-pool-1',
         'status-autorefresh': '1m',
         'transparent-proxy': 'no',
-        'on-login': buildUniversalOnLogin('remc', '1d', '5000', '5000', 'Enable'),
+        'on-login': buildUniversalOnLogin('remc', '1d', '5000', '5000', 'Enable', '1Day-5K'),
       },
       {
         '.id': '*2',
@@ -212,7 +212,7 @@ function createInitialRouterState(
         'address-pool': 'hs-pool-1',
         'status-autorefresh': '1m',
         'transparent-proxy': 'no',
-        'on-login': buildUniversalOnLogin('ntfc', '7d', '25000', '25000', 'Enable'),
+        'on-login': buildUniversalOnLogin('ntfc', '7d', '25000', '25000', 'Enable', '7Days-25K'),
       },
       {
         '.id': '*3',
@@ -222,7 +222,7 @@ function createInitialRouterState(
         'address-pool': 'hs-pool-1',
         'status-autorefresh': '1m',
         'transparent-proxy': 'no',
-        'on-login': buildUniversalOnLogin('remc', '30d', '100000', '100000', 'Disable'),
+        'on-login': buildUniversalOnLogin('remc', '30d', '100000', '100000', 'Disable', '30Days-VIP'),
       },
       {
         '.id': '*4',
@@ -232,8 +232,8 @@ function createInitialRouterState(
         'address-pool': 'hs-pool-1',
         'status-autorefresh': '1m',
         'transparent-proxy': 'no',
-        // Legacy ROS6-only on-login script so user can test "Sync ROS6/ROS7 Expiry" migration!
-        'on-login': `:put (",ntfc,3000,3h,3000,,Disable,"); {:local date [ /system clock get date ];:local year [ :pick $date 7 11 ];:local month [ :pick $date 0 3 ];:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ /sys sch add name="$user" disable=no start-date=$date interval="3h"; :delay 2s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pic $exp 0 6]; :local t [:pic $exp 7 15]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp X" [find where name="$user"];}; /sys sch remove [find where name="$user"]; }}`,
+        // Use the same dual-stack expiry generator as the other demo profiles.
+        'on-login': buildUniversalOnLogin('ntfc', '3h', '3000', '3000', 'Disable', '3Hours-3K'),
       },
     ],
     schedulers: [
@@ -258,6 +258,17 @@ function createInitialRouterState(
         comment: 'Monitor Profile 7Days-25K',
         disabled: 'false',
         'next-run': '00:01:50',
+      },
+      {
+        '.id': '*13',
+        name: '3Hours-3K',
+        'start-date': major === 7 ? `${y}-${m}-${d}` : `${mon}/${d}/${y}`,
+        'start-time': '01:30:00',
+        interval: '00:02:00',
+        'on-event': buildUniversalSchedulerOnEvent('3Hours-3K', 'ntfc'),
+        comment: 'Monitor Profile 3Hours-3K',
+        disabled: 'false',
+        'next-run': '00:01:40',
       },
       {
         '.id': '*12',
