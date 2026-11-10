@@ -170,12 +170,42 @@ if (!isset($_SESSION["mikhmon"])) {
   <?php } ?>
   </div>
 </div>
+
+<?php if (hasResellerPermission('edit_user') || hasResellerPermission('generate_voucher') || hasResellerPermission('add_user')) { ?>
+<form id="hsQuickProfileTransferForm" method="post" action="./hotspot/profiletransfer.php?session=<?= urlencode($session); ?>" style="display:none; margin-top:8px; padding:8px 12px; border-radius:4px; background:rgba(31,111,235,0.15); border:1px solid rgba(56,139,253,0.4);">
+  <input type="hidden" name="do_profile_transfer" value="1">
+  <input type="hidden" name="transfer_mode" value="selected">
+  <div id="hsQuickSelectedInputs"></div>
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="font-size:12px; font-weight:600;">
+      <i class="fa fa-check-square-o text-primary"></i>
+      <span id="hsQuickSelectedCount">0</span> <?= ($langid === 'bn') ? 'জন ইউজার সিলেক্ট করা হয়েছে' : 'user(s) selected'; ?>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+      <select name="dest_profile" class="form-control" style="width:auto; min-width:160px; height:30px; padding:3px 8px; font-size:12px;" required>
+        <option value=""><?= ($langid === 'bn') ? '-- গন্তব্য প্রোফাইল বাছুন --' : '-- Destination Profile --'; ?></option>
+        <?php for ($pIdx = 0; $pIdx < $TotalReg2; $pIdx++) {
+          $pName = $getprofile[$pIdx]['name'];
+          echo "<option value=\"" . htmlspecialchars($pName) . "\">" . htmlspecialchars($pName) . "</option>";
+        } ?>
+      </select>
+      <button type="submit" class="btn bg-primary pd-5 radius-3 text-white" style="height:30px; font-size:12px; margin:0; font-weight:600;">
+        <i class="fa fa-exchange"></i> <?= ($langid === 'bn') ? 'প্রোফাইল পরিবর্তন করুন' : 'Move to Profile'; ?>
+      </button>
+    </div>
+  </div>
+</form>
+<?php } ?>
+
 <div class="overflow mr-t-10 box-bordered" style="max-height: 75vh">
 <?php include_once('./include/ros_version.php'); ?>
 <table id="dataTable" class="table table-bordered table-hover text-nowrap">
   <thead>
   <tr>
-    <th style="min-width:50px;" class="align-middle text-center" id="cuser"><?= $counttuser; ?></th>
+    <th style="min-width:65px;" class="align-middle text-center" id="cuser">
+      <input type="checkbox" id="hsSelectAllCb" onclick="toggleAllHsUserRows(this.checked)" title="<?= ($langid === 'bn') ? 'সব সিলেক্ট করুন' : 'Select All'; ?>" style="vertical-align:middle; margin-right:4px;">
+      <?= $counttuser; ?>
+    </th>
     <th style="min-width:50px;" class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Server</th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_password ?></th>
@@ -220,8 +250,11 @@ for ($i = 0; $i < $TotalReg; $i++) {
   echo "<tr>";
   ?>
   <td style='text-align:center;'>
+  <?php if ($uname !== 'default-trial') { ?>
+  <input type="checkbox" class="hs-row-cb" value="<?= htmlspecialchars($uid); ?>" onchange="updateHsQuickTransferBar()" style="vertical-align:middle; margin-right:4px;">
+  <?php } ?>
   <?php if (hasResellerPermission('delete_user')) { ?>
-  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
   if (hasResellerPermission('enable_disable_user')) {
@@ -291,6 +324,40 @@ for ($i = 0; $i < $TotalReg; $i++) {
   </tbody>
 </table>
 </div>
+<script>
+function toggleAllHsUserRows(checked) {
+  var rows = document.querySelectorAll('#dataTable tbody tr');
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].style.display !== 'none') {
+      var cb = rows[i].querySelector('.hs-row-cb');
+      if (cb) cb.checked = checked;
+    }
+  }
+  updateHsQuickTransferBar();
+}
+function updateHsQuickTransferBar() {
+  var cbs = document.querySelectorAll('.hs-row-cb:checked');
+  var bar = document.getElementById('hsQuickProfileTransferForm');
+  var countEl = document.getElementById('hsQuickSelectedCount');
+  var inputsContainer = document.getElementById('hsQuickSelectedInputs');
+  if (!bar || !countEl || !inputsContainer) return;
+  inputsContainer.innerHTML = '';
+  if (cbs.length > 0) {
+    bar.style.display = 'block';
+    countEl.textContent = cbs.length;
+    for (var i = 0; i < cbs.length; i++) {
+      var inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = 'selected_uids[]';
+      inp.value = cbs[i].value;
+      inputsContainer.appendChild(inp);
+    }
+  } else {
+    bar.style.display = 'none';
+    countEl.textContent = '0';
+  }
+}
+</script>
 </div>
 </div>
 </div>

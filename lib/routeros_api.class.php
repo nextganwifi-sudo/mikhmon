@@ -104,8 +104,14 @@ class RouterosAPI
             return false;
         }
 
-        // Auto-detect Virtual Test Router (e.g. 127.0.0.2, 127.0.0.1, mock, virtual, simulator)
-        if ($rawIp === '127.0.0.2' || $rawIp === '127.0.0.1' || stripos($rawIp, 'mock') !== false || stripos($rawIp, 'virtual') !== false || stripos($rawIp, 'simulator') !== false) {
+        $rawHost = $rawIp;
+        if (strpos($rawHost, ':') !== false) {
+            $hParts = explode(':', $rawHost, 2);
+            $rawHost = $hParts[0];
+        }
+
+        // Auto-detect Virtual Test Router (e.g. 127.0.0.2, 127.0.0.1, localhost, mock, virtual, simulator)
+        if ($rawHost === '127.0.0.2' || $rawHost === '127.0.0.1' || $rawHost === 'localhost' || stripos($rawHost, 'mock') !== false || stripos($rawHost, 'virtual') !== false || stripos($rawHost, 'simulator') !== false || stripos($rawIp, 'demo') !== false) {
             require_once(__DIR__ . '/../include/virtual_router.php');
             $this->is_virtual = true;
             $this->connected = true;

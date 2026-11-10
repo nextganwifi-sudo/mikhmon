@@ -33,24 +33,30 @@ if (!function_exists('password_verify')) {
 }
 
 /**
- * Organized 9-category permission registry across all Mikhmon modules, templates, and admin operations.
+ * Organized 9-category permission registry across all modules:
+ * 1. Hotspot Management (All Hotspot Users, Vouchers, Profiles & Active Sessions)
+ * 2. User & Profile Transfer (All Cross-Router & Same-Router Transfer Operations)
+ * 3. PPPoE Management (All PPPoE Users, Profiles, Online Sessions & Reset)
+ * 4. Template & Logo Management (All Voucher Templates & Logo Operations)
+ * 5. Network, IP Binding & DHCP (Hosts, IP Bindings, Cookies & DHCP Leases)
+ * 6. Reports, Logs & Traffic Monitor (Logs, Selling Reports & Traffic Monitor)
+ * 7. Router, System & Scheduler (System Scheduler, Reboot/Shutdown & Router Config)
+ * 8. Account, Profile & Language (Self-Service Profile, Avatar, Password & Language/Theme)
+ * 9. Reseller & Administrator Security (Protected Admin-Only Operations)
  */
 function getAllMikhmonPermissionCategories() {
     return array(
-        'Hotspot Users & Vouchers' => array(
+        'Hotspot Management' => array(
             'view_dashboard'      => 'View Dashboard & System Resource',
             'view_users'          => 'View Hotspot Users & Voucher Lists',
             'add_user'            => 'Add Single Hotspot User',
             'generate_voucher'    => 'Generate Batch Vouchers',
             'edit_user'           => 'View & Edit Hotspot User Details',
-            'delete_user'         => 'Delete Hotspot Users (Single / Comment / Expired)',
+            'delete_user'         => 'Delete Hotspot Users (Single / Batch / Expired)',
             'enable_disable_user' => 'Enable, Disable & Reset Hotspot Users',
-            'reset_voucher'       => 'Reset Voucher (Reset, Enable, Disable & Check Expiry)',
+            'reset_voucher'       => 'Reset Voucher (Reset MAC, Enable, Disable & Check Expiry)',
             'print_voucher'       => 'Print Vouchers (Default / QR / Small / BT / Quick Print)',
             'manage_quickprint'   => 'Manage Quick Print Packages',
-            'export_users'        => 'Export Hotspot Users (Script / CSV)',
-        ),
-        'Hotspot Profiles & Active Sessions' => array(
             'view_profiles'       => 'View Hotspot User Profiles',
             'add_profile'         => 'Add Hotspot User Profile',
             'edit_profile'        => 'Edit Hotspot User Profile & Sync ROS6/ROS7 Scripts',
@@ -58,61 +64,260 @@ function getAllMikhmonPermissionCategories() {
             'view_active'         => 'View Hotspot Active Sessions',
             'disconnect_active'   => 'Disconnect Active Hotspot User',
         ),
-        'Network Management' => array(
-            'view_hosts'          => 'View Hotspot Hosts',
-            'manage_hosts'        => 'Remove Hosts & Make IP Bindings',
-            'view_ipbinding'      => 'View Hotspot IP Bindings',
-            'manage_ipbinding'    => 'Add, Enable, Disable & Remove IP Bindings',
-            'view_cookies'        => 'View Hotspot Cookies',
-            'delete_cookies'      => 'Delete Hotspot Cookies',
-            'view_dhcp'           => 'View DHCP Leases',
+        'User & Profile Transfer' => array(
+            'transfer_users_access'        => 'Access User Transfer Center (System → User Transfer)',
+            'export_users'                 => 'Export Hotspot Users (.json Transfer File / CSV / Script)',
+            'export_rsc_users'             => 'Download RouterOS 6 & 7 Terminal Script (.rsc)',
+            'import_transfer_users'        => 'Import Users to Router (Cross-Router OS 6 & 7 Transfer)',
+            'auto_activate_transfer_users' => 'Auto-Activate Used Vouchers on Transfer (MAC Lock + IP Binding Bypass)',
+            'same_router_profile_transfer' => 'Same-Router Profile Transfer (Entire Profile / Batch / Selected Users)',
         ),
-        'Logs, Reports & Monitoring' => array(
-            'view_logs'           => 'View Hotspot Log & User Log',
-            'view_report'         => 'View & Print Selling Reports & Live Report',
-            'export_report'       => 'Export Selling Report (CSV)',
-            'delete_report'       => 'Delete Selling Report Records',
-            'view_traffic'        => 'View Interface Traffic Monitor',
+        'PPPoE Management' => array(
+            'manage_pppoe'              => 'PPPoE Master Access (Enable/Disable Entire PPPoE Section)',
+            'view_pppoe_users'          => 'View PPPoE Users & Disabled/Expired List',
+            'add_pppoe_user'            => 'Add PPPoE User (Customer Name, Mobile, Username & Password)',
+            'edit_pppoe_user'           => 'Edit PPPoE User Details, Profile & Validity',
+            'enable_disable_pppoe_user' => 'Enable & Disable PPPoE Users',
+            'delete_pppoe_user'         => 'Delete PPPoE Users',
+            'view_pppoe_profiles'       => 'View PPPoE Profiles',
+            'manage_pppoe_profiles'     => 'Add, Edit & Delete PPPoE Profiles (Auto Pool & Local IP)',
+            'view_pppoe_active'         => 'View Online / Active PPPoE Sessions',
+            'disconnect_pppoe_active'   => 'Disconnect Online PPPoE User',
+            'reset_pppoe'               => 'Reset PPPoE User (Check Expiry, Clear MAC & Re-enable)',
         ),
-        'System Scheduler' => array(
+        'Template & Logo Management' => array(
+            'use_assigned_template'     => 'Use Assigned Voucher Template',
+            'preview_assigned_template' => 'Preview Assigned Voucher Template',
+            'edit_own_template'         => 'Edit Own Assigned Template & Upload Voucher Logo',
+            'save_own_template'         => 'Save Own Template Draft',
+            'publish_own_template'      => 'Publish Own Template',
+            'restore_own_template'      => 'Restore Own Template Version',
+            'assign_template'           => 'Assign or Change Reseller Template (Protected Admin-Only)',
+            'manage_global_templates'   => 'Manage Global Voucher Templates (Protected Admin-Only)',
+        ),
+        'Network, IP Binding & DHCP' => array(
+            'view_hosts'       => 'View Hotspot Hosts',
+            'manage_hosts'     => 'Remove Hosts & Make IP Bindings',
+            'view_ipbinding'   => 'View Hotspot IP Bindings',
+            'manage_ipbinding' => 'Add, Enable, Disable & Remove IP Bindings',
+            'view_cookies'     => 'View Hotspot Cookies',
+            'delete_cookies'   => 'Delete Hotspot Cookies',
+            'view_dhcp'        => 'View DHCP Leases',
+        ),
+        'Reports, Logs & Traffic Monitor' => array(
+            'view_logs'     => 'View Hotspot Log & User Log',
+            'view_report'   => 'View & Print Selling Reports & Live Report',
+            'export_report' => 'Export Selling Report (CSV)',
+            'delete_report' => 'Delete Selling Report Records',
+            'view_traffic'  => 'View Interface Traffic Monitor',
+        ),
+        'Router, System & Scheduler' => array(
             'view_scheduler'         => 'View System Scheduler (Menu & List)',
             'manage_scheduler'       => 'Manage System Scheduler (Enable, Disable & Remove)',
-        ),
-        'Router Management' => array(
             'reboot_shutdown'        => 'Reboot & Shutdown Router',
             'manage_router_settings' => 'Modify Router Session Settings & Upload Logo',
         ),
-        'PPPoE Management' => array(
-            'manage_pppoe'                => 'PPPoE Master Access (Enable/Disable entire PPPoE section)',
-            'view_pppoe_users'            => 'View PPPoE Users & Secrets',
-            'add_pppoe_user'              => 'Add PPPoE User',
-            'edit_pppoe_user'             => 'View & Edit PPPoE User Details & Validity',
-            'delete_pppoe_user'           => 'Delete PPPoE User Secrets',
-            'enable_disable_pppoe_user'   => 'Enable & Disable PPPoE Users',
-            'view_pppoe_profiles'         => 'View PPPoE Profiles',
-            'manage_pppoe_profiles'       => 'Add, Edit & Delete PPPoE Profiles',
-            'view_pppoe_active'           => 'View Active PPPoE Sessions',
-            'disconnect_pppoe_active'     => 'Disconnect Active PPPoE User',
-            'reset_pppoe'                 => 'Reset PPPoE (Check Expiry, Reset MAC & Re-enable)',
+        'Account, Profile & Language' => array(
+            'manage_own_profile'    => 'View & Update Own Account Profile & Avatar',
+            'change_own_password'   => 'Change Own Account Password',
+            'switch_language_theme' => 'Switch Software Language (English / Bangla) & Theme',
         ),
-        'Template Management' => array(
-            'use_assigned_template'     => 'Use Assigned Template',
-            'preview_assigned_template' => 'Preview Assigned Template',
-            'edit_own_template'         => 'Edit Own Assigned Template',
-            'save_own_template'         => 'Save Own Template',
-            'publish_own_template'      => 'Publish Own Template',
-            'restore_own_template'      => 'Restore Own Template Version',
-            'assign_template'           => 'Assign or Change Template (Protected Admin-Only)',
-            'manage_global_templates'   => 'Manage Global Templates (Protected Admin-Only)',
-        ),
-        'Reseller Management' => array(
-            'view_resellers'      => 'View Reseller Accounts (Protected Admin-Only)',
-            'manage_resellers'    => 'Create, Edit & Delete Resellers (Protected Admin-Only)',
-        ),
-        'Administrator-only Operations' => array(
-            'manage_admin_account'     => 'Manage Main Administrator Account & Password (Protected)',
+        'Reseller & Administrator Security' => array(
+            'view_resellers'           => 'View Reseller Accounts (Protected Admin-Only)',
+            'manage_resellers'         => 'Create, Edit & Delete Resellers (Protected Admin-Only)',
+            'manage_admin_account'     => 'Manage Administrator Accounts & Passwords (Protected)',
             'manage_permission_groups' => 'Manage Permission Group Definitions (Protected)',
-            'manage_global_security'   => 'Manage Global Security & System Configuration (Protected)',
+            'manage_global_security'   => 'Manage VPN Hub, System Update & Global Security (Protected)',
+        ),
+    );
+}
+
+/**
+ * Rich metadata (icons, accent colors, bilingual titles & permission labels) for the Permission UI.
+ */
+function getMikhmonPermissionSectionsMeta() {
+    return array(
+        'Hotspot Management' => array(
+            'slug'     => 'hotspot',
+            'icon'     => 'fa-wifi',
+            'color'    => '#1f6feb',
+            'bg'       => 'rgba(31, 111, 235, 0.14)',
+            'border'   => 'rgba(56, 139, 253, 0.38)',
+            'title_en' => 'Hotspot Management',
+            'title_bn' => 'হটস্পট ম্যানেজমেন্ট (Hotspot)',
+            'short_en' => 'Hotspot',
+            'short_bn' => 'হটস্পট',
+            'items_bn' => array(
+                'view_dashboard'      => 'ড্যাশবোর্ড ও সিস্টেম রিসোর্স দেখা',
+                'view_users'          => 'হটস্পট ইউজার ও ভাউচার লিস্ট দেখা',
+                'add_user'            => 'সিঙ্গেল হটস্পট ইউজার যোগ করা',
+                'generate_voucher'    => 'ব্যাচ ভাউচার জেনারেট করা',
+                'edit_user'           => 'হটস্পট ইউজার ডিটেইলস দেখা ও এডিট করা',
+                'delete_user'         => 'হটস্পট ইউজার ডিলিট করা (সিঙ্গেল / ব্যাচ / মেয়াদোত্তীর্ণ)',
+                'enable_disable_user' => 'হটস্পট ইউজার ইনেবল, ডিজেবল ও রিসেট করা',
+                'reset_voucher'       => 'ভাউচার রিসেট (ম্যাক রিসেট, ইনেবল, ডিজেবল ও মেয়াদ চেক)',
+                'print_voucher'       => 'ভাউচার প্রিন্ট করা (Default / QR / Small / BT / Quick Print)',
+                'manage_quickprint'   => 'কুইক প্রিন্ট প্যাকেজ ম্যানেজ করা',
+                'view_profiles'       => 'হটস্পট ইউজার প্রোফাইল লিস্ট দেখা',
+                'add_profile'         => 'নতুন হটস্পট প্রোফাইল তৈরি করা',
+                'edit_profile'        => 'হটস্পট প্রোফাইল এডিট ও ROS6/ROS7 স্ক্রিপ্ট সিঙ্ক',
+                'delete_profile'      => 'হটস্পট প্রোফাইল ডিলিট করা',
+                'view_active'         => 'হটস্পট অ্যাক্টিভ সেশন দেখা',
+                'disconnect_active'   => 'হটস্পট অ্যাক্টিভ ইউজার ডিসকানেক্ট করা',
+            ),
+        ),
+        'User & Profile Transfer' => array(
+            'slug'     => 'transfer',
+            'icon'     => 'fa-exchange',
+            'color'    => '#0ea5e9',
+            'bg'       => 'rgba(14, 165, 233, 0.14)',
+            'border'   => 'rgba(56, 189, 248, 0.40)',
+            'title_en' => 'User & Profile Transfer',
+            'title_bn' => 'ইউজার ও প্রোফাইল ট্রান্সফার (Transfer)',
+            'short_en' => 'Transfer',
+            'short_bn' => 'ট্রান্সফার',
+            'items_bn' => array(
+                'transfer_users_access'        => 'ইউজার ট্রান্সফার সেন্টার অ্যাক্সেস (System → User Transfer)',
+                'export_users'                 => 'হটস্পট ইউজার ফাইল ডাউনলোড (.json / CSV / Script)',
+                'export_rsc_users'             => 'RouterOS 6 ও 7 টার্মিনাল স্ক্রিপ্ট (.rsc) ডাউনলোড',
+                'import_transfer_users'        => 'এক রাউটার থেকে অন্য রাউটারে ইউজার ইমপোর্ট (OS 6 ও 7)',
+                'auto_activate_transfer_users' => 'ট্রান্সফারে ব্যবহৃত ভাউচার অটো-অ্যাক্টিভ (MAC লক ও IP বাইন্ডিং)',
+                'same_router_profile_transfer' => 'একই রাউটারে এক প্রোফাইল থেকে অন্য প্রোফাইলে ইউজার ট্রান্সফার',
+            ),
+        ),
+        'PPPoE Management' => array(
+            'slug'     => 'pppoe',
+            'icon'     => 'fa-plug',
+            'color'    => '#8b5cf6',
+            'bg'       => 'rgba(139, 92, 246, 0.14)',
+            'border'   => 'rgba(167, 139, 250, 0.38)',
+            'title_en' => 'PPPoE Management',
+            'title_bn' => 'পিপিপি ম্যানেজমেন্ট (PPPoE)',
+            'short_en' => 'PPPoE',
+            'short_bn' => 'পিপিপি (PPPoE)',
+            'items_bn' => array(
+                'manage_pppoe'              => 'পিপিপি মাস্টার অ্যাক্সেস (পুরো PPPoE সেকশন চালু/বন্ধ)',
+                'view_pppoe_users'          => 'পিপিপি ইউজার লিস্ট ও এক্সপায়ারড ইউজার দেখা',
+                'add_pppoe_user'            => 'নতুন পিপিপি ইউজার যোগ করা (নাম, মোবাইল, ইউজারনেম ও পাসওয়ার্ড)',
+                'edit_pppoe_user'           => 'পিপিপি ইউজার ডিটেইলস, প্রোফাইল ও মেয়াদ এডিট করা',
+                'enable_disable_pppoe_user' => 'পিপিপি ইউজার ইনেবল ও ডিজেবল করা',
+                'delete_pppoe_user'         => 'পিপিপি ইউজার ডিলিট করা',
+                'view_pppoe_profiles'       => 'পিপিপি প্রোফাইল লিস্ট দেখা',
+                'manage_pppoe_profiles'     => 'পিপিপি প্রোফাইল তৈরি, এডিট ও ডিলিট (অটো পুল ও লোকাল IP)',
+                'view_pppoe_active'         => 'অনলাইন / অ্যাক্টিভ পিপিপি সেশন দেখা',
+                'disconnect_pppoe_active'   => 'অনলাইন পিপিপি ইউজার ডিসকানেক্ট করা',
+                'reset_pppoe'               => 'পিপিপি ইউজার রিসেট (মেয়াদ চেক, ম্যাক ক্লিয়ার ও রি-ইনেবল)',
+            ),
+        ),
+        'Template & Logo Management' => array(
+            'slug'     => 'template',
+            'icon'     => 'fa-code',
+            'color'    => '#f59e0b',
+            'bg'       => 'rgba(245, 158, 11, 0.14)',
+            'border'   => 'rgba(251, 191, 36, 0.38)',
+            'title_en' => 'Template & Logo Management',
+            'title_bn' => 'টেমপ্লেট ও লোগো ম্যানেজমেন্ট (Template)',
+            'short_en' => 'Templates',
+            'short_bn' => 'টেমপ্লেট',
+            'items_bn' => array(
+                'use_assigned_template'     => 'নির্ধারিত ভাউচার টেমপ্লেট ব্যবহার করা',
+                'preview_assigned_template' => 'ভাউচার টেমপ্লেট প্রিভিউ দেখা',
+                'edit_own_template'         => 'নিজস্ব টেমপ্লেট এডিট ও ভাউচার লোগো আপলোড',
+                'save_own_template'         => 'নিজস্ব টেমপ্লেট ড্রাফট সেভ করা',
+                'publish_own_template'      => 'নিজস্ব টেমপ্লেট পাবলিশ করা',
+                'restore_own_template'      => 'নিজস্ব টেমপ্লেট আগের ভার্সনে রিস্টোর করা',
+                'assign_template'           => 'রিসেলার টেমপ্লেট নির্ধারণ বা পরিবর্তন (অ্যাডমিন সংরক্ষিত)',
+                'manage_global_templates'   => 'গ্লোবাল ভাউচার টেমপ্লেট ম্যানেজমেন্ট (অ্যাডমিন সংরক্ষিত)',
+            ),
+        ),
+        'Network, IP Binding & DHCP' => array(
+            'slug'     => 'network',
+            'icon'     => 'fa-sitemap',
+            'color'    => '#10b981',
+            'bg'       => 'rgba(16, 185, 129, 0.14)',
+            'border'   => 'rgba(52, 211, 153, 0.38)',
+            'title_en' => 'Network, IP Binding & DHCP',
+            'title_bn' => 'নেটওয়ার্ক, IP বাইন্ডিং ও DHCP',
+            'short_en' => 'Network',
+            'short_bn' => 'নেটওয়ার্ক',
+            'items_bn' => array(
+                'view_hosts'       => 'হটস্পট হোস্ট লিস্ট দেখা',
+                'manage_hosts'     => 'হোস্ট রিমুভ ও IP বাইন্ডিং তৈরি করা',
+                'view_ipbinding'   => 'হটস্পট IP বাইন্ডিং দেখা',
+                'manage_ipbinding' => 'IP বাইন্ডিং যোগ, ইনেবল, ডিজেবল ও ডিলিট করা',
+                'view_cookies'     => 'হটস্পট কুকিজ দেখা',
+                'delete_cookies'   => 'হটস্পট কুকিজ ডিলিট করা',
+                'view_dhcp'        => 'DHCP লিজ দেখা',
+            ),
+        ),
+        'Reports, Logs & Traffic Monitor' => array(
+            'slug'     => 'reports',
+            'icon'     => 'fa-bar-chart',
+            'color'    => '#ec4899',
+            'bg'       => 'rgba(236, 72, 153, 0.14)',
+            'border'   => 'rgba(244, 114, 182, 0.38)',
+            'title_en' => 'Reports, Logs & Traffic Monitor',
+            'title_bn' => 'রিপোর্ট, লগ ও ট্রাফিক মনিটর',
+            'short_en' => 'Reports & Logs',
+            'short_bn' => 'রিপোর্ট ও লগ',
+            'items_bn' => array(
+                'view_logs'     => 'হটস্পট লগ ও ইউজার লগ দেখা',
+                'view_report'   => 'সেলিং রিপোর্ট ও লাইভ রিপোর্ট দেখা ও প্রিন্ট করা',
+                'export_report' => 'সেলিং রিপোর্ট এক্সপোর্ট করা (CSV)',
+                'delete_report' => 'সেলিং রিপোর্ট রেকর্ড ডিলিট করা',
+                'view_traffic'  => 'ইন্টারফেস ট্রাফিক মনিটর দেখা',
+            ),
+        ),
+        'Router, System & Scheduler' => array(
+            'slug'     => 'router',
+            'icon'     => 'fa-cogs',
+            'color'    => '#06b6d4',
+            'bg'       => 'rgba(6, 182, 212, 0.14)',
+            'border'   => 'rgba(34, 211, 238, 0.38)',
+            'title_en' => 'Router, System & Scheduler',
+            'title_bn' => 'রাউটার, সিস্টেম ও শিডিউলার',
+            'short_en' => 'Router & System',
+            'short_bn' => 'রাউটার ও সিস্টেম',
+            'items_bn' => array(
+                'view_scheduler'         => 'সিস্টেম শিডিউলার দেখা (মেনু ও লিস্ট)',
+                'manage_scheduler'       => 'সিস্টেম শিডিউলার ম্যানেজ করা (ইনেবল, ডিজেবল ও ডিলিট)',
+                'reboot_shutdown'        => 'রাউটার রিবুট ও শাটডাউন করা',
+                'manage_router_settings' => 'রাউটার সেশন সেটিংস পরিবর্তন ও লোগো আপলোড',
+            ),
+        ),
+        'Account, Profile & Language' => array(
+            'slug'     => 'account',
+            'icon'     => 'fa-user-circle',
+            'color'    => '#22c55e',
+            'bg'       => 'rgba(34, 197, 94, 0.14)',
+            'border'   => 'rgba(74, 222, 128, 0.38)',
+            'title_en' => 'Account, Profile & Language',
+            'title_bn' => 'অ্যাকাউন্ট, প্রোফাইল ও ভাষা সেটিংস',
+            'short_en' => 'Account & Lang',
+            'short_bn' => 'অ্যাকাউন্ট ও ভাষা',
+            'items_bn' => array(
+                'manage_own_profile'    => 'নিজস্ব প্রোফাইল তথ্য ও অবতার আপলোড করা',
+                'change_own_password'   => 'নিজস্ব অ্যাকাউন্ট পাসওয়ার্ড পরিবর্তন করা',
+                'switch_language_theme' => 'সফটওয়্যারের ভাষা (English / বাংলা) ও থিম পরিবর্তন করা',
+            ),
+        ),
+        'Reseller & Administrator Security' => array(
+            'slug'     => 'security',
+            'icon'     => 'fa-shield',
+            'color'    => '#ef4444',
+            'bg'       => 'rgba(239, 68, 68, 0.14)',
+            'border'   => 'rgba(248, 113, 113, 0.38)',
+            'title_en' => 'Reseller & Administrator Security',
+            'title_bn' => 'রিসেলার ও অ্যাডমিন সিকিউরিটি (সংরক্ষিত)',
+            'short_en' => 'Admin Security',
+            'short_bn' => 'অ্যাডমিন সংরক্ষিত',
+            'items_bn' => array(
+                'view_resellers'           => 'রিসেলার অ্যাকাউন্ট দেখা (অ্যাডমিন সংরক্ষিত)',
+                'manage_resellers'         => 'রিসেলার তৈরি, এডিট ও ডিলিট (অ্যাডমিন সংরক্ষিত)',
+                'manage_admin_account'     => 'অ্যাডমিন অ্যাকাউন্ট ও পাসওয়ার্ড ম্যানেজমেন্ট (সংরক্ষিত)',
+                'manage_permission_groups' => 'পারমিশন গ্রুপ কনফিগারেশন (সংরক্ষিত)',
+                'manage_global_security'   => 'VPN হাব, সিস্টেম আপডেট ও গ্লোবাল সিকিউরিটি (সংরক্ষিত)',
+            ),
         ),
     );
 }
@@ -178,7 +383,8 @@ function getDefaultPermissionMap($defaultVal = false) {
 }
 
 /**
- * Strip protected administrator-only permissions from any reseller permission map.
+ * Strip protected administrator-only permissions from any reseller permission map,
+ * while migrating legacy permission maps cleanly.
  */
 function sanitizeResellerPermissions($permMap) {
     $clean = getDefaultPermissionMap(false);
@@ -193,6 +399,35 @@ function sanitizeResellerPermissions($permMap) {
             $permMap['edit_own_template'] = true;
             $permMap['save_own_template'] = true;
         }
+        // Backward-compatible inheritance for newly added keys when loading older JSON files
+        $hasExport = !empty($permMap['export_users']);
+        $hasGen = !empty($permMap['generate_voucher']);
+        $hasEditUser = !empty($permMap['edit_user']);
+        if (!array_key_exists('transfer_users_access', $permMap) && ($hasExport || $hasGen)) {
+            $permMap['transfer_users_access'] = true;
+        }
+        if (!array_key_exists('export_rsc_users', $permMap) && $hasExport) {
+            $permMap['export_rsc_users'] = true;
+        }
+        if (!array_key_exists('import_transfer_users', $permMap) && ($hasExport && $hasGen)) {
+            $permMap['import_transfer_users'] = true;
+        }
+        if (!array_key_exists('auto_activate_transfer_users', $permMap) && ($hasExport && $hasGen)) {
+            $permMap['auto_activate_transfer_users'] = true;
+        }
+        if (!array_key_exists('same_router_profile_transfer', $permMap) && ($hasEditUser || $hasGen)) {
+            $permMap['same_router_profile_transfer'] = true;
+        }
+        if (!array_key_exists('manage_own_profile', $permMap) && (!empty($permMap['view_dashboard']) || !empty($permMap['view_users']))) {
+            $permMap['manage_own_profile'] = true;
+        }
+        if (!array_key_exists('change_own_password', $permMap) && ($hasEditUser || $hasGen)) {
+            $permMap['change_own_password'] = true;
+        }
+        if (!array_key_exists('switch_language_theme', $permMap)) {
+            $permMap['switch_language_theme'] = true;
+        }
+
         foreach ($clean as $k => $v) {
             if (isProtectedAdminPermission($k)) {
                 $clean[$k] = false;
@@ -205,7 +440,7 @@ function sanitizeResellerPermissions($permMap) {
 }
 
 /**
- * Built-in default permission group definitions for Read, Write, and Full modes.
+ * Built-in default permission group definitions for Read, Write, Full, and Reset Voucher modes.
  */
 function getDefaultPermissionGroupDefinitions() {
     $readKeys = array(
@@ -226,6 +461,8 @@ function getDefaultPermissionGroupDefinitions() {
         'view_pppoe_active',
         'use_assigned_template',
         'preview_assigned_template',
+        'manage_own_profile',
+        'switch_language_theme',
     );
 
     $writeKeys = array_merge($readKeys, array(
@@ -236,7 +473,12 @@ function getDefaultPermissionGroupDefinitions() {
         'reset_voucher',
         'print_voucher',
         'manage_quickprint',
+        'transfer_users_access',
         'export_users',
+        'export_rsc_users',
+        'import_transfer_users',
+        'auto_activate_transfer_users',
+        'same_router_profile_transfer',
         'export_report',
         'edit_own_template',
         'save_own_template',
@@ -245,6 +487,7 @@ function getDefaultPermissionGroupDefinitions() {
         'enable_disable_pppoe_user',
         'disconnect_pppoe_active',
         'reset_pppoe',
+        'change_own_password',
     ));
 
     $readMap = getDefaultPermissionMap(false);
@@ -266,6 +509,7 @@ function getDefaultPermissionGroupDefinitions() {
 
     $resetOnlyMap = getDefaultPermissionMap(false);
     $resetOnlyMap['reset_voucher'] = true;
+    $resetOnlyMap['switch_language_theme'] = true;
 
     return array(
         'Read'          => sanitizeResellerPermissions($readMap),
@@ -1437,7 +1681,12 @@ function isResetOnlyReseller() {
         'enable_disable_user',
         'print_voucher',
         'manage_quickprint',
+        'transfer_users_access',
         'export_users',
+        'export_rsc_users',
+        'import_transfer_users',
+        'auto_activate_transfer_users',
+        'same_router_profile_transfer',
         'view_profiles',
         'add_profile',
         'edit_profile',
@@ -1460,8 +1709,17 @@ function isResetOnlyReseller() {
         'manage_scheduler',
         'reboot_shutdown',
         'manage_router_settings',
-        'view_ppp',
-        'manage_ppp',
+        'manage_pppoe',
+        'view_pppoe_users',
+        'add_pppoe_user',
+        'edit_pppoe_user',
+        'delete_pppoe_user',
+        'enable_disable_pppoe_user',
+        'view_pppoe_profiles',
+        'manage_pppoe_profiles',
+        'view_pppoe_active',
+        'disconnect_pppoe_active',
+        'reset_pppoe',
         'edit_own_template',
         'save_own_template',
         'publish_own_template',

@@ -27,6 +27,8 @@ if (!isMikhmonAdmin()) {
 $baseResellerUrl = !empty($session) ? "./?hotspot=resellers&session=" . urlencode($session) : "./admin.php?id=resellers";
 $allRouters = getConfiguredRouterSessions();
 $permCatalog = getAllMikhmonPermissionCategories();
+$permSectionsMeta = function_exists('getMikhmonPermissionSectionsMeta') ? getMikhmonPermissionSectionsMeta() : array();
+$isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 $permGroups = loadPermissionGroups();
 $resellers = loadResellers();
 $msg = "";
@@ -398,6 +400,373 @@ foreach ($resellers as $r) {
     background: rgba(255,255,255,0.08);
     border-radius: 3px;
 }
+.ngw-modal-box.is-custom-mode {
+    max-width: 820px;
+}
+
+/* Redesigned Side-by-Side Permission Group & Custom Permission UI */
+.ngw-pg-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    background: rgba(128,128,128,0.08);
+    border: 1px solid rgba(128,128,128,0.22);
+}
+.ngw-pg-search-wrap {
+    position: relative;
+    min-width: 220px;
+    flex: 1;
+    max-width: 320px;
+}
+.ngw-pg-search-wrap i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.65;
+    font-size: 12px;
+    pointer-events: none;
+}
+.ngw-pg-search-input {
+    width: 100%;
+    padding: 6px 10px 6px 28px !important;
+    font-size: 12.5px !important;
+    height: 32px !important;
+    border-radius: 5px !important;
+    box-sizing: border-box;
+}
+.ngw-pg-workspace {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.ngw-pg-sidebar {
+    width: 225px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1px solid rgba(128,128,128,0.24);
+    background: rgba(128,128,128,0.05);
+    padding: 6px;
+    position: sticky;
+    top: 10px;
+}
+.ngw-pg-sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    padding: 4px 8px 6px 8px;
+    border-bottom: 1px solid rgba(128,128,128,0.18);
+    margin-bottom: 5px;
+}
+.ngw-pg-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: left;
+    padding: 7px 9px;
+    margin-bottom: 3px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.14s ease;
+    box-sizing: border-box;
+}
+.ngw-pg-nav-btn:hover {
+    background: rgba(128,128,128,0.14);
+}
+.ngw-pg-nav-btn.active {
+    background: rgba(31, 111, 235, 0.2);
+    border-color: rgba(56, 139, 253, 0.55);
+    color: #58a6ff;
+}
+.ngw-pg-nav-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.ngw-pg-nav-ico {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #fff;
+    flex-shrink: 0;
+}
+.ngw-pg-nav-cnt {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: rgba(128,128,128,0.2);
+}
+.ngw-pg-content {
+    flex: 1;
+    min-width: 0;
+}
+.ngw-pg-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.ngw-pg-grid.single-col {
+    grid-template-columns: 1fr;
+}
+.ngw-pg-sec-card {
+    border-radius: 6px;
+    border: 1px solid rgba(128,128,128,0.28);
+    background: rgba(128,128,128,0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.ngw-pg-sec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(128,128,128,0.22);
+    flex-wrap: wrap;
+}
+.ngw-pg-sec-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.ngw-pg-sec-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+.ngw-pg-sec-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+}
+.ngw-pg-sec-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(128,128,128,0.22);
+}
+.ngw-pg-sec-quick {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.ngw-pg-qbtn {
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 3px;
+    border: 1px solid rgba(128,128,128,0.35);
+    background: rgba(128,128,128,0.12);
+    color: inherit;
+    cursor: pointer;
+}
+.ngw-pg-qbtn:hover {
+    background: #1f6feb;
+    border-color: #388bfd;
+    color: #fff;
+}
+.ngw-pg-sec-body {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ngw-pg-item-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    border: 1px solid rgba(128,128,128,0.2);
+    background: rgba(128,128,128,0.05);
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+.ngw-pg-item-box:hover {
+    border-color: rgba(56, 139, 253, 0.45);
+    background: rgba(31, 111, 235, 0.06);
+}
+.ngw-pg-item-info {
+    flex: 1;
+    min-width: 0;
+}
+.ngw-pg-item-label {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    display: block;
+    word-break: break-word;
+}
+.ngw-pg-item-modes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.ngw-pg-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    border: 1px solid rgba(128,128,128,0.28);
+    background: rgba(128,128,128,0.08);
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+    line-height: 1.1;
+}
+.ngw-pg-mode-pill input[type="checkbox"] {
+    margin: 0;
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+}
+.ngw-pg-mode-pill.is-checked.mode-Read {
+    background: rgba(14, 165, 233, 0.2);
+    border-color: #0ea5e9;
+    color: #38bdf8;
+}
+.ngw-pg-mode-pill.is-checked.mode-Write {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #22c55e;
+    color: #4ade80;
+}
+.ngw-pg-mode-pill.is-checked.mode-Full {
+    background: rgba(139, 92, 246, 0.22);
+    border-color: #8b5cf6;
+    color: #c4b5fd;
+}
+.ngw-pg-mode-pill.is-checked.mode-Reset {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+    color: #fcd34d;
+}
+.ngw-pg-mode-pill.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Custom Permissions Tiles inside Add/Edit Reseller Modal */
+.ngw-cp-filter-bar {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.ngw-cp-cat-pill {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba(128,128,128,0.28);
+    background: rgba(128,128,128,0.08);
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.ngw-cp-cat-pill.active {
+    background: #1f6feb;
+    border-color: #388bfd;
+    color: #fff;
+}
+.ngw-cp-tiles-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+.ngw-cp-tile {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    border: 1px solid rgba(128,128,128,0.24);
+    background: rgba(128,128,128,0.06);
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0 !important;
+    transition: all 0.12s ease;
+}
+.ngw-cp-tile:hover {
+    border-color: rgba(56, 139, 253, 0.5);
+}
+.ngw-cp-tile.is-checked {
+    background: rgba(31, 111, 235, 0.16);
+    border-color: #388bfd;
+}
+.ngw-cp-tile input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+@media (max-width: 960px) {
+    .ngw-pg-workspace {
+        flex-direction: column;
+    }
+    .ngw-pg-sidebar {
+        width: 100%;
+        position: static;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .ngw-pg-sidebar-title {
+        width: 100%;
+    }
+    .ngw-pg-nav-btn {
+        width: auto;
+        flex: 1 1 auto;
+    }
+    .ngw-pg-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 600px) {
+    .ngw-pg-item-box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .ngw-cp-tiles-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 
 <script>
@@ -511,8 +880,31 @@ function PassReseller() {
 
 function onPermissionModeChange(mode) {
     var customBox = document.getElementById('customPermChecklist');
+    var modalBox = document.querySelector('#resellerFormModal .ngw-modal-box');
     if (customBox) {
         customBox.style.display = (mode === 'Custom') ? 'block' : 'none';
+    }
+    if (modalBox) {
+        if (mode === 'Custom') {
+            modalBox.classList.add('is-custom-mode');
+        } else {
+            modalBox.classList.remove('is-custom-mode');
+        }
+    }
+    syncCustomTileHighlights();
+}
+
+function syncCustomTileHighlights() {
+    var boxes = document.querySelectorAll('.perm-checkbox');
+    for (var i = 0; i < boxes.length; i++) {
+        var tile = boxes[i].closest('.ngw-cp-tile');
+        if (tile) {
+            if (boxes[i].checked) {
+                tile.classList.add('is-checked');
+            } else {
+                tile.classList.remove('is-checked');
+            }
+        }
     }
 }
 
@@ -526,8 +918,116 @@ function setPermPreset(mode) {
         } else if (mode === 'none') {
             boxes[i].checked = false;
         } else if (mode === 'reset_only') {
-            boxes[i].checked = (pk === 'reset_voucher');
+            boxes[i].checked = (pk === 'reset_voucher' || pk === 'switch_language_theme');
         }
+    }
+    syncCustomTileHighlights();
+}
+
+function toggleCustomSectionPerms(secSlug, state) {
+    var secEl = document.querySelector('.ngw-cp-sec-card[data-sec="' + secSlug + '"]');
+    if (!secEl) return;
+    var boxes = secEl.querySelectorAll('.perm-checkbox');
+    for (var i = 0; i < boxes.length; i++) {
+        if (!boxes[i].disabled && boxes[i].closest('.ngw-cp-tile').style.display !== 'none') {
+            boxes[i].checked = state;
+        }
+    }
+    syncCustomTileHighlights();
+}
+
+function filterCustomSection(secSlug, btn) {
+    var pills = document.querySelectorAll('.ngw-cp-cat-pill');
+    for (var i = 0; i < pills.length; i++) {
+        pills[i].classList.remove('active');
+    }
+    if (btn) btn.classList.add('active');
+    var cards = document.querySelectorAll('.ngw-cp-sec-card');
+    for (var j = 0; j < cards.length; j++) {
+        var cSlug = cards[j].getAttribute('data-sec');
+        cards[j].style.display = (secSlug === 'all' || cSlug === secSlug) ? '' : 'none';
+    }
+}
+
+function filterCustomPermissionsBySearch(q) {
+    q = (q || '').toLowerCase().trim();
+    var cards = document.querySelectorAll('.ngw-cp-sec-card');
+    for (var i = 0; i < cards.length; i++) {
+        var tiles = cards[i].querySelectorAll('.ngw-cp-tile');
+        var visibleInCard = 0;
+        for (var j = 0; j < tiles.length; j++) {
+            var txt = (tiles[j].getAttribute('data-search') || tiles[j].textContent || '').toLowerCase();
+            var match = (q === '' || txt.indexOf(q) !== -1);
+            tiles[j].style.display = match ? '' : 'none';
+            if (match) visibleInCard++;
+        }
+        cards[i].style.display = (visibleInCard > 0) ? '' : 'none';
+    }
+}
+
+function filterPgSection(secSlug, btn) {
+    var navBtns = document.querySelectorAll('.ngw-pg-nav-btn');
+    for (var i = 0; i < navBtns.length; i++) {
+        navBtns[i].classList.remove('active');
+    }
+    if (btn) btn.classList.add('active');
+    var grid = document.getElementById('ngwPgGrid');
+    if (grid) {
+        if (secSlug === 'all') {
+            grid.classList.remove('single-col');
+        } else {
+            grid.classList.add('single-col');
+        }
+    }
+    var cards = document.querySelectorAll('#ngwPgGrid .ngw-pg-sec-card');
+    for (var j = 0; j < cards.length; j++) {
+        var cSlug = cards[j].getAttribute('data-sec');
+        cards[j].style.display = (secSlug === 'all' || cSlug === secSlug) ? '' : 'none';
+    }
+}
+
+function filterPgPermissionsBySearch(q) {
+    q = (q || '').toLowerCase().trim();
+    var cards = document.querySelectorAll('#ngwPgGrid .ngw-pg-sec-card');
+    for (var i = 0; i < cards.length; i++) {
+        var items = cards[i].querySelectorAll('.ngw-pg-item-box');
+        var visibleCount = 0;
+        for (var j = 0; j < items.length; j++) {
+            var txt = (items[j].getAttribute('data-search') || items[j].textContent || '').toLowerCase();
+            var match = (q === '' || txt.indexOf(q) !== -1);
+            items[j].style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+        }
+        cards[i].style.display = (visibleCount > 0) ? '' : 'none';
+    }
+}
+
+function togglePgSectionMode(secSlug, modeName) {
+    var card = document.querySelector('#ngwPgGrid .ngw-pg-sec-card[data-sec="' + secSlug + '"]');
+    if (!card) return;
+    var inputs = card.querySelectorAll('input.pg-mode-cb[data-mode="' + modeName + '"]:not(:disabled)');
+    var allChecked = true;
+    for (var i = 0; i < inputs.length; i++) {
+        if (!inputs[i].checked) {
+            allChecked = false;
+            break;
+        }
+    }
+    var nextState = !allChecked;
+    for (var j = 0; j < inputs.length; j++) {
+        inputs[j].checked = nextState;
+        syncPgModePill(inputs[j]);
+    }
+}
+
+function syncPgModePill(cb) {
+    if (!cb) return;
+    var pill = cb.closest('.ngw-pg-mode-pill');
+    if (!pill) return;
+    if (cb.checked) {
+        pill.classList.add('is-checked');
+    } else {
+        pill.classList.remove('is-checked');
     }
 }
 
@@ -589,6 +1089,7 @@ function openEditResellerModal(id) {
             pChecks[j].checked = !!(r.permissions && r.permissions[pk]);
         }
     }
+    syncCustomTileHighlights();
 
     document.getElementById('resellerFormModal').style.display = 'block';
 }
@@ -671,63 +1172,148 @@ function closeResellerDetailsModal() {
       <div class="card-body">
         <?php if ($msg !== '') { echo "<div class='mr-b-10'>" . $msg . "</div>"; } ?>
 
-        <?php if ($activeView === 'groups') { ?>
-        <!-- PERMISSION GROUP CONFIGURATION SECTION -->
+        <?php if ($activeView === 'groups') {
+          $totalPermCount = 0;
+          foreach ($permCatalog as $cItems) {
+            $totalPermCount += count($cItems);
+          }
+        ?>
+        <!-- PERMISSION GROUP CONFIGURATION SECTION (SIDE-BY-SIDE CARDS & CATEGORY NAVIGATION) -->
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">
-              <i class="fa fa-sliders"></i> <?= htmlspecialchars(isset($_permission_group_label) ? $_permission_group_label : 'Permission Group'); ?>
+              <i class="fa fa-sliders"></i> <?= htmlspecialchars(isset($_permission_group_label) ? $_permission_group_label : ($isBn ? 'পারমিশন গ্রুপ কনফিগারেশন' : 'Permission Group')); ?>
               &nbsp; | &nbsp;
-              <a href="<?= $baseResellerUrl ?>"><i class="fa fa-arrow-left"></i> <?= htmlspecialchars(isset($_reseller_list_label) ? $_reseller_list_label : 'Reseller List'); ?></a>
+              <a href="<?= $baseResellerUrl ?>"><i class="fa fa-arrow-left"></i> <?= htmlspecialchars(isset($_reseller_list_label) ? $_reseller_list_label : ($isBn ? 'রিসেলার লিস্ট' : 'Reseller List')); ?></a>
             </h3>
           </div>
           <div class="card-body">
             <form method="post" action="<?= $baseResellerUrl ?>&view=groups">
-              <div class="mr-b-10">
-                <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
-                <button type="submit" name="reset_permission_groups" class="btn bg-warning"><i class="fa fa-refresh"></i> Restore Defaults</button>
+              <div class="ngw-pg-toolbar">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
+                  <button type="submit" name="reset_permission_groups" class="btn bg-warning"><i class="fa fa-refresh"></i> <?= $isBn ? 'ডিফল্ট রিস্টোর করুন' : 'Restore Defaults' ?></button>
+                </div>
+                <div class="ngw-pg-search-wrap">
+                  <i class="fa fa-search"></i>
+                  <input type="text" class="form-control ngw-pg-search-input" placeholder="<?= $isBn ? 'যেকোনো পারমিশন খুঁজুন (যেমন: ট্রান্সফার, পিপিপি, হটস্পট)...' : 'Search permissions (e.g., Transfer, PPPoE, Hotspot)...' ?>" onkeyup="filterPgPermissionsBySearch(this.value)">
+                </div>
               </div>
-              <div class="overflow box-bordered" style="max-height: 70vh;">
-                <table class="table table-sm table-bordered table-hover">
-                  <thead>
-                    <tr>
-                      <th style="width: 24%;">Category</th>
-                      <th style="width: 36%;">Operation Permission</th>
-                      <th class="text-center" style="width: 10%;">Read</th>
-                      <th class="text-center" style="width: 10%;">Write</th>
-                      <th class="text-center" style="width: 10%;">Full</th>
-                      <th class="text-center" style="width: 10%;">Reset Voucher</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($permCatalog as $catName => $catItems) { ?>
-                      <?php foreach ($catItems as $pKey => $pLabel) {
-                        $isProtected = isProtectedAdminPermission($pKey);
-                      ?>
-                        <tr>
-                          <td><b><?= htmlspecialchars($catName); ?></b></td>
-                          <td>
-                            <?= htmlspecialchars($pLabel); ?>
-                            <?php if ($isProtected) { ?>
-                              <span class="text-warning"><i class="fa fa-shield"></i> Admin-Protected</span>
-                            <?php } ?>
-                          </td>
-                          <?php foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $gMode) {
-                            $gChecked = !$isProtected && !empty($permGroups[$gMode][$pKey]) ? 'checked' : '';
-                          ?>
-                            <td class="text-center">
-                              <?php if ($isProtected) { ?>
-                                <input type="checkbox" disabled title="Protected Administrator-Only Operation">
-                              <?php } else { ?>
-                                <input type="checkbox" name="grp_perms[<?= $gMode ?>][<?= htmlspecialchars($pKey) ?>]" value="1" <?= $gChecked ?>>
-                              <?php } ?>
-                            </td>
+
+              <div class="ngw-pg-workspace">
+                <!-- Left Section Filter Sidebar -->
+                <aside class="ngw-pg-sidebar">
+                  <div class="ngw-pg-sidebar-title">
+                    <i class="fa fa-layer-group"></i> <?= $isBn ? 'সেকশন অনুযায়ী দেখুন' : 'Filter by Section' ?>
+                  </div>
+                  <button type="button" class="ngw-pg-nav-btn active" onclick="filterPgSection('all', this)">
+                    <span class="ngw-pg-nav-left">
+                      <span class="ngw-pg-nav-ico" style="background:#1f6feb;"><i class="fa fa-th-large"></i></span>
+                      <span><?= $isBn ? 'সবগুলো সেকশন' : 'All Sections' ?></span>
+                    </span>
+                    <span class="ngw-pg-nav-cnt"><?= (int)$totalPermCount ?></span>
+                  </button>
+                  <?php foreach ($permCatalog as $catName => $catItems) {
+                    $sMeta = isset($permSectionsMeta[$catName]) ? $permSectionsMeta[$catName] : array(
+                      'slug' => strtolower(preg_replace('/[^a-z0-9]+/i', '_', $catName)),
+                      'icon' => 'fa-folder',
+                      'color' => '#1f6feb',
+                      'short_en' => $catName,
+                      'short_bn' => $catName,
+                    );
+                    $navLabel = $isBn && !empty($sMeta['short_bn']) ? $sMeta['short_bn'] : (!empty($sMeta['short_en']) ? $sMeta['short_en'] : $catName);
+                  ?>
+                    <button type="button" class="ngw-pg-nav-btn" onclick="filterPgSection('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', this)">
+                      <span class="ngw-pg-nav-left">
+                        <span class="ngw-pg-nav-ico" style="background:<?= htmlspecialchars($sMeta['color'], ENT_QUOTES) ?>;"><i class="fa <?= htmlspecialchars($sMeta['icon'], ENT_QUOTES) ?>"></i></span>
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($navLabel) ?></span>
+                      </span>
+                      <span class="ngw-pg-nav-cnt"><?= count($catItems) ?></span>
+                    </button>
+                  <?php } ?>
+                </aside>
+
+                <!-- Right Side-by-Side Section Cards -->
+                <div class="ngw-pg-content">
+                  <div class="ngw-pg-grid" id="ngwPgGrid">
+                    <?php foreach ($permCatalog as $catName => $catItems) {
+                      $sMeta = isset($permSectionsMeta[$catName]) ? $permSectionsMeta[$catName] : array(
+                        'slug' => strtolower(preg_replace('/[^a-z0-9]+/i', '_', $catName)),
+                        'icon' => 'fa-folder',
+                        'color' => '#1f6feb',
+                        'bg' => 'rgba(31, 111, 235, 0.14)',
+                        'border' => 'rgba(56, 139, 253, 0.38)',
+                        'title_en' => $catName,
+                        'title_bn' => $catName,
+                        'items_bn' => array(),
+                      );
+                      $secTitle = $isBn && !empty($sMeta['title_bn']) ? $sMeta['title_bn'] : (!empty($sMeta['title_en']) ? $sMeta['title_en'] : $catName);
+                      $hasEditableInSec = false;
+                      foreach ($catItems as $kCheck => $vCheck) {
+                        if (!isProtectedAdminPermission($kCheck)) {
+                          $hasEditableInSec = true;
+                          break;
+                        }
+                      }
+                    ?>
+                      <section class="ngw-pg-sec-card" data-sec="<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>" style="border-color:<?= htmlspecialchars($sMeta['border'], ENT_QUOTES) ?>;">
+                        <div class="ngw-pg-sec-header" style="background:<?= htmlspecialchars($sMeta['bg'], ENT_QUOTES) ?>; border-bottom-color:<?= htmlspecialchars($sMeta['border'], ENT_QUOTES) ?>;">
+                          <div class="ngw-pg-sec-title-wrap">
+                            <span class="ngw-pg-sec-icon" style="background:<?= htmlspecialchars($sMeta['color'], ENT_QUOTES) ?>;">
+                              <i class="fa <?= htmlspecialchars($sMeta['icon'], ENT_QUOTES) ?>"></i>
+                            </span>
+                            <div>
+                              <h4 class="ngw-pg-sec-title"><?= htmlspecialchars($secTitle) ?></h4>
+                            </div>
+                            <span class="ngw-pg-sec-badge"><?= count($catItems) ?></span>
+                          </div>
+                          <?php if ($hasEditableInSec) { ?>
+                            <div class="ngw-pg-sec-quick" title="<?= $isBn ? 'এই সেকশনের সবগুলো এক ক্লিকে টগল করুন' : 'Toggle entire section column' ?>">
+                              <button type="button" class="ngw-pg-qbtn" onclick="togglePgSectionMode('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', 'Read')">Read ✓</button>
+                              <button type="button" class="ngw-pg-qbtn" onclick="togglePgSectionMode('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', 'Write')">Write ✓</button>
+                              <button type="button" class="ngw-pg-qbtn" onclick="togglePgSectionMode('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', 'Full')">Full ✓</button>
+                            </div>
                           <?php } ?>
-                        </tr>
-                      <?php } ?>
+                        </div>
+
+                        <div class="ngw-pg-sec-body">
+                          <?php foreach ($catItems as $pKey => $pLabelEn) {
+                            $isProtected = isProtectedAdminPermission($pKey);
+                            $pLabelBn = isset($sMeta['items_bn'][$pKey]) ? $sMeta['items_bn'][$pKey] : $pLabelEn;
+                            $displayLabel = $isBn ? $pLabelBn : $pLabelEn;
+                            $searchKeywords = $catName . ' ' . $secTitle . ' ' . $pKey . ' ' . $pLabelEn . ' ' . $pLabelBn;
+                          ?>
+                            <div class="ngw-pg-item-box" data-search="<?= htmlspecialchars($searchKeywords, ENT_QUOTES) ?>">
+                              <div class="ngw-pg-item-info">
+                                <span class="ngw-pg-item-label">
+                                  <?= htmlspecialchars($displayLabel) ?>
+                                  <?php if ($isProtected) { ?>
+                                    <span class="text-warning" style="font-size:10.5px; margin-left:4px;"><i class="fa fa-shield"></i> <?= $isBn ? 'অ্যাডমিন সংরক্ষিত' : 'Admin-Only' ?></span>
+                                  <?php } ?>
+                                </span>
+                              </div>
+                              <div class="ngw-pg-item-modes">
+                                <?php foreach (array('Read' => 'Read', 'Write' => 'Write', 'Full' => 'Full', 'Reset Voucher' => 'Reset') as $gMode => $shortModeLabel) {
+                                  $gChecked = !$isProtected && !empty($permGroups[$gMode][$pKey]);
+                                  $modeCssKey = ($gMode === 'Reset Voucher') ? 'Reset' : $gMode;
+                                ?>
+                                  <label class="ngw-pg-mode-pill mode-<?= $modeCssKey ?> <?= $gChecked ? 'is-checked' : '' ?> <?= $isProtected ? 'is-disabled' : '' ?>" title="<?= htmlspecialchars($gMode . ': ' . $displayLabel, ENT_QUOTES) ?>">
+                                    <?php if ($isProtected) { ?>
+                                      <input type="checkbox" disabled>
+                                    <?php } else { ?>
+                                      <input type="checkbox" class="pg-mode-cb" data-mode="<?= htmlspecialchars($gMode, ENT_QUOTES) ?>" name="grp_perms[<?= $gMode ?>][<?= htmlspecialchars($pKey, ENT_QUOTES) ?>]" value="1" <?= $gChecked ? 'checked' : '' ?> onchange="syncPgModePill(this)">
+                                    <?php } ?>
+                                    <span><?= htmlspecialchars($shortModeLabel) ?></span>
+                                  </label>
+                                <?php } ?>
+                              </div>
+                            </div>
+                          <?php } ?>
+                        </div>
+                      </section>
                     <?php } ?>
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
@@ -897,35 +1483,82 @@ function closeResellerDetailsModal() {
         </table>
 
         <!-- Custom Granular Checklist (Shown only when Custom mode is selected) -->
-        <div id="customPermChecklist" class="card mr-t-5" style="display: none; max-height: 240px; overflow-y: auto;">
-          <div class="card-header">
-            <h3 class="card-title" style="font-size:13px;">
-              <i class="fa fa-lock"></i> Custom Permissions
+        <div id="customPermChecklist" class="card mr-t-5" style="display: none;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h3 class="card-title" style="font-size:13px; margin:0;">
+              <i class="fa fa-lock"></i> <?= $isBn ? 'কাস্টম পারমিশন নির্বাচন' : 'Custom Permissions' ?>
               <span style="font-size: 11px; font-weight: normal;">
                 &nbsp; | &nbsp;
-                <a href="javascript:void(0)" onclick="setPermPreset('all')">All</a> &middot;
-                <a href="javascript:void(0)" onclick="setPermPreset('reset_only')">Reset Only</a> &middot;
-                <a href="javascript:void(0)" onclick="setPermPreset('none')">None</a>
+                <a href="javascript:void(0)" onclick="setPermPreset('all')"><?= $isBn ? 'সব সিলেক্ট' : 'All' ?></a> &middot;
+                <a href="javascript:void(0)" onclick="setPermPreset('reset_only')"><?= $isBn ? 'শুধু রিসেট' : 'Reset Only' ?></a> &middot;
+                <a href="javascript:void(0)" onclick="setPermPreset('none')"><?= $isBn ? 'আনসিলেক্ট' : 'None' ?></a>
               </span>
             </h3>
+            <input type="text" class="form-control" style="width:210px; height:26px; font-size:11.5px; padding:3px 8px;" placeholder="<?= $isBn ? 'পারমিশন খুঁজুন...' : 'Search permission...' ?>" onkeyup="filterCustomPermissionsBySearch(this.value)">
           </div>
-          <div class="card-body">
-            <?php foreach ($permCatalog as $groupName => $groupPerms) { ?>
-              <div style="margin-bottom: 8px;">
-                <div style="font-weight: bold; font-size:12px; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 4px;">
-                  <?= htmlspecialchars($groupName); ?>
+          <div class="card-body" style="max-height: 360px; overflow-y: auto; padding: 8px;">
+            <!-- Section Filter Pills -->
+            <div class="ngw-cp-filter-bar">
+              <button type="button" class="ngw-cp-cat-pill active" onclick="filterCustomSection('all', this)">
+                <i class="fa fa-th-large"></i> <?= $isBn ? 'সব সেকশন' : 'All' ?>
+              </button>
+              <?php foreach ($permCatalog as $groupName => $groupPerms) {
+                $sMeta = isset($permSectionsMeta[$groupName]) ? $permSectionsMeta[$groupName] : array(
+                  'slug' => strtolower(preg_replace('/[^a-z0-9]+/i', '_', $groupName)),
+                  'icon' => 'fa-folder',
+                  'short_en' => $groupName,
+                  'short_bn' => $groupName,
+                );
+                $pillLbl = $isBn && !empty($sMeta['short_bn']) ? $sMeta['short_bn'] : (!empty($sMeta['short_en']) ? $sMeta['short_en'] : $groupName);
+              ?>
+                <button type="button" class="ngw-cp-cat-pill" onclick="filterCustomSection('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', this)">
+                  <i class="fa <?= htmlspecialchars($sMeta['icon'], ENT_QUOTES) ?>"></i> <?= htmlspecialchars($pillLbl) ?>
+                </button>
+              <?php } ?>
+            </div>
+
+            <!-- Categorized Colorful Section Boxes -->
+            <?php foreach ($permCatalog as $groupName => $groupPerms) {
+              $sMeta = isset($permSectionsMeta[$groupName]) ? $permSectionsMeta[$groupName] : array(
+                'slug' => strtolower(preg_replace('/[^a-z0-9]+/i', '_', $groupName)),
+                'icon' => 'fa-folder',
+                'color' => '#1f6feb',
+                'bg' => 'rgba(31, 111, 235, 0.14)',
+                'border' => 'rgba(56, 139, 253, 0.38)',
+                'title_en' => $groupName,
+                'title_bn' => $groupName,
+                'items_bn' => array(),
+              );
+              $secTitle = $isBn && !empty($sMeta['title_bn']) ? $sMeta['title_bn'] : (!empty($sMeta['title_en']) ? $sMeta['title_en'] : $groupName);
+            ?>
+              <div class="ngw-pg-sec-card ngw-cp-sec-card" data-sec="<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>" style="margin-bottom: 10px; border-color:<?= htmlspecialchars($sMeta['border'], ENT_QUOTES) ?>;">
+                <div class="ngw-pg-sec-header" style="padding: 6px 10px; background:<?= htmlspecialchars($sMeta['bg'], ENT_QUOTES) ?>; border-bottom-color:<?= htmlspecialchars($sMeta['border'], ENT_QUOTES) ?>;">
+                  <div class="ngw-pg-sec-title-wrap">
+                    <span class="ngw-pg-sec-icon" style="width:22px; height:22px; font-size:11px; background:<?= htmlspecialchars($sMeta['color'], ENT_QUOTES) ?>;">
+                      <i class="fa <?= htmlspecialchars($sMeta['icon'], ENT_QUOTES) ?>"></i>
+                    </span>
+                    <span style="font-weight:700; font-size:12.5px;"><?= htmlspecialchars($secTitle) ?></span>
+                    <span class="ngw-pg-sec-badge"><?= count($groupPerms) ?></span>
+                  </div>
+                  <div class="ngw-pg-sec-quick">
+                    <button type="button" class="ngw-pg-qbtn" onclick="toggleCustomSectionPerms('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', true)"><?= $isBn ? 'সব ✓' : 'All ✓' ?></button>
+                    <button type="button" class="ngw-pg-qbtn" onclick="toggleCustomSectionPerms('<?= htmlspecialchars($sMeta['slug'], ENT_QUOTES) ?>', false)"><?= $isBn ? 'মুছুন' : 'Clear' ?></button>
+                  </div>
                 </div>
-                <div class="row">
-                  <?php foreach ($groupPerms as $pKey => $pLabel) {
-                    $isProtected = isProtectedAdminPermission($pKey);
-                  ?>
-                    <div class="col-6 ngw-permission-col" style="padding: 3px 6px; font-size:12px;">
-                      <label class="ngw-permission-tile" style="cursor:<?= $isProtected ? 'not-allowed' : 'pointer'; ?>; opacity:<?= $isProtected ? '0.55' : '1'; ?>;">
-                        <input type="checkbox" class="perm-checkbox" data-perm="<?= htmlspecialchars($pKey); ?>" name="r_perms[<?= htmlspecialchars($pKey); ?>]" value="1" <?= $isProtected ? 'disabled' : ''; ?>>
-                        <span><?= htmlspecialchars($pLabel); ?></span>
+                <div class="ngw-pg-sec-body" style="padding: 7px;">
+                  <div class="ngw-cp-tiles-grid">
+                    <?php foreach ($groupPerms as $pKey => $pLabelEn) {
+                      $isProtected = isProtectedAdminPermission($pKey);
+                      $pLabelBn = isset($sMeta['items_bn'][$pKey]) ? $sMeta['items_bn'][$pKey] : $pLabelEn;
+                      $displayLabel = $isBn ? $pLabelBn : $pLabelEn;
+                      $searchStr = $groupName . ' ' . $secTitle . ' ' . $pKey . ' ' . $pLabelEn . ' ' . $pLabelBn;
+                    ?>
+                      <label class="ngw-cp-tile" data-search="<?= htmlspecialchars($searchStr, ENT_QUOTES) ?>" style="cursor:<?= $isProtected ? 'not-allowed' : 'pointer'; ?>; opacity:<?= $isProtected ? '0.5' : '1'; ?>;">
+                        <input type="checkbox" class="perm-checkbox" data-perm="<?= htmlspecialchars($pKey, ENT_QUOTES); ?>" name="r_perms[<?= htmlspecialchars($pKey, ENT_QUOTES); ?>]" value="1" <?= $isProtected ? 'disabled' : ''; ?> onchange="syncCustomTileHighlights()">
+                        <span><?= htmlspecialchars($displayLabel); ?></span>
                       </label>
-                    </div>
-                  <?php } ?>
+                    <?php } ?>
+                  </div>
                 </div>
               </div>
             <?php } ?>

@@ -11,11 +11,11 @@ if (!isset($_SESSION["mikhmon"])) {
   return;
 }
 
-include_once('./include/config.php');
-include_once('./include/ros_version.php');
-include_once('./include/reseller_acl.php');
-include_once('./include/pppoe_helper.php');
-include_once('./lib/formatbytesbites.php');
+include_once __DIR__ . '/../include/config.php';
+include_once __DIR__ . '/../include/ros_version.php';
+include_once __DIR__ . '/../include/reseller_acl.php';
+include_once __DIR__ . '/../include/pppoe_helper.php';
+include_once __DIR__ . '/../lib/formatbytesbites.php';
 
 requireResellerPermission('reset_pppoe', './admin.php?id=sessions');
 

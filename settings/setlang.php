@@ -20,12 +20,15 @@ session_start();
 error_reporting(0);
 
 // check url
-$url2 = explode("&setlang", explode("?setlang", $url)[0])[0];
-if ($url2 === '') {
-    $url2 = './admin.php?id=sessions';
+$reqUri = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '';
+$cleanUrl = preg_replace('/([?&])setlang=[^&]*(&|$)/', '$1', $reqUri);
+$cleanUrl = rtrim($cleanUrl, '?&');
+if (empty($cleanUrl)) {
+    $cleanUrl = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : './';
 }
+$url2 = $cleanUrl;
 
-$getlang = $_GET['setlang'];
+$getlang = isset($_GET['setlang']) ? trim((string)$_GET['setlang']) : '';
 
 if (empty($getlang)) {
 

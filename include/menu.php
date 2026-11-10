@@ -48,6 +48,10 @@ if (!isset($_SESSION["mikhmon"])) {
     $mpage = $_users;
     $susers = "active";
     $umenu = "menu-open";
+  } elseif ($hotspot == "profile-transfer") {
+    $sysmenu = "active";
+    $mpage = ($langid === 'bn') ? 'প্রোফাইল ট্রান্সফার' : 'Profile Transfer';
+    $schmenu = "menu-open";
   } elseif ($userbyname != ""  || $resethotspotuser != "") {
     $susers = "active";
     $mpage = $_users;
@@ -120,7 +124,7 @@ if (!isset($_SESSION["mikhmon"])) {
   } elseif ($pppoe == "active" || $disconnect_pppoe_active != "") {
     $mpppoe = "active";
     $spppoe_active = "active";
-    $mpage = "PPPoE Active";
+    $mpage = isset($_pppoe_active) ? $_pppoe_active : "Online Users";
     $pppoemenu = "menu-open";
   } elseif ($pppoe == "reset") {
     $mpppoe = "active";
@@ -587,7 +591,6 @@ $(document).ready(function(){
     <?php } ?>
     <?php if (hasResellerPermission('generate_voucher')) { ?>
     <a href="./?hotspot-user=generate&session=<?= $session; ?>" class="<?= $sgenuser; ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-user-plus"></i> <?= $_generate ?> </a>        
-
     <?php } ?>
   </div>
   <?php } ?>
@@ -645,14 +648,8 @@ $(document).ready(function(){
     <?php if (hasResellerPermission('view_pppoe_users')) { ?>
     <a href="./?pppoe=users&session=<?= $session; ?>" class="<?= $spppoe_users; ?>"><i class="fa fa-users"></i> <?= isset($_pppoe_users) ? $_pppoe_users : 'PPPoE Users'; ?></a>
     <?php } ?>
-    <?php if (hasResellerPermission('add_pppoe_user')) { ?>
-    <a href="./?pppoe=add-user&session=<?= $session; ?>" class="<?= $spppoe_adduser; ?>">&nbsp;&nbsp;&nbsp;<i class="fa fa-user-plus"></i> <?= isset($_add_pppoe_user) ? $_add_pppoe_user : 'Add PPPoE User'; ?></a>
-    <?php } ?>
     <?php if (hasResellerPermission('view_pppoe_profiles')) { ?>
     <a href="./?pppoe=profiles&session=<?= $session; ?>" class="<?= $spppoe_profiles; ?>"><i class="fa fa-pie-chart"></i> <?= isset($_pppoe_profiles) ? $_pppoe_profiles : 'PPPoE Profiles'; ?></a>
-    <?php } ?>
-    <?php if (hasResellerPermission('manage_pppoe_profiles')) { ?>
-    <a href="./?pppoe=add-profile&session=<?= $session; ?>" class="<?= $spppoe_addprofile; ?>">&nbsp;&nbsp;&nbsp;<i class="fa fa-plus-square"></i> <?= isset($_add_pppoe_profile) ? $_add_pppoe_profile : 'Add Profile'; ?></a>
     <?php } ?>
     <?php if (hasResellerPermission('view_pppoe_active')) { ?>
     <a href="./?pppoe=active&session=<?= $session; ?>" class="<?= $spppoe_active; ?>"><i class="fa fa-bolt"></i> <?= isset($_pppoe_active) ? $_pppoe_active : 'Active Sessions'; ?></a>
@@ -673,12 +670,13 @@ $(document).ready(function(){
   </div>
   <?php } ?>
   <!--system-->
-  <?php if (hasResellerPermission('view_scheduler') || hasResellerPermission('reboot_shutdown') || (hasResellerPermission('export_users') && hasResellerPermission('generate_voucher'))) { ?>
+  <?php $canAccessUserTransfer = hasResellerPermission('transfer_users_access') || (hasResellerPermission('export_users') && hasResellerPermission('generate_voucher')) || hasResellerPermission('same_router_profile_transfer'); ?>
+  <?php if (hasResellerPermission('view_scheduler') || hasResellerPermission('reboot_shutdown') || $canAccessUserTransfer) { ?>
   <div class="dropdown-btn <?= $sysmenu; ?>"><i class=" fa fa-gear"></i> <?= $_system ?>
     <i class="fa fa-caret-down"></i> &nbsp;
   </div>
   <div class="dropdown-container <?= $schmenu; ?>">
-    <?php if (hasResellerPermission('export_users') && hasResellerPermission('generate_voucher')) { ?>
+    <?php if ($canAccessUserTransfer) { ?>
     <a href="./hotspot/usertransfer.php?session=<?= rawurlencode($session); ?>"><i class="fa fa-exchange"></i> User Transfer</a>
     <?php } ?>
     <?php if (hasResellerPermission('view_scheduler')) { ?>
@@ -1193,16 +1191,31 @@ $(document).ready(function(){
   <div class="ngw-profile-dd-body">
     <a class="ngw-profile-dd-link" href="<?= htmlspecialchars($ngwProfileHref, ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-user"></i>
-      <span>Account Information</span>
+      <span><?= ($langid === 'bn') ? 'অ্যাকাউন্ট তথ্য' : 'Account Information'; ?></span>
     </a>
     <a class="ngw-profile-dd-link" href="<?= htmlspecialchars($ngwProfileHref . '#profile-password-section', ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-key"></i>
-      <span>Change Password</span>
+      <span><?= ($langid === 'bn') ? 'পাসওয়ার্ড পরিবর্তন' : 'Change Password'; ?></span>
     </a>
     <a class="ngw-profile-dd-link" href="<?= htmlspecialchars($ngwProfileHref . '#profile-avatar-section', ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-camera"></i>
-      <span>Upload Avatar</span>
+      <span><?= ($langid === 'bn') ? 'অবতার আপলোড' : 'Upload Avatar'; ?></span>
     </a>
+    <div class="ngw-profile-dd-divider"></div>
+    <div style="padding: 6px 14px; font-size: 11px;">
+      <div style="color: #94a3b8; margin-bottom: 5px; display:flex; align-items:center; gap:6px; font-weight:600;">
+        <i class="fa fa-globe text-primary"></i>
+        <span><?= ($langid === 'bn') ? 'ভাষা নির্বাচন (Language)' : 'Language Selection'; ?>:</span>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <a href="?setlang=en" class="btn btn-xs <?= ($langid === 'en' || empty($langid)) ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="flex:1; text-align:center; padding:4px 6px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">
+          English <?= ($langid === 'en' || empty($langid)) ? '✓' : ''; ?>
+        </a>
+        <a href="?setlang=bn" class="btn btn-xs <?= ($langid === 'bn') ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="flex:1; text-align:center; padding:4px 6px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">
+          বাংলা <?= ($langid === 'bn') ? '✓' : ''; ?>
+        </a>
+      </div>
+    </div>
     <div class="ngw-profile-dd-divider"></div>
     <a class="ngw-profile-dd-link is-logout" href="<?= htmlspecialchars($ngwLogoutHref, ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-sign-out"></i>

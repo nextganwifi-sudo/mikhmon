@@ -94,28 +94,30 @@ function ngwFormatRemainingTime($expTs) {
 }
 
 /**
- * Build standard comment string storing expiration metadata.
- * Flexible signature accepting either:
- *   ngwBuildPppoeComment($validity, $actor = '', $existingNote = '')
- * or legacy/form:
- *   ngwBuildPppoeComment($expiryTime, $validity, $actor = '', $existingNote = '')
+ * Build standard comment string storing expiration metadata, customer name, phone, and area.
+ * Accepts either associative options array or positional arguments.
  */
-function ngwBuildPppoeComment($arg1, $arg2 = '', $arg3 = '', $arg4 = '') {
+function ngwBuildPppoeComment($arg1, $arg2 = '', $arg3 = '', $arg4 = '', $customerName = '', $phone = '', $area = '') {
     $validity = '';
     $actor = '';
     $existingNote = '';
 
-    if (is_array($arg1) && isset($arg1['validity'])) {
-        $validity = $arg1['validity'];
-        $actor = (string)$arg3;
-        $existingNote = (string)$arg4;
-    } elseif (is_numeric($arg1) || is_array($arg1)) {
-        // Form: ($expiryTime, $validity, $actor, $existingNote)
+    if (is_array($arg1)) {
+        $validity = isset($arg1['validity']) ? (string)$arg1['validity'] : '';
+        $actor = isset($arg1['actor']) ? (string)$arg1['actor'] : (isset($arg1['by']) ? (string)$arg1['by'] : (string)$arg3);
+        $existingNote = isset($arg1['note']) ? (string)$arg1['note'] : (string)$arg4;
+        if (isset($arg1['customer_name'])) $customerName = (string)$arg1['customer_name'];
+        if (isset($arg1['cust'])) $customerName = (string)$arg1['cust'];
+        if (isset($arg1['phone'])) $phone = (string)$arg1['phone'];
+        if (isset($arg1['mobile'])) $phone = (string)$arg1['mobile'];
+        if (isset($arg1['area'])) $area = (string)$arg1['area'];
+    } elseif (is_numeric($arg1)) {
+        // Form: ($expiryTime, $validity, $actor, $existingNote, $customerName, $phone, $area)
         $validity = (string)$arg2;
         $actor = (string)$arg3;
         $existingNote = (string)$arg4;
     } else {
-        // Form: ($validity, $actor, $existingNote)
+        // Form: ($validity, $actor, $existingNote, ...)
         $validity = (string)$arg1;
         $actor = (string)$arg2;
         $existingNote = (string)$arg3;
@@ -127,17 +129,30 @@ function ngwBuildPppoeComment($arg1, $arg2 = '', $arg3 = '', $arg4 = '') {
         $parts[] = 'exp:' . $expData['iso'];
         $parts[] = 'val:' . $expData['validity'];
     }
+    if ($customerName !== '') {
+        $cleanCust = substr(preg_replace('/[|\r\n]/', ' ', trim($customerName)), 0, 50);
+        if ($cleanCust !== '') $parts[] = 'cust:' . $cleanCust;
+    }
+    if ($phone !== '') {
+        $cleanPhone = substr(preg_replace('/[|\r\n]/', ' ', trim($phone)), 0, 25);
+        if ($cleanPhone !== '') $parts[] = 'phone:' . $cleanPhone;
+    }
+    if ($area !== '') {
+        $cleanArea = substr(preg_replace('/[|\r\n]/', ' ', trim($area)), 0, 40);
+        if ($cleanArea !== '') $parts[] = 'area:' . $cleanArea;
+    }
     if ($actor !== '') {
         $parts[] = 'by:' . $actor;
     }
     if ($existingNote !== '') {
-        $parts[] = 'note:' . substr(preg_replace('/[|\r\n]/', ' ', $existingNote), 0, 60);
+        $cleanNote = substr(preg_replace('/[|\r\n]/', ' ', trim($existingNote)), 0, 60);
+        if ($cleanNote !== '') $parts[] = 'note:' . $cleanNote;
     }
     return implode(' | ', $parts);
 }
 
 /**
- * Parse expiration date and status from PPPoE secret comment
+ * Parse expiration date, customer name, phone, area, and status from PPPoE secret comment
  */
 function ngwParsePppoeComment($comment) {
     $c = trim((string)$comment);
@@ -149,6 +164,9 @@ function ngwParsePppoeComment($comment) {
         'expiry_timestamp' => 0,
         'validity' => '',
         'created_by' => '',
+        'customer_name' => '',
+        'phone' => '',
+        'area' => '',
         'note' => '',
         'raw' => $c
     );
@@ -193,16 +211,108 @@ function ngwParsePppoeComment($comment) {
     }
 
     if (preg_match('/val:([a-z0-9_]+)/i', $c, $m)) {
-        $res['validity'] = $m[1];
+        $res['validity'] = trim($m[1]);
+    }
+    if (preg_match('/cust:([^|]+)/i', $c, $m)) {
+        $res['customer_name'] = trim($m[1]);
+    }
+    if (preg_match('/phone:([^|]+)/i', $c, $m)) {
+        $res['phone'] = trim($m[1]);
+    }
+    if (preg_match('/area:([^|]+)/i', $c, $m)) {
+        $res['area'] = trim($m[1]);
     }
     if (preg_match('/by:([a-zA-Z0-9_.-]+)/i', $c, $m)) {
-        $res['created_by'] = $m[1];
+        $res['created_by'] = trim($m[1]);
     }
-    if (preg_match('/note:(.+)$/i', $c, $m)) {
+    if (preg_match('/note:([^|]+)/i', $c, $m)) {
         $res['note'] = trim($m[1]);
     }
 
     return $res;
+}
+
+/**
+ * Load list of PPPoE areas for a given router session (or default global)
+ */
+function ngwGetPppoeAreas($session = 'all') {
+    $filePath = __DIR__ . '/pppoe_areas.json';
+    if (!file_exists($filePath)) {
+        $defaults = array(
+            'default' => array('Zone-A', 'Zone-B', 'Central', 'North', 'South')
+        );
+        @file_put_contents($filePath, json_encode($defaults, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        return $defaults['default'];
+    }
+    $raw = @file_get_contents($filePath);
+    $data = @json_decode($raw, true);
+    if (!is_array($data)) {
+        $data = array('default' => array('Zone-A', 'Zone-B', 'Central', 'North', 'South'));
+    }
+
+    $sessKey = !empty($session) ? (string)$session : 'default';
+    $areas = array();
+    if (isset($data[$sessKey]) && is_array($data[$sessKey])) {
+        $areas = array_merge($areas, $data[$sessKey]);
+    }
+    if (isset($data['default']) && is_array($data['default'])) {
+        $areas = array_merge($areas, $data['default']);
+    }
+    $areas = array_values(array_unique(array_filter(array_map('trim', $areas))));
+    sort($areas);
+    return $areas;
+}
+
+/**
+ * Add a new PPPoE area
+ */
+function ngwAddPppoeArea($session, $areaName) {
+    $areaName = trim((string)$areaName);
+    if ($areaName === '') return false;
+    $filePath = __DIR__ . '/pppoe_areas.json';
+    $data = array();
+    if (file_exists($filePath)) {
+        $raw = @file_get_contents($filePath);
+        $data = @json_decode($raw, true);
+    }
+    if (!is_array($data)) $data = array();
+    $sessKey = !empty($session) ? (string)$session : 'default';
+    if (!isset($data[$sessKey]) || !is_array($data[$sessKey])) {
+        $data[$sessKey] = array();
+    }
+    if (!in_array($areaName, $data[$sessKey], true)) {
+        $data[$sessKey][] = $areaName;
+        sort($data[$sessKey]);
+        @file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+    return true;
+}
+
+/**
+ * Delete a PPPoE area
+ */
+function ngwDeletePppoeArea($session, $areaName) {
+    $areaName = trim((string)$areaName);
+    if ($areaName === '') return false;
+    $filePath = __DIR__ . '/pppoe_areas.json';
+    if (!file_exists($filePath)) return false;
+    $raw = @file_get_contents($filePath);
+    $data = @json_decode($raw, true);
+    if (!is_array($data)) return false;
+
+    $sessKey = !empty($session) ? (string)$session : 'default';
+    if (isset($data[$sessKey]) && is_array($data[$sessKey])) {
+        $data[$sessKey] = array_values(array_filter($data[$sessKey], function($a) use ($areaName) {
+            return $a !== $areaName;
+        }));
+    }
+    if (isset($data['default']) && is_array($data['default'])) {
+        $data['default'] = array_values(array_filter($data['default'], function($a) use ($areaName) {
+            return $a !== $areaName;
+        }));
+    }
+    @file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    return true;
 }
 
 /**

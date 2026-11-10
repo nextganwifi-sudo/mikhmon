@@ -127,8 +127,8 @@ if (!isset($_SESSION["mikhmon"])) {
   $enable_pppoe_user = isset($_GET['enable-pppoe-user']) ? $_GET['enable-pppoe-user'] : (isset($_GET['enable-pppsecret']) ? $_GET['enable-pppsecret'] : '');
   $disable_pppoe_user = isset($_GET['disable-pppoe-user']) ? $_GET['disable-pppoe-user'] : (isset($_GET['disable-pppsecret']) ? $_GET['disable-pppsecret'] : '');
   $remove_pppoe_user = isset($_GET['remove-pppoe-user']) ? $_GET['remove-pppoe-user'] : (isset($_GET['remove-pppsecret']) ? $_GET['remove-pppsecret'] : '');
-  $remove_pppoe_profile = isset($_GET['remove-pppoe-profile']) ? $_GET['remove-pppoe-profile'] : (isset($_GET['remove-pprofile']) ? $_GET['remove-pprofile'] : '');
-  $disconnect_pppoe_active = isset($_GET['disconnect-pppoe-active']) ? $_GET['disconnect-pppoe-active'] : (isset($_GET['remove-pactive']) ? $_GET['remove-pactive'] : '');
+  $remove_pppoe_profile = isset($_GET['remove-pppoe-profile']) ? $_GET['remove-pppoe-profile'] : (isset($_GET['remove-pprofile']) ? $_GET['remove-pprofile'] : (($pppoe === 'remove-profile' && isset($_GET['id'])) ? $_GET['id'] : ''));
+  $disconnect_pppoe_active = isset($_GET['disconnect-pppoe-active']) ? $_GET['disconnect-pppoe-active'] : (isset($_GET['remove-pactive']) ? $_GET['remove-pactive'] : (($pppoe === 'disconnect-active' && isset($_GET['id'])) ? $_GET['id'] : ''));
   $ppp = $pppoe;
   $secretbyname = $pppoe_user;
   $enablesecr = $enable_pppoe_user;
@@ -401,6 +401,11 @@ if (!isset($_SESSION["mikhmon"])) {
   elseif ($hotspot == "export-users") {
     requireResellerPermission('export_users', $defRedirect);
     include_once('./hotspot/exportusers.php');
+  }
+// same-router hotspot profile transfer
+  elseif ($hotspot == "profile-transfer") {
+    echo "<script>window.location='./hotspot/profiletransfer.php?session=" . rawurlencode($session) . "'</script>";
+    exit;
   }
 
 // quick print

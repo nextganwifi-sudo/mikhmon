@@ -296,11 +296,52 @@ class VirtualRouterOS {
         }
 
         if ($normCmd === '/ip/hotspot/ip-binding/print') {
-            return $this->filterArray($this->data['hotspot_bindings'], $params);
+            return $this->filterArray(isset($this->data['hotspot_bindings']) ? $this->data['hotspot_bindings'] : array(), $params);
+        }
+
+        if ($normCmd === '/ip/hotspot/ip-binding/add') {
+            $new = $params;
+            $new['.id'] = '*' . strtoupper(dechex(rand(100, 9999)));
+            $new['disabled'] = isset($params['disabled']) ? $params['disabled'] : 'false';
+            if (!isset($this->data['hotspot_bindings']) || !is_array($this->data['hotspot_bindings'])) {
+                $this->data['hotspot_bindings'] = array();
+            }
+            $this->data['hotspot_bindings'][] = $new;
+            $this->saveData();
+            return array(array('ret' => $new['.id']));
+        }
+
+        if ($normCmd === '/ip/hotspot/ip-binding/set') {
+            $id = isset($params['.id']) ? $params['.id'] : (isset($params['numbers']) ? $params['numbers'] : '');
+            if (isset($this->data['hotspot_bindings']) && is_array($this->data['hotspot_bindings'])) {
+                foreach ($this->data['hotspot_bindings'] as &$b) {
+                    if ($b['.id'] === $id) {
+                        foreach ($params as $k => $v) {
+                            if ($k !== '.id' && $k !== 'numbers') $b[$k] = $v;
+                        }
+                    }
+                }
+                $this->saveData();
+            }
+            return array();
+        }
+
+        if ($normCmd === '/ip/hotspot/ip-binding/remove') {
+            $id = isset($params['.id']) ? $params['.id'] : (isset($params['numbers']) ? $params['numbers'] : '');
+            if (isset($this->data['hotspot_bindings']) && is_array($this->data['hotspot_bindings'])) {
+                $this->data['hotspot_bindings'] = array_values(array_filter($this->data['hotspot_bindings'], function($item) use ($id) {
+                    return $item['.id'] !== $id;
+                }));
+                $this->saveData();
+            }
+            return array();
         }
 
         if ($normCmd === '/ip/hotspot/cookie/print') {
-            return array();
+            $cookies = isset($this->data['hotspot_cookies']) && is_array($this->data['hotspot_cookies']) ? $this->data['hotspot_cookies'] : array(
+                array('.id' => '*1', 'user' => 'test01', 'mac-address' => '48:8F:5A:11:22:33', 'expires-in' => '22:36:15')
+            );
+            return $this->filterArray($cookies, $params);
         }
 
         // 9. PPPoE Profiles / Secrets / Active
