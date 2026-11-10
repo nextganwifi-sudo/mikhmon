@@ -1,0 +1,355 @@
+{
+    "identity": "NextGan-Virtual-Lab",
+    "resource": {
+        "uptime": "5d 14:22:10",
+        "version": "7.15.2 (stable)",
+        "free-memory": 198451200,
+        "total-memory": 268435456,
+        "cpu": "MIPS 1004Kc V2.15",
+        "cpu-count": 4,
+        "cpu-frequency": 880,
+        "cpu-load": 8,
+        "free-hdd-space": 92147712,
+        "total-hdd-space": 134217728,
+        "write-sect-since-reboot": 12450,
+        "write-sect-total": 89450,
+        "bad-blocks": 0,
+        "architecture-name": "mmips",
+        "board-name": "RB750Gr3 (Virtual Test Router)",
+        "platform": "MikroTik"
+    },
+    "routerboard": {
+        "routerboard": "true",
+        "model": "RB750Gr3",
+        "serial-number": "NGW-TEST-LAB-01",
+        "current-firmware": "7.15.2",
+        "upgrade-firmware": "7.15.2"
+    },
+    "interfaces": [
+        {
+            ".id": "*1",
+            "name": "ether1-WAN",
+            "type": "ether",
+            "running": "true",
+            "disabled": "false"
+        },
+        {
+            ".id": "*2",
+            "name": "ether2-LAN",
+            "type": "ether",
+            "running": "true",
+            "disabled": "false"
+        },
+        {
+            ".id": "*3",
+            "name": "bridge1",
+            "type": "bridge",
+            "running": "true",
+            "disabled": "false"
+        },
+        {
+            ".id": "*4",
+            "name": "wlan1",
+            "type": "wlan",
+            "running": "true",
+            "disabled": "false"
+        }
+    ],
+    "pools": [
+        {
+            ".id": "*1",
+            "name": "hs-pool-1",
+            "ranges": "192.168.10.10-192.168.10.254"
+        },
+        {
+            ".id": "*2",
+            "name": "pppoe-pool-1",
+            "ranges": "10.10.20.2-10.10.20.254"
+        }
+    ],
+    "hotspot_servers": [
+        {
+            ".id": "*1",
+            "name": "all",
+            "interface": "bridge1",
+            "address-pool": "hs-pool-1",
+            "profile": "hsprof1",
+            "disabled": "false"
+        },
+        {
+            ".id": "*2",
+            "name": "hs-main",
+            "interface": "bridge1",
+            "address-pool": "hs-pool-1",
+            "profile": "hsprof1",
+            "disabled": "false"
+        }
+    ],
+    "hotspot_profiles": [
+        {
+            ".id": "*1",
+            "name": "default",
+            "shared-users": "1",
+            "rate-limit": "",
+            "status-autorefresh": "1m"
+        },
+        {
+            ".id": "*2",
+            "name": "1-Hour-10Tk",
+            "shared-users": "1",
+            "rate-limit": "5M/5M",
+            "on-login": ":put (\",rem,10,1h,10,10,Disable\")",
+            "status-autorefresh": "1m"
+        },
+        {
+            ".id": "*3",
+            "name": "1-Day-30Tk",
+            "shared-users": "1",
+            "rate-limit": "10M/10M",
+            "on-login": ":put (\",rem,30,1d,30,30,Disable\")",
+            "status-autorefresh": "1m"
+        },
+        {
+            ".id": "*4",
+            "name": "Monthly-300Tk",
+            "shared-users": "1",
+            "rate-limit": "15M/15M",
+            "on-login": ":put (\",rem,300,30d,300,300,Disable\")",
+            "status-autorefresh": "1m"
+        }
+    ],
+    "hotspot_users": [
+        {
+            ".id": "*1",
+            "server": "all",
+            "name": "test01",
+            "password": "1234",
+            "profile": "1-Day-30Tk",
+            "mac-address": "48:8F:5A:11:22:33",
+            "uptime": "01:23:45",
+            "bytes-in": "14589200",
+            "bytes-out": "85412000",
+            "disabled": "false",
+            "comment": "vc-demo-voucher"
+        },
+        {
+            ".id": "*2",
+            "server": "all",
+            "name": "demo_guest",
+            "password": "demo_guest",
+            "profile": "1-Hour-10Tk",
+            "mac-address": "A4:C3:F0:88:99:AA",
+            "uptime": "00:15:30",
+            "bytes-in": "5120000",
+            "bytes-out": "18400000",
+            "disabled": "false",
+            "comment": "up-demo-guest"
+        },
+        {
+            ".id": "*3",
+            "server": "all",
+            "name": "expired_user",
+            "password": "pass123",
+            "profile": "1-Day-30Tk",
+            "mac-address": "B2:11:22:33:44:55",
+            "uptime": "1d00:00:00",
+            "bytes-in": "120000000",
+            "bytes-out": "550000000",
+            "disabled": "true",
+            "comment": "exp:nov/08/2026 12:00:00"
+        }
+    ],
+    "hotspot_active": [
+        {
+            ".id": "*1",
+            "server": "hs-main",
+            "user": "test01",
+            "address": "192.168.10.45",
+            "mac-address": "48:8F:5A:11:22:33",
+            "uptime": "01:23:45",
+            "bytes-in": "14589200",
+            "bytes-out": "85412000",
+            "login-by": "http-chap"
+        }
+    ],
+    "hotspot_hosts": [
+        {
+            ".id": "*1",
+            "mac-address": "48:8F:5A:11:22:33",
+            "address": "192.168.10.45",
+            "to-address": "192.168.10.45",
+            "server": "hs-main",
+            "authorized": "true",
+            "bypassed": "false"
+        },
+        {
+            ".id": "*2",
+            "mac-address": "A4:C3:F0:88:99:AA",
+            "address": "192.168.10.78",
+            "to-address": "192.168.10.78",
+            "server": "hs-main",
+            "authorized": "false",
+            "bypassed": "false"
+        }
+    ],
+    "hotspot_bindings": [
+        {
+            ".id": "*1",
+            "mac-address": "C8:D7:19:AA:BB:CC",
+            "address": "192.168.10.20",
+            "to-address": "192.168.10.20",
+            "type": "bypassed",
+            "disabled": "false",
+            "comment": "Office Printer"
+        }
+    ],
+    "pppoe_profiles": [
+        {
+            ".id": "*1",
+            "name": "default",
+            "local-address": "10.10.20.1",
+            "remote-address": "pppoe-pool-1",
+            "rate-limit": "10M/10M",
+            "only-one": "yes",
+            "dns-server": "8.8.8.8,1.1.1.1"
+        },
+        {
+            ".id": "*2",
+            "name": "5Mbps-Monthly",
+            "local-address": "10.10.20.1",
+            "remote-address": "pppoe-pool-1",
+            "rate-limit": "5M/5M",
+            "only-one": "yes",
+            "dns-server": "8.8.8.8,1.1.1.1"
+        },
+        {
+            ".id": "*3",
+            "name": "10Mbps-Monthly",
+            "local-address": "10.10.20.1",
+            "remote-address": "pppoe-pool-1",
+            "rate-limit": "10M/10M",
+            "only-one": "yes",
+            "dns-server": "8.8.8.8,1.1.1.1"
+        },
+        {
+            ".id": "*4",
+            "name": "20Mbps-Gaming",
+            "local-address": "10.10.20.1",
+            "remote-address": "pppoe-pool-1",
+            "rate-limit": "20M/20M",
+            "only-one": "yes",
+            "dns-server": "8.8.8.8,1.1.1.1"
+        }
+    ],
+    "pppoe_secrets": [
+        {
+            ".id": "*1",
+            "name": "ppp_test01",
+            "password": "ppp123",
+            "service": "pppoe",
+            "profile": "10Mbps-Monthly",
+            "local-address": "",
+            "remote-address": "10.10.20.15",
+            "caller-id": "00:1A:2B:3C:4D:5E",
+            "disabled": "false",
+            "comment": "exp:2026-11-30 23:59:59|val:1m|by:admin|VIP Customer"
+        },
+        {
+            ".id": "*2",
+            "name": "ppp_demo02",
+            "password": "pass456",
+            "service": "pppoe",
+            "profile": "5Mbps-Monthly",
+            "local-address": "",
+            "remote-address": "",
+            "caller-id": "",
+            "disabled": "false",
+            "comment": "exp:2026-11-15 18:00:00|val:5d|by:admin|Test Home Fiber"
+        },
+        {
+            ".id": "*3",
+            "name": "ppp_expired",
+            "password": "oldpass",
+            "service": "pppoe",
+            "profile": "5Mbps-Monthly",
+            "local-address": "",
+            "remote-address": "",
+            "caller-id": "",
+            "disabled": "true",
+            "comment": "exp:2026-11-05 10:00:00|val:1d|by:admin|Overdue"
+        }
+    ],
+    "pppoe_active": [
+        {
+            ".id": "*1",
+            "name": "ppp_test01",
+            "service": "pppoe",
+            "caller-id": "00:1A:2B:3C:4D:5E",
+            "address": "10.10.20.15",
+            "uptime": "2d04:12:45",
+            "encoding": "",
+            "session-id": "0x81000001"
+        }
+    ],
+    "simple_queues": [
+        {
+            ".id": "*1",
+            "name": "Total-Bandwidth",
+            "target": "192.168.10.0/24",
+            "max-limit": "50M/50M",
+            "dynamic": "false"
+        }
+    ],
+    "schedulers": [
+        {
+            ".id": "*1",
+            "name": "NGW-PPPoE-Monitor",
+            "start-time": "00:00:00",
+            "interval": "00:02:00",
+            "on-event": ":log info \"Virtual Monitor OK\"",
+            "disabled": "false"
+        },
+        {
+            "name": "NGW-PPPoE-Scheduler",
+            "start-time": "startup",
+            "interval": "00:05:00",
+            "on-event": "NGW-PPPoE-Monitor",
+            "policy": "read,write,policy,test",
+            ".id": "*1C79"
+        }
+    ],
+    "scripts": [
+        {
+            ".id": "*1",
+            "name": "NGW-PPPoE-Monitor",
+            "source": "# Virtual Monitor Script",
+            "run-count": 54
+        }
+    ],
+    "logs": [
+        {
+            ".id": "*1",
+            "time": "04:11:48",
+            "topics": "system,info",
+            "message": "Virtual RouterOS initialized in demo simulation mode"
+        },
+        {
+            ".id": "*2",
+            "time": "04:41:48",
+            "topics": "hotspot,info",
+            "message": "test01 (192.168.10.45): logged in"
+        },
+        {
+            ".id": "*3",
+            "time": "05:01:48",
+            "topics": "pppoe,info",
+            "message": "<pppoe-ppp_test01>: authenticated, assigned IP 10.10.20.15"
+        },
+        {
+            ".id": "*4",
+            "time": "05:11:48",
+            "topics": "system,info",
+            "message": "device status: healthy, zero packet loss"
+        }
+    ]
+}
