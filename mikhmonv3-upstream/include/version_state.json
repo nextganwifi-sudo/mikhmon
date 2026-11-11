@@ -1,18 +1,5 @@
 {
-    "current_version": "7.6",
-    "updated_at": "2026-11-11 22:00",
-    "history": [
-        {
-            "id": "ver_20261109_131821_05d2fb",
-            "version": "6.9",
-            "saved_at": "2026-11-09 13:18:22",
-            "file": "snap_v6.9_ver_20261109_131821_05d2fb.zip"
-        },
-        {
-            "id": "ver_20261109_131753_9f9800",
-            "version": "6.8",
-            "saved_at": "2026-11-09 13:17:53",
-            "file": "snap_v6.8_ver_20261109_131753_9f9800.zip"
-        }
-    ]
+    "current_version": "7.7",
+    "updated_at": "2026-11-11 23:30",
+    "history": []
 }

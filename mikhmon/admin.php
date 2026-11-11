@@ -39,7 +39,14 @@ $ids = array(
 );
 
 
-// lang
+// lang & theme early switcher
+if (isset($_GET['setlang']) && $_GET['setlang'] !== '') {
+  include('./settings/setlang.php');
+}
+if (isset($_GET['set-theme']) && $_GET['set-theme'] !== '') {
+  include('./settings/settheme.php');
+}
+
 include('./lang/isocodelang.php');
 include('./include/lang.php');
 $selected_langid = (isset($langid) && $langid !== '') ? $langid : 'en';
@@ -132,12 +139,12 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon_last_activity"] = time();
       $_SESSION["mikhmon_login_handshake"] = 1;
       $_SESSION["ngw_session_token"] = bin2hex(random_bytes(16));
-      unset($_SESSION['login_lang'], $_SESSION['login_theme']);
+      unset($_SESSION['login_lang'], $_SESSION['login_theme'], $_SESSION['lang_owner'], $_SESSION['theme_owner']);
       if (function_exists('ngwResolveCurrentUserLang')) {
-        ngwResolveCurrentUserLang();
+        ngwResolveCurrentUserLang(true);
       }
       if (function_exists('ngwResolveCurrentUserTheme')) {
-        ngwResolveCurrentUserTheme();
+        ngwResolveCurrentUserTheme(true);
       }
       ngwRegisterOrTouchActiveSession(array(
         'is_new_login' => true,
@@ -200,11 +207,12 @@ if ($id == "login" || substr($url, -1) == "p") {
   $_SESSION["mikhmon_permissions"] = getDefaultPermissionMap(true);
   $_SESSION["mikhmon_last_activity"] = time();
   $_SESSION["mikhmon_login_handshake"] = 1;
+  unset($_SESSION['lang_owner'], $_SESSION['theme_owner']);
   if (function_exists('ngwResolveCurrentUserLang')) {
-    ngwResolveCurrentUserLang();
+    ngwResolveCurrentUserLang(true);
   }
   if (function_exists('ngwResolveCurrentUserTheme')) {
-    ngwResolveCurrentUserTheme();
+    ngwResolveCurrentUserTheme(true);
   }
   session_write_close();
   echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=resellers'</script>";
@@ -313,7 +321,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   @session_start();
   $routerDisplayLabel = (!empty($hotspotname) && $hotspotname !== $session) ? ($hotspotname . ' (' . $session . ')') : $session;
   if ($isConnected){
-    $_SESSION["connect"] = "<b class='text-green'>Connected</b>";
+    $_SESSION["connect"] = ($langid === 'bn') ? "<b class='text-green'>সংযুক্ত (Connected)</b>" : "<b class='text-green'>Connected</b>";
     ngwRecordActivity('router_connected', array(
       'router' => $routerDisplayLabel,
       'host' => (string)$iphost,
@@ -321,7 +329,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     session_write_close();
     echo "<script>window.location='" . $targetAfterConnect . "'</script>";
   } else {
-    $_SESSION["connect"] = "<b class='text-red'>Not Connected</b>";
+    $_SESSION["connect"] = ($langid === 'bn') ? "<b class='text-red'>সংযুক্ত নয় (Not Connected)</b>" : "<b class='text-red'>Not Connected</b>";
     $connErrReason = !empty($API->last_error)
       ? (string)$API->last_error
       : ('RouterOS API connection failed for ' . $iphost);
@@ -333,7 +341,9 @@ if ($id == "login" || substr($url, -1) == "p") {
     session_write_close();
     $nl = '\n';
     $portHint = 'RouterOS API (port 8728; API service must be enabled)';
-    if ($currency == in_array($currency, $cekindo['indo'])) {
+    if ($langid === 'bn') {
+      echo "<script>alert('NextGan WiFi Solution সংযুক্ত হতে পারেনি!".$nl."অনুগ্রহ করে মাইক্রোটিকের IP, Username, Password এবং API সার্ভিস (পোর্ট ৮৭২৮) চালু আছে কিনা যাচাই করুন।')</script>";
+    } elseif ($currency == in_array($currency, $cekindo['indo'])) {
       echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Silakan periksa kembali IP, User, Password dan port ".$portHint." harus enable.')</script>";
     }else{
       echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Please check the IP, Username, Password and ensure MikroTik ".$portHint." is enabled.')</script>";
@@ -381,7 +391,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   ngwRecordActivity('logout', array('status' => 'User Logged Out'));
   ngwRemoveCurrentActiveSession();
   include_once('./include/menu.php');
-  echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Logout...</b>";
+  echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> " . (($langid === 'bn') ? "লগআউট হচ্ছে..." : "Logout...") . "</b>";
   $_SESSION = array();
   @session_unset();
   @session_destroy();

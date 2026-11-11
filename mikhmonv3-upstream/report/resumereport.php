@@ -63,11 +63,12 @@ $totalvrc =  explode("/",$_SESSION['totalresume'])[0];
 $totalincome = explode("/",$_SESSION['totalresume'])[1];
 
 
+$totLbl = ($langid === 'bn') ? 'মোট ' : 'Total ';
 if ($currency == in_array($currency, $cekindo['indo'])) {
-  $totalreport = "Total " . $totalvrc . "vcr : " . $currency . " " . number_format((float)$totalincome, 0, ",", ".");
+  $totalreport = $totLbl . $totalvrc . "vcr : " . $currency . " " . number_format((float)$totalincome, 0, ",", ".");
 
 } else {
-  $totalreport = "Total " . $totalvrc . "vcr : " . $currency . " " . number_format((float)$totalincome, 2);
+  $totalreport = $totLbl . $totalvrc . "vcr : " . $currency . " " . number_format((float)$totalincome, 2);
 }
 
 
@@ -127,7 +128,7 @@ Highcharts.chart('container', {
     },
 
     series: [{
-        name: 'Report',
+        name: '<?= $_report ?>',
         data: [
 <?php
 
@@ -147,7 +148,7 @@ for ($i = 1; $i < $totD; $i++) {
         ]
     }],
     tooltip: {
-        pointFormat: 'Total sales: <b>{point.y}</b>',
+        pointFormat: '<?= ($langid === 'bn') ? 'মোট বিক্রয়' : 'Total sales'; ?>: <b>{point.y}</b>',
     },
     responsive: {
         rules: [{

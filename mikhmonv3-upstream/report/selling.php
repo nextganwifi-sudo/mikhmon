@@ -187,7 +187,7 @@ function number_format(number, decimals, dec_point, thousands_sep) {
 <script>
 $(document).ready(function(){
   $("#openResume").click(function(){
-    notify("Calculating data");
+    notify("<?= ($langid === 'bn') ? 'তথ্য হিসাব করা হচ্ছে...' : 'Calculating data'; ?>");
     window.location = "./?report=resume-report&idbl=<?= $idbl;?>&session=<?= $session;?>"
   });
 });

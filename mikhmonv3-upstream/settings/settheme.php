@@ -16,7 +16,7 @@ $cleanUrl = str_replace('?&', '?', $cleanUrl);
 $cleanUrl = preg_replace('/&&+/', '&', $cleanUrl);
 $cleanUrl = rtrim($cleanUrl, '?&');
 
-if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -1) === '/') {
+if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -12) === 'settheme.php' || substr($cleanUrl, -1) === '/') {
     if (!empty($_SERVER['HTTP_REFERER'])) {
         $refClean = preg_replace('/([?&])set-theme=[^&]*(&|$)/', '$1', (string)$_SERVER['HTTP_REFERER']);
         $refClean = str_replace('?&', '?', $refClean);
@@ -38,21 +38,14 @@ $mtheme = array('dark', 'light', 'blue', 'green', 'pink');
 if (!empty($gettheme)) {
     if (in_array($gettheme, $mtheme, true)) {
         ngwSaveCurrentUserTheme($gettheme);
-        session_write_close();
-        if (!headers_sent()) {
-            header('Location: ' . $url2);
-            exit;
-        }
-        echo "<script>window.location=" . json_encode($url2) . ";</script>";
-        exit;
-    } else {
-        session_write_close();
-        if (!headers_sent()) {
-            header('Location: ' . $url2);
-            exit;
-        }
-        echo "<script>window.location=" . json_encode($url2) . ";</script>";
+    }
+    session_write_close();
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+    if (!$isAjax && !headers_sent()) {
+        header('Location: ' . $url2);
         exit;
     }
+    echo "<script>window.location.replace(" . json_encode($url2) . ");</script>";
+    exit;
 }
 ?>

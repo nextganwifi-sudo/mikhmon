@@ -97,19 +97,30 @@ if (!isset($_SESSION["mikhmon"])) {
     $content = @file_get_contents($configPath);
     if ($content === false || strpos($content, "'$session'") === false) {
       $_SESSION['connect'] = "";
-      echo "<div class='alert alert-danger'>Could not save router settings: the session entry was not found or config.php is not writable.</div>";
+      $errMsg = (isset($langid) && $langid === 'bn')
+        ? 'রাউটার সেটিংস সেভ করা যায়নি: সেশন এন্ট্রি পাওয়া যায়নি অথবা config.php রাইটেবল নয়।'
+        : 'Could not save router settings: the session entry was not found or config.php is not writable.';
+      echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
     } else {
       // Apply all field replacements to the same original content, then write once.
       $newcontent = str_replace($search, $replace, $content);
       if ($newcontent === $content && $session !== $sesname) {
-        echo "<div class='alert alert-danger'>Could not save router settings: no matching configuration values were found.</div>";
+        $errMsg = (isset($langid) && $langid === 'bn')
+          ? 'রাউটার সেটিংস সেভ করা যায়নি: কোনো মিল থাকা কনফিগারেশন ভ্যালু পাওয়া যায়নি।'
+          : 'Could not save router settings: no matching configuration values were found.';
+        echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
       } elseif (@file_put_contents($configPath, $newcontent, LOCK_EX) === false) {
-        echo "<div class='alert alert-danger'>Could not save router settings: config.php is not writable.</div>";
+        $errMsg = (isset($langid) && $langid === 'bn')
+          ? 'রাউটার সেটিংস সেভ করা যায়নি: config.php রাইটেবল নয়।'
+          : 'Could not save router settings: config.php is not writable.';
+        echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
       } else {
         // Post/Redirect/Get: reopen the saved router form.
         // This prevents the edit form from being re-submitted or appearing to cycle through previews.
         $_SESSION['connect'] = '';
-        $_SESSION['router_settings_notice'] = 'Router settings saved successfully for ' . $sesname . '.';
+        $_SESSION['router_settings_notice'] = (isset($langid) && $langid === 'bn')
+          ? ($sesname . ' এর জন্য রাউটার সেটিংস সফলভাবে সেভ হয়েছে।')
+          : ('Router settings saved successfully for ' . $sesname . '.');
         session_write_close();
         echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
         exit;
@@ -181,7 +192,7 @@ if (!isset($_SESSION["mikhmon"])) {
             <div class="col-12">
 				      <div class="card">
         	     <div class="card-header">
-            	   <h3 class="card-title">MikroTik API <?= $_SESSION["connect"]; ?></h3>
+            	   <h3 class="card-title"><?= isset($langid) && $langid === 'bn' ? 'মাইক্রোটিক API' : 'MikroTik API' ?> <?= $_SESSION["connect"]; ?></h3>
         	     </div>
         	     <div class="card-body">
 				<table class="table table-sm">
@@ -220,7 +231,7 @@ if (!isset($_SESSION["mikhmon"])) {
                   <span class="connect pointer group-item group-item-md pd-2p5 text-center align-middle" id="<?= $session; ?>&c=settings"><?= $_connect ?></span>
 								</div>
 								<div class="input-group-3">	
-                  <span class="pointer group-item group-item-md pd-2p5 text-center align-middle" id="ping_test">Ping</span>
+                  <span class="pointer group-item group-item-md pd-2p5 text-center align-middle" id="ping_test"><?= isset($_ping) ? $_ping : 'Ping' ?></span>
               	</div>
               	<div class="input-group-1">	
 									<div style="cursor: pointer;" class="group-item group-item-r pd-2p5 text-center" onclick="location.reload();" title="Reload Data"><i class="fa fa-refresh"></i></div>
@@ -239,7 +250,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 	<div class="card">
         <div class="card-header">
-            <h3 class="card-title">NextGan WiFi Solution Data</h3>
+            <h3 class="card-title"><?= isset($langid) && $langid === 'bn' ? 'হটস্পট তথ্য (NextGan WiFi Solution)' : 'NextGan WiFi Solution Data' ?></h3>
         </div>
     <div class="card-body">    
 	<table class="table table-sm">
@@ -275,7 +286,7 @@ if (!isset($_SESSION["mikhmon"])) {
           <option value="10">10</option>
           <option value="30">30</option>
           <option value="60">60</option>
-          <option value="disable">disable</option>
+          <option value="disable"><?= isset($_disable) ? $_disable : 'disable' ?></option>
       </select>
   </div>
   <div class="input-group-3">
@@ -293,9 +304,9 @@ if (!isset($_SESSION["mikhmon"])) {
     <td><?= $_live_report ?></td>
     <td>
       <select class="form-control" name="livereport" >
-          <option value="<?= $livereport; ?>"><?= ucfirst($livereport); ?></option>
-				  <option value="enable">Enable</option>
-				  <option value="disable">Disable</option>
+          <option value="<?= $livereport; ?>"><?= ($livereport === 'enable') ? (isset($_enable) ? $_enable : 'Enable') : (isset($_disable) ? $_disable : 'Disable'); ?></option>
+				  <option value="enable"><?= isset($_enable) ? $_enable : 'Enable' ?></option>
+				  <option value="disable"><?= isset($_disable) ? $_disable : 'Disable' ?></option>
 		  </select>
     </td>
   </tr>

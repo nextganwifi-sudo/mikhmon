@@ -108,13 +108,18 @@ function collectProtectedDataFiles($rootDir) {
     $protectedFiles = array();
     $fixedRelPaths = array(
         'include/config.php',
+        'include/admin_users.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
         'include/permission_groups.json',
+        'include/active_sessions.php',
+        'include/activity_log.php',
+        'include/vpn_routers.json',
+        'include/pppoe_areas.json',
+        'include/voice_call_services.json',
         'include/quickbt.php',
         'include/github_repo.txt',
-        'include/lang.php',
         'include/version_state.json',
         'voucher/template.php',
         'voucher/template-small.php',
@@ -180,13 +185,18 @@ function isProtectedDataRelPath($relPath) {
     $norm = ltrim(str_replace('\\', '/', $relPath), '/');
     $exactLocked = array(
         'include/config.php',
+        'include/admin_users.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
         'include/permission_groups.json',
+        'include/active_sessions.php',
+        'include/activity_log.php',
+        'include/vpn_routers.json',
+        'include/pppoe_areas.json',
+        'include/voice_call_services.json',
         'include/quickbt.php',
         'include/github_repo.txt',
-        'include/lang.php',
         'include/version_state.json',
         'voucher/template.php',
         'voucher/template-small.php',
@@ -195,7 +205,7 @@ function isProtectedDataRelPath($relPath) {
     if (in_array($norm, $exactLocked, true)) {
         return true;
     }
-    if (strpos($norm, 'uploads/reseller-templates/') === 0 || strpos($norm, 'uploads/reseller-logos/') === 0) {
+    if (strpos($norm, 'uploads/reseller-templates/') === 0 || strpos($norm, 'uploads/reseller-logos/') === 0 || $norm === 'uploads/user_prefs.json') {
         return true;
     }
     if (strpos($norm, 'backups/') === 0) {

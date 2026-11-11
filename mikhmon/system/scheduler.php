@@ -83,14 +83,14 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	?>
   	<td style='text-align:center;'>
   	<?php if (hasResellerPermission('manage_scheduler')) { ?>
-  	<i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete scheduler (<?= $name; ?>)?')){loadpage('./?remove-scheduler=<?= $id; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $name; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  	<i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি এই সিডিউলারটি মুছে ফেলতে নিশ্চিত (' . $name . ')?' : 'Are you sure to delete scheduler (' . $name . ')?'; ?>')){loadpage('./?remove-scheduler=<?= $id; ?>&session=<?= $session; ?>')}else{}" title='<?= $_remove . ' ' . $name; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   	<?php
 		if ($disabled == "true") {
 			$uriprocess = "'./?enable-scheduler=" . $id . "&session=" . $session . "'";
-			echo "<span class='text-warning pointer' title='Enable Scheduler " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-lock '></i></span>";
+			echo "<span class='text-warning pointer' title='" . $_enable . " " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-lock '></i></span>";
 		} else {
 			$uriprocess = "'./?disable-scheduler=" . $id . "&session=" . $session . "'";
-			echo "<span  class='pointer' title='Disable Scheduler " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></i></span>";
+			echo "<span  class='pointer' title='" . $_disable . " " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></i></span>";
 		}
 	}
 	echo "</td>";

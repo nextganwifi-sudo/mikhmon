@@ -18,7 +18,7 @@ $cleanUrl = preg_replace('/&&+/', '&', $cleanUrl);
 $cleanUrl = rtrim($cleanUrl, '?&');
 
 // If the clicked URL lost its query string (e.g. bare ?setlang=bn), fall back to HTTP_REFERER
-if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -1) === '/') {
+if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -11) === 'setlang.php' || substr($cleanUrl, -1) === '/') {
     if (!empty($_SERVER['HTTP_REFERER'])) {
         $refClean = preg_replace('/([?&])setlang=[^&]*(&|$)/', '$1', (string)$_SERVER['HTTP_REFERER']);
         $refClean = str_replace('?&', '?', $refClean);
@@ -39,21 +39,14 @@ $getlang = isset($_GET['setlang']) ? strtolower(trim((string)$_GET['setlang'])) 
 if (!empty($getlang)) {
     if (!empty($isocodelang[$getlang]) || in_array($getlang, array('en', 'bn'), true)) {
         ngwSaveCurrentUserLang($getlang);
-        session_write_close();
-        if (!headers_sent()) {
-            header('Location: ' . $url2);
-            exit;
-        }
-        echo "<script>window.location=" . json_encode($url2) . ";</script>";
-        exit;
-    } else {
-        session_write_close();
-        if (!headers_sent()) {
-            header('Location: ' . $url2);
-            exit;
-        }
-        echo "<script>window.location=" . json_encode($url2) . ";</script>";
+    }
+    session_write_close();
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+    if (!$isAjax && !headers_sent()) {
+        header('Location: ' . $url2);
         exit;
     }
+    echo "<script>window.location.replace(" . json_encode($url2) . ");</script>";
+    exit;
 }
 ?>

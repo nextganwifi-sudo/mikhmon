@@ -16,14 +16,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 session_start();
-
-
+$isBnLoginCard = (isset($langid) && $langid === 'bn');
 ?>
 
 <div style="padding-top: 5%;"  class="login-box">
   <div class="card">
-    <div class="card-header">
-      <h3><?= $_please_login ?></h3>
+    <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <h3 style="margin:0;"><?= $_please_login ?></h3>
+      <div style="display:inline-flex; gap:4px;">
+        <a href="./admin.php?id=login&setlang=en" class="btn btn-xs <?= !$isBnLoginCard ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="padding:2px 7px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">EN</a>
+        <a href="./admin.php?id=login&setlang=bn" class="btn btn-xs <?= $isBnLoginCard ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="padding:2px 7px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">বাংলা</a>
+      </div>
     </div>
     <div class="card-body">
       <div class="text-center pd-5">
@@ -38,25 +41,25 @@ session_start();
       <table class="table" style="width:90%">
         <tr>
           <td class="align-middle text-center">
-            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="text" name="user" id="_username" placeholder="Username" required="1" autofocus autocomplete="username">
+            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="text" name="user" id="_username" placeholder="<?= htmlspecialchars(isset($_user_name) ? $_user_name : 'Username', ENT_QUOTES, 'UTF-8'); ?>" required="1" autofocus autocomplete="username">
           </td>
         </tr>
         <tr>
           <td class="align-middle text-center">
-            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="password" name="pass" id="_password" placeholder="Password" required="1" autocomplete="current-password">
+            <input style="width: 100%; height: 35px; font-size: 16px;" class="form-control" type="password" name="pass" id="_password" placeholder="<?= htmlspecialchars(isset($_password) ? $_password : 'Password', ENT_QUOTES, 'UTF-8'); ?>" required="1" autocomplete="current-password">
           </td>
         </tr>
         <tr>
           <td class="align-middle" style="text-align:left; padding:8px 5%;">
             <label for="ngw_remember_username" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:normal;">
               <input type="checkbox" id="ngw_remember_username" style="width:16px;height:16px;">
-              <span>Remember username</span>
+              <span><?= $isBnLoginCard ? 'ইউজারনেম মনে রাখুন' : 'Remember username'; ?></span>
             </label>
           </td>
         </tr>
         <tr>
           <td class="align-middle text-center">
-            <input style="width: 100%; margin-top:20px; height: 35px; font-weight: bold; font-size: 17px;" class="btn-login bg-primary pointer" type="submit" name="login" value="Login">
+            <input style="width: 100%; margin-top:20px; height: 35px; font-weight: bold; font-size: 17px;" class="btn-login bg-primary pointer" type="submit" name="login" value="<?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login', ENT_QUOTES, 'UTF-8'); ?>">
           </td>
         </tr>
         <tr>

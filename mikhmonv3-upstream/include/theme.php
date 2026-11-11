@@ -20,11 +20,14 @@ if (!function_exists('ngwGetThemeColorMap')) {
 }
 
 if (!function_exists('ngwResolveCurrentUserTheme')) {
-    function ngwResolveCurrentUserTheme() {
+    function ngwResolveCurrentUserTheme($forceReloadFromStorage = false) {
         $map = ngwGetThemeColorMap();
         if (!empty($_SESSION['mikhmon'])) {
             $keys = ngwGetCurrentUserPrefKeys();
             $ownerSig = implode('|', $keys);
+            if (!$forceReloadFromStorage && isset($_SESSION['theme_owner']) && $_SESSION['theme_owner'] === $ownerSig && !empty($_SESSION['theme']) && isset($map[$_SESSION['theme']])) {
+                return array('theme' => $_SESSION['theme'], 'themecolor' => $map[$_SESSION['theme']]);
+            }
             $prefs = ngwLoadAllUserPrefs();
             foreach ($keys as $k) {
                 if (isset($prefs[$k]) && is_array($prefs[$k]) && !empty($prefs[$k]['theme'])) {
@@ -36,9 +39,6 @@ if (!function_exists('ngwResolveCurrentUserTheme')) {
                         return array('theme' => $t, 'themecolor' => $map[$t]);
                     }
                 }
-            }
-            if (isset($_SESSION['theme_owner']) && $_SESSION['theme_owner'] === $ownerSig && !empty($_SESSION['theme']) && isset($map[$_SESSION['theme']])) {
-                return array('theme' => $_SESSION['theme'], 'themecolor' => $map[$_SESSION['theme']]);
             }
             $_SESSION['theme'] = 'dark';
             $_SESSION['themecolor'] = $map['dark'];
@@ -82,6 +82,14 @@ if (!function_exists('ngwSaveCurrentUserTheme')) {
             $_SESSION['themecolor'] = $color;
         }
         return array('theme' => $newTheme, 'themecolor' => $color);
+    }
+}
+
+if (isset($_GET['set-theme']) && $_GET['set-theme'] !== '') {
+    $reqTheme = strtolower(trim((string)$_GET['set-theme']));
+    $themeMap = ngwGetThemeColorMap();
+    if (isset($themeMap[$reqTheme])) {
+        ngwSaveCurrentUserTheme($reqTheme);
     }
 }
 

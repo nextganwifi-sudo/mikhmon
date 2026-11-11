@@ -17,9 +17,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
   session_start();
 }
 $logoCsrfToken = ngwCsrfToken('ngw_logo_csrf');
+$isBnEarly = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
     !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_logo_csrf')) {
-  $galat = '<div class="box bg-danger">Security token expired or invalid. Reload this page and try again.</div>';
+  $galat = '<div class="box bg-danger">' . ($isBnEarly ? 'সিকিউরিটি টোকেন মেয়াদোত্তীর্ণ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload this page and try again.') . '</div>';
   $_POST = array();
 }
 if (!isset($_SESSION["mikhmon"])) {
@@ -70,9 +71,11 @@ if (!isset($_SESSION["mikhmon"])) {
           $currentReseller = getCurrentResellerRecord();
         }
         $allResellersList = $isAdminUser ? loadResellers() : array();
-        $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> Success! Reseller logo (<b>' . htmlspecialchars($upRes['filename']) . '</b>) uploaded for <b>' . htmlspecialchars($targetReseller['name']) . '</b> (#' . htmlspecialchars($targetResId) . ').</div>';
+        $galat = $isBnEarly
+          ? '<div class="box bg-success"><i class="fa fa-check-circle"></i> সফল! রিসেলার লোগো (<b>' . htmlspecialchars($upRes['filename']) . '</b>) <b>' . htmlspecialchars($targetReseller['name']) . '</b> (#' . htmlspecialchars($targetResId) . ') এর জন্য আপলোড হয়েছে।</div>'
+          : '<div class="box bg-success"><i class="fa fa-check-circle"></i> Success! Reseller logo (<b>' . htmlspecialchars($upRes['filename']) . '</b>) uploaded for <b>' . htmlspecialchars($targetReseller['name']) . '</b> (#' . htmlspecialchars($targetResId) . ').</div>';
       } else {
-        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> Alert!<br> ' . htmlspecialchars($upRes['error']) . '</div>';
+        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!' : 'Alert!') . '<br> ' . htmlspecialchars($upRes['error']) . '</div>';
       }
     } elseif (isset($_POST["reset_reseller_logo"])) {
       removeResellerCustomLogo($targetResId);
@@ -81,7 +84,7 @@ if (!isset($_SESSION["mikhmon"])) {
         $currentReseller = getCurrentResellerRecord();
       }
       $allResellersList = $isAdminUser ? loadResellers() : array();
-      $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> Reseller custom logo removed. Reverting to default session/global logo.</div>';
+      $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> ' . ($isBnEarly ? 'রিসেলারের কাস্টম লোগো মুছে ফেলা হয়েছে। ডিফল্ট সেশন/গ্লোবাল লোগো ব্যবহৃত হচ্ছে।' : 'Reseller custom logo removed. Reverting to default session/global logo.') . '</div>';
     }
   } else {
     // Administrator session/global logo upload handler (img/logo-{session}.png)
@@ -101,12 +104,12 @@ if (!isset($_SESSION["mikhmon"])) {
       if ($check !== false) {
         $uploadOk = 1;
       } else {
-        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> Alert!<br> File is not a valid image.</div>';
+        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!<br> ফাইলটি সঠিক ছবি নয়।' : 'Alert!<br> File is not a valid image.') . '</div>';
         $uploadOk = 0;
       }
 
       if ($_FILES["UploadLogo"]["size"] > 2000000) {
-        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> Alert!<br> File is too large (Max 2 MB).</div>';
+        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!<br> ফাইলটি অনেক বড় (সর্বোচ্চ ২ MB)।' : 'Alert!<br> File is too large (Max 2 MB).') . '</div>';
         $uploadOk = 0;
       }
 
@@ -115,9 +118,9 @@ if (!isset($_SESSION["mikhmon"])) {
           if (is_dir('./images')) {
             @copy($logo_file, './images/' . $finalLogoName);
           }
-          $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> Success! Logo saved as <b>' . htmlspecialchars($finalLogoName) . '</b>.</div>';
+          $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> ' . ($isBnEarly ? ('সফল! লোগো <b>' . htmlspecialchars($finalLogoName) . '</b> নামে সেভ হয়েছে।') : ('Success! Logo saved as <b>' . htmlspecialchars($finalLogoName) . '</b>.')) . '</div>';
         } else {
-          $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> Alert!<br> There was an error uploading your file.</div>';
+          $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!<br> ফাইল আপলোড করতে ত্রুটি হয়েছে।' : 'Alert!<br> There was an error uploading your file.') . '</div>';
         }
       }
     }
@@ -267,7 +270,7 @@ if (!isset($_SESSION["mikhmon"])) {
                 } else { ?>
               <tr>
                 <td><a href="javascript:window.open('./img/<?= $file; ?>','_blank','width=300,height=300')"><img height="30px" src="./img/<?= $file; ?>?t=<?= time(); ?>" title="Open <?= $file; ?>"></a><br><span><?= $file; ?></span></td>
-                <td><a class="btn bg-danger" href="javascript:void(0)" onclick="if(confirm('Sure to delete <?= $file; ?> ?')){window.location='./admin.php?id=remove-logo&logo=<?= $file; ?>&session=<?= $session ?>'}else{}"><i class="fa fa-trash"></i> <?= $_delete ?></a>
+                <td><a class="btn bg-danger" href="javascript:void(0)" onclick="if(confirm('<?= $isBn ? ($file . ' মুছে ফেলতে নিশ্চিত?') : ('Sure to delete ' . $file . ' ?'); ?>')){window.location='./admin.php?id=remove-logo&logo=<?= $file; ?>&session=<?= $session ?>'}else{}"><i class="fa fa-trash"></i> <?= $_delete ?></a>
                 </td>
               </tr>
           <?php 
@@ -307,18 +310,18 @@ if (!isset($_SESSION["mikhmon"])) {
             <td><img height="32px" src="<?= htmlspecialchars($rLogoUrl); ?>" alt="Logo"></td>
             <td>
               <?php if ($hasCustomLogo) { ?>
-                <span class="text-green"><i class="fa fa-check-circle"></i> Custom (<code><?= htmlspecialchars($rRow['logo_filename']); ?></code>)</span>
+                <span class="text-green"><i class="fa fa-check-circle"></i> <?= $isBn ? 'কাস্টম' : 'Custom'; ?> (<code><?= htmlspecialchars($rRow['logo_filename']); ?></code>)</span>
               <?php } else { ?>
-                <span style="color:#8b949e;">Default Fallback</span>
+                <span style="color:#8b949e;"><?= $isBn ? 'ডিফল্ট লোগো' : 'Default Fallback'; ?></span>
               <?php } ?>
             </td>
             <td>
               <a class="btn bg-primary" href="<?= $uplogoRouteBase; ?>&session=<?= urlencode($session); ?>&reseller_id=<?= urlencode($rRow['id']); ?>">
-                <i class="fa fa-upload"></i> Upload / Change Logo
+                <i class="fa fa-upload"></i> <?= $isBn ? 'লোগো আপলোড / পরিবর্তন' : 'Upload / Change Logo'; ?>
               </a>
               &nbsp;
               <a class="btn bg-blue" href="<?= $editorRouteBase; ?>&template=default&session=<?= urlencode($session); ?>&reseller_id=<?= urlencode($rRow['id']); ?>">
-                <i class="fa fa-code"></i> Edit HTML Template
+                <i class="fa fa-code"></i> <?= $isBn ? 'HTML টেমপ্লেট এডিট' : 'Edit HTML Template'; ?>
               </a>
             </td>
           </tr>

@@ -834,7 +834,7 @@ if ($hotspot == "dashboard" || substr(end(explode("/", $url)), 0, 8) == "?sessio
   echo '
     var interval1 = "' . ($areload * 1000) . '";
     var dashboard = setInterval(function() {
-      
+      if (document.hidden) return;
     $("#r_1").load("./dashboard/aload.php?session=' . $session . '&load=sysresource #r_1"); ';
   if ($canSeeHotspotBox) {
     echo '
@@ -858,6 +858,7 @@ if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
   echo  '
     var interval2 = "65432";
     var livereport = setInterval(function() {
+    if (document.hidden) return;
     $("#r_4").load("./report/livereport.php?session=' . $session . ' #r_4"); 
   }, interval2);
  ';}
@@ -886,6 +887,7 @@ if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
   $(document).ready(function(){
     var interval = "' . ($areload * 1000) . '";
     setInterval(function() {
+    if (document.hidden) return;
     $("#reloadHotspotActive").load("./hotspot/hotspotactive.php?server=' . $serveractive . '&session=' . $session . '"); }, interval);})
 </script>
 ';
@@ -894,6 +896,7 @@ if ($canSeeReport && ($livereport == "enable" || $livereport == "")) {
   $(document).ready(function(){
     var interval = "' . ($areload * 1000) . '";
     setInterval(function() {
+    if (document.hidden) return;
     $("#reloadHotspotActive").load("./hotspot/hotspotactive.php?session=' . $session . '"); }, interval);})
 </script>
 ';

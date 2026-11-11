@@ -25,6 +25,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
   include ('./include/version.php');
   include_once ('./include/reseller_acl.php');
+  include ('./include/lang.php');
 
   $btnmenuactive = "font-weight: bold;background-color: #f9f9f9; color: #000000";
   if ($hotspot == "dashboard" || substr(end(explode("/", $url)), 0, 8) == "?session") {
@@ -461,11 +462,11 @@ $(document).ready(function(){
   });
   $(".stheme").change(function(){
     notify("<?= $_loading_theme ?>");
-    stheme(this.value)
+    window.location.href = this.value;
   });
   $(".slang").change(function(){
     notify("<?= $_loading ?>");
-    stheme(this.value)
+    window.location.href = this.value;
   });
 });
 </script>
@@ -724,11 +725,11 @@ $(document).ready(function(){
   });
   $(".stheme").change(function(){
     notify("<?= $_loading_theme ?>");
-    stheme(this.value)
+    window.location.href = this.value;
   });
   $(".slang").change(function(){
     notify("<?= $_loading ?>");
-    stheme(this.value)
+    window.location.href = this.value;
   });
 });
 </script>
@@ -758,7 +759,7 @@ $(document).ready(function(){
     return '#2ea043';
   }
   function updateServerMetricsBar() {
-    if (pageUnloading || !window.jQuery || metricsInFlight) return;
+    if (pageUnloading || document.hidden || !window.jQuery || metricsInFlight) return;
     metricsInFlight = true;
     metricsXhr = $.ajax({
       url: './status/server_metrics.php',
@@ -791,7 +792,7 @@ $(document).ready(function(){
   }
   $(document).ready(function(){
     updateServerMetricsBar();
-    metricsInterval = setInterval(updateServerMetricsBar, 1000);
+    metricsInterval = setInterval(updateServerMetricsBar, 5000);
   });
 })();
 </script>
@@ -1287,7 +1288,7 @@ $(document).ready(function(){
   <?php if (!$isLogoutReq) { ?>
   var pingInFlight = false;
   function sendSessionHeartbeat() {
-    if (pingInFlight || !window.jQuery) return;
+    if (pingInFlight || document.hidden || !window.jQuery) return;
     pingInFlight = true;
     var cpageEl = document.getElementById('cpage');
     var pageText = cpageEl ? (cpageEl.textContent || '').trim() : '';
@@ -1315,7 +1316,7 @@ $(document).ready(function(){
     });
   }
   sendSessionHeartbeat();
-  window.setInterval(sendSessionHeartbeat, 4000);
+  window.setInterval(sendSessionHeartbeat, 15000);
   <?php } ?>
 })();
 </script>
