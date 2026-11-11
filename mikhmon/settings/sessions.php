@@ -62,10 +62,11 @@ if (!isset($_SESSION["mikhmon"])) {
                         <?= $_hotspot_name ?> : <?= explode('%', $data[$value][4])[1]; ?><br>
                         <?= $_session_name ?> : <?= $value; ?><br>
                         <span class="connect pointer" id="<?= $value; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
-                        <?php if (hasResellerPermission('manage_router_settings')) { ?>
+                        <?php if (hasResellerPermission('manage_router_settings')) { 
+                          $delSessionMsg = ($langid === 'bn' ? 'আপনি কি নিশ্চিত যে এই রাউটার সেশন ডিলিট করতে চান: ' : 'Are you sure to delete data ') . $value . ' (' . explode('%', $data[$value][4])[1] . ')?';
+                        ?>
                         <a href="./admin.php?id=settings&session=<?= $value; ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
-                        <a href="javascript:void(0)" onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই রাউটার সেশন ডিলিট করতে চান: ' : 'Are you sure to delete data '; ?><?= $value;
-                        echo " (" . explode('%', $data[$value][4])[1] . ")"; ?>?')){loadpage('./admin.php?id=remove-session&session=<?= $value; ?>')}else{}"><i class="fa fa-remove"></i> <?= $_delete ?></a>
+                        <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delSessionMsg); ?>)){loadpage("./admin.php?id=remove-session&session=<?= urlencode($value); ?>")}else{}'><i class="fa fa-remove"></i> <?= $_delete ?></a>
                         <?php } ?>
                       </span>
                     </div>

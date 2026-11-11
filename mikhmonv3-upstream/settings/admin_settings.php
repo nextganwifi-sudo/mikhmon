@@ -306,8 +306,10 @@ if (isset($_GET['msg'])) {
                   <a class="btn bg-primary" style="padding:2px 6px; font-size:11px; margin:1px;" href="./admin.php?id=admin-settings&edit_admin=<?= urlencode($adm['id']); ?>" title="<?= $isBn ? 'সম্পাদনা' : 'Edit Admin User'; ?>">
                     <i class="fa fa-edit"></i> <?= $_edit ?>
                   </a>
-                  <?php if (count($adminUsers) > 1) { ?>
-                  <form method="post" action="./admin.php?id=admin-settings" style="display:inline; margin:0;" onsubmit="return confirm('<?= $isBn ? 'অ্যাডমিন ইউজার মুছে ফেলবেন: ' : 'Delete Admin user ' ?><?= htmlspecialchars(addslashes($adm['username']), ENT_QUOTES, 'UTF-8'); ?>?');">
+                  <?php if (count($adminUsers) > 1) { 
+                    $delAdminMsg = ($isBn ? 'অ্যাডমিন ইউজার মুছে ফেলবেন: ' : 'Delete Admin user ') . $adm['username'] . '?';
+                  ?>
+                  <form method="post" action="./admin.php?id=admin-settings" style="display:inline; margin:0;" onsubmit="return confirm(<?= htmlspecialchars(json_encode($delAdminMsg), ENT_QUOTES, 'UTF-8'); ?>);">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="delete_admin_id" value="<?= htmlspecialchars($adm['id'], ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="submit" name="delete_admin_user" class="btn bg-danger" style="padding:2px 6px; font-size:11px; cursor:pointer; margin:1px;" title="<?= $_delete ?>">

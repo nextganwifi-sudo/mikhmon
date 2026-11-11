@@ -173,8 +173,10 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	echo "<tr>";
 	?>
   <td style='text-align:center;'>
-  <?php if (hasResellerPermission('delete_profile')) { ?>
-  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি প্রোফাইলটি ডিলিট করতে নিশ্চিত' : 'Are you sure to delete profile'; ?> (<?= $pname; ?>)?')){loadpage('./?remove-user-profile=<?= $pid; ?>&pname=<?= $pname ?>&session=<?= $session; ?>')}else{}" title='<?= $_remove ?> <?= $pname; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <?php if (hasResellerPermission('delete_profile')) { 
+    $delProfMsg = ($langid === 'bn' ? 'আপনি কি প্রোফাইলটি ডিলিট করতে নিশ্চিত' : 'Are you sure to delete profile') . ' (' . $pname . ')?';
+  ?>
+  <i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delProfMsg); ?>)){loadpage("./?remove-user-profile=<?= urlencode($pid); ?>&pname=<?= urlencode($pname); ?>&session=<?= urlencode($session); ?>")}else{}' title='<?= htmlspecialchars($_remove . ' ' . $pname, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
 	if (hasResellerPermission('view_users')) {

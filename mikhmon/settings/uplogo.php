@@ -283,7 +283,9 @@ if (!isset($_SESSION["mikhmon"])) {
                 } else { ?>
               <tr>
                 <td><a href="javascript:window.open('./img/<?= $file; ?>','_blank','width=300,height=300')"><img height="30px" src="./img/<?= $file; ?>?t=<?= time(); ?>" title="Open <?= $file; ?>"></a><br><span><?= $file; ?></span></td>
-                <td><a class="btn bg-danger" href="javascript:void(0)" onclick="if(confirm('<?= $isBn ? ($file . ' মুছে ফেলতে নিশ্চিত?') : ('Sure to delete ' . $file . ' ?'); ?>')){window.location='./admin.php?id=remove-logo&logo=<?= $file; ?>&session=<?= $session ?>'}else{}"><i class="fa fa-trash"></i> <?= $_delete ?></a>
+                <td>
+                  <?php $delLogoMsg = $isBn ? ($file . ' মুছে ফেলতে নিশ্চিত?') : ('Sure to delete ' . $file . ' ?'); ?>
+                  <a class="btn bg-danger" href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delLogoMsg); ?>)){window.location="./admin.php?id=remove-logo&logo=<?= urlencode($file); ?>&session=<?= urlencode($session); ?>"}else{}'><i class="fa fa-trash"></i> <?= $_delete ?></a>
                 </td>
               </tr>
           <?php 

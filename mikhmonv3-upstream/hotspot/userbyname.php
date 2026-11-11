@@ -308,8 +308,10 @@ include('./voucher/printbt.php');
     <?php if (hasResellerPermission('edit_user')) { ?>
     <button type="submit" name="save" class="btn bg-primary" > <i class="fa fa-save"></i> <?= $_save ?></button>
     <?php } ?>
-    <?php if (hasResellerPermission('delete_user')) { ?>
-    <div class="btn bg-danger"  onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?'; ?>')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></div>
+    <?php if (hasResellerPermission('delete_user')) { 
+      $delUnameMsg = ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?';
+    ?>
+    <div class="btn bg-danger" onclick='if(confirm(<?= json_encode($delUnameMsg); ?>)){loadpage("./?remove-hotspot-user=<?= urlencode($uid); ?>&session=<?= urlencode($session); ?>")}else{}' title='Remove <?= htmlspecialchars($uname, ENT_QUOTES); ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></div>
     <?php } ?>
     <?php if (hasResellerPermission('enable_disable_user') && ($utimelimit == "1s" || $utimelimit == "00:00:01")) {
       echo '<a class="btn bg-info"  href="./?reset-hotspot-user=' . $uid . '&session=' . $session . '"> <i class="fa fa-retweet"></i> ' . $_reset . '</a>';

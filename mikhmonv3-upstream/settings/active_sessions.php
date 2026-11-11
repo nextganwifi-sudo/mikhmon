@@ -283,7 +283,12 @@ $nowTs = time();
                   </td>
 
                   <td class="align-middle text-center ngw-sess-col-act">
-                    <form method="post" action="./admin.php?id=active-sessions" style="margin:0;" onsubmit="return confirm('<?= $isCurrent ? ($isBn ? 'আপনার বর্তমান সেশন লগআউট করতে চান?' : 'Log out your own current session?') : (($isBn ? 'ফোর্স লগআউট করতে চান: ' : 'Force logout ') . htmlspecialchars($sess['username'], ENT_QUOTES, 'UTF-8') . '?'); ?>');">
+                    <?php 
+                      $forceLogoutConfirm = $isCurrent 
+                        ? ($isBn ? 'আপনার বর্তমান সেশন লগআউট করতে চান?' : 'Log out your own current session?') 
+                        : (($isBn ? 'ফোর্স লগআউট করতে চান: ' : 'Force logout ') . $sess['username'] . '?');
+                    ?>
+                    <form method="post" action="./admin.php?id=active-sessions" style="margin:0;" onsubmit="return confirm(<?= htmlspecialchars(json_encode($forceLogoutConfirm), ENT_QUOTES, 'UTF-8'); ?>);">
                       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                       <input type="hidden" name="force_logout_token" value="<?= htmlspecialchars($tk, ENT_QUOTES, 'UTF-8'); ?>">
                       <button type="submit" class="btn bg-danger pd-2p5 radius-3" style="cursor:pointer; font-weight:bold; font-size:10px; margin:0;">

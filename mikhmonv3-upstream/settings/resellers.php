@@ -1374,7 +1374,8 @@ function closeResellerDetailsModal() {
                                 <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($rId); ?>">
                                   <i class="fa <?= $r['status'] === 'active' ? 'fa-lock text-warning' : 'fa-unlock text-green'; ?>"></i> <?= $r['status'] === 'active' ? ($isBn ? 'নিষ্ক্রিয় করুন' : 'Deactivate') : ($isBn ? 'সক্রিয় করুন' : 'Activate'); ?>
                                 </a>
-                                <a href="javascript:void(0)" onclick="if(confirm('<?= $isBn ? 'আপনি কি নিশ্চিতভাবে এই রিসেলার মুছে ফেলতে চান: ' : 'Are you sure you want to delete reseller ' ?><?= htmlspecialchars($r['username'], ENT_QUOTES); ?>?')){window.location='<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>';}">
+                                <?php $delResMsg = ($isBn ? 'আপনি কি নিশ্চিতভাবে এই রিসেলার মুছে ফেলতে চান: ' : 'Are you sure you want to delete reseller ') . $r['username'] . '?'; ?>
+                                <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delResMsg); ?>)){window.location="<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>";}'>
                                   <i class="fa fa-trash text-danger"></i> <?= htmlspecialchars($_delete); ?>
                                 </a>
                               </div>

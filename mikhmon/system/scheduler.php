@@ -82,8 +82,10 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	echo "<tr>";
 	?>
   	<td style='text-align:center;'>
-  	<?php if (hasResellerPermission('manage_scheduler')) { ?>
-  	<i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি এই সিডিউলারটি মুছে ফেলতে নিশ্চিত (' . $name . ')?' : 'Are you sure to delete scheduler (' . $name . ')?'; ?>')){loadpage('./?remove-scheduler=<?= $id; ?>&session=<?= $session; ?>')}else{}" title='<?= $_remove . ' ' . $name; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  	<?php if (hasResellerPermission('manage_scheduler')) { 
+  		$delSchedMsg = ($langid === 'bn') ? 'আপনি কি এই সিডিউলারটি মুছে ফেলতে নিশ্চিত (' . $name . ')?' : 'Are you sure to delete scheduler (' . $name . ')?';
+  	?>
+  	<i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delSchedMsg); ?>)){loadpage("./?remove-scheduler=<?= urlencode($id); ?>&session=<?= urlencode($session); ?>")}else{}' title='<?= htmlspecialchars($_remove . ' ' . $name, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   	<?php
 		if ($disabled == "true") {
 			$uriprocess = "'./?enable-scheduler=" . $id . "&session=" . $session . "'";

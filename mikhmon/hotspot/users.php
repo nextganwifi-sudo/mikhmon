@@ -240,8 +240,10 @@ for ($i = 0; $i < $TotalReg; $i++) {
   echo "<tr>";
   ?>
   <td style='text-align:center;'>
-  <?php if (hasResellerPermission('delete_user')) { ?>
-  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?'; ?>')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;&nbsp;
+  <?php if (hasResellerPermission('delete_user')) { 
+    $delUserMsg = ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?';
+  ?>
+  <i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delUserMsg); ?>)){loadpage("./?remove-hotspot-user=<?= urlencode($uid); ?>&session=<?= urlencode($session); ?>")}else{}' title='Remove <?= htmlspecialchars($uname, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
   if (hasResellerPermission('enable_disable_user')) {
