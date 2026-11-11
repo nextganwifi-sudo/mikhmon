@@ -257,8 +257,3 @@
 {"time":"2026-11-10 02:17:51","actor":"mikhmon","role":"admin","action":"login","details":[]}
 {"time":"2026-11-10 02:25:39","actor":"mikhmon","role":"admin","action":"login","details":[]}
 {"time":"2026-11-10 09:49:10","actor":"mikhmon","role":"admin","action":"login_failed","details":{"error":"Wrong password entered for Administrator 'mikhmon'","ip":"127.0.0.1","device":"Unknown OS \u00b7 Browser (Desktop)"}}
-{"time":"2026-11-11 21:08:16","actor":"mikhmon","role":"admin","action":"login_failed","details":{"error":"Wrong password entered for Administrator 'mikhmon'","ip":"169.254.169.126","device":"Windows 10/11 \u00b7 Chrome 157 (Desktop)"}}
-{"time":"2026-11-11 21:08:21","actor":"mikhmon","role":"admin","action":"login_failed","details":{"error":"Wrong password entered for Administrator 'mikhmon'","ip":"169.254.169.126","device":"Windows 10/11 \u00b7 Chrome 157 (Desktop)"}}
-{"time":"2026-11-11 21:08:24","actor":"mikhmon","role":"admin","action":"login","details":{"status":"Login Successful","ip":"169.254.169.126","device":"Windows 10/11 \u00b7 Chrome 157 (Desktop)"}}
-{"time":"2026-11-11 21:08:27","actor":"mikhmon","role":"admin","action":"router_connected","details":{"router":"Virtual Test Lab (Local)","host":"127.0.0.2","ip":"169.254.169.126","device":"Windows 10/11 \u00b7 Chrome 157 (Desktop)"}}
-{"time":"2026-11-11 21:29:06","actor":"mikhmon","role":"admin","action":"logout","details":{"status":"User Logged Out","ip":"169.254.169.126","device":"Windows 10/11 \u00b7 Chrome 157 (Desktop)"}}

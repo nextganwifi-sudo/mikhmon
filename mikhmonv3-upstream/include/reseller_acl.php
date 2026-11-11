@@ -56,6 +56,7 @@ function getAllMikhmonPermissionCategories() {
             'edit_user'           => 'View & Edit Hotspot User Details',
             'delete_user'         => 'Delete Hotspot Users (Single / Batch / Expired)',
             'enable_disable_user' => 'Enable, Disable & Reset Hotspot Users',
+            'reset_mac_address'   => 'Reset Hotspot MAC Address (Profile / Batch / All)',
             'reset_voucher'       => 'Reset Voucher (Reset MAC, Enable, Disable & Check Expiry)',
             'print_voucher'       => 'Print Vouchers (Default / QR / Small)',
             'view_profiles'       => 'View Hotspot User Profiles',
@@ -98,9 +99,11 @@ function getAllMikhmonPermissionCategories() {
         ),
         'Network, IP Binding & DHCP' => array(
             'view_hosts'       => 'View Hotspot Hosts',
-            'manage_hosts'     => 'Remove Hosts & Make IP Bindings',
+            'manage_hosts'     => 'Remove Hotspot Hosts',
+            'bind_host_ip'     => 'Direct Host to IP Binding (MAC / IP / Regular / Bypassed / Blocked)',
             'view_ipbinding'   => 'View Hotspot IP Bindings',
             'manage_ipbinding' => 'Add, Enable, Disable & Remove IP Bindings',
+            'edit_ipbinding'   => 'Edit IP Bindings, Status Type & Comments',
             'view_cookies'     => 'View Hotspot Cookies',
             'delete_cookies'   => 'Delete Hotspot Cookies',
             'view_dhcp'        => 'View DHCP Leases',
@@ -156,6 +159,7 @@ function getMikhmonPermissionSectionsMeta() {
                 'edit_user'           => 'হটস্পট ইউজার ডিটেইলস দেখা ও এডিট করা',
                 'delete_user'         => 'হটস্পট ইউজার ডিলিট করা (সিঙ্গেল / ব্যাচ / মেয়াদোত্তীর্ণ)',
                 'enable_disable_user' => 'হটস্পট ইউজার ইনেবল, ডিজেবল ও রিসেট করা',
+                'reset_mac_address'   => 'হটস্পট ইউজারের ম্যাক অ্যাড্রেস রিসেট করা (প্রোফাইল / ব্যাচ / সব)',
                 'reset_voucher'       => 'ভাউচার রিসেট (ম্যাক রিসেট, ইনেবল, ডিজেবল ও মেয়াদ চেক)',
                 'print_voucher'       => 'ভাউচার প্রিন্ট করা (Default / QR / Small)',
                 'view_profiles'       => 'হটস্পট ইউজার প্রোফাইল লিস্ট দেখা',
@@ -242,9 +246,11 @@ function getMikhmonPermissionSectionsMeta() {
             'short_bn' => 'নেটওয়ার্ক',
             'items_bn' => array(
                 'view_hosts'       => 'হটস্পট হোস্ট লিস্ট দেখা',
-                'manage_hosts'     => 'হোস্ট রিমুভ ও IP বাইন্ডিং তৈরি করা',
+                'manage_hosts'     => 'হটস্পট হোস্ট রিমুভ করা',
+                'bind_host_ip'     => 'হোস্ট থেকে সরাসরি IP বাইন্ডিং করা (MAC / IP / Regular / Bypassed / Blocked)',
                 'view_ipbinding'   => 'হটস্পট IP বাইন্ডিং দেখা',
                 'manage_ipbinding' => 'IP বাইন্ডিং যোগ, ইনেবল, ডিজেবল ও ডিলিট করা',
+                'edit_ipbinding'   => 'IP বাইন্ডিং, স্ট্যাটাস (Regular/Bypassed/Blocked) ও কমেন্ট এডিট করা',
                 'view_cookies'     => 'হটস্পট কুকিজ দেখা',
                 'delete_cookies'   => 'হটস্পট কুকিজ ডিলিট করা',
                 'view_dhcp'        => 'DHCP লিজ দেখা',
@@ -418,6 +424,15 @@ function sanitizeResellerPermissions($permMap) {
         if (!array_key_exists('same_router_profile_transfer', $permMap) && ($hasEditUser || $hasGen)) {
             $permMap['same_router_profile_transfer'] = true;
         }
+        if (!array_key_exists('reset_mac_address', $permMap) && ($hasEditUser || !empty($permMap['enable_disable_user']) || !empty($permMap['reset_voucher']))) {
+            $permMap['reset_mac_address'] = true;
+        }
+        if (!array_key_exists('bind_host_ip', $permMap) && (!empty($permMap['manage_hosts']) || !empty($permMap['manage_ipbinding']))) {
+            $permMap['bind_host_ip'] = true;
+        }
+        if (!array_key_exists('edit_ipbinding', $permMap) && !empty($permMap['manage_ipbinding'])) {
+            $permMap['edit_ipbinding'] = true;
+        }
         if (!array_key_exists('manage_own_profile', $permMap) && (!empty($permMap['view_dashboard']) || !empty($permMap['view_users']))) {
             $permMap['manage_own_profile'] = true;
         }
@@ -470,6 +485,7 @@ function getDefaultPermissionGroupDefinitions() {
         'generate_voucher',
         'edit_user',
         'enable_disable_user',
+        'reset_mac_address',
         'reset_voucher',
         'print_voucher',
         'transfer_users_access',
@@ -478,6 +494,8 @@ function getDefaultPermissionGroupDefinitions() {
         'import_transfer_users',
         'auto_activate_transfer_users',
         'same_router_profile_transfer',
+        'bind_host_ip',
+        'edit_ipbinding',
         'export_report',
         'edit_own_template',
         'save_own_template',
@@ -1678,6 +1696,7 @@ function isResetOnlyReseller() {
         'edit_user',
         'delete_user',
         'enable_disable_user',
+        'reset_mac_address',
         'print_voucher',
         'transfer_users_access',
         'export_users',
@@ -1693,8 +1712,10 @@ function isResetOnlyReseller() {
         'disconnect_active',
         'view_hosts',
         'manage_hosts',
+        'bind_host_ip',
         'view_ipbinding',
         'manage_ipbinding',
+        'edit_ipbinding',
         'view_cookies',
         'delete_cookies',
         'view_dhcp',

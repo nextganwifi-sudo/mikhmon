@@ -473,8 +473,8 @@ elseif ($removeexpiredhotspotuser != "") {
 
 // bulk reset hotspot MAC addresses (by profile, batch, or all)
   elseif ($resethotspotmacs != "") {
-    if (!hasResellerPermission('edit_user') && !hasResellerPermission('enable_disable_user') && !hasResellerPermission('reset_voucher')) {
-      requireResellerPermission('edit_user', $defRedirect);
+    if (!hasResellerPermission('reset_mac_address') && !hasResellerPermission('edit_user') && !hasResellerPermission('enable_disable_user') && !hasResellerPermission('reset_voucher')) {
+      requireResellerPermission('reset_mac_address', $defRedirect);
     }
     echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
 

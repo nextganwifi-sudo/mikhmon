@@ -191,7 +191,7 @@ if (!isset($_SESSION["mikhmon"])) {
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_profile ?></th>
 	  <th class="pointer" title="Click to sort">
       <i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?>
-      <?php if (hasResellerPermission('edit_user') || hasResellerPermission('enable_disable_user') || hasResellerPermission('reset_voucher')) {
+      <?php if (hasResellerPermission('reset_mac_address') || hasResellerPermission('edit_user') || hasResellerPermission('enable_disable_user') || hasResellerPermission('reset_voucher')) {
         $resetMacConfirmMsg = ($langid === 'bn')
           ? ($comm != '' ? "আপনি কি নিশ্চিত যে এই ব্যাচের ($comm) সকল ইউজারের ম্যাক অ্যাড্রেস রিসেট করতে চান?" : (($prof != 'all' && $prof != '') ? "আপনি কি নিশ্চিত যে '$prof' প্রোফাইলের সকল ইউজারের ম্যাক অ্যাড্রেস রিসেট করতে চান?" : "আপনি কি নিশ্চিত যে সকল হটস্পট ইউজারের ম্যাক অ্যাড্রেস রিসেট করতে চান?"))
           : ($comm != '' ? "Are you sure you want to reset MAC addresses for batch ($comm)?" : (($prof != 'all' && $prof != '') ? "Are you sure you want to reset MAC addresses for profile '$prof'?" : "Are you sure you want to reset MAC addresses for all Hotspot users?"));
