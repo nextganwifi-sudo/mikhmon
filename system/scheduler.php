@@ -1,0 +1,116 @@
+<?php
+/*
+ *  Copyright (C) 2018 Laksamadi Guko.
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+session_start();
+// hide all error
+error_reporting(0);
+if (!isset($_SESSION["mikhmon"])) {
+	header("Location:../admin.php?id=login");
+} else {
+
+	include_once('./include/reseller_acl.php');
+	requireResellerPermission('view_scheduler', './?session=' . $session);
+
+	$getsch = $API->comm("/system/scheduler/print");
+	$TotalReg = is_array($getsch) ? count($getsch) : 0;
+	$countsch = $TotalReg;
+
+}
+?>
+<div class="row">
+<div class="col-12">
+<div class="card">
+<div class="card-header">
+	<h3><i class=" fa fa-clock-o"></i> <?= $_system_scheduler ?> 
+<?php
+if ($countsch < 2) {
+	echo $countsch . ($langid === 'bn' ? " টি আইটেম" : " item");
+} elseif ($countsch > 1) {
+	echo $countsch . ($langid === 'bn' ? " টি আইটেম" : " items");
+};
+echo "</th>";
+?>
+&nbsp;&nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i>
+    </h3>
+</div>
+<div class="card-body">	   
+<div class="w-6">
+    <input id="filterTable" type="text" class="form-control" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>">
+  </div>
+<div class="overflow box-bordered mr-t-10" style="max-height: 75vh">   	   
+<table id="dataTable" class="table table-bordered table-hover text-nowrap">
+  <thead>
+  <tr>
+  	<th></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'শুরুর তারিখ' : 'Start Date'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'শুরুর সময়' : 'Start Time'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ইন্টারভাল' : 'Interval'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'পরবর্তী রান' : 'Next Run'; ?></th>
+		<th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'রান সংখ্যা' : 'Run Count'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_comment ?></th>
+  </tr>
+  </thead>
+  <tbody> 
+<?php
+for ($i = 0; $i < $TotalReg; $i++) {
+	$sch = $getsch[$i];
+	$id = $sch['.id'];
+	$name = $sch['name'];
+	$startd = $sch['start-date'];
+	$startt = $sch['start-time'];
+	$interval = formatInterval($sch['interval']);
+	$nextrun = $sch['next-run'];
+	$runcount = $sch['run-count'];
+	$comment = $sch['comment'];
+	$disabled = $sch['disabled'];
+
+	echo "<tr>";
+	?>
+  	<td style='text-align:center;'>
+  	<?php if (hasResellerPermission('manage_scheduler')) { 
+  		$delSchedMsg = ($langid === 'bn') ? 'আপনি কি এই সিডিউলারটি মুছে ফেলতে নিশ্চিত (' . $name . ')?' : 'Are you sure to delete scheduler (' . $name . ')?';
+  	?>
+  	<i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delSchedMsg); ?>)){loadpage("./?remove-scheduler=<?= urlencode($id); ?>&session=<?= urlencode($session); ?>")}else{}' title='<?= htmlspecialchars($_remove . ' ' . $name, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  	<?php
+		if ($disabled == "true") {
+			$uriprocess = "'./?enable-scheduler=" . $id . "&session=" . $session . "'";
+			echo "<span class='text-warning pointer' title='" . $_enable . " " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-lock '></i></span>";
+		} else {
+			$uriprocess = "'./?disable-scheduler=" . $id . "&session=" . $session . "'";
+			echo "<span  class='pointer' title='" . $_disable . " " . $name . "'  onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock '></i></span>";
+		}
+	}
+	echo "</td>";
+		echo "<td>" . $name . "</td>";
+		echo "<td>" . $startd . "</td>";
+		echo "<td>" . $startt . "</td>";
+		echo "<td>" . $interval . "</td>";
+		echo "<td>" . $nextrun . "</a></td>";
+		echo "<td>" . $runcount . "</a></td>";
+		echo "<td>" . $comment . "</a></td>";
+		echo "</tr>";
+	}
+	?>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
