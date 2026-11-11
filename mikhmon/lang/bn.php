@@ -292,12 +292,12 @@ $_about_f5 = "প্রতিটি রিসেলারের জন্য ড
 $_about_f6 = "যে অপশনের পারমিশন নেই, রিসেলার প্যানেলে সেটি স্বয়ংক্রিয়ভাবে লুকানো থাকে।";
 $_about_f7 = "প্রতিটি রিসেলারের জন্য আলাদা ভাউচার টেমপ্লেট ও নিজস্ব লোগো আপলোড সুবিধা।";
 $_about_f8 = "অ্যাডমিন প্যানেল থেকে সরাসরি রেডিমেড পোর্টেবল Windows Server ZIP ডাউনলোড ও রান করার সুবিধা।";
-$_srv_dl_title = "সম্পূর্ণ পোর্টেবল Mikhmon Server ডাউনলোড করুন (MikhmonServer.exe সহ)";
-$_srv_dl_desc = "নিচের বাটনে ক্লিক করে <b><code>MikhmonServer.exe</code> + PHP Server + NextGan WiFi Solution</b> সহ সম্পূর্ণ রেডিমেড পোর্টেবল সার্ভার ডাউনলোড করুন:";
-$_srv_dl_btn = "কমপ্লিট Mikhmon Server ডাউনলোড (.zip)";
-$_srv_dl_step1 = "উপরের সবুজ বাটনে ক্লিক করে <code>Mikhmon-Server-NextGan-Complete.zip</code> ডাউনলোড করুন।";
-$_srv_dl_step2 = "ডাউনলোড করা ZIP ফাইলে রাইট-ক্লিক করে <b>Extract All / Extract Here</b> দিয়ে <b><code>Mikhmon Server</code></b> ফোল্ডারটি খুলুন।";
-$_srv_dl_step3 = "ফোল্ডারের ভেতরে থাকা <b><code>MikhmonServer.exe</code></b> ডাবল-ক্লিক করুন — সার্ভার স্বয়ংক্রিয়ভাবে চালু হবে (সবুজ ইন্ডিকেটর), এরপর <b>Open</b> বাটনে ক্লিক করে ব্রাউজারে ওপেন করুন।";
+$_srv_dl_title = "সম্পূর্ণ পোর্টেবল NextGen WiFi Solution Server ডাউনলোড করুন";
+$_srv_dl_desc = "নিচের বাটনে ক্লিক করে <b>NextGen Server + PHP Runtime + NextGen WiFi Solution</b> সহ সম্পূর্ণ রেডিমেড পোর্টেবল সার্ভার ডাউনলোড করুন:";
+$_srv_dl_btn = "কমপ্লিট NextGen WiFi Solution Server ডাউনলোড (.zip)";
+$_srv_dl_step1 = "উপরের বাটনে ক্লিক করে <code>NextGen-WiFi-Solution-Server.zip</code> ডাউনলোড করুন।";
+$_srv_dl_step2 = "ডাউনলোড করা ZIP ফাইলে রাইট-ক্লিক করে <b>Extract All / Extract Here</b> দিয়ে <b><code>NextGen WiFi Server</code></b> ফোল্ডারটি খুলুন।";
+$_srv_dl_step3 = "ফোল্ডারের ভেতরে থাকা সার্ভার লঞ্চ করুন — সার্ভার স্বয়ংক্রিয়ভাবে চালু হবে (সবুজ ইন্ডিকেটর), এরপর <b>Open</b> বাটনে ক্লিক করে ব্রাউজারে ওপেন করুন।";
 
 // System Update, GitHub & Version History (Bangla)
 $_system_update = "সিস্টেম আপডেট";

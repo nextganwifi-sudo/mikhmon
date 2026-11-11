@@ -1,6 +1,6 @@
 {
   "name": "NextGan WiFi Solution",
-  "description": "NextGan WiFi Solution (Mikhmon v3.20) - MikroTik RouterOS 6 & 7 Hotspot Monitor, Voucher Management, Reseller ACL, and VPN Hub.",
+  "description": "NextGen WiFi Solution - Enterprise MikroTik RouterOS 6 & 7 Hotspot Monitor, Voucher Generator, Multi-Reseller ACL, and VPN Hub.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

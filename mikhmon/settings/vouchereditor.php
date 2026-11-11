@@ -400,7 +400,7 @@ textarea {
 					</table>
 
 					<!-- CodeMirror Editor Textarea -->
-					<textarea class="bg-dark" id="editotMikhmon" name="editor" style="width:100%" height="700" <?= $canEditTemplate ? '' : 'readonly'; ?>><?= htmlspecialchars($loadedTemplateContent); ?></textarea>
+					<textarea class="bg-dark" id="editorNextGen" name="editor" style="width:100%" height="700" <?= $canEditTemplate ? '' : 'readonly'; ?>><?= htmlspecialchars($loadedTemplateContent); ?></textarea>
 				</form>
 			</div>
 		</div>
@@ -459,12 +459,13 @@ textarea {
 <script>
 (function(){
   if (typeof (Storage) !== 'undefined') {
-    var _msEl = document.getElementById('MikhmonSession');
+    var _msEl = document.getElementById('MikhmonSession') || document.getElementById('NgwSession');
     if (_msEl) {
+      sessionStorage.setItem('NgwSession', _msEl.innerHTML);
       sessionStorage.setItem('MikhmonSession', _msEl.innerHTML);
     }
   }
-  var textareaEl = document.getElementById('editotMikhmon') || document.getElementById('editorMikhmon');
+  var textareaEl = document.getElementById('editorNextGen') || document.getElementById('editotMikhmon') || document.getElementById('editorMikhmon');
   if (textareaEl && typeof CodeMirror !== 'undefined') {
     try {
       var editor = CodeMirror.fromTextArea(textareaEl, {

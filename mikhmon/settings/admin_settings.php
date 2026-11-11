@@ -333,7 +333,7 @@ if (isset($_GET['msg'])) {
   <div class="col-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-windows"></i> <?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone Mikhmon Server (with MikhmonServer.exe)'); ?></h3>
+        <h3 class="card-title"><i class="fa fa-windows"></i> <?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone NextGen WiFi Solution Server'); ?></h3>
       </div>
       <div class="card-body">
         <p style="margin-top:0; margin-bottom:10px;">
@@ -341,7 +341,7 @@ if (isset($_GET['msg'])) {
         </p>
         <div style="margin-bottom:12px;">
           <a class="btn bg-green pd-10" href="./settings/export_package.php" style="display:inline-block; font-weight:bold; max-width:100%; white-space:normal;">
-            <i class="fa fa-download"></i> <?= htmlspecialchars(isset($_srv_dl_btn) ? $_srv_dl_btn : 'Download Complete Mikhmon Server (.zip)'); ?>
+            <i class="fa fa-download"></i> <?= htmlspecialchars(isset($_srv_dl_btn) ? $_srv_dl_btn : 'Download Complete NextGen WiFi Solution Server (.zip)'); ?>
           </a>
         </div>
         <table class="table table-bordered table-sm" style="margin-bottom:0;">

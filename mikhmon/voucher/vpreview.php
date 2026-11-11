@@ -77,8 +77,8 @@ if (!isset($_SESSION["mikhmon"])) {
   $resolvedTemplatePath = resolveActiveVoucherTemplatePath($requestedVariant, $overrideResId);
 
  
-  $username = "mikhmon";
-  $password = "1234";
+  $username = "NGW-7892";
+  $password = "5842";
   $timelimit = "6h";
   $getdatalimit = "1073741824";
   $comment = "test";

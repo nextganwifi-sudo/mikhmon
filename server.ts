@@ -200,7 +200,7 @@ async function main() {
     proxyReq.on('error', (err) => {
       console.error('Proxy request error:', err.message);
       if (!res.headersSent) {
-        res.status(502).send('Mikhmon PHP server is starting up, please refresh in a moment.');
+        res.status(502).send('NextGen WiFi Solution server is starting up, please refresh in a moment.');
       }
     });
 
@@ -208,7 +208,7 @@ async function main() {
   });
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`NextGan WiFi Solution (Mikhmon Server) running on http://0.0.0.0:${PORT}`);
+    console.log(`NextGen WiFi Solution Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

@@ -293,106 +293,258 @@ if (!isset($_SESSION["mikhmon"])) {
 	top: 0;
 	width: 100%;
 	height: 100%;
-	background: rgba(15, 23, 42, 0.72);
+	background: rgba(15, 23, 42, 0.78);
+	backdrop-filter: blur(4px);
 	align-items: center;
 	justify-content: center;
 	padding: 12px;
+	overflow-y: auto;
 }
 .ngw-ipb-modal-card {
 	background: #1e293b;
 	color: #f8fafc;
 	border: 1px solid rgba(148, 163, 184, 0.28);
-	border-radius: 8px;
+	border-top: 3px solid #0ea5e9;
+	border-radius: 12px;
 	width: 100%;
-	max-width: 430px;
-	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+	max-width: 485px;
+	box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.65);
 	overflow: hidden;
+	animation: ngwModalFadeIn 0.18s ease-out;
 }
 .ngw-ipb-modal-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 10px 14px;
-	background: rgba(15, 23, 42, 0.65);
-	border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+	padding: 12px 16px;
+	background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.85) 100%);
+	border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+.ngw-ipb-modal-title-wrap {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.ngw-ipb-modal-icon-badge {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background: linear-gradient(135deg, rgba(14, 165, 233, 0.25) 0%, rgba(2, 132, 199, 0.15) 100%);
+	border: 1px solid rgba(14, 165, 233, 0.4);
+	color: #38bdf8;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+	flex-shrink: 0;
 }
 .ngw-ipb-modal-header h4 {
 	margin: 0;
-	font-size: 14px;
+	font-size: 13.5px;
 	font-weight: 700;
-	color: #38bdf8;
+	color: #f1f5f9;
+	line-height: 1.25;
+}
+.ngw-ipb-modal-sub {
+	font-size: 11px;
+	color: #94a3b8;
+	display: block;
+	margin-top: 1px;
+}
+.ngw-ipb-modal-close-btn {
+	background: transparent;
+	border: none;
+	color: #94a3b8;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 3px 8px;
+	border-radius: 6px;
+	transition: background 0.15s, color 0.15s;
+}
+.ngw-ipb-modal-close-btn:hover {
+	background: rgba(239, 68, 68, 0.2);
+	color: #f87171;
 }
 .ngw-ipb-modal-body {
-	padding: 12px 14px;
+	padding: 14px 16px;
+	max-height: calc(88vh - 70px);
+	overflow-y: auto;
 }
-.ngw-ipb-field {
-	margin-bottom: 9px;
+.ngw-ipb-panel-box {
+	border-radius: 8px;
+	padding: 10px 12px;
+	margin-bottom: 10px;
+	background: rgba(15, 23, 42, 0.45);
+	border: 1px solid rgba(148, 163, 184, 0.2);
 }
-.ngw-ipb-field label {
+.ngw-ipb-panel-blue {
+	border-left: 3px solid #0284c7;
+	background: linear-gradient(90deg, rgba(2, 132, 199, 0.08) 0%, rgba(15, 23, 42, 0.5) 100%);
+}
+.ngw-ipb-panel-amber {
+	border-left: 3px solid #f59e0b;
+	background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.5) 100%);
+}
+.ngw-ipb-panel-purple {
+	border-left: 3px solid #a855f7;
+	background: linear-gradient(90deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.5) 100%);
+}
+.ngw-ipb-panel-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	font-size: 11.5px;
-	font-weight: 600;
-	margin-bottom: 3px;
+	font-weight: 700;
 	color: #cbd5e1;
+	margin-bottom: 8px;
+	padding-bottom: 5px;
+	border-bottom: 1px dashed rgba(148, 163, 184, 0.2);
 }
-.ngw-ipb-field input,
-.ngw-ipb-field select {
-	width: 100%;
-	height: 31px !important;
-	padding: 4px 9px !important;
-	font-size: 12px !important;
-	border-radius: 5px !important;
-	background: #0f172a !important;
+.ngw-ipb-panel-badge {
+	font-size: 9.5px;
+	font-weight: 700;
+	padding: 1px 6px;
+	border-radius: 3px;
+	background: rgba(148, 163, 184, 0.15);
+	color: #94a3b8;
+	text-transform: uppercase;
+}
+.ngw-ipb-field-group {
+	margin-bottom: 6px;
+}
+.ngw-ipb-field-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: #94a3b8;
+	margin-bottom: 3px;
+	display: block;
+}
+.ngw-ipb-input-with-icon {
+	display: flex;
+	align-items: stretch;
+	border-radius: 6px;
+	border: 1px solid rgba(148, 163, 184, 0.3);
+	background: #0f172a;
+	overflow: hidden;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ngw-ipb-input-with-icon:focus-within {
+	border-color: #38bdf8;
+	box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.22);
+}
+.ngw-ipb-input-addon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 10px;
+	background: rgba(30, 41, 59, 0.6);
+	color: #64748b;
+	font-size: 12px;
+	border-right: 1px solid rgba(148, 163, 184, 0.2);
+}
+.ngw-ipb-input-with-icon input,
+.ngw-ipb-input-with-icon select {
+	flex: 1;
+	background: transparent !important;
+	border: none !important;
+	outline: none !important;
 	color: #f8fafc !important;
-	border: 1px solid rgba(148, 163, 184, 0.32) !important;
+	padding: 6px 10px !important;
+	font-size: 12px !important;
+	height: 32px !important;
+	margin: 0 !important;
+	box-shadow: none !important;
+}
+.ngw-ipb-input-with-icon select option {
+	background: #1e293b;
+	color: #f8fafc;
 }
 .ngw-ipb-clear-btn {
-	padding: 1px 6px;
+	background: rgba(239, 68, 68, 0.18);
+	border: 1px solid rgba(239, 68, 68, 0.4);
+	color: #fca5a5;
 	font-size: 10.5px;
 	font-weight: 600;
+	padding: 2px 7px;
 	border-radius: 4px;
-	border: 1px solid rgba(245, 158, 11, 0.45);
-	background: rgba(245, 158, 11, 0.15);
-	color: #fbbf24;
 	cursor: pointer;
+	line-height: 1.2;
+	transition: background 0.15s;
 }
 .ngw-ipb-clear-btn:hover {
-	background: #f59e0b;
-	color: #111827;
+	background: #ef4444;
+	color: #fff;
 }
-.ngw-ipb-type-pills {
+.ngw-ipb-type-pill-cards {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 6px;
+	margin-top: 4px;
 }
-.ngw-ipb-type-pill {
-	text-align: center;
-	padding: 5px 6px;
-	font-size: 11.5px;
-	font-weight: 700;
-	border-radius: 5px;
-	border: 1px solid rgba(148, 163, 184, 0.3);
-	background: #0f172a;
-	color: #94a3b8;
+.ngw-ipb-type-card {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	border-radius: 6px;
+	border: 1px solid rgba(148, 163, 184, 0.25);
+	background: rgba(30, 41, 59, 0.4);
 	cursor: pointer;
+	transition: all 0.15s ease;
 	user-select: none;
 }
-.ngw-ipb-type-pill.active-regular {
-	background: rgba(59, 130, 246, 0.2);
+.ngw-ipb-type-card:hover {
+	transform: translateY(-1px);
+}
+.ngw-ipb-card-indicator {
+	font-size: 13px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.ngw-ipb-card-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.1;
+}
+.ngw-ipb-card-name {
+	font-size: 11px;
+	font-weight: 700;
+}
+.ngw-ipb-card-text small {
+	font-size: 9px;
+	opacity: 0.7;
+}
+.ngw-ipb-card-regular { color: #94a3b8; }
+.ngw-ipb-card-regular.active-regular {
 	border-color: #3b82f6;
+	background: rgba(59, 130, 246, 0.2);
 	color: #60a5fa;
+	box-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
 }
-.ngw-ipb-type-pill.active-bypassed {
-	background: rgba(16, 185, 129, 0.2);
+.ngw-ipb-card-bypassed { color: #94a3b8; }
+.ngw-ipb-card-bypassed.active-bypassed {
 	border-color: #10b981;
+	background: rgba(16, 185, 129, 0.22);
 	color: #34d399;
+	box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
 }
-.ngw-ipb-type-pill.active-blocked {
-	background: rgba(239, 68, 68, 0.2);
+.ngw-ipb-card-blocked { color: #94a3b8; }
+.ngw-ipb-card-blocked.active-blocked {
 	border-color: #ef4444;
+	background: rgba(239, 68, 68, 0.22);
 	color: #f87171;
+	box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
+}
+.ngw-ipb-modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 8px;
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px solid rgba(148, 163, 184, 0.18);
 }
 @media (max-width: 768px) {
 	.card-header {
@@ -584,95 +736,159 @@ for ($i = 0; $i < $TotalReg; $i++) {
 <div id="ngwIpbModal" class="ngw-ipb-modal-backdrop" onclick="if(event.target===this)ngwCloseIpbModal();">
   <div class="ngw-ipb-modal-card">
     <div class="ngw-ipb-modal-header">
-      <h4 id="ngwIpbModalTitle"><i class="fa fa-edit"></i> <?= $isBn ? 'IP বাইন্ডিং এডিট করুন' : 'Edit IP Binding'; ?></h4>
-      <button type="button" onclick="ngwCloseIpbModal()" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;">&times;</button>
+      <div class="ngw-ipb-modal-title-wrap">
+        <div class="ngw-ipb-modal-icon-badge"><i class="fa fa-sliders"></i></div>
+        <div>
+          <h4 id="ngwIpbModalTitle"><i class="fa fa-edit"></i> <?= $isBn ? 'IP বাইন্ডিং এডিট করুন' : 'Edit IP Binding'; ?></h4>
+          <span class="ngw-ipb-modal-sub"><?= $isBn ? 'ডিভাইসের MAC/IP কনফিগারেশন ও এক্সেস পলিসি সংরক্ষণ করুন' : 'Configure device MAC/IP & access policy'; ?></span>
+        </div>
+      </div>
+      <button type="button" class="ngw-ipb-modal-close-btn" onclick="ngwCloseIpbModal()" title="<?= $_close ?>">&times;</button>
     </div>
+
     <div class="ngw-ipb-modal-body">
       <form method="post" action="">
         <input type="hidden" name="ngw_save_ipbinding" value="1">
         <input type="hidden" name="binding_id" id="ngwIpbId" value="">
         <input type="hidden" name="binding_type" id="ngwIpbTypeInput" value="bypassed">
 
-        <div class="ngw-ipb-field">
-          <label>
-            <span><?= $isBn ? 'ম্যাক অ্যাড্রেস (MAC Address)' : 'MAC Address'; ?></span>
-          </label>
-          <input type="text" name="mac_address" id="ngwIpbMac" placeholder="00:11:22:33:44:55" style="font-family:monospace;">
-        </div>
-
-        <div class="ngw-ipb-field">
-          <label>
-            <span><?= $isBn ? 'অ্যাড্রেস / আইপি (Address)' : 'Address (IP)'; ?> <small style="opacity:0.75;font-weight:400;">(<?= $isBn ? 'ফাঁকা রাখলে শুধু MAC বাইন্ডিং' : 'Blank = MAC Only'; ?>)</small></span>
-            <button type="button" class="ngw-ipb-clear-btn" onclick="document.getElementById('ngwIpbAddr').value=''; document.getElementById('ngwIpbToAddr').value='';" title="<?= $isBn ? 'আইপি মুছে শুধু ম্যাক দিয়ে বাইন্ডিং করুন' : 'Clear IP to bind by MAC only'; ?>">
-              <i class="fa fa-eraser"></i> <?= $isBn ? 'শুধু MAC (IP মুছুন)' : 'MAC Only (Clear IP)'; ?>
-            </button>
-          </label>
-          <input type="text" name="address" id="ngwIpbAddr" placeholder="<?= $isBn ? 'যেমন: 10.5.50.10 অথবা ফাঁকা রাখুন' : 'e.g. 10.5.50.10 or leave blank'; ?>">
-        </div>
-
-        <div class="ngw-ipb-field">
-          <label>
-            <span><?= $isBn ? 'টু অ্যাড্রেস (To Address)' : 'To Address'; ?> <small style="opacity:0.75;font-weight:400;">(<?= $isBn ? 'ঐচ্ছিক' : 'Optional'; ?>)</small></span>
-            <button type="button" class="ngw-ipb-clear-btn" style="padding:0px 5px;font-size:10px;" onclick="document.getElementById('ngwIpbToAddr').value='';">
-              <?= $isBn ? 'মুছুন' : 'Clear'; ?>
-            </button>
-          </label>
-          <input type="text" name="to_address" id="ngwIpbToAddr" placeholder="<?= $isBn ? 'ঐচ্ছিক' : 'Optional'; ?>">
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-          <div class="ngw-ipb-field">
-            <label><span><?= $isBn ? 'সার্ভার (Server)' : 'Server'; ?></span></label>
-            <select name="server" id="ngwIpbServer">
-              <option value="all">all</option>
-              <?php
-              for ($s = 0; $s < count($srvlist); $s++) {
-                $sName = isset($srvlist[$s]['name']) ? $srvlist[$s]['name'] : '';
-                if ($sName !== '') {
-                  echo "<option value='" . htmlspecialchars($sName, ENT_QUOTES) . "'>" . htmlspecialchars($sName) . "</option>";
-                }
-              }
-              ?>
-            </select>
+        <!-- Box 1: Device & Network (নীল প্যানেল বক্স) -->
+        <div class="ngw-ipb-panel-box ngw-ipb-panel-blue">
+          <div class="ngw-ipb-panel-header">
+            <span><i class="fa fa-hdd-o text-info"></i> <?= $isBn ? 'ডিভাইস ও আইপি তথ্য' : 'Device & IP Information'; ?></span>
+            <span class="ngw-ipb-panel-badge"><?= $isBn ? 'নেটওয়ার্ক' : 'Network'; ?></span>
           </div>
-          <div class="ngw-ipb-field">
-            <label><span><?= $isBn ? 'সক্রিয় (Enabled)' : 'Enabled'; ?></span></label>
-            <select name="disabled" id="ngwIpbDisabled">
-              <option value="no"><?= $_yes ?></option>
-              <option value="yes"><?= $_no ?></option>
-            </select>
-          </div>
-        </div>
 
-        <div class="ngw-ipb-field">
-          <label>
-            <span><?= $isBn ? 'বাইন্ডিং স্ট্যাটাস / টাইপ (Type)' : 'Binding Status / Type'; ?></span>
-          </label>
-          <div class="ngw-ipb-type-pills">
-            <div id="ngwIpbPillRegular" class="ngw-ipb-type-pill" onclick="ngwSelectIpbType('regular')">
-              <i class="fa fa-circle-o"></i> Regular
+          <div class="ngw-ipb-field-group">
+            <label class="ngw-ipb-field-label">
+              <span><?= $isBn ? 'ম্যাক অ্যাড্রেস (MAC Address)' : 'MAC Address'; ?></span>
+            </label>
+            <div class="ngw-ipb-input-with-icon">
+              <span class="ngw-ipb-input-addon"><i class="fa fa-laptop"></i></span>
+              <input type="text" name="mac_address" id="ngwIpbMac" placeholder="00:11:22:33:44:55" style="font-family:monospace; font-weight:600; letter-spacing:0.5px;">
             </div>
-            <div id="ngwIpbPillBypassed" class="ngw-ipb-type-pill active-bypassed" onclick="ngwSelectIpbType('bypassed')">
-              <i class="fa fa-check-circle"></i> Bypassed
+          </div>
+
+          <div class="ngw-ipb-field-group" style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+              <label class="ngw-ipb-field-label" style="margin-bottom:0;">
+                <span><?= $isBn ? 'অ্যাড্রেস / আইপি (Address)' : 'Address (IP)'; ?> <small style="opacity:0.65; font-weight:normal;">(<?= $isBn ? 'ফাঁকা = শুধু MAC' : 'Blank = MAC Only'; ?>)</small></span>
+              </label>
+              <button type="button" class="ngw-ipb-clear-btn" onclick="document.getElementById('ngwIpbAddr').value=''; document.getElementById('ngwIpbToAddr').value='';" title="<?= $isBn ? 'আইপি মুছে শুধু MAC দিয়ে বাইন্ডিং করুন' : 'Clear IP to bind by MAC only'; ?>">
+                <i class="fa fa-eraser"></i> <?= $isBn ? 'শুধু MAC (IP মুছুন)' : 'MAC Only (Clear IP)'; ?>
+              </button>
             </div>
-            <div id="ngwIpbPillBlocked" class="ngw-ipb-type-pill" onclick="ngwSelectIpbType('blocked')">
-              <i class="fa fa-ban"></i> Blocked
+            <div class="ngw-ipb-input-with-icon">
+              <span class="ngw-ipb-input-addon"><i class="fa fa-globe"></i></span>
+              <input type="text" name="address" id="ngwIpbAddr" placeholder="<?= $isBn ? 'যেমন: 10.5.50.10 অথবা ফাঁকা রাখুন' : 'e.g. 10.5.50.10 or leave blank'; ?>">
+            </div>
+          </div>
+
+          <div class="ngw-ipb-field-group" style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+              <label class="ngw-ipb-field-label" style="margin-bottom:0;">
+                <span><?= $isBn ? 'টু অ্যাড্রেস (To Address)' : 'To Address'; ?> <small style="opacity:0.65; font-weight:normal;">(<?= $isBn ? 'ঐচ্ছিক' : 'Optional'; ?>)</small></span>
+              </label>
+              <button type="button" class="ngw-ipb-clear-btn" style="padding:1px 5px; font-size:10px;" onclick="document.getElementById('ngwIpbToAddr').value='';">
+                <?= $isBn ? 'মুছুন' : 'Clear'; ?>
+              </button>
+            </div>
+            <div class="ngw-ipb-input-with-icon">
+              <span class="ngw-ipb-input-addon"><i class="fa fa-arrow-right"></i></span>
+              <input type="text" name="to_address" id="ngwIpbToAddr" placeholder="<?= $isBn ? 'ঐচ্ছিক (ফাঁকা রাখতে পারেন)' : 'Optional'; ?>">
             </div>
           </div>
         </div>
 
-        <div class="ngw-ipb-field">
-          <label>
-            <span><?= $isBn ? 'কমেন্ট (Comment)' : 'Comment'; ?></span>
-          </label>
-          <input type="text" name="comment" id="ngwIpbComment" placeholder="<?= $isBn ? 'কমেন্ট বা নোট লিখুন...' : 'Enter comment or note...'; ?>">
+        <!-- Box 2: Server & Policy (অ্যাম্বার/হলুদ প্যানেল বক্স) -->
+        <div class="ngw-ipb-panel-box ngw-ipb-panel-amber">
+          <div class="ngw-ipb-panel-header">
+            <span><i class="fa fa-sliders text-warning"></i> <?= $isBn ? 'সার্ভার ও পলিসি নির্ধারণ' : 'Server & Policy Options'; ?></span>
+            <span class="ngw-ipb-panel-badge"><?= $isBn ? 'পলিসি' : 'Policy'; ?></span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <div class="ngw-ipb-field-group">
+              <label class="ngw-ipb-field-label"><span><?= $isBn ? 'হটস্পট সার্ভার' : 'Hotspot Server'; ?></span></label>
+              <div class="ngw-ipb-input-with-icon">
+                <span class="ngw-ipb-input-addon"><i class="fa fa-server"></i></span>
+                <select name="server" id="ngwIpbServer">
+                  <option value="all">all</option>
+                  <?php
+                  for ($s = 0; $s < count($srvlist); $s++) {
+                    $sName = isset($srvlist[$s]['name']) ? $srvlist[$s]['name'] : '';
+                    if ($sName !== '') {
+                      echo "<option value='" . htmlspecialchars($sName, ENT_QUOTES) . "'>" . htmlspecialchars($sName) . "</option>";
+                    }
+                  }
+                  ?>
+                </select>
+              </div>
+            </div>
+
+            <div class="ngw-ipb-field-group">
+              <label class="ngw-ipb-field-label"><span><?= $isBn ? 'সক্রিয় (Enabled)' : 'Enabled'; ?></span></label>
+              <div class="ngw-ipb-input-with-icon">
+                <span class="ngw-ipb-input-addon"><i class="fa fa-power-off"></i></span>
+                <select name="disabled" id="ngwIpbDisabled">
+                  <option value="no"><?= $_yes ?></option>
+                  <option value="yes"><?= $_no ?></option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="ngw-ipb-field-group" style="margin-top:10px;">
+            <label class="ngw-ipb-field-label">
+              <span><?= $isBn ? 'বাইন্ডিং স্ট্যাটাস / টাইপ (Type)' : 'Binding Status / Type'; ?></span>
+            </label>
+            <div class="ngw-ipb-type-pill-cards">
+              <div id="ngwIpbPillRegular" class="ngw-ipb-type-card ngw-ipb-card-regular" onclick="ngwSelectIpbType('regular')">
+                <div class="ngw-ipb-card-indicator"><i class="fa fa-circle-o"></i></div>
+                <div class="ngw-ipb-card-text">
+                  <span class="ngw-ipb-card-name">Regular</span>
+                  <small><?= $isBn ? 'লগইন প্রয়োজন' : 'Needs Login'; ?></small>
+                </div>
+              </div>
+
+              <div id="ngwIpbPillBypassed" class="ngw-ipb-type-card ngw-ipb-card-bypassed active-bypassed" onclick="ngwSelectIpbType('bypassed')">
+                <div class="ngw-ipb-card-indicator"><i class="fa fa-check-circle"></i></div>
+                <div class="ngw-ipb-card-text">
+                  <span class="ngw-ipb-card-name">Bypassed</span>
+                  <small><?= $isBn ? 'সরাসরি চালু' : 'No Login'; ?></small>
+                </div>
+              </div>
+
+              <div id="ngwIpbPillBlocked" class="ngw-ipb-type-card ngw-ipb-card-blocked" onclick="ngwSelectIpbType('blocked')">
+                <div class="ngw-ipb-card-indicator"><i class="fa fa-ban"></i></div>
+                <div class="ngw-ipb-card-text">
+                  <span class="ngw-ipb-card-name">Blocked</span>
+                  <small><?= $isBn ? 'ব্লক করা' : 'Blocked'; ?></small>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
-          <button type="button" class="btn bg-warning" style="padding:4px 12px; font-size:12px;" onclick="ngwCloseIpbModal()">
+        <!-- Box 3: Note / Description (পার্পল প্যানেল বক্স) -->
+        <div class="ngw-ipb-panel-box ngw-ipb-panel-purple">
+          <div class="ngw-ipb-panel-header">
+            <span><i class="fa fa-commenting-o text-purple"></i> <?= $isBn ? 'ডিভাইসের নোট বা কমেন্ট' : 'Device Note / Comment'; ?></span>
+            <small style="opacity:0.65;"><?= $isBn ? 'ঐচ্ছিক' : 'Optional'; ?></small>
+          </div>
+
+          <div class="ngw-ipb-input-with-icon">
+            <span class="ngw-ipb-input-addon"><i class="fa fa-tag"></i></span>
+            <input type="text" name="comment" id="ngwIpbComment" placeholder="<?= $isBn ? 'ডিভাইস বা ইউজারের নাম / নোট লিখুন...' : 'Device or user note...'; ?>">
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="ngw-ipb-modal-footer">
+          <button type="button" class="btn bg-warning" style="padding:5px 14px; font-size:12px;" onclick="ngwCloseIpbModal()">
             <i class="fa fa-close"></i> <?= $_close ?>
           </button>
-          <button type="submit" class="btn bg-primary" style="padding:4px 14px; font-size:12px; font-weight:600;">
+          <button type="submit" class="btn bg-primary" style="font-weight:700; padding:5px 18px; font-size:12px;">
             <i class="fa fa-save"></i> <?= $_save ?>
           </button>
         </div>
@@ -687,9 +903,9 @@ function ngwSelectIpbType(typeVal) {
   var pReg = document.getElementById('ngwIpbPillRegular');
   var pByp = document.getElementById('ngwIpbPillBypassed');
   var pBlk = document.getElementById('ngwIpbPillBlocked');
-  pReg.className = 'ngw-ipb-type-pill' + (typeVal === 'regular' ? ' active-regular' : '');
-  pByp.className = 'ngw-ipb-type-pill' + (typeVal === 'bypassed' ? ' active-bypassed' : '');
-  pBlk.className = 'ngw-ipb-type-pill' + (typeVal === 'blocked' ? ' active-blocked' : '');
+  if (pReg) pReg.className = 'ngw-ipb-type-card ngw-ipb-card-regular' + (typeVal === 'regular' ? ' active-regular' : '');
+  if (pByp) pByp.className = 'ngw-ipb-type-card ngw-ipb-card-bypassed' + (typeVal === 'bypassed' ? ' active-bypassed' : '');
+  if (pBlk) pBlk.className = 'ngw-ipb-type-card ngw-ipb-card-blocked' + (typeVal === 'blocked' ? ' active-blocked' : '');
 }
 function ngwOpenIpbModal(item) {
   var titleEl = document.getElementById('ngwIpbModalTitle');

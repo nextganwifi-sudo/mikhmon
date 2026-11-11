@@ -1,8 +1,8 @@
 <?php
 /*
- * NextGan WiFi Solution - Complete Standalone Windows Mikhmon Server Package Exporter
- * Bundles the official MikhmonServer.exe + portable php/ runtime + live mikhmon/ web files
- * so the user can simply Extract -> double-click MikhmonServer.exe -> Click Open!
+ * NextGen WiFi Solution - Complete Standalone Windows Server Package Exporter
+ * Bundles the standalone server + portable php/ runtime + live web files
+ * so the user can simply Extract -> launch server -> Click Open!
  */
 session_start();
 error_reporting(0);
@@ -13,7 +13,7 @@ include_once('../include/reseller_acl.php');
 
 if (!isset($_SESSION["mikhmon"]) || !isMikhmonAdmin()) {
     header("HTTP/1.1 403 Forbidden");
-    echo "Access Denied: Only Super Administrator can export the Mikhmon Server package.";
+    echo "Access Denied: Only Super Administrator can export the NextGen WiFi Solution Server package.";
     exit;
 }
 
@@ -177,7 +177,7 @@ foreach ($webIterator as $item) {
 }
 
 $archiveBytes = $zip->getArchiveBytes();
-$filename = 'Mikhmon-Server-NextGan-Complete.zip';
+$filename = 'NextGen-WiFi-Solution-Server.zip';
 
 if (ob_get_length()) {
     @ob_end_clean();

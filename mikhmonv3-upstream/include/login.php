@@ -30,10 +30,10 @@ $isBnLoginCard = (isset($langid) && $langid === 'bn');
     </div>
     <div class="card-body">
       <div class="text-center pd-5">
-        <img src="img/favicon.png?v=nextgan" alt="NextGan WiFi Solution Logo" style="width:96px; height:96px; border-radius:50%; object-fit:cover;">
+        <img src="img/favicon.png?v=nextgen" alt="NextGen WiFi Solution Logo" style="width:96px; height:96px; border-radius:50%; object-fit:cover;">
       </div>
       <div class="text-center">
-      <span style="font-size: 23px; margin: 10px; font-weight: bold;">NextGan WiFi Solution</span>
+      <span style="font-size: 23px; margin: 10px; font-weight: bold;">NextGen WiFi Solution</span>
       </div>
       <center>
       <form autocomplete="off" action="" method="post">

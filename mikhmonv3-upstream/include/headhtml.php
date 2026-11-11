@@ -22,7 +22,7 @@ error_reporting(0);
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>NextGan WiFi Solution <?= $hotspotname; ?></title>
+		<title>NextGen WiFi Solution <?= $hotspotname; ?></title>
 		<meta charset="utf-8">
 		<meta http-equiv="cache-control" content="private" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -32,7 +32,7 @@ error_reporting(0);
 		<meta name="theme-color" content="<?= $themecolor ?>" />
 		<!-- Font Awesome -->
 		<link rel="stylesheet" type="text/css" href="css/font-awesome/css/font-awesome.min.css" />
-		<!-- NextGan UI -->
+		<!-- NextGen UI -->
 		<link rel="stylesheet" href="css/mikhmon-ui.<?= $theme; ?>.min.css">
 		<!-- Shared theme-aware responsive refinements for VPN and Reseller modules -->
 		<link rel="stylesheet" href="css/nextgan-responsive.css?v=20261110">
