@@ -188,6 +188,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	white-space: nowrap;
 	text-align: center;
 	width: 1%;
+	position: relative;
 }
 .ngw-host-status-badge {
 	display: inline-block;
@@ -197,26 +198,65 @@ if (!isset($_SESSION["mikhmon"])) {
 	border-radius: 4px;
 	line-height: 1.2;
 }
-.ngw-host-bind-btn {
+.ngw-dots-btn {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	padding: 2px 7px;
-	font-size: 11px;
-	font-weight: 600;
-	line-height: 1.3;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
 	border-radius: 4px;
-	border: 1px solid rgba(14, 165, 233, 0.45);
-	background: rgba(14, 165, 233, 0.14);
-	color: #38bdf8;
+	background: rgba(148, 163, 184, 0.16);
+	border: 1px solid rgba(148, 163, 184, 0.32);
+	color: #94a3b8;
 	cursor: pointer;
-	transition: all 0.15s ease;
-	text-decoration: none !important;
+	padding: 0;
+	font-size: 13px;
+	line-height: 1;
+	transition: background 0.15s ease, color 0.15s ease;
 }
-.ngw-host-bind-btn:hover {
+.ngw-dots-btn:hover {
 	background: #0ea5e9;
-	color: #fff !important;
+	color: #fff;
 	border-color: #0ea5e9;
+}
+.ngw-action-dropdown-menu {
+	display: none;
+	position: fixed;
+	z-index: 10050;
+	min-width: 140px;
+	background: #1e293b;
+	color: #f8fafc;
+	border: 1px solid rgba(148, 163, 184, 0.35);
+	border-radius: 6px;
+	box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+	padding: 4px 0;
+	text-align: left;
+}
+.ngw-action-dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 12px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #e2e8f0 !important;
+	text-decoration: none !important;
+	cursor: pointer;
+	background: none;
+	border: none;
+	width: 100%;
+	transition: background 0.12s ease;
+}
+.ngw-action-dropdown-item:hover {
+	background: rgba(14, 165, 233, 0.22);
+	color: #38bdf8 !important;
+}
+.ngw-action-dropdown-item.is-danger {
+	color: #f87171 !important;
+}
+.ngw-action-dropdown-item.is-danger:hover {
+	background: rgba(239, 68, 68, 0.18);
+	color: #ef4444 !important;
 }
 .ngw-host-comment-col {
 	max-width: 170px;
@@ -234,10 +274,39 @@ if (!isset($_SESSION["mikhmon"])) {
 	border-radius: 4px;
 	background: rgba(148, 163, 184, 0.1);
 }
+.ngw-card-header-flex {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px 12px;
+	width: 100%;
+}
+.ngw-card-header-flex h3 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 700;
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+.ngw-header-filter-links {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	font-weight: 600;
+}
+.ngw-header-filter-links a {
+	padding: 2px 6px;
+	border-radius: 4px;
+	text-decoration: none;
+}
 .ngw-bind-modal-backdrop {
 	display: none;
 	position: fixed;
-	z-index: 9999;
+	z-index: 10060;
 	left: 0;
 	top: 0;
 	width: 100%;
@@ -257,93 +326,19 @@ if (!isset($_SESSION["mikhmon"])) {
 	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 	overflow: hidden;
 }
-.ngw-bind-modal-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 14px;
-	background: rgba(15, 23, 42, 0.65);
-	border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-.ngw-bind-modal-header h4 {
-	margin: 0;
-	font-size: 14px;
-	font-weight: 700;
-	color: #38bdf8;
-}
-.ngw-bind-modal-body {
-	padding: 12px 14px;
-}
-.ngw-bind-field {
-	margin-bottom: 9px;
-}
-.ngw-bind-field label {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	font-size: 11.5px;
-	font-weight: 600;
-	margin-bottom: 3px;
-	color: #cbd5e1;
-}
-.ngw-bind-field input,
-.ngw-bind-field select {
-	width: 100%;
-	height: 31px !important;
-	padding: 4px 9px !important;
-	font-size: 12px !important;
-	border-radius: 5px !important;
-	background: #0f172a !important;
-	color: #f8fafc !important;
-	border: 1px solid rgba(148, 163, 184, 0.32) !important;
-}
-.ngw-clear-ip-btn {
-	padding: 1px 6px;
-	font-size: 10.5px;
-	font-weight: 600;
-	border-radius: 4px;
-	border: 1px solid rgba(245, 158, 11, 0.45);
-	background: rgba(245, 158, 11, 0.15);
-	color: #fbbf24;
-	cursor: pointer;
-}
-.ngw-clear-ip-btn:hover {
-	background: #f59e0b;
-	color: #111827;
-}
-.ngw-type-pills {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 6px;
-}
-.ngw-type-pill {
-	text-align: center;
-	padding: 5px 6px;
-	font-size: 11.5px;
-	font-weight: 700;
-	border-radius: 5px;
-	border: 1px solid rgba(148, 163, 184, 0.3);
-	background: #0f172a;
-	color: #94a3b8;
-	cursor: pointer;
-	user-select: none;
-}
-.ngw-type-pill.active-regular {
-	background: rgba(59, 130, 246, 0.2);
-	border-color: #3b82f6;
-	color: #60a5fa;
-}
-.ngw-type-pill.active-bypassed {
-	background: rgba(16, 185, 129, 0.2);
-	border-color: #10b981;
-	color: #34d399;
-}
-.ngw-type-pill.active-blocked {
-	background: rgba(239, 68, 68, 0.2);
-	border-color: #ef4444;
-	color: #f87171;
-}
 @media (max-width: 768px) {
+	.card-header.align-middle {
+		padding: 8px 10px !important;
+	}
+	.ngw-card-header-flex {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+	}
+	.ngw-card-header-flex h3 {
+		font-size: 13px !important;
+		line-height: 1.3;
+	}
 	.ngw-compact-hosts-search {
 		width: 100%;
 	}
@@ -352,7 +347,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	}
 	.ngw-compact-hosts-table thead th,
 	.ngw-compact-hosts-table tbody td {
-		padding: 3px 5px !important;
+		padding: 4px 6px !important;
 	}
 	.ngw-host-comment-col {
 		max-width: 110px;
@@ -362,10 +357,6 @@ if (!isset($_SESSION["mikhmon"])) {
 		max-width: 100px;
 		font-size: 10.5px;
 	}
-	.ngw-host-bind-btn {
-		padding: 2px 5px;
-		font-size: 10px;
-	}
 }
 </style>
 
@@ -373,19 +364,23 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header align-middle">
-	<h3><i class="fa fa-laptop"></i> <?= $_hosts ?>  
-		<?php
-	if ($counthosts < 2) {
-		echo $counthosts . ($isBn ? " টি আইটেম" : " item");
-	} elseif ($counthosts > 1) {
-		echo $counthosts . ($isBn ? " টি আইটেম " : " items ");
-	};
-	?>&nbsp;
-		 | <a class="text-info" title="All" href="./?hotspot=hosts&session=<?= $session; ?>">&nbsp;&nbsp;<?= $isBn ? 'সব' : 'All'; ?>&nbsp;&nbsp;</a>
-		 | <a class="text-success" title="Authorized" href="./?hotspot=hosta&session=<?= $session; ?>">&nbsp;&nbsp;A&nbsp;&nbsp;</a>
-		 | <a class="text-primary" title="Bypassed" href="./?hotspot=hostp&session=<?= $session; ?>">&nbsp;&nbsp;P&nbsp;&nbsp;</a>
-		 | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer " title="Reload data"></i>
-    </h3>
+	<div class="ngw-card-header-flex">
+		<h3>
+			<span><i class="fa fa-laptop"></i> <?= $_hosts ?></span>
+			<span style="font-size:12px; opacity:0.85; font-weight:normal;">
+				(<?= $counthosts . ($isBn ? " টি আইটেম" : " items"); ?>)
+			</span>
+		</h3>
+		<div class="ngw-header-filter-links">
+			<a class="text-info" title="All" href="./?hotspot=hosts&session=<?= $session; ?>"><i class="fa fa-list"></i> <?= $isBn ? 'সব' : 'All'; ?></a>
+			<span style="opacity:0.4;">|</span>
+			<a class="text-success" title="Authorized" href="./?hotspot=hosta&session=<?= $session; ?>"><b>A</b> <?= $isBn ? 'অথরাইজড' : 'Auth'; ?></a>
+			<span style="opacity:0.4;">|</span>
+			<a class="text-primary" title="Bypassed" href="./?hotspot=hostp&session=<?= $session; ?>"><b>P</b> <?= $isBn ? 'বাইপাসড' : 'Bypassed'; ?></a>
+			<span style="opacity:0.4;">|</span>
+			<span class="pointer text-warning" onclick="location.reload();" title="Reload data" style="padding:2px 6px;"><i class="fa fa-refresh"></i></span>
+		</div>
+	</div>
 </div>
 <!-- /.card-header -->
 <div class="card-body" style="padding: 8px 10px;">
@@ -396,12 +391,7 @@ if (!isset($_SESSION["mikhmon"])) {
   <?php } ?>
 
   <div class="ngw-compact-hosts-toolbar">
-    <input id="filterTable" type="text" class="form-control ngw-compact-hosts-search" placeholder="<?= $isBn ? 'হোস্ট খুঁজুন (MAC / IP / কমেন্ট)..' : 'Search host (MAC / IP / Comment)..'; ?>">
-    <?php if ($canBindHost) { ?>
-    <span style="font-size: 11px; opacity: 0.85;">
-      <i class="fa fa-info-circle text-info"></i> <?= $isBn ? 'যেকোনো হোস্টকে সরাসরি IP বাইন্ডিং করতে "IP Binding" বাটনে ক্লিক করুন' : 'Click "IP Binding" on any host to bind by MAC+IP or MAC only'; ?>
-    </span>
-    <?php } ?>
+    <input id="filterTable" type="text" class="form-control ngw-compact-hosts-search" placeholder="<?= $isBn ? 'হোস্ট খুঁজুন (MAC / IP / কমেন্ট)...' : 'Search host (MAC / IP / Comment)...'; ?>">
   </div>
 
 <div class="overflow box-bordered" style="max-height: 75vh"> 	   
@@ -442,11 +432,19 @@ for ($i = 0; $i < $TotalReg; $i++) {
 
 	echo "<tr>";
 	echo "<td class='ngw-host-action-cell'>";
-	if ($canRemoveHost) {
-		echo "<span class='pointer' style='margin-right:5px;' title='" . ($isBn ? 'হোস্ট রিমুভ করুন: ' : 'Remove ') . htmlspecialchars($maca, ENT_QUOTES) . "' onclick=loadpage(" . $uriprocess . ")><i class='fa fa-minus-square text-danger'></i></span>";
-	}
-	if ($canBindHost) {
-		echo "<button type='button' class='ngw-host-bind-btn' onclick='ngwOpenHostBindModal(" . $jsHostData . ")' title='" . ($isBn ? 'সরাসরি আইপি বাইন্ডিং করুন' : 'Direct IP Binding') . "'><i class='fa fa-link'></i> " . ($isBn ? 'বাইন্ডিং' : 'Bind') . "</button>";
+	if ($canBindHost || $canRemoveHost) {
+		echo "<button type='button' class='ngw-dots-btn' onclick='ngwToggleHostDropdown(event, this)' title='" . ($isBn ? 'অ্যাকশন অপশন' : 'Action Options') . "'><i class='fa fa-ellipsis-v'></i></button>";
+		echo "<div class='ngw-action-dropdown-menu'>";
+		if ($canBindHost) {
+			echo "<button type='button' class='ngw-action-dropdown-item' onclick='ngwCloseAllDropdowns(); ngwOpenHostBindModal(" . $jsHostData . ")'><i class='fa fa-link text-info'></i> " . ($isBn ? 'IP বাইন্ডিং' : 'IP Binding') . "</button>";
+		}
+		if ($canRemoveHost) {
+			$delHostConfirm = $isBn ? ('আপনি কি এই হোস্টটি মুছে ফেলতে নিশ্চিত (' . ($maca !== '' ? $maca : $addr) . ')?') : ('Are you sure you want to remove host (' . ($maca !== '' ? $maca : $addr) . ')?');
+			echo "<button type='button' class='ngw-action-dropdown-item is-danger' onclick='ngwCloseAllDropdowns(); if(confirm(" . json_encode($delHostConfirm) . ")){loadpage(" . $uriprocess . ")}'><i class='fa fa-trash'></i> " . ($isBn ? 'রিমুভ' : 'Remove') . "</button>";
+		}
+		echo "</div>";
+	} else {
+		echo "<span style='opacity:0.4;'>-</span>";
 	}
 	echo "</td>";
 	echo "<td style='text-align:center; width:1%;'>";
@@ -621,5 +619,41 @@ function ngwOpenHostBindModal(host) {
 function ngwCloseHostBindModal() {
   document.getElementById('ngwHostBindModal').style.display = 'none';
 }
+function ngwCloseAllDropdowns() {
+  var menus = document.querySelectorAll('.ngw-action-dropdown-menu');
+  for (var i = 0; i < menus.length; i++) {
+    menus[i].style.display = 'none';
+  }
+}
+function ngwToggleHostDropdown(e, btn) {
+  e.stopPropagation();
+  var menu = btn.nextElementSibling;
+  if (!menu || !menu.classList.contains('ngw-action-dropdown-menu')) return;
+  var isOpen = menu.style.display === 'block';
+  ngwCloseAllDropdowns();
+  if (!isOpen) {
+    var rect = btn.getBoundingClientRect();
+    menu.style.display = 'block';
+    var menuWidth = menu.offsetWidth || 140;
+    var menuHeight = menu.offsetHeight || 80;
+    var left = rect.left;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    var top = rect.bottom + 4;
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - 4);
+    }
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.ngw-action-dropdown-menu') && !e.target.closest('.ngw-dots-btn')) {
+    ngwCloseAllDropdowns();
+  }
+});
+window.addEventListener('resize', ngwCloseAllDropdowns);
+window.addEventListener('scroll', ngwCloseAllDropdowns, true);
 </script>
 <?php } ?>

@@ -114,6 +114,19 @@ if (!isset($_SESSION["mikhmon"])) {
       }
 
       if ($uploadOk != 0) {
+        // Automatically delete any older logos for this session across both ./img and ./images
+        $cleanSession = preg_replace('/[^a-zA-Z0-9_\-]/', '', $session);
+        if ($cleanSession !== '') {
+          foreach (array('./img/', './images/') as $imgDir) {
+            if (is_dir($imgDir)) {
+              foreach (glob($imgDir . 'logo-' . $cleanSession . '.*') as $oldLogo) {
+                if (is_file($oldLogo)) {
+                  @unlink($oldLogo);
+                }
+              }
+            }
+          }
+        }
         if (@move_uploaded_file($_FILES["UploadLogo"]["tmp_name"], $logo_file)) {
           if (is_dir('./images')) {
             @copy($logo_file, './images/' . $finalLogoName);

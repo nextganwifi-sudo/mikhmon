@@ -167,26 +167,67 @@ if (!isset($_SESSION["mikhmon"])) {
 	white-space: nowrap;
 	text-align: center;
 	width: 1%;
+	position: relative;
 }
-.ngw-ipb-edit-btn {
+.ngw-ipb-dots-btn {
 	display: inline-flex;
 	align-items: center;
-	gap: 3px;
-	padding: 2px 7px;
-	font-size: 11px;
-	font-weight: 600;
-	line-height: 1.3;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
 	border-radius: 4px;
-	border: 1px solid rgba(59, 130, 246, 0.45);
-	background: rgba(59, 130, 246, 0.14);
-	color: #60a5fa;
+	background: rgba(148, 163, 184, 0.16);
+	border: 1px solid rgba(148, 163, 184, 0.32);
+	color: #94a3b8;
 	cursor: pointer;
-	transition: all 0.15s ease;
+	padding: 0;
+	font-size: 13px;
+	line-height: 1;
+	transition: background 0.15s ease, color 0.15s ease;
 }
-.ngw-ipb-edit-btn:hover {
-	background: #2563eb;
-	color: #fff !important;
-	border-color: #2563eb;
+.ngw-ipb-dots-btn:hover {
+	background: #0ea5e9;
+	color: #fff;
+	border-color: #0ea5e9;
+}
+.ngw-ipb-dropdown-menu {
+	display: none;
+	position: fixed;
+	z-index: 10050;
+	min-width: 145px;
+	background: #1e293b;
+	color: #f8fafc;
+	border: 1px solid rgba(148, 163, 184, 0.35);
+	border-radius: 6px;
+	box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+	padding: 4px 0;
+	text-align: left;
+}
+.ngw-ipb-dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 12px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #e2e8f0 !important;
+	text-decoration: none !important;
+	cursor: pointer;
+	background: none;
+	border: none;
+	width: 100%;
+	transition: background 0.12s ease;
+}
+.ngw-ipb-dropdown-item:hover {
+	background: rgba(14, 165, 233, 0.22);
+	color: #38bdf8 !important;
+}
+.ngw-ipb-dropdown-item.is-danger {
+	color: #f87171 !important;
+}
+.ngw-ipb-dropdown-item.is-danger:hover {
+	background: rgba(239, 68, 68, 0.18);
+	color: #ef4444 !important;
 }
 .ngw-ipb-type-badge {
 	display: inline-block;
@@ -227,10 +268,27 @@ if (!isset($_SESSION["mikhmon"])) {
 	border-radius: 4px;
 	background: rgba(148, 163, 184, 0.1);
 }
+.ngw-ipb-card-header-flex {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px 12px;
+	width: 100%;
+}
+.ngw-ipb-card-header-flex h3 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 700;
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
 .ngw-ipb-modal-backdrop {
 	display: none;
 	position: fixed;
-	z-index: 9999;
+	z-index: 10060;
 	left: 0;
 	top: 0;
 	width: 100%;
@@ -337,6 +395,18 @@ if (!isset($_SESSION["mikhmon"])) {
 	color: #f87171;
 }
 @media (max-width: 768px) {
+	.card-header {
+		padding: 8px 10px !important;
+	}
+	.ngw-ipb-card-header-flex {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+	}
+	.ngw-ipb-card-header-flex h3 {
+		font-size: 13px !important;
+		line-height: 1.3;
+	}
 	.ngw-compact-ipb-search {
 		width: 100%;
 	}
@@ -345,7 +415,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	}
 	.ngw-compact-ipb-table thead th,
 	.ngw-compact-ipb-table tbody td {
-		padding: 3px 5px !important;
+		padding: 4px 6px !important;
 	}
 	.ngw-ipb-comment-col {
 		max-width: 110px;
@@ -355,10 +425,6 @@ if (!isset($_SESSION["mikhmon"])) {
 		max-width: 100px;
 		font-size: 10.5px;
 	}
-	.ngw-ipb-edit-btn {
-		padding: 2px 5px;
-		font-size: 10px;
-	}
 }
 </style>
 
@@ -367,16 +433,17 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-	<h3><i class="fa fa-address-book"></i> <?= $_ip_bindings ?> 
-<?php
-if ($countbinding < 2) {
-	echo $countbinding . ($isBn ? " টি আইটেম" : " item");
-} elseif ($countbinding > 1) {
-	echo $countbinding . ($isBn ? " টি আইটেম" : " items");
-};
-?>
-		 | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i>
-    </h3>
+	<div class="ngw-ipb-card-header-flex">
+		<h3>
+			<span><i class="fa fa-address-book"></i> <?= $_ip_bindings ?></span>
+			<span style="font-size:12px; opacity:0.85; font-weight:normal;">
+				(<?= $countbinding . ($isBn ? " টি আইটেম" : " items"); ?>)
+			</span>
+		</h3>
+		<div>
+			<span class="pointer text-warning" onclick="location.reload();" title="Reload data" style="padding:2px 6px;"><i class="fa fa-refresh"></i> <?= $isBn ? 'রিলোড' : 'Reload'; ?></span>
+		</div>
+	</div>
 </div>
 <div class="card-body" style="padding: 8px 10px;">
   <?php if ($ipbAlertMsg !== '') { ?>
@@ -386,7 +453,7 @@ if ($countbinding < 2) {
   <?php } ?>
 
   <div class="ngw-compact-ipb-toolbar">
-    <input id="filterTable" type="text" class="form-control ngw-compact-ipb-search" placeholder="<?= $isBn ? 'খুঁজুন (MAC / IP / কমেন্ট)..' : 'Search (MAC / IP / Comment)..'; ?>">
+    <input id="filterTable" type="text" class="form-control ngw-compact-ipb-search" placeholder="<?= $isBn ? 'খুঁজুন (MAC / IP / কমেন্ট)...' : 'Search (MAC / IP / Comment)...'; ?>">
     <?php if ($canEditBinding) { ?>
     <button type="button" class="btn bg-primary" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; margin: 0;" onclick="ngwOpenIpbModal(null)">
       <i class="fa fa-plus-circle"></i> <?= $isBn ? 'নতুন IP বাইন্ডিং' : 'Add IP Binding'; ?>
@@ -445,26 +512,37 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	echo "<tr>";
 	?>
   	<td class="ngw-ipb-action-cell">
-  	<?php if ($canManageBinding) {
-  		$delConfirmMsg = $isBn
-  			? ('আপনি কি নিশ্চিত যে এই বাইন্ডিং (' . ($maca !== '' ? $maca : $addr) . ') ডিলিট করতে চান?')
-  			: ('Are you sure to delete (' . ($maca !== '' ? $maca : $addr) . ')?');
-  		$delUrl = './?remove-ip-binding=' . $id . '&mac=' . rawurlencode($maca) . '&addr=' . rawurlencode($addr) . '&session=' . rawurlencode($session);
-  	?>
-  	<i class='fa fa-minus-square text-danger pointer' style='margin-right:6px;' onclick='if(confirm(<?= json_encode($delConfirmMsg); ?>)){loadpage(<?= json_encode($delUrl); ?>)}' title='Remove <?= htmlspecialchars($maca !== '' ? $maca : $addr, ENT_QUOTES); ?>'></i>
-  	<?php
-		if ($bdisabled == "true") {
-			$uriprocess = "'./?enable-ip-binding=" . $id . "&session=" . $session . "'";
-			echo "<span class='text-warning btnsmall pointer' style='margin-right:6px;' title='Enable Binding " . htmlspecialchars($addr, ENT_QUOTES) . "' onclick=loadpage(".$uriprocess.")><i class='fa fa-lock'></i></span>";
-		} else {
-			$uriprocess = "'./?disable-ip-binding=" . $id . "&session=" . $session . "'";
-			echo "<span title='Disable Binding " . htmlspecialchars($addr, ENT_QUOTES) . "' class='btnsmall pointer' style='margin-right:6px;' onclick=loadpage(".$uriprocess.")><i class='fa fa-unlock'></i></span>";
-		}
-	}
-	if ($canEditBinding) {
-		echo "<button type='button' class='ngw-ipb-edit-btn' onclick='ngwOpenIpbModal(" . $jsBindData . ")' title='" . ($isBn ? 'এডিট ও কমেন্ট পরিবর্তন করুন' : 'Edit Binding & Comment') . "'><i class='fa fa-edit'></i> " . ($isBn ? 'এডিট' : 'Edit') . "</button>";
-	}
-	echo "</td>";
+  	<?php if ($canManageBinding || $canEditBinding) { ?>
+		<button type="button" class="ngw-ipb-dots-btn" onclick="ngwToggleIpbDropdown(event, this)" title="<?= $isBn ? 'অ্যাকশন অপশন' : 'Action Options'; ?>"><i class="fa fa-ellipsis-v"></i></button>
+		<div class="ngw-ipb-dropdown-menu">
+			<?php if ($canEditBinding) { ?>
+			<button type="button" class="ngw-ipb-dropdown-item" onclick="ngwCloseAllIpbDropdowns(); ngwOpenIpbModal(<?= $jsBindData; ?>)">
+				<i class="fa fa-edit text-info"></i> <?= $isBn ? 'এডিট' : 'Edit'; ?>
+			</button>
+			<?php } ?>
+			<?php if ($canManageBinding) {
+				if ($bdisabled == "true") {
+					$uriprocess = "'./?enable-ip-binding=" . $id . "&session=" . $session . "'";
+					echo '<button type="button" class="ngw-ipb-dropdown-item text-warning" onclick="ngwCloseAllIpbDropdowns(); loadpage(' . $uriprocess . ')"><i class="fa fa-lock"></i> ' . ($isBn ? 'ইনেবল করুন' : 'Enable') . '</button>';
+				} else {
+					$uriprocess = "'./?disable-ip-binding=" . $id . "&session=" . $session . "'";
+					echo '<button type="button" class="ngw-ipb-dropdown-item" onclick="ngwCloseAllIpbDropdowns(); loadpage(' . $uriprocess . ')"><i class="fa fa-unlock"></i> ' . ($isBn ? 'ডিজেবল করুন' : 'Disable') . '</button>';
+				}
+				$delConfirmMsg = $isBn
+					? ('আপনি কি নিশ্চিত যে এই বাইন্ডিং (' . ($maca !== '' ? $maca : $addr) . ') ডিলিট করতে চান?')
+					: ('Are you sure to delete (' . ($maca !== '' ? $maca : $addr) . ')?');
+				$delUrl = './?remove-ip-binding=' . $id . '&mac=' . rawurlencode($maca) . '&addr=' . rawurlencode($addr) . '&session=' . rawurlencode($session);
+			?>
+			<button type="button" class="ngw-ipb-dropdown-item is-danger" onclick="ngwCloseAllIpbDropdowns(); if(confirm(<?= json_encode($delConfirmMsg); ?>)){loadpage(<?= json_encode($delUrl); ?>)}">
+				<i class="fa fa-trash"></i> <?= $isBn ? 'রিমুভ' : 'Remove'; ?>
+			</button>
+			<?php } ?>
+		</div>
+  	<?php } else {
+		echo "<span style='opacity:0.4;'>-</span>";
+	} ?>
+  	</td>
+	<?php
 	echo "<td style='text-align:center; width:1%;'>";
 	if ($rawType === 'bypassed') {
 		echo "<span class='ngw-ipb-type-badge ngw-ipb-type-bypassed' title='Bypassed'>Bypassed</span>";
@@ -653,5 +731,41 @@ function ngwOpenIpbModal(item) {
 function ngwCloseIpbModal() {
   document.getElementById('ngwIpbModal').style.display = 'none';
 }
+function ngwCloseAllIpbDropdowns() {
+  var menus = document.querySelectorAll('.ngw-ipb-dropdown-menu');
+  for (var i = 0; i < menus.length; i++) {
+    menus[i].style.display = 'none';
+  }
+}
+function ngwToggleIpbDropdown(e, btn) {
+  e.stopPropagation();
+  var menu = btn.nextElementSibling;
+  if (!menu || !menu.classList.contains('ngw-ipb-dropdown-menu')) return;
+  var isOpen = menu.style.display === 'block';
+  ngwCloseAllIpbDropdowns();
+  if (!isOpen) {
+    var rect = btn.getBoundingClientRect();
+    menu.style.display = 'block';
+    var menuWidth = menu.offsetWidth || 145;
+    var menuHeight = menu.offsetHeight || 90;
+    var left = rect.left;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    var top = rect.bottom + 4;
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - 4);
+    }
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.ngw-ipb-dropdown-menu') && !e.target.closest('.ngw-ipb-dots-btn')) {
+    ngwCloseAllIpbDropdowns();
+  }
+});
+window.addEventListener('resize', ngwCloseAllIpbDropdowns);
+window.addEventListener('scroll', ngwCloseAllIpbDropdowns, true);
 </script>
 <?php } ?>

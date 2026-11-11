@@ -405,6 +405,10 @@ if ($id == "login" || substr($url, -1) == "p") {
   if (is_file($remlogo)) {
     @unlink($remlogo);
   }
+  $imagesLogo = "./images/" . basename($logo);
+  if (is_file($imagesLogo)) {
+    @unlink($imagesLogo);
+  }
   echo "<script>window.location='./admin.php?id=uplogo&session=" . $session . "'</script>";
 } elseif ($id == "editor") {
   if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher')) {

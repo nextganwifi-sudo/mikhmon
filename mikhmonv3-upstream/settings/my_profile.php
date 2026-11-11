@@ -63,6 +63,18 @@ if (isset($_POST['upload_my_avatar'])) {
     } elseif (!isset($_FILES['profile_logo_file']) || empty($_FILES['profile_logo_file']['tmp_name'])) {
         $profileError = 'Please select a PNG, JPG, or WebP image file to upload.';
     } else {
+        // Clean up any existing avatar/logo files in the target directory first
+        $cleanTargetKey = preg_replace('/[^a-zA-Z0-9_\-]/', '', $uploadKey);
+        if ($cleanTargetKey !== '') {
+            $existingTargetDir = dirname(__DIR__) . '/uploads/reseller-logos/' . $cleanTargetKey;
+            if (is_dir($existingTargetDir)) {
+                foreach (glob($existingTargetDir . '/*') as $fOld) {
+                    if (is_file($fOld)) {
+                        @unlink($fOld);
+                    }
+                }
+            }
+        }
         $upRes = handleResellerLogoUpload($uploadKey, $_FILES['profile_logo_file']);
         if (!empty($upRes['ok']) && !empty($upRes['filename'])) {
             $newLogoFn = (string)$upRes['filename'];
@@ -111,7 +123,7 @@ if (isset($_POST['remove_my_avatar'])) {
                 if ($f === '') continue;
                 $adminDir = dirname(__DIR__) . '/uploads/reseller-logos/' . $f;
                 if (is_dir($adminDir)) {
-                    foreach (glob($adminDir . '/logo.*') as $oldFile) {
+                    foreach (glob($adminDir . '/*') as $oldFile) {
                         if (is_file($oldFile)) {
                             @unlink($oldFile);
                         }
