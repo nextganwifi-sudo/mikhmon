@@ -408,6 +408,7 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
 }
 </style>
 
+<?php $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn'); ?>
 <div class="row">
   <div class="col-12">
     <div class="ngw-profile-wrap">
@@ -441,7 +442,7 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
           <div>
             <span class="ngw-profile-role-pill" style="background:<?= $isResellerProfile ? '#2ea043' : '#1f6feb'; ?>;">
               <i class="fa <?= $isResellerProfile ? 'fa-id-badge' : 'fa-shield'; ?>"></i>
-              <?= htmlspecialchars($profileRole, ENT_QUOTES, 'UTF-8'); ?>
+              <?= htmlspecialchars($isBn ? ($isResellerProfile ? 'রিসেলার' : 'অ্যাডমিনিস্ট্রেটর') : $profileRole, ENT_QUOTES, 'UTF-8'); ?>
             </span>
           </div>
         </div>
@@ -451,37 +452,37 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($profileCsrf, ENT_QUOTES, 'UTF-8'); ?>">
               <div class="ngw-profile-grid">
                 <div class="ngw-profile-field">
-                  <small><i class="fa fa-user"></i> Account Name</small>
+                  <small><i class="fa fa-user"></i> <?= $isBn ? 'অ্যাকাউন্টের নাম' : 'Account Name'; ?></small>
                   <input class="form-control" type="text" name="admin_name" maxlength="80" value="<?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="ngw-profile-field">
-                  <small><i class="fa fa-at"></i> Login User</small>
+                  <small><i class="fa fa-at"></i> <?= $isBn ? 'লগইন ইউজার' : 'Login User'; ?></small>
                   <input class="form-control" type="text" name="admin_username" maxlength="64" value="<?= htmlspecialchars($profileUsername, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="ngw-profile-field">
-                  <small><i class="fa fa-id-card-o"></i> Account Type</small>
-                  <strong style="display:block;padding-top:6px;"><?= htmlspecialchars($profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
+                  <small><i class="fa fa-id-card-o"></i> <?= $isBn ? 'অ্যাকাউন্টের ধরন' : 'Account Type'; ?></small>
+                  <strong style="display:block;padding-top:6px;"><?= htmlspecialchars($isBn ? 'অ্যাডমিনিস্ট্রেটর' : $profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
                 </div>
               </div>
               <div style="margin-top:10px;text-align:right;">
                 <button class="btn bg-primary" type="submit" name="save_admin_info">
-                  <i class="fa fa-save"></i> Save Account Info
+                  <i class="fa fa-save"></i> <?= $isBn ? 'অ্যাকাউন্ট তথ্য সংরক্ষণ করুন' : 'Save Account Info'; ?>
                 </button>
               </div>
             </form>
           <?php } else { ?>
             <div class="ngw-profile-grid">
               <div class="ngw-profile-field">
-                <small><i class="fa fa-user"></i> Account Name</small>
+                <small><i class="fa fa-user"></i> <?= $isBn ? 'অ্যাকাউন্টের নাম' : 'Account Name'; ?></small>
                 <strong><?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8'); ?></strong>
               </div>
               <div class="ngw-profile-field">
-                <small><i class="fa fa-at"></i> Login User</small>
+                <small><i class="fa fa-at"></i> <?= $isBn ? 'লগইন ইউজার' : 'Login User'; ?></small>
                 <strong><?= htmlspecialchars($profileUsername, ENT_QUOTES, 'UTF-8'); ?></strong>
               </div>
               <div class="ngw-profile-field">
-                <small><i class="fa fa-id-card-o"></i> Account Type</small>
-                <strong><?= htmlspecialchars($profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
+                <small><i class="fa fa-id-card-o"></i> <?= $isBn ? 'অ্যাকাউন্টের ধরন' : 'Account Type'; ?></small>
+                <strong><?= htmlspecialchars($isBn ? 'রিসেলার' : $profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
               </div>
             </div>
           <?php } ?>
@@ -493,7 +494,7 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
         <!-- Upload Avatar -->
         <div id="profile-avatar-section" class="card ngw-profile-card">
           <div class="card-header">
-            <h3><i class="fa fa-camera"></i> Upload Avatar</h3>
+            <h3><i class="fa fa-camera"></i> <?= $isBn ? 'প্রোফাইল ছবি আপলোড' : 'Upload Avatar'; ?></h3>
           </div>
           <div class="card-body">
             <div class="ngw-avatar-upload-box">
@@ -506,10 +507,10 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
               </div>
               <div style="min-width:0;flex:1;">
                 <div style="font-weight:600;font-size:13px;margin-bottom:2px;">
-                  <?= $currentAvatarUrl !== '' ? 'Custom Avatar Active' : 'Default Avatar Active'; ?>
+                  <?= $currentAvatarUrl !== '' ? ($isBn ? 'কাস্টম প্রোফাইল ছবি চালু আছে' : 'Custom Avatar Active') : ($isBn ? 'ডিফল্ট প্রোফাইল আইকন চালু আছে' : 'Default Avatar Active'); ?>
                 </div>
                 <div class="ngw-profile-meta">
-                  Shown in the top-right profile icon (PNG, JPG, WebP, max 2 MB).
+                  <?= $isBn ? 'উপরে ডানপাশের প্রোফাইল আইকনে দেখানো হবে (PNG, JPG, WebP, সর্বোচ্চ ২ MB)।' : 'Shown in the top-right profile icon (PNG, JPG, WebP, max 2 MB).'; ?>
                 </div>
               </div>
             </div>
@@ -517,21 +518,21 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
             <form method="post" enctype="multipart/form-data" autocomplete="off">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($profileCsrf, ENT_QUOTES, 'UTF-8'); ?>">
               <div class="form-group" style="margin-bottom:12px;">
-                <label style="display:block;margin-bottom:5px;font-size:12px;">Select Avatar Image (PNG / JPG / WebP)</label>
+                <label style="display:block;margin-bottom:5px;font-size:12px;"><?= $isBn ? 'প্রোফাইল ছবি নির্বাচন করুন (PNG / JPG / WebP)' : 'Select Avatar Image (PNG / JPG / WebP)'; ?></label>
                 <input class="form-control" type="file" name="profile_logo_file" accept="image/png,image/jpeg,image/webp" required>
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn bg-primary" type="submit" name="upload_my_avatar">
-                  <i class="fa fa-upload"></i> Upload Avatar
+                  <i class="fa fa-upload"></i> <?= $isBn ? 'ছবি আপলোড করুন' : 'Upload Avatar'; ?>
                 </button>
               </div>
             </form>
 
             <?php if ($currentAvatarUrl !== '') { ?>
-              <form method="post" style="margin-top:8px;" onsubmit="return confirm('Reset your profile avatar to the default icon?');">
+              <form method="post" style="margin-top:8px;" onsubmit="return confirm('<?= $isBn ? 'আপনার প্রোফাইল ছবি ডিফল্ট আইকনে রিসেট করতে চান?' : 'Reset your profile avatar to the default icon?'; ?>');">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($profileCsrf, ENT_QUOTES, 'UTF-8'); ?>">
                 <button class="btn bg-danger" type="submit" name="remove_my_avatar">
-                  <i class="fa fa-trash"></i> Remove Avatar
+                  <i class="fa fa-trash"></i> <?= $isBn ? 'ছবি সরান' : 'Remove Avatar'; ?>
                 </button>
               </form>
             <?php } ?>
@@ -541,40 +542,40 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
         <!-- Change Password Card -->
         <div id="profile-password-section" class="card ngw-profile-card">
           <div class="card-header">
-            <h3><i class="fa fa-lock"></i> Change Password</h3>
+            <h3><i class="fa fa-lock"></i> <?= $isBn ? 'পাসওয়ার্ড পরিবর্তন করুন' : 'Change Password'; ?></h3>
           </div>
           <div class="card-body">
             <form method="post" autocomplete="off">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($profileCsrf, ENT_QUOTES, 'UTF-8'); ?>">
               <div class="form-group" style="margin-bottom:10px;">
-                <label style="display:block;margin-bottom:4px;font-size:12px;">Current Password</label>
+                <label style="display:block;margin-bottom:4px;font-size:12px;"><?= $isBn ? 'বর্তমান পাসওয়ার্ড' : 'Current Password'; ?></label>
                 <div class="ngw-pw-input-wrap">
-                  <input class="form-control" type="password" id="ngw_cur_pw" name="current_password" autocomplete="current-password" placeholder="Enter current password" required>
+                  <input class="form-control" type="password" id="ngw_cur_pw" name="current_password" autocomplete="current-password" placeholder="<?= $isBn ? 'বর্তমান পাসওয়ার্ড লিখুন' : 'Enter current password'; ?>" required>
                   <button type="button" class="ngw-pw-toggle-btn" data-target="ngw_cur_pw" title="Show / Hide Password" aria-label="Show or hide current password">
                     <i class="fa fa-eye"></i>
                   </button>
                 </div>
               </div>
               <div class="form-group" style="margin-bottom:10px;">
-                <label style="display:block;margin-bottom:4px;font-size:12px;">New Password (4+ characters)</label>
+                <label style="display:block;margin-bottom:4px;font-size:12px;"><?= $isBn ? 'নতুন পাসওয়ার্ড (৪+ অক্ষর)' : 'New Password (4+ characters)'; ?></label>
                 <div class="ngw-pw-input-wrap">
-                  <input class="form-control" type="password" id="ngw_new_pw" name="new_password" minlength="4" maxlength="256" autocomplete="new-password" placeholder="Enter new password" required>
+                  <input class="form-control" type="password" id="ngw_new_pw" name="new_password" minlength="4" maxlength="256" autocomplete="new-password" placeholder="<?= $isBn ? 'নতুন পাসওয়ার্ড লিখুন' : 'Enter new password'; ?>" required>
                   <button type="button" class="ngw-pw-toggle-btn" data-target="ngw_new_pw" title="Show / Hide Password" aria-label="Show or hide new password">
                     <i class="fa fa-eye"></i>
                   </button>
                 </div>
               </div>
               <div class="form-group" style="margin-bottom:12px;">
-                <label style="display:block;margin-bottom:4px;font-size:12px;">Confirm New Password</label>
+                <label style="display:block;margin-bottom:4px;font-size:12px;"><?= $isBn ? 'নতুন পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm New Password'; ?></label>
                 <div class="ngw-pw-input-wrap">
-                  <input class="form-control" type="password" id="ngw_cfm_pw" name="confirm_password" minlength="4" maxlength="256" autocomplete="new-password" placeholder="Re-enter new password" required>
+                  <input class="form-control" type="password" id="ngw_cfm_pw" name="confirm_password" minlength="4" maxlength="256" autocomplete="new-password" placeholder="<?= $isBn ? 'পুনরায় নতুন পাসওয়ার্ড লিখুন' : 'Re-enter new password'; ?>" required>
                   <button type="button" class="ngw-pw-toggle-btn" data-target="ngw_cfm_pw" title="Show / Hide Password" aria-label="Show or hide confirm password">
                     <i class="fa fa-eye"></i>
                   </button>
                 </div>
               </div>
               <button class="btn bg-primary" type="submit" name="change_my_password">
-                <i class="fa fa-check"></i> Change Password
+                <i class="fa fa-check"></i> <?= $isBn ? 'পাসওয়ার্ড পরিবর্তন করুন' : 'Change Password'; ?>
               </button>
             </form>
           </div>

@@ -307,6 +307,7 @@ textarea {
 }
 </style>
 
+<?php $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn'); ?>
 <div class="row">
 	<div class="col-9">
 		<div class="card">
@@ -315,11 +316,11 @@ textarea {
 					<i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?>
 					<?php if ($targetReseller !== null) { ?>
 						<span style="font-size:12px; margin-left:8px; padding:3px 10px; border-radius:4px; background:#1f6feb; color:#fff; font-weight:normal;">
-							Reseller #<?= htmlspecialchars($targetReseller['id']); ?> | <?= htmlspecialchars($targetReseller['name']); ?> (<?= htmlspecialchars($targetReseller['template_code']); ?>)
+							<?= $isBn ? 'রিসেলার' : 'Reseller'; ?> #<?= htmlspecialchars($targetReseller['id']); ?> | <?= htmlspecialchars($targetReseller['name']); ?> (<?= htmlspecialchars($targetReseller['template_code']); ?>)
 						</span>
 					<?php } else { ?>
 						<span style="font-size:12px; margin-left:8px; padding:3px 10px; border-radius:4px; background:#2ea043; color:#fff; font-weight:normal;">
-							Global Scope
+							<?= $isBn ? 'গ্লোবাল স্কোপ' : 'Global Scope'; ?>
 						</span>
 					<?php } ?>
 				</h3>
@@ -351,13 +352,13 @@ textarea {
 										<?php } ?>
 
 										<?php if ($canEditTemplate) { ?>
-<button type="submit" name="reset_to_default" class="btn bg-danger" onclick="return confirm('Are you sure you want to reset this template and logo to clean system defaults?');" title="Reset template and logo to system defaults">
-											<i class="fa fa-refresh"></i> Reset to Default
+<button type="submit" name="reset_to_default" class="btn bg-danger" onclick="return confirm('<?= $isBn ? 'আপনি কি এই টেমপ্লেট ও লোগো সিস্টেম ডিফল্টে রিসেট করতে চান?' : 'Are you sure you want to reset this template and logo to clean system defaults?'; ?>');" title="Reset template and logo to system defaults">
+											<i class="fa fa-refresh"></i> <?= $isBn ? 'ডিফল্টে রিসেট' : 'Reset to Default'; ?>
 										</button>
 <?php } ?>
 
 										<a class="btn bg-green" href="<?= htmlspecialchars($popup, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" title="Preview voucher with Logo">
-											<i class="fa fa-image"></i> Voucher
+											<i class="fa fa-image"></i> <?= $isBn ? 'ভাউচার প্রিভিউ' : 'Voucher'; ?>
 										</a>
 										<a class="btn bg-green" href="<?= htmlspecialchars($popupQR, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" title="Preview voucher with QR">
 											<i class="fa fa-qrcode"></i> QR
@@ -371,7 +372,7 @@ textarea {
 											?>
 												<div class="input-group-4">
 													<select style="padding:5px;" class="group-item group-item-l" onchange="window.location.href=this.value;">
-														<option value="<?= $editorRouteBase; ?>&template=<?= urlencode($telplate); ?>&session=<?= urlencode($session); ?>&reseller_id=global" <?= $targetResId === '' ? 'selected' : ''; ?>>Scope: Global</option>
+														<option value="<?= $editorRouteBase; ?>&template=<?= urlencode($telplate); ?>&session=<?= urlencode($session); ?>&reseller_id=global" <?= $targetResId === '' ? 'selected' : ''; ?>><?= $isBn ? 'স্কোপ: গ্লোবাল' : 'Scope: Global'; ?></option>
 														<?php foreach ($allResList as $rOpt) { ?>
 															<option value="<?= $editorRouteBase; ?>&template=<?= urlencode($telplate); ?>&session=<?= urlencode($session); ?>&reseller_id=<?= urlencode($rOpt['id']); ?>" <?= (string)$rOpt['id'] === $targetResId ? 'selected' : ''; ?>>
 																#<?= htmlspecialchars($rOpt['id']); ?> <?= htmlspecialchars($rOpt['username']); ?> (<?= htmlspecialchars($rOpt['template_code']); ?>)
@@ -382,13 +383,13 @@ textarea {
 											<?php } ?>
 
 											<div class="input-group-2">
-												<div class="group-item group-item-m pd-2p5 text-center" style="font-size:12px;">Template</div>
+												<div class="group-item group-item-m pd-2p5 text-center" style="font-size:12px;"><?= $isBn ? 'টেমপ্লেট' : 'Template'; ?></div>
 											</div>
 											<div class="input-group-3">
 												<select style="padding:5px;" class="group-item group-item-r" onchange="window.location.href=this.value+'&session=<?= urlencode($session) . $resQuerySuffix; ?>';">
-													<option value="<?= $editorRouteBase; ?>&template=default" <?= $telplate === 'default' ? 'selected' : ''; ?>>Default</option>
-													<option value="<?= $editorRouteBase; ?>&template=thermal" <?= $telplate === 'thermal' ? 'selected' : ''; ?>>Thermal</option>
-													<option value="<?= $editorRouteBase; ?>&template=small" <?= $telplate === 'small' ? 'selected' : ''; ?>>Small</option>
+													<option value="<?= $editorRouteBase; ?>&template=default" <?= $telplate === 'default' ? 'selected' : ''; ?>><?= $isBn ? 'ডিফল্ট' : 'Default'; ?></option>
+													<option value="<?= $editorRouteBase; ?>&template=thermal" <?= $telplate === 'thermal' ? 'selected' : ''; ?>><?= $isBn ? 'থার্মাল' : 'Thermal'; ?></option>
+													<option value="<?= $editorRouteBase; ?>&template=small" <?= $telplate === 'small' ? 'selected' : ''; ?>><?= $isBn ? 'স্মল' : 'Small'; ?></option>
 												</select>
 											</div>
 										</div>
@@ -410,7 +411,7 @@ textarea {
 		<!-- Integrated Logo Upload & Preview Panel -->
 		<div class="card" style="margin-bottom:15px;">
 			<div class="card-header" style="background:#202a35; color:#fff;">
-				<h3 style="font-size:14px; margin:0;"><i class="fa fa-picture-o"></i> Voucher Logo Manager</h3>
+				<h3 style="font-size:14px; margin:0;"><i class="fa fa-picture-o"></i> <?= $isBn ? 'ভাউচার লোগো ম্যানেজার' : 'Voucher Logo Manager'; ?></h3>
 			</div>
 			<div class="card-body" style="padding:12px;">
 				<div class="tpl-logo-preview-box">
@@ -418,24 +419,24 @@ textarea {
 				</div>
 				<div style="font-size:11px; margin-bottom:10px; text-align:center;">
 					<?php if ($hasCustomLogo) { ?>
-						<span style="background:#1f6feb; color:#fff; padding:2px 8px; border-radius:3px; font-weight:bold;">Custom Logo Active</span>
+						<span style="background:#1f6feb; color:#fff; padding:2px 8px; border-radius:3px; font-weight:bold;"><?= $isBn ? 'কাস্টম লোগো সক্রিয়' : 'Custom Logo Active'; ?></span>
 					<?php } else { ?>
-						<span style="background:#6c757d; color:#fff; padding:2px 8px; border-radius:3px;">System Default Logo</span>
+						<span style="background:#6c757d; color:#fff; padding:2px 8px; border-radius:3px;"><?= $isBn ? 'সিস্টেম ডিফল্ট লোগো' : 'System Default Logo'; ?></span>
 					<?php } ?>
 				</div>
 
 				<form autocomplete="off" method="post" action="" enctype="multipart/form-data">
 					<div style="margin-bottom:8px;">
 						<input type="file" name="voucher_logo" accept="image/png,image/jpeg,image/webp" style="font-size:11px; width:100%; padding:4px;" required>
-						<span style="font-size:10px; color:#888;">PNG, JPG, or WebP (Max 2MB)</span>
+						<span style="font-size:10px; color:#888;"><?= $isBn ? 'PNG, JPG, বা WebP (সর্বোচ্চ ২ MB)' : 'PNG, JPG, or WebP (Max 2MB)'; ?></span>
 					</div>
 					<div style="display:flex; gap:5px; flex-direction:column;">
 						<button type="submit" name="upload_logo" class="btn bg-purple" style="width:100%; font-size:12px; padding:6px;">
-							<i class="fa fa-upload"></i> Upload Logo
+							<i class="fa fa-upload"></i> <?= $_upload_logo ?>
 						</button>
 						<?php if ($hasCustomLogo) { ?>
-							<button type="submit" name="remove_logo" class="btn bg-warning" onclick="return confirm('Remove custom logo and revert to system default?');" style="width:100%; font-size:11px; padding:4px;">
-								<i class="fa fa-trash"></i> Remove Custom Logo
+							<button type="submit" name="remove_logo" class="btn bg-warning" onclick="return confirm('<?= $isBn ? 'কাস্টম লোগো মুছে সিস্টেম ডিফল্টে ফিরে যেতে চান?' : 'Remove custom logo and revert to system default?'; ?>');" style="width:100%; font-size:11px; padding:4px;">
+								<i class="fa fa-trash"></i> <?= $isBn ? 'কাস্টম লোগো সরান' : 'Remove Custom Logo'; ?>
 							</button>
 						<?php } ?>
 					</div>
@@ -446,7 +447,7 @@ textarea {
 		<!-- Variable Reference Card -->
 		<div class="card">
 			<div class="card-header">
-				<h3 style="font-size:14px; margin:0;"><i class="fa fa-code"></i> Variables</h3>
+				<h3 style="font-size:14px; margin:0;"><i class="fa fa-code"></i> <?= $isBn ? 'ভেরিয়েবলসমূহ' : 'Variables'; ?></h3>
 			</div>
 			<div class="card-body" style="padding:10px;">
 				<textarea id="var" class="bg-dark" readonly rows="22" style="width:100%; font-size:11px;" disabled><?= htmlspecialchars(file_get_contents('./voucher/variable.php')); ?></textarea>

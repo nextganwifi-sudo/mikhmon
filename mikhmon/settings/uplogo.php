@@ -124,6 +124,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 }
 ?>
+<?php $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn'); ?>
 <div class="row">
 <div class="col-12">
   <div class="card">
@@ -132,11 +133,11 @@ if (!isset($_SESSION["mikhmon"])) {
           <i class="fa fa-upload"></i> <?= $_upload_logo ?>
           <?php if ($targetReseller !== null) { ?>
             <span style="font-size:12px; margin-left:8px; padding:2px 8px; border-radius:3px; background:#1f6feb; color:#fff;">
-              Reseller #<?= htmlspecialchars($targetReseller['id']); ?> | <?= htmlspecialchars($targetReseller['name']); ?> (<?= htmlspecialchars($targetReseller['template_code']); ?>)
+              <?= $isBn ? 'রিসেলার' : 'Reseller'; ?> #<?= htmlspecialchars($targetReseller['id']); ?> | <?= htmlspecialchars($targetReseller['name']); ?> (<?= htmlspecialchars($targetReseller['template_code']); ?>)
             </span>
           <?php } else { ?>
             <span style="font-size:12px; margin-left:8px; padding:2px 8px; border-radius:3px; background:#2ea043; color:#fff;">
-              Global / Router Session (logo-<?= htmlspecialchars($session); ?>.png)
+              <?= $isBn ? 'গ্লোবাল / রাউটার সেশন' : 'Global / Router Session'; ?> (logo-<?= htmlspecialchars($session); ?>.png)
             </span>
           <?php } ?>
         </h3>
@@ -155,11 +156,11 @@ if (!isset($_SESSION["mikhmon"])) {
             <div class="input-group-8">
               <select class="group-item group-item-r" onchange="window.location.href=this.value;">
                 <option value="<?= $uplogoRouteBase; ?>&session=<?= urlencode($session); ?>&reseller_id=global" <?= $targetResId === '' ? 'selected' : ''; ?>>
-                  Global / Session Logo (logo-<?= htmlspecialchars($session); ?>.png)
+                  <?= $isBn ? 'গ্লোবাল / সেশন লোগো' : 'Global / Session Logo'; ?> (logo-<?= htmlspecialchars($session); ?>.png)
                 </option>
                 <?php foreach ($allResellersList as $rOpt) { ?>
                   <option value="<?= $uplogoRouteBase; ?>&session=<?= urlencode($session); ?>&reseller_id=<?= urlencode($rOpt['id']); ?>" <?= (string)$rOpt['id'] === $targetResId ? 'selected' : ''; ?>>
-                    Reseller #<?= htmlspecialchars($rOpt['id']); ?> — <?= htmlspecialchars($rOpt['username']); ?> (<?= htmlspecialchars($rOpt['name']); ?>)
+                    <?= $isBn ? 'রিসেলার' : 'Reseller'; ?> #<?= htmlspecialchars($rOpt['id']); ?> — <?= htmlspecialchars($rOpt['username']); ?> (<?= htmlspecialchars($rOpt['name']); ?>)
                   </option>
                 <?php } ?>
               </select>
@@ -173,7 +174,7 @@ if (!isset($_SESSION["mikhmon"])) {
           <?php if ($targetResId !== '') {
             $previewLogoPopup = "javascript:window.open('./voucher/vpreview.php?usermode=up&qr=no&variant=default&session=" . urlencode($session) . "&reseller_id=" . urlencode($targetResId) . "','_blank','width=310,height=310')";
           ?>
-          <a class="btn bg-green" href="<?= $previewLogoPopup; ?>"><i class="fa fa-eye"></i> Preview Voucher</a>
+          <a class="btn bg-green" href="<?= $previewLogoPopup; ?>"><i class="fa fa-eye"></i> <?= $isBn ? 'ভাউচার প্রিভিউ' : 'Preview Voucher'; ?></a>
           <?php } ?>
         </div>
       </div>
@@ -183,10 +184,10 @@ if (!isset($_SESSION["mikhmon"])) {
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($logoCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
           <?php if ($targetReseller !== null) { ?>
             <div class="pd-10">
-              <b>Upload Logo for Reseller #<?= htmlspecialchars($targetReseller['id']); ?> (<?= htmlspecialchars($targetReseller['name']); ?>)</b> — Any PNG, JPG, or WebP file (Max 2 MB). Stored isolated in <code>uploads/reseller-logos/<?= htmlspecialchars($targetReseller['id']); ?>/</code>
+              <b><?= $isBn ? 'রিসেলার লোগো আপলোড' : 'Upload Logo for Reseller'; ?> #<?= htmlspecialchars($targetReseller['id']); ?> (<?= htmlspecialchars($targetReseller['name']); ?>)</b> — <?= $isBn ? 'যেকোনো PNG, JPG বা WebP ফাইল (সর্বোচ্চ ২ MB)। আলাদাভাবে সংরক্ষিত:' : 'Any PNG, JPG, or WebP file (Max 2 MB). Stored isolated in'; ?> <code>uploads/reseller-logos/<?= htmlspecialchars($targetReseller['id']); ?>/</code>
             </div>
           <?php } else { ?>
-            <div class="pd-10"><?= $_format_file_name ?> : <code>logo-<?= htmlspecialchars($session); ?>.png</code> (Any PNG image selected below will automatically be saved as <code>logo-<?= htmlspecialchars($session); ?>.png</code>)</div>
+            <div class="pd-10"><?= $_format_file_name ?> : <code>logo-<?= htmlspecialchars($session); ?>.png</code></div>
           <?php } ?>
           <div class="input-group">
             <div class="input-group-6 col-box-8">
@@ -206,9 +207,9 @@ if (!isset($_SESSION["mikhmon"])) {
       <table class="table table-bordered table-hover">
         <thead>
         <tr>
-          <th>Reseller</th>
-          <th>Active Voucher Logo</th>
-          <th>Storage Path</th>
+          <th><?= $isBn ? 'রিসেলার' : 'Reseller'; ?></th>
+          <th><?= $isBn ? 'সক্রিয় ভাউচার লোগো' : 'Active Voucher Logo'; ?></th>
+          <th><?= $isBn ? 'স্টোরেজ পাথ' : 'Storage Path'; ?></th>
           <th><?= $_action ?></th>
         </tr>
         </thead>
@@ -223,21 +224,21 @@ if (!isset($_SESSION["mikhmon"])) {
               <?php if (!empty($targetReseller['logo_filename'])) { ?>
                 <code>uploads/reseller-logos/<?= htmlspecialchars($targetReseller['id']); ?>/<?= htmlspecialchars($targetReseller['logo_filename']); ?></code>
               <?php } else { ?>
-                <span>Default Session / Global Logo Fallback</span>
+                <span><?= $isBn ? 'ডিফল্ট সেশন / গ্লোবাল লোগো' : 'Default Session / Global Logo Fallback'; ?></span>
               <?php } ?>
             </td>
             <td>
               <?php if (!empty($targetReseller['logo_filename'])) { ?>
                 <form action="" method="post" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($logoCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
-                  <button type="submit" name="reset_reseller_logo" value="1" class="btn bg-danger"><i class="fa fa-trash"></i> Reset to Default Logo</button>
+                  <button type="submit" name="reset_reseller_logo" value="1" class="btn bg-danger"><i class="fa fa-trash"></i> <?= $isBn ? 'ডিফল্ট লোগোতে রিসেট' : 'Reset to Default Logo'; ?></button>
                 </form>
               <?php } else { ?>
-                <span style="color:#8b949e;">Using Default</span>
+                <span style="color:#8b949e;"><?= $isBn ? 'ডিফল্ট ব্যবহৃত হচ্ছে' : 'Using Default'; ?></span>
               <?php } ?>
               &nbsp;
               <a class="btn bg-primary" href="<?= $editorRouteBase; ?>&template=default&session=<?= urlencode($session); ?>&reseller_id=<?= urlencode($targetReseller['id']); ?>">
-                <i class="fa fa-code"></i> Edit HTML Template
+                <i class="fa fa-code"></i> <?= $isBn ? 'HTML টেমপ্লেট এডিট' : 'Edit HTML Template'; ?>
               </a>
             </td>
           </tr>
@@ -282,15 +283,15 @@ if (!isset($_SESSION["mikhmon"])) {
 
     <?php if ($isAdminUser && !empty($allResellersList)) { ?>
     <div class="mr-t-10">
-      <h4 style="margin:12px 0 8px 0;"><i class="fa fa-users"></i> Per-Reseller Logos & HTML Templates Overview</h4>
+      <h4 style="margin:12px 0 8px 0;"><i class="fa fa-users"></i> <?= $isBn ? 'রিসেলারভিত্তিক লোগো ও HTML টেমপ্লেট তালিকা' : 'Per-Reseller Logos & HTML Templates Overview'; ?></h4>
       <table class="table table-bordered table-hover table-sm">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Reseller</th>
-            <th>Template Code</th>
-            <th>Current Logo</th>
-            <th>Logo Source</th>
+            <th><?= $isBn ? 'রিসেলার' : 'Reseller'; ?></th>
+            <th><?= $isBn ? 'টেমপ্লেট কোড' : 'Template Code'; ?></th>
+            <th><?= $isBn ? 'বর্তমান লোগো' : 'Current Logo'; ?></th>
+            <th><?= $isBn ? 'লোগো সোর্স' : 'Logo Source'; ?></th>
             <th><?= $_action ?></th>
           </tr>
         </thead>

@@ -75,7 +75,7 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
 ?>
 
           <div class="card">
-            <div class="card-header"><h3><i class="fa fa-area-chart"></i> Resume Report </h3></div>
+            <div class="card-header"><h3><i class="fa fa-area-chart"></i> <?= $_resume ?> <?= $_report ?> </h3></div>
           
               <div class="card-body">
                 <div class="row">
@@ -93,7 +93,7 @@ Highcharts.chart('container', {
     type: 'area',
     },
     title: {
-        text: 'Selling Report <?= ucfirst($thisM)." ".$thisY;?>'
+        text: '<?= $_selling_report ?> <?= ucfirst($thisM)." ".$thisY;?>'
     },
 
     subtitle: {
@@ -106,7 +106,7 @@ Highcharts.chart('container', {
 
     yAxis: {
         title: {
-            text: 'Total Sales'
+            text: '<?= ($langid === 'bn') ? 'মোট বিক্রয়' : 'Total Sales'; ?>'
         }
     },
 

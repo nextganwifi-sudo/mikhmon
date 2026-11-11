@@ -20,6 +20,7 @@
       if (element !== resume) element.disabled = value;
     });
   }
+  var isBn = (config.lang === 'bn');
   async function request(action) {
     var body = new FormData();
     if (action === 'start' && startData) startData.forEach(function (value, name) { body.append(name, value); });
@@ -29,12 +30,12 @@
     try {
       var response = await fetch('./process/voucher_batch.php', {method: 'POST', credentials: 'same-origin', body: body, signal: controller.signal});
       var data;
-      try { data = await response.json(); } catch (e) { throw new Error('The server response was interrupted. Your batch is saved.'); }
+      try { data = await response.json(); } catch (e) { throw new Error(isBn ? 'সার্ভারের রেসপন্স বিচ্ছিন্ন হয়েছে। আপনার ব্যাচ সংরক্ষিত আছে।' : 'The server response was interrupted. Your batch is saved.'); }
       if (typeof data.completed === 'number') completed = data.completed;
       if (typeof data.total === 'number') total = data.total;
       progress.max = total || 1; progress.value = completed;
       if (!response.ok || data.error) {
-        var error = new Error(data.error || 'The server could not complete this step.');
+        var error = new Error(data.error || (isBn ? 'সার্ভার এই ধাপটি সম্পন্ন করতে পারেনি।' : 'The server could not complete this step.'));
         error.retryable = data.retryable !== false;
         throw error;
       }
@@ -49,32 +50,40 @@
     var retries = 0;
     try {
       while (true) {
-        status.textContent = 'Generating vouchers: ' + completed + ' / ' + (total || '…') + '. Keep this page open.';
+        status.textContent = isBn
+          ? ('ভাউচার জেনারেট হচ্ছে: ' + completed + ' / ' + (total || '…') + '। অনুগ্রহ করে এই পেজটি খোলা রাখুন।')
+          : ('Generating vouchers: ' + completed + ' / ' + (total || '…') + '. Keep this page open.');
         var data;
         try { data = await request(action); retries = 0; }
         catch (error) {
           if (error.retryable === false || retries >= 2) throw error;
           retries++;
-          status.textContent = 'Connection interrupted. Resuming the same batch (' + completed + ' confirmed)…';
+          status.textContent = isBn
+            ? ('সংযোগ বিচ্ছিন্ন হয়েছে। একই ব্যাচ পুনরায় শুরু হচ্ছে (' + completed + ' টি নিশ্চিত)…')
+            : ('Connection interrupted. Resuming the same batch (' + completed + ' confirmed)…');
           await new Promise(function (resolve) { setTimeout(resolve, 1500); });
           continue;
         }
         if (data.done) {
           remember(null);
-          status.textContent = 'Successfully generated ' + data.total + ' vouchers. Opening Generate page…';
+          status.textContent = isBn
+            ? ('সফলভাবে ' + data.total + ' টি ভাউচার জেনারেট হয়েছে। পেজ লোড হচ্ছে…')
+            : ('Successfully generated ' + data.total + ' vouchers. Opening Generate page…');
           window.location.replace(data.redirect);
           return;
         }
         action = 'step'; startData = null;
       }
     } catch (error) {
-      status.textContent = completed + ' / ' + (total || '?') + ' confirmed. ' + error.message;
+      status.textContent = completed + ' / ' + (total || '?') + (isBn ? ' টি নিশ্চিত। ' : ' confirmed. ') + error.message;
       if (error.retryable !== false) {
         resume.style.display = 'inline-block';
         resume.onclick = function () { run(startData ? 'start' : 'step'); };
       } else {
         remember(null);
-        status.textContent += ' Check Hotspot Users, then reload this page before starting another batch.';
+        status.textContent += isBn
+          ? ' হটস্পট ইউজার লিস্ট চেক করুন এবং নতুন ব্যাচ শুরু করার আগে পেজটি রিলোড করুন।'
+          : ' Check Hotspot Users, then reload this page before starting another batch.';
       }
     } finally { busy = false; }
   }

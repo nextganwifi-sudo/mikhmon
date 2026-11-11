@@ -1,55 +1,59 @@
 <?php
 /*
  *  Copyright (C) 2018 Laksamadi Guko.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  NextGan WiFi Solution — Per-User Language Switcher
  */
-session_start();
-// hide all error
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 error_reporting(0);
 
-// check url
+include_once(__DIR__ . '/../lang/isocodelang.php');
+include_once(__DIR__ . '/../include/lang.php');
+
 $reqUri = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '';
 $cleanUrl = preg_replace('/([?&])setlang=[^&]*(&|$)/', '$1', $reqUri);
+$cleanUrl = str_replace('?&', '?', $cleanUrl);
+$cleanUrl = preg_replace('/&&+/', '&', $cleanUrl);
 $cleanUrl = rtrim($cleanUrl, '?&');
+
+// If the clicked URL lost its query string (e.g. bare ?setlang=bn), fall back to HTTP_REFERER
+if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -1) === '/') {
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+        $refClean = preg_replace('/([?&])setlang=[^&]*(&|$)/', '$1', (string)$_SERVER['HTTP_REFERER']);
+        $refClean = str_replace('?&', '?', $refClean);
+        $refClean = preg_replace('/&&+/', '&', $refClean);
+        $refClean = rtrim($refClean, '?&');
+        if ($refClean !== '') {
+            $cleanUrl = $refClean;
+        }
+    }
+}
 if (empty($cleanUrl)) {
-    $cleanUrl = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : './';
+    $cleanUrl = './admin.php?id=sessions';
 }
 $url2 = $cleanUrl;
 
-$getlang = isset($_GET['setlang']) ? trim((string)$_GET['setlang']) : '';
+$getlang = isset($_GET['setlang']) ? strtolower(trim((string)$_GET['setlang'])) : '';
 
-if (empty($getlang)) {
-
-} else {
-    if (!empty($isocodelang[$getlang])) {
-        include_once('./include/headhtml.php');
-        $gen = '<?php $langid="' . $getlang . '";?>';
-        $slang = './include/lang.php';
-        $handle = fopen($slang, 'w') or die('Cannot open file:  ' . $slang);
-        fwrite($handle, $gen);
-        fclose($handle);
-        $_SESSION['lang'] = $getlang;
-        echo '<center><div style="padding-top:10%;"><i class="fa fa-circle-o-notch fa-spin" style="font-size:40px"></i></div><h3>Load '.$getlang.' lang...</h3></center>';
-        echo "<script>window.location='" . $url2 . "'</script>";
+if (!empty($getlang)) {
+    if (!empty($isocodelang[$getlang]) || in_array($getlang, array('en', 'bn'), true)) {
+        ngwSaveCurrentUserLang($getlang);
+        session_write_close();
+        if (!headers_sent()) {
+            header('Location: ' . $url2);
+            exit;
+        }
+        echo "<script>window.location=" . json_encode($url2) . ";</script>";
         exit;
     } else {
-        include_once('./include/headhtml.php');
-        echo '<center><div style="padding-top:10%;"><i class="fa fa-circle-o-notch fa-spin" style="font-size:40px"></i></div><h3>'.$getlang.' lang not found...</h3></center>';
-        echo "<script>window.location='" . $url2 . "'</script>";
+        session_write_close();
+        if (!headers_sent()) {
+            header('Location: ' . $url2);
+            exit;
+        }
+        echo "<script>window.location=" . json_encode($url2) . ";</script>";
         exit;
     }
 }
-
 ?>

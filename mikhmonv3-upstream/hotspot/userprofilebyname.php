@@ -56,16 +56,16 @@ if (!isset($_SESSION["mikhmon"])) {
   $getexpmode = explode(",", $ponlogin)[1];
 
   if ($getexpmode == "rem") {
-    $getexpmodet = "Remove";
+    $getexpmodet = ($langid === 'bn') ? "রিমুভ (Remove)" : "Remove";
   } elseif ($getexpmode == "ntf") {
-    $getexpmodet = "Notice";
+    $getexpmodet = ($langid === 'bn') ? "নোটিশ (Notice)" : "Notice";
   } elseif ($getexpmode == "remc") {
-    $getexpmodet = "Remove & Record";
+    $getexpmodet = ($langid === 'bn') ? "রিমুভ ও রেকর্ড (Remove & Record)" : "Remove & Record";
   } elseif ($getexpmode == "ntfc") {
-    $getexpmodet = "Notice & Record";
+    $getexpmodet = ($langid === 'bn') ? "নোটিশ ও রেকর্ড (Notice & Record)" : "Notice & Record";
   } else {
     $getexpmode = "0";
-    $getexpmodet = "None";
+    $getexpmodet = ($langid === 'bn') ? "কোনোটিই নয় (None)" : "None";
   }
 
   $getprice = explode(",", $ponlogin)[2];
@@ -218,7 +218,7 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
     <td><?= $_name ?> <i class="fa fa-ci fa-circle <?= $moncolor ?>"></i></td><td><input class="form-control" type="text" onchange="remSpace();" autocomplete="off" name="name" value="<?= $pname; ?>" required="1" autofocus></td>
   </tr>
   <tr>
-    <td class="align-middle">Address Pool</td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'অ্যাড্রেস পুল (Address Pool)' : 'Address Pool'; ?></td>
     <td>
     <select class="form-control " name="ppool">
       <option><?= $ppool; ?></option>
@@ -233,24 +233,24 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
     </td>
   </tr>
   <tr>
-    <td>Shared Users</td><td><input class="form-control" type="text" size="4" autocomplete="off" name="sharedusers" value="<?= $psharedu; ?>" required="1"></td>
+    <td><?= ($langid === 'bn') ? 'শেয়ার্ড ইউজার (Shared Users)' : 'Shared Users'; ?></td><td><input class="form-control" type="text" size="4" autocomplete="off" name="sharedusers" value="<?= $psharedu; ?>" required="1"></td>
   </tr>
   <tr>
-    <td>Rate limit [up/down]</td><td><input class="form-control" type="text" name="ratelimit" autocomplete="off" value="<?= $pratelimit; ?>" placeholder="Example : 512k/1M" ></td>
+    <td><?= ($langid === 'bn') ? 'রেট লিমিট [আপ/ডাউন]' : 'Rate limit [up/down]'; ?></td><td><input class="form-control" type="text" name="ratelimit" autocomplete="off" value="<?= $pratelimit; ?>" placeholder="<?= ($langid === 'bn') ? 'উদাহরণ : 512k/1M' : 'Example : 512k/1M'; ?>" ></td>
   </tr>
   <tr>
     <td><?= $_expired_mode ?></td><td>
       <select class="form-control" onchange="RequiredV();" id="expmode" name="expmode" required="1">
         <option value="<?= $getexpmode; ?>"><?= $getexpmodet; ?></option>
-        <option value="0">None</option>
-        <option value="rem">Remove</option>
-        <option value="ntf">Notice</option>
-        <option value="remc">Remove & Record</option>
-        <option value="ntfc">Notice & Record</option>
+        <option value="0"><?= ($langid === 'bn') ? 'কোনোটিই নয় (None)' : 'None'; ?></option>
+        <option value="rem"><?= ($langid === 'bn') ? 'রিমুভ (Remove)' : 'Remove'; ?></option>
+        <option value="ntf"><?= ($langid === 'bn') ? 'নোটিশ (Notice)' : 'Notice'; ?></option>
+        <option value="remc"><?= ($langid === 'bn') ? 'রিমুভ ও রেকর্ড (Remove & Record)' : 'Remove & Record'; ?></option>
+        <option value="ntfc"><?= ($langid === 'bn') ? 'নোটিশ ও রেকর্ড (Notice & Record)' : 'Notice & Record'; ?></option>
       </select>
     </td>
   </tr>
-  <tr id="validity" <?php if ($getexpmodet == "None") {echo 'style="display:none;"';}?>>
+  <tr id="validity" <?php if ($getexpmode == "0") {echo 'style="display:none;"';}?>>
     <td><?= $_validity ?></td><td><input class="form-control" type="text" id="validi" size="4" autocomplete="off" name="validity" value="<?= $getvalid; ?>" required="1"></td>
   </tr>
   <tr>
@@ -262,14 +262,14 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
   <tr>
     <td><?= $_lock_user ?></td><td>
       <select class="form-control" id="lockunlock" name="lockunlock" required="1">
-        <option value="<?= $getlocku; ?>"><?= $getlocku; ?></option>
-        <option value="Enable">Enable</option>
-        <option value="Disable">Disable</option>
+        <option value="<?= $getlocku; ?>"><?= ($langid === 'bn') ? (($getlocku === 'Enable') ? 'চালু (Enable)' : 'বন্ধ (Disable)') : $getlocku; ?></option>
+        <option value="Enable"><?= ($langid === 'bn') ? 'চালু (Enable)' : 'Enable'; ?></option>
+        <option value="Disable"><?= ($langid === 'bn') ? 'বন্ধ (Disable)' : 'Disable'; ?></option>
       </select>
     </td>
   </tr>
   <tr>
-    <td class="align-middle">Parent Queue</td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'প্যারেন্ট কিউ (Parent Queue)' : 'Parent Queue'; ?></td>
     <td>
     <select class="form-control " name="parent">
       <option><?= $sparent; ?></option>

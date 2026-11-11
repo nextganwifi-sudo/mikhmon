@@ -60,11 +60,11 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-    <h3><i class="fa fa-users"></i> Export Hotspot Users | <strong class="pointer" onclick="exportTableToCSV('export-user-hotspot-nextgan-<?= date("Y-m-d"); ?>.<?php if ($_GET['export'] == "csv") {
+    <h3><i class="fa fa-users"></i> <?= ($langid === 'bn') ? 'হটস্পট ইউজার এক্সপোর্ট' : 'Export Hotspot Users'; ?> | <strong class="pointer" onclick="exportTableToCSV('export-user-hotspot-nextgan-<?= date("Y-m-d"); ?>.<?php if ($_GET['export'] == "csv") {
                                                                                                                                                                   echo "csv";
                                                                                                                                                                 } else {
                                                                                                                                                                   echo "txt";
-                                                                                                                                                                } ?>')" title="Download User List"><i class="fa fa-download"></i> Download</strong>
+                                                                                                                                                                } ?>')" title="Download User List"><i class="fa fa-download"></i> <?= ($langid === 'bn') ? 'ডাউনলোড' : 'Download'; ?></strong>
     </h3>
     
 </div>

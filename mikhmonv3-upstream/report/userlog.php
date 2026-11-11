@@ -95,12 +95,12 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-	<h3><i class=" fa fa-align-justify"></i> User Log <?= $idhr . $idbl; ?></h3>
+	<h3><i class=" fa fa-align-justify"></i> <?= $_user_log ?> <?= $idhr . $idbl; ?></h3>
 </div>
 <div class="card-body">
 	<div>
 		<div style="padding-bottom: 5px; padding-top: 5px; display: table-row;">	   
-		  <input id="filterTable" type="text" class="form-control" style="float:left; margin-top: 6px; max-width: 150px;" placeholder="Search..">&nbsp;
+		  <input id="filterTable" type="text" class="form-control" style="float:left; margin-top: 6px; max-width: 150px;" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>">&nbsp;
 		  <button class="btn bg-primary " onclick="exportTableToCSV('user-log-nextgan-<?= $filedownload; ?>.csv')" title="Download user log"><i class="fa fa-download"></i> CSV</button>
 		  <button class="btn bg-primary " onclick="location.href='./?report=userlog&session=<?= $session; ?>';" title="Reload all data"><i class="fa fa-search"></i> <?= $_all ?></button>
 		</div>
@@ -112,7 +112,7 @@ if (!isset($_SESSION["mikhmon"])) {
 										if ($day != "") {
 											echo "<option value='" . $day . "'>" . $day . "</option>";
 										}
-										echo "<option value=''>Day</option>";
+										echo "<option value=''>" . ($langid === 'bn' ? 'দিন' : 'Day') . "</option>";
 
 										for ($x = 1; $x <= 31; $x++) {
 											if (strlen($x) == 1) {
@@ -129,7 +129,9 @@ if (!isset($_SESSION["mikhmon"])) {
 			<select style="padding:5px;" class="group-item group-item-md" title="Month" id="M">
         			<?php 
 										$idbls = array(1 => "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec");
-										$idblf = array(1 => "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December");
+										$idblf = ($langid === 'bn')
+											? array(1 => "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর")
+											: array(1 => "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December");
 										$month = explode("/", $idhr)[0];
 										$month1 = substr($idbl, 0, 3);
 
@@ -171,7 +173,7 @@ if (!isset($_SESSION["mikhmon"])) {
     		</select>
 			</div>
             <div class="input-group-2 col-box-3">	
-				<div style="padding:3.5px;"  class="group-item group-item-r text-center pointer" onclick="filterR();"><i class="fa fa-search"></i> Filter</div>
+				<div style="padding:3.5px;"  class="group-item group-item-r text-center pointer" onclick="filterR();"><i class="fa fa-search"></i> <?= ($langid === 'bn') ? 'ফিল্টার' : 'Filter'; ?></div>
 			</div>
 			<script type="text/javascript">
 				
@@ -193,14 +195,14 @@ if (!isset($_SESSION["mikhmon"])) {
 			<table id="dataTable" class="table table-bordered table-hover text-nowrap">
 				<thead>
 				<tr>
-				  <th colspan=6 >User Log <?= $filedownload; ?></th>
+				  <th colspan=6 ><?= $_user_log ?> <?= $filedownload; ?></th>
 				</tr>
 				<tr>
 					<th ><?= $_date ?></th>
 					<th ><?= $_time ?></th>
 					<th ><?= $_user_name ?></th>
-					<th >address</th>
-					<th >Mac Address</th>
+					<th ><?= ($langid === 'bn') ? 'অ্যাড্রেস' : 'address'; ?></th>
+					<th ><?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?></th>
 					<th ><?= $_validity ?></th>
 				</tr>
 				</thead>

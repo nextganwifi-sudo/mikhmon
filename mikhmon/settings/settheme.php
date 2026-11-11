@@ -1,69 +1,58 @@
 <?php
 /*
  *  Copyright (C) 2018 Laksamadi Guko.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  NextGan WiFi Solution — Per-User Theme Switcher
  */
-session_start();
-// hide all error
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 error_reporting(0);
 
-// check url
-$url2 = explode("&set-theme", $url)[0];
+include_once(__DIR__ . '/../include/theme.php');
 
-$gettheme = $_GET['set-theme'];
-$mtheme = array(
-    "dark",
-    "light",
-    "blue",
-    "green",
-    "pink",
-);
-$theme_color = array(
-    "#3a4149",
-    "#008BC9",
-    "#008BC9",
-    "#4dbd74",
-    "#e83e8c",
-);
+$reqUri = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '';
+$cleanUrl = preg_replace('/([?&])set-theme=[^&]*(&|$)/', '$1', $reqUri);
+$cleanUrl = str_replace('?&', '?', $cleanUrl);
+$cleanUrl = preg_replace('/&&+/', '&', $cleanUrl);
+$cleanUrl = rtrim($cleanUrl, '?&');
 
+if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -1) === '/') {
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+        $refClean = preg_replace('/([?&])set-theme=[^&]*(&|$)/', '$1', (string)$_SERVER['HTTP_REFERER']);
+        $refClean = str_replace('?&', '?', $refClean);
+        $refClean = preg_replace('/&&+/', '&', $refClean);
+        $refClean = rtrim($refClean, '?&');
+        if ($refClean !== '') {
+            $cleanUrl = $refClean;
+        }
+    }
+}
+if (empty($cleanUrl)) {
+    $cleanUrl = './admin.php?id=sessions';
+}
+$url2 = $cleanUrl;
 
-$themenum = array_search($gettheme, $mtheme);
+$gettheme = isset($_GET['set-theme']) ? strtolower(trim((string)$_GET['set-theme'])) : '';
+$mtheme = array('dark', 'light', 'blue', 'green', 'pink');
 
-$getthemecolor = $theme_color[$themenum];
-
-if (empty($gettheme)) {  
-
-} else {
-    if (in_array($gettheme, $mtheme)) {
-        include_once('./include/headhtml.php');
-        $gen = '<?php $theme="' . $gettheme . '"; $themecolor="'.$getthemecolor.'";?>';
-        $stheme = './include/theme.php';
-        $handle = fopen($stheme, 'w') or die('Cannot open file:  ' . $stheme);
-        fwrite($handle, $gen);
-        fclose($handle);
-        $_SESSION['theme'] = $gettheme;
-        $_SESSION['themecolor'] = $getthemecolor;
-        echo '<center><div style="padding-top:10%;"><i class="fa fa-circle-o-notch fa-spin" style="font-size:40px"></i></div><h3>Load '.$gettheme.' theme...</h3></center>';
-        echo "<script>window.location='" . $url2 . "'</script>";
+if (!empty($gettheme)) {
+    if (in_array($gettheme, $mtheme, true)) {
+        ngwSaveCurrentUserTheme($gettheme);
+        session_write_close();
+        if (!headers_sent()) {
+            header('Location: ' . $url2);
+            exit;
+        }
+        echo "<script>window.location=" . json_encode($url2) . ";</script>";
         exit;
     } else {
-        include_once('./include/headhtml.php');
-        echo '<center><div style="padding-top:10%;"><i class="fa fa-circle-o-notch fa-spin" style="font-size:40px"></i></div><h3>'.$gettheme.' theme not found...</h3></center>';
-        echo "<script>window.location='" . $url2 . "'</script>";
+        session_write_close();
+        if (!headers_sent()) {
+            header('Location: ' . $url2);
+            exit;
+        }
+        echo "<script>window.location=" . json_encode($url2) . ";</script>";
         exit;
     }
 }
-
 ?>

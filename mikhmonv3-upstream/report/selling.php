@@ -227,7 +227,7 @@ $(document).ready(function(){
 										if ($day != "") {
 											echo "<option value='" . $day . "'>" . $day . "</option>";
 										}
-										echo "<option value=''>Day</option>";
+										echo "<option value=''>" . ($langid === 'bn' ? 'দিন' : 'Day') . "</option>";
 
 										for ($x = 1; $x <= 31; $x++) {
 											if (strlen($x) == 1) {
@@ -244,7 +244,9 @@ $(document).ready(function(){
 			<select style="padding:5px;" class="group-item group-item-md" title="Month" id="M">
         			<?php
 										$idbls = array(1 => "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec");
-										$idblf = array(1 => "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December");
+										$idblf = ($langid === 'bn')
+											? array(1 => "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর")
+											: array(1 => "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December");
 										$month = explode("/", $idhr)[0];
 										$month1 = substr($idbl, 0, 3);
 
@@ -286,7 +288,7 @@ $(document).ready(function(){
     		</select>
 			</div>
             <div class="input-group-2 col-box-3">
-				<div style="padding:3.5px;"  class="group-item group-item-r text-center pointer" onclick="filterR(); loader();"><i class="fa fa-search"></i> Filter</div>
+				<div style="padding:3.5px;"  class="group-item group-item-r text-center pointer" onclick="filterR(); loader();"><i class="fa fa-search"></i> <?= ($langid === 'bn') ? 'ফিল্টার' : 'Filter'; ?></div>
 			</div>
 			<script type="text/javascript">
 				
@@ -413,8 +415,8 @@ $(document).ready(function(){
 	</p>
 	<form autocomplete="off" method="post" action="">
 	<center>
-	<button type="submit" name="remdata" title="Yes" class="btn bg-primary">Yes</button>&nbsp;
-	<a class="btn bg-secondary" href="#" title="Close" class="modal-close">No</a>
+	<button type="submit" name="remdata" title="Yes" class="btn bg-primary"><?= ($langid === 'bn') ? 'হ্যাঁ' : 'Yes'; ?></button>&nbsp;
+	<a class="btn bg-secondary" href="#" title="Close" class="modal-close"><?= ($langid === 'bn') ? 'না' : 'No'; ?></a>
 	</center>
 	</form>
   </div>

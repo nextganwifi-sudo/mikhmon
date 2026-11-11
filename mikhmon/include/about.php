@@ -30,11 +30,11 @@ if (!isset($_SESSION["mikhmon"])) {
         </p>
         <p>
           <ul>
-            <li><b>Software Name :</b> NextGan WiFi Solution</li>
-            <li><b>Edition :</b> Enterprise Hotspot &amp; Reseller Edition (V<?= htmlspecialchars(isset($_SESSION['v']) ? $_SESSION['v'] : '3.20'); ?>)</li>
-            <li><b>RouterOS Compatibility :</b> MikroTik RouterOS v6.x &amp; v7.x Dual-Stack Support</li>
-            <li><b>Core Engine :</b> RouterOS API with Universal Expiration &amp; Sales Reporting</li>
-            <li><b>Platform :</b> Standalone Windows Server &amp; Web Hosting Ready</li>
+            <li><b><?= ($langid === 'bn') ? 'সফটওয়্যারের নাম :' : 'Software Name :'; ?></b> NextGan WiFi Solution</li>
+            <li><b><?= ($langid === 'bn') ? 'সংস্করণ :' : 'Edition :'; ?></b> <?= ($langid === 'bn') ? 'এন্টারপ্রাইজ হটস্পট ও রিসেলার এডিশন' : 'Enterprise Hotspot &amp; Reseller Edition'; ?> (V<?= htmlspecialchars(isset($_SESSION['v']) ? $_SESSION['v'] : '3.20'); ?>)</li>
+            <li><b><?= ($langid === 'bn') ? 'RouterOS সামঞ্জস্যতা :' : 'RouterOS Compatibility :'; ?></b> <?= ($langid === 'bn') ? 'MikroTik RouterOS v6.x ও v7.x ডুয়াল-স্ট্যাক সাপোর্ট' : 'MikroTik RouterOS v6.x &amp; v7.x Dual-Stack Support'; ?></li>
+            <li><b><?= ($langid === 'bn') ? 'কোর ইঞ্জিন :' : 'Core Engine :'; ?></b> <?= ($langid === 'bn') ? 'RouterOS API ও স্বয়ংক্রিয় মেয়াদ এবং সেলস রিপোর্ট' : 'RouterOS API with Universal Expiration &amp; Sales Reporting'; ?></li>
+            <li><b><?= ($langid === 'bn') ? 'প্ল্যাটফর্ম :' : 'Platform :'; ?></b> <?= ($langid === 'bn') ? 'স্ট্যান্ডঅ্যালোন উইন্ডোজ সার্ভার ও ওয়েব হোস্টিং প্রস্তুত' : 'Standalone Windows Server &amp; Web Hosting Ready'; ?></li>
           </ul>
         </p>
         <p>
@@ -54,21 +54,21 @@ if (!isset($_SESSION["mikhmon"])) {
       <div class="card-body">
         <div class="row">
           <div class="col-6">
-            <h4 style="margin-top:0;"><i class="fa fa-check-circle text-green"></i> Hotspot &amp; RouterOS Management</h4>
+            <h4 style="margin-top:0;"><i class="fa fa-check-circle text-green"></i> <?= ($langid === 'bn') ? 'হটস্পট ও RouterOS ম্যানেজমেন্ট' : 'Hotspot &amp; RouterOS Management'; ?></h4>
             <ul>
-              <li><b>RouterOS v6 &amp; v7 Universal Support:</b> <?= htmlspecialchars(isset($_about_f1) ? $_about_f1 : ''); ?></li>
-              <li><b>Fast Voucher Generation &amp; Print:</b> <?= htmlspecialchars(isset($_about_f2) ? $_about_f2 : ''); ?></li>
-              <li><b>Real-Time Traffic &amp; Active Monitor:</b> <?= htmlspecialchars(isset($_about_f3) ? $_about_f3 : ''); ?></li>
-              <li><b>Automated Selling Report:</b> <?= htmlspecialchars(isset($_about_f4) ? $_about_f4 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'RouterOS v6 ও v7 ইউনিভার্সাল সাপোর্ট:' : 'RouterOS v6 &amp; v7 Universal Support:'; ?></b> <?= htmlspecialchars(isset($_about_f1) ? $_about_f1 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'দ্রুত ভাউচার তৈরি ও প্রিন্ট:' : 'Fast Voucher Generation &amp; Print:'; ?></b> <?= htmlspecialchars(isset($_about_f2) ? $_about_f2 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'রিয়েল-টাইম ট্রাফিক ও অ্যাক্টিভ মনিটর:' : 'Real-Time Traffic &amp; Active Monitor:'; ?></b> <?= htmlspecialchars(isset($_about_f3) ? $_about_f3 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'স্বয়ংক্রিয় বিক্রয় রিপোর্ট:' : 'Automated Selling Report:'; ?></b> <?= htmlspecialchars(isset($_about_f4) ? $_about_f4 : ''); ?></li>
             </ul>
           </div>
           <div class="col-6">
-            <h4 style="margin-top:0;"><i class="fa fa-shield text-blue"></i> Advanced Multi-Reseller &amp; Security</h4>
+            <h4 style="margin-top:0;"><i class="fa fa-shield text-blue"></i> <?= ($langid === 'bn') ? 'অ্যাডভান্সড মাল্টি-রিসেলার ও নিরাপত্তা' : 'Advanced Multi-Reseller &amp; Security'; ?></h4>
             <ul>
-              <li><b>Granular Reseller Permission System:</b> <?= htmlspecialchars(isset($_about_f5) ? $_about_f5 : ''); ?></li>
-              <li><b>Smart UI Auto-Hiding:</b> <?= htmlspecialchars(isset($_about_f6) ? $_about_f6 : ''); ?></li>
-              <li><b>Reseller Custom Voucher &amp; Logo:</b> <?= htmlspecialchars(isset($_about_f7) ? $_about_f7 : ''); ?></li>
-              <li><b>1-Click Standalone Server Package:</b> <?= htmlspecialchars(isset($_about_f8) ? $_about_f8 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'গ্র্যানুলার রিসেলার পারমিশন সিস্টেম:' : 'Granular Reseller Permission System:'; ?></b> <?= htmlspecialchars(isset($_about_f5) ? $_about_f5 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'স্মার্ট UI অটো-হাইডিং:' : 'Smart UI Auto-Hiding:'; ?></b> <?= htmlspecialchars(isset($_about_f6) ? $_about_f6 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? 'রিসেলার কাস্টম ভাউচার ও লোগো:' : 'Reseller Custom Voucher &amp; Logo:'; ?></b> <?= htmlspecialchars(isset($_about_f7) ? $_about_f7 : ''); ?></li>
+              <li><b><?= ($langid === 'bn') ? '১-ক্লিক স্ট্যান্ডঅ্যালোন সার্ভার প্যাকেজ:' : '1-Click Standalone Server Package:'; ?></b> <?= htmlspecialchars(isset($_about_f8) ? $_about_f8 : ''); ?></li>
             </ul>
           </div>
         </div>

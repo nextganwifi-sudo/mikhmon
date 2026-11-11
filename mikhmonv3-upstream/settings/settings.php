@@ -186,7 +186,7 @@ if (!isset($_SESSION["mikhmon"])) {
         	     <div class="card-body">
 				<table class="table table-sm">
 					<tr>
-	  					<td class="align-middle">IP MikroTik </td><td>
+	  					<td class="align-middle"><?= isset($langid) && $langid === 'bn' ? 'মাইক্রোটিক আইপি' : 'IP MikroTik' ?> </td><td>
 							<div class="input-group">
 								<div class="input-group-12 col-box-12">
 									<input class="form-control" id="ipmik_input" type="text" size="15" name="ipmik" title="IP MikroTik / IP Cloud MikroTik" value="<?= htmlspecialchars($display_iphost); ?>" required="1"/>
@@ -195,10 +195,10 @@ if (!isset($_SESSION["mikhmon"])) {
 						</td>
 					</tr>
 					<tr>
-						<td class="align-middle">Username  </td><td><input class="form-control" id="usermk" type="text" size="10" name="usermik" title="User MikroTik" value="<?= $userhost; ?>" required="1"/></td>
+						<td class="align-middle"><?= $_user_name ?>  </td><td><input class="form-control" id="usermk" type="text" size="10" name="usermik" title="User MikroTik" value="<?= $userhost; ?>" required="1"/></td>
 					</tr>
 					<tr>
-						<td class="align-middle">Password  </td><td>
+						<td class="align-middle"><?= $_password ?>  </td><td>
 							<div class="input-group">
 								<div class="input-group-11 col-box-10">
         						<input class="group-item group-item-l" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= decrypt($passwdhost); ?>" required="1"/>
@@ -214,10 +214,10 @@ if (!isset($_SESSION["mikhmon"])) {
 					<tr>
 						<td colspan="2">
 								<div class="input-group-4">
-									<input class="group-item group-item-md" type="submit" style="cursor: pointer;" name="save" value="Save"/>
+									<input class="group-item group-item-md" type="submit" style="cursor: pointer;" name="save" value="<?= $_save ?>"/>
 								</div>
 								<div class="input-group-4">	
-                  <span class="connect pointer group-item group-item-md pd-2p5 text-center align-middle" id="<?= $session; ?>&c=settings">Connect</span>
+                  <span class="connect pointer group-item group-item-md pd-2p5 text-center align-middle" id="<?= $session; ?>&c=settings"><?= $_connect ?></span>
 								</div>
 								<div class="input-group-3">	
                   <span class="pointer group-item group-item-md pd-2p5 text-center align-middle" id="ping_test">Ping</span>

@@ -58,18 +58,18 @@ if (!isset($_SESSION["mikhmon"])) {
   $hasDefaultTrial = ($rawUserCount > 0 && isset($allhotspotusers[0]['name']) && $allhotspotusers[0]['name'] === 'default-trial');
   $countallusers = $hasDefaultTrial ? ($rawUserCount - 1) : $rawUserCount;
   if ($countallusers < 2) {
-    $uunit = "item";
+    $uunit = ($langid === 'bn') ? "টি" : "item";
   } elseif ($countallusers > 1) {
-    $uunit = "items";
+    $uunit = ($langid === 'bn') ? "টি" : "items";
   }
   $countusedusers = countUsedHotspotVouchers($allhotspotusers);
 
 // get & counting hotspot active
   $counthotspotactive = $API->comm("/ip/hotspot/active/print", array("count-only" => ""));
   if ($counthotspotactive < 2) {
-    $hunit = "item";
+    $hunit = ($langid === 'bn') ? "টি" : "item";
   } elseif ($counthotspotactive > 1) {
-    $hunit = "items";
+    $hunit = ($langid === 'bn') ? "টি" : "items";
   }
 
   if ($livereport == "disable") {
@@ -144,7 +144,7 @@ if (!isset($_SESSION["mikhmon"])) {
                     <?php
                     echo $_board_name." : " . $resource['board-name'] . "<br/>
                     ".$_model." : " . $routerboard['model'] . "<br/>
-                    Router OS : " . $resource['version'];
+                    ".(isset($_router_os) ? $_router_os : "Router OS")." : " . $resource['version'];
                     ?>
                 </span>
               </div>
@@ -174,7 +174,7 @@ if (!isset($_SESSION["mikhmon"])) {
             <div id="r_2" class="row">
             <?php if (hasResellerPermission('view_active') || hasResellerPermission('view_users') || hasResellerPermission('add_user') || hasResellerPermission('generate_voucher')) { ?>
             <div class="card">
-              <div class="card-header"><h3><i class="fa fa-wifi"></i> Hotspot</h3></div>
+              <div class="card-header"><h3><i class="fa fa-wifi"></i> <?= isset($_hotspot) ? $_hotspot : 'Hotspot'; ?></h3></div>
                 <div class="card-body">
                   <div class="row">
                     <?php if (hasResellerPermission('view_active')) { ?>
@@ -196,7 +196,7 @@ if (!isset($_SESSION["mikhmon"])) {
                     <div class="box bg-green bmh-75">
                       <a onclick="cancelPage()" href="./?hotspot=users&profile=all&session=<?= $session; ?>">
                             <h1><?= $countallusers; ?>
-                              <span style="font-size: 15px;"><?= $uunit; ?> / Used: <?= $countusedusers; ?></span>
+                              <span style="font-size: 15px;"><?= $uunit; ?> / <?= ($langid === 'bn') ? 'ব্যবহৃত' : 'Used'; ?>: <?= $countusedusers; ?></span>
                             </h1>
                       <div>
                             <i class="fa fa-users"></i> <?= $_hotspot_users ?>

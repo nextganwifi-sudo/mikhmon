@@ -38,7 +38,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="card-body">
 
 <div style="max-width: 350px;">
-    <input id="filterTable" type="text" class="form-control" placeholder="Search.."> 
+    <input id="filterTable" type="text" class="form-control" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>"> 
 </div>
 <div style="padding: 5px; max-height: 75vh;" class="mr-t-10 overflow">
 <table class="table table-sm table-bordered table-hover" id="dataTable" >

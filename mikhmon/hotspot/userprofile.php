@@ -118,12 +118,12 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header align-middle">
-    <h3><i class=" fa fa-pie-chart"></i> User Profile 
+    <h3><i class=" fa fa-pie-chart"></i> <?= $_user_profile ?> 
     <?php if (hasResellerPermission('add_profile')) { ?>
-    &nbsp; | &nbsp; <a href="./?user-profile=add&session=<?= $session; ?>" title="Add User"><i class="fa fa-user-plus"></i> Add</a>
+    &nbsp; | &nbsp; <a href="./?user-profile=add&session=<?= $session; ?>" title="<?= $_add ?>"><i class="fa fa-user-plus"></i> <?= $_add ?></a>
     <?php } ?>
     <?php if (hasResellerPermission('edit_profile')) { ?>
-    &nbsp; | &nbsp; <a href="./?hotspot=user-profiles&migrate-ros7=1&session=<?= $session; ?>" title="Sync Universal ROS6/ROS7 Expiry Scripts"><i class="fa fa-refresh"></i> Sync ROS6/ROS7 Expiry</a>
+    &nbsp; | &nbsp; <a href="./?hotspot=user-profiles&migrate-ros7=1&session=<?= $session; ?>" title="<?= ($langid === 'bn') ? 'ROS6/ROS7 মেয়াদ স্ক্রিপ্ট সিঙ্ক করুন' : 'Sync Universal ROS6/ROS7 Expiry Scripts'; ?>"><i class="fa fa-refresh"></i> <?= ($langid === 'bn') ? 'ROS6/ROS7 মেয়াদ সিঙ্ক' : 'Sync ROS6/ROS7 Expiry'; ?></a>
     <?php } ?>
 	</h3>
 </div>
@@ -136,14 +136,14 @@ if (!isset($_SESSION["mikhmon"])) {
 		<th style="min-width:50px;" class="text-center" >
 		<?php
 	if ($countprofile < 2) {
-		echo "$countprofile item  ";
+		echo $countprofile . ($langid === 'bn' ? " টি আইটেম  " : " item  ");
 	} elseif ($countprofile > 1) {
-		echo "$countprofile items   ";
+		echo $countprofile . ($langid === 'bn' ? " টি আইটেম   " : " items   ");
 	}
 	?></th>
 		<th class="align-middle"><?= $_name ?></th>
-		<th class="align-middle">Shared<br>Users</th>
-		<th class="align-middle">Rate<br>Limit</th>
+		<th class="align-middle"><?= ($langid === 'bn') ? 'শেয়ার্ড<br>ইউজার' : 'Shared<br>Users'; ?></th>
+		<th class="align-middle"><?= ($langid === 'bn') ? 'রেট<br>লিমিট' : 'Rate<br>Limit'; ?></th>
 		<th class="align-middle"><?= $_expired_mode ?></th>
 		<th class="align-middle"><?= $_validity ?></th>
 		<th class="text-right align-middle" > <?= $_price." ".$currency; ?></th>
@@ -174,15 +174,15 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	?>
   <td style='text-align:center;'>
   <?php if (hasResellerPermission('delete_profile')) { ?>
-  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete profile (<?= $pname; ?>)?')){loadpage('./?remove-user-profile=<?= $pid; ?>&pname=<?= $pname ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $pname; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি প্রোফাইলটি ডিলিট করতে নিশ্চিত' : 'Are you sure to delete profile'; ?> (<?= $pname; ?>)?')){loadpage('./?remove-user-profile=<?= $pid; ?>&pname=<?= $pname ?>&session=<?= $session; ?>')}else{}" title='<?= $_remove ?> <?= $pname; ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
 	if (hasResellerPermission('view_users')) {
-		echo "<a title='Open User by profile " . $pname . "'  href='./?hotspot=users&profile=" . $pname . "&session=" . $session . "'><i class='fa fa-users'></i></a>";
+		echo "<a title='" . ($langid === 'bn' ? 'প্রোফাইল অনুযায়ী ইউজার খুলুন ' : 'Open User by profile ') . $pname . "'  href='./?hotspot=users&profile=" . $pname . "&session=" . $session . "'><i class='fa fa-users'></i></a>";
 	}
 	echo "</td>";
 	if (hasResellerPermission('edit_profile')) {
-		echo "<td><a title='Open User Profile " . $pname . "' href='./?user-profile=" . $pid . "&session=" . $session . "'><i class='fa fa-edit'></i> <i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname</a></td>";
+		echo "<td><a title='" . ($langid === 'bn' ? 'ইউজার প্রোফাইল খুলুন ' : 'Open User Profile ') . $pname . "' href='./?user-profile=" . $pid . "&session=" . $session . "'><i class='fa fa-edit'></i> <i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname</a></td>";
 	} else {
 		echo "<td><i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname</td>";
 	}
@@ -197,13 +197,13 @@ for ($i = 0; $i < $TotalReg; $i++) {
 // get expired mode
 	$expmode = $getexpmode[1];
 	if ($expmode == "rem") {
-		echo "Remove";
+		echo ($langid === 'bn') ? "রিমুভ (Remove)" : "Remove";
 	} elseif ($expmode == "ntf") {
-		echo "Notice";
+		echo ($langid === 'bn') ? "নোটিশ (Notice)" : "Notice";
 	} elseif ($expmode == "remc") {
-		echo "Remove & Record";
+		echo ($langid === 'bn') ? "রিমুভ ও রেকর্ড" : "Remove & Record";
 	} elseif ($expmode == "ntfc") {
-		echo "Notice & Record";
+		echo ($langid === 'bn') ? "নোটিশ ও রেকর্ড" : "Notice & Record";
 	} else {
 
 	}
@@ -248,7 +248,12 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	echo "<td>";
 
 	$getgracep = explode(",", $ponlogin);
-	echo $getgracep[6];
+	$lockVal = trim($getgracep[6]);
+	if ($langid === 'bn') {
+		echo ($lockVal === 'Enable') ? 'চালু (Enable)' : (($lockVal === 'Disable') ? 'বন্ধ (Disable)' : $lockVal);
+	} else {
+		echo $lockVal;
+	}
 	echo "</td>";
 	echo "</tr>";
 }

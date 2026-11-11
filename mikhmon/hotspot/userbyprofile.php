@@ -62,12 +62,12 @@ if (!isset($_SESSION["mikhmon"])) {
               <i class="fa fa-ticket"></i></a>
             </div>
               <div class="box-group-area">
-                <h3 >Profile : all<br>
+                <h3 ><?= $_profile ?> : <?= ($langid === 'bn') ? 'সকল (All)' : 'all'; ?><br>
                 <?php $countuser = $totalUsersCount;
                 if ($countuser < 2) {
-                  echo $countuser . " Item";
+                  echo $countuser . ($langid === 'bn' ? " টি আইটেম" : " Item");
                 } elseif ($countuser > 1) {
-                  echo $countuser . " Items";
+                  echo $countuser . ($langid === 'bn' ? " টি আইটেম" : " Items");
                 }
                 ?></h3>
 
@@ -96,12 +96,12 @@ for ($i = 0; $i < $TotalReg; $i++) {
             	<i class="fa fa-ticket"></i></a>
             </div>
               <div class="box-group-area">
-                <h3 >Profile : <?= $pname; ?><br>
+                <h3 ><?= $_profile ?> : <?= $pname; ?><br>
                 <?php	$countuser = isset($profileUserCounts[$pname]) ? $profileUserCounts[$pname] : 0;
                 if ($countuser < 2) {
-                  echo $countuser . " Item";
+                  echo $countuser . ($langid === 'bn' ? " টি আইটেম" : " Item");
                 } elseif ($countuser > 1) {
-                  echo $countuser . " Items";
+                  echo $countuser . ($langid === 'bn' ? " টি আইটেম" : " Items");
                 }
                 ?></h3>
 

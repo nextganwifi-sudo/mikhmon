@@ -119,6 +119,7 @@ $valRate = $isEdit ? (isset($existingProfile['rate-limit']) ? $existingProfile['
 $valDns = $isEdit ? (isset($existingProfile['dns-server']) ? $existingProfile['dns-server'] : '') : '';
 $valOnlyOne = $isEdit ? (isset($existingProfile['only-one']) ? $existingProfile['only-one'] : 'yes') : 'yes';
 $isSystem = ($valName === 'default' || $valName === 'default-encryption');
+$isBn = (isset($langid) && $langid === 'bn');
 ?>
 
 <div class="row">
@@ -126,10 +127,10 @@ $isSystem = ($valName === 'default' || $valName === 'default-encryption');
     <div class="card box-bordered">
       <div class="card-header bg-navy text-white d-flex justify-content-between align-items-center" style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px;">
         <h3 style="margin:0; font-size:16px; font-weight:600;">
-          <i class="fa fa-pie-chart"></i> <?= $isEdit ? 'Edit PPPoE Profile' : 'Add New PPPoE Profile'; ?>
+          <i class="fa fa-pie-chart"></i> <?= $isEdit ? ($isBn ? 'পিপিপিওই প্রোফাইল এডিট' : 'Edit PPPoE Profile') : ($isBn ? 'নতুন পিপিপিওই প্রোফাইল যোগ' : 'Add New PPPoE Profile'); ?>
         </h3>
         <a class="btn btn-sm bg-warning text-white" href="./?pppoe=profiles&session=<?= $session; ?>">
-          <i class="fa fa-arrow-left"></i> Back
+          <i class="fa fa-arrow-left"></i> <?= $isBn ? 'ফিরে যান' : 'Back'; ?>
         </a>
       </div>
 
@@ -143,30 +144,30 @@ $isSystem = ($valName === 'default' || $valName === 'default-encryption');
         <form method="post" action="" autocomplete="off">
           <table class="table" style="margin-bottom:0; width:100%;">
             <tr>
-              <td style="width:35%; vertical-align:middle; font-weight:600; padding:8px 4px;">Profile Name *</td>
+              <td style="width:35%; vertical-align:middle; font-weight:600; padding:8px 4px;"><?= $isBn ? 'প্রোফাইল নাম *' : 'Profile Name *'; ?></td>
               <td style="padding:8px 4px;">
-                <input type="text" name="name" class="form-control" required value="<?= htmlspecialchars($valName); ?>" placeholder="e.g. 10Mbps-Monthly" <?= ($isSystem ? 'readonly' : 'autofocus'); ?>>
+                <input type="text" name="name" class="form-control" required value="<?= htmlspecialchars($valName); ?>" placeholder="<?= $isBn ? 'উদাঃ 10Mbps-Monthly' : 'e.g. 10Mbps-Monthly'; ?>" <?= ($isSystem ? 'readonly' : 'autofocus'); ?>>
                 <?php if ($isSystem) { ?>
-                  <small class="text-muted">System default profile name cannot be changed.</small>
+                  <small class="text-muted"><?= $isBn ? 'সিস্টেম ডিফল্ট প্রোফাইল নাম পরিবর্তন করা যাবে না।' : 'System default profile name cannot be changed.'; ?></small>
                 <?php } ?>
               </td>
             </tr>
 
             <tr>
               <td style="vertical-align:middle; font-weight:600; padding:8px 4px;">
-                Rate Limit (Rx/Tx)
-                <div style="font-size:11px; font-weight:normal; color:#6b7280;">Bandwidth Limit</div>
+                <?= $isBn ? 'রেট লিমিট (Rx/Tx)' : 'Rate Limit (Rx/Tx)'; ?>
+                <div style="font-size:11px; font-weight:normal; color:#6b7280;"><?= $isBn ? 'ব্যান্ডউইথ লিমিট' : 'Bandwidth Limit'; ?></div>
               </td>
               <td style="padding:8px 4px;">
-                <input type="text" name="rate_limit" class="form-control" value="<?= htmlspecialchars($valRate); ?>" placeholder="e.g. 5M/10M or 2M/2M">
-                <small class="text-muted" style="font-size:11px;">Format: [rx-rate]/[tx-rate] (Upload/Download) e.g. 5M/10M</small>
+                <input type="text" name="rate_limit" class="form-control" value="<?= htmlspecialchars($valRate); ?>" placeholder="<?= $isBn ? 'উদাঃ 5M/10M বা 2M/2M' : 'e.g. 5M/10M or 2M/2M'; ?>">
+                <small class="text-muted" style="font-size:11px;"><?= $isBn ? 'ফরমেটঃ [rx-rate]/[tx-rate] (আপলোড/ডাউনলোড) উদাঃ 5M/10M' : 'Format: [rx-rate]/[tx-rate] (Upload/Download) e.g. 5M/10M'; ?></small>
               </td>
             </tr>
 
             <tr>
-              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;">Local Address (Gateway)</td>
+              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;"><?= $isBn ? 'লোকাল আইপি (গেটওয়ে)' : 'Local Address (Gateway)'; ?></td>
               <td style="padding:8px 4px;">
-                <input list="localAddressList" type="text" name="local_address" class="form-control" value="<?= htmlspecialchars($valLocal); ?>" placeholder="IP or select pool">
+                <input list="localAddressList" type="text" name="local_address" class="form-control" value="<?= htmlspecialchars($valLocal); ?>" placeholder="<?= $isBn ? 'আইপি অথবা পুল নির্বাচন করুন' : 'IP or select pool'; ?>">
                 <datalist id="localAddressList">
                   <?php if (is_array($pools)) {
                     foreach ($pools as $pl) {
@@ -175,14 +176,14 @@ $isSystem = ($valName === 'default' || $valName === 'default-encryption');
                     }
                   } ?>
                 </datalist>
-                <small class="text-muted" style="font-size:11px;">Gateway IP address for clients (e.g. 192.168.10.1 or pool name)</small>
+                <small class="text-muted" style="font-size:11px;"><?= $isBn ? 'ক্লায়েন্টদের জন্য গেটওয়ে আইপি (উদাঃ 192.168.10.1 বা পুল নাম)' : 'Gateway IP address for clients (e.g. 192.168.10.1 or pool name)'; ?></small>
               </td>
             </tr>
 
             <tr>
-              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;">Remote Address (Pool)</td>
+              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;"><?= $isBn ? 'রিমোট আইপি (পুল)' : 'Remote Address (Pool)'; ?></td>
               <td style="padding:8px 4px;">
-                <input list="remoteAddressList" type="text" name="remote_address" class="form-control" value="<?= htmlspecialchars($valRemote); ?>" placeholder="Select IP Pool or static IP">
+                <input list="remoteAddressList" type="text" name="remote_address" class="form-control" value="<?= htmlspecialchars($valRemote); ?>" placeholder="<?= $isBn ? 'আইপি পুল বা স্ট্যাটিক আইপি নির্বাচন করুন' : 'Select IP Pool or static IP'; ?>">
                 <datalist id="remoteAddressList">
                   <?php if (is_array($pools)) {
                     foreach ($pools as $pl) {
@@ -191,36 +192,36 @@ $isSystem = ($valName === 'default' || $valName === 'default-encryption');
                     }
                   } ?>
                 </datalist>
-                <small class="text-muted" style="font-size:11px;">IP Pool used to assign IP addresses to PPPoE clients</small>
+                <small class="text-muted" style="font-size:11px;"><?= $isBn ? 'পিপিপিওই ক্লায়েন্টদের আইপি প্রদানের জন্য ব্যবহৃত আইপি পুল' : 'IP Pool used to assign IP addresses to PPPoE clients'; ?></small>
               </td>
             </tr>
 
             <tr>
-              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;">DNS Server</td>
+              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;"><?= $isBn ? 'ডিএনএস সার্ভার (DNS)' : 'DNS Server'; ?></td>
               <td style="padding:8px 4px;">
                 <input type="text" name="dns_server" class="form-control" value="<?= htmlspecialchars($valDns); ?>" placeholder="e.g. 8.8.8.8,1.1.1.1">
               </td>
             </tr>
 
             <tr>
-              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;">Only One</td>
+              <td style="vertical-align:middle; font-weight:600; padding:8px 4px;"><?= $isBn ? 'একক সেশন (Only One)' : 'Only One'; ?></td>
               <td style="padding:8px 4px;">
-                <select name="only_one" class="form-control" style="max-width:160px;">
-                  <option value="yes" <?= ($valOnlyOne === 'yes') ? 'selected' : ''; ?>>Yes (Single Session)</option>
-                  <option value="no" <?= ($valOnlyOne === 'no') ? 'selected' : ''; ?>>No (Multiple Sessions)</option>
-                  <option value="default" <?= ($valOnlyOne === 'default') ? 'selected' : ''; ?>>Default</option>
+                <select name="only_one" class="form-control" style="max-width:200px;">
+                  <option value="yes" <?= ($valOnlyOne === 'yes') ? 'selected' : ''; ?>><?= $isBn ? 'হ্যাঁ (একক সেশন)' : 'Yes (Single Session)'; ?></option>
+                  <option value="no" <?= ($valOnlyOne === 'no') ? 'selected' : ''; ?>><?= $isBn ? 'না (একাধিক সেশন)' : 'No (Multiple Sessions)'; ?></option>
+                  <option value="default" <?= ($valOnlyOne === 'default') ? 'selected' : ''; ?>><?= $isBn ? 'ডিফল্ট' : 'Default'; ?></option>
                 </select>
-                <small class="text-muted" style="font-size:11px;">Restricts each username to one concurrent connection.</small>
+                <small class="text-muted" style="font-size:11px;"><?= $isBn ? 'প্রতিটি ইউজারনেমকে একসাথে একটি সংযোগে সীমাবদ্ধ রাখে।' : 'Restricts each username to one concurrent connection.'; ?></small>
               </td>
             </tr>
           </table>
 
           <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:8px;">
             <a class="btn bg-secondary text-white" href="./?pppoe=profiles&session=<?= $session; ?>">
-              <i class="fa fa-times"></i> Cancel
+              <i class="fa fa-times"></i> <?= $isBn ? 'বাতিল' : 'Cancel'; ?>
             </a>
             <button type="submit" name="save_profile" class="btn bg-primary text-white" style="font-weight:600;">
-              <i class="fa fa-save"></i> <?= $isEdit ? 'Update Profile' : 'Save Profile'; ?>
+              <i class="fa fa-save"></i> <?= $isBn ? ($isEdit ? 'প্রোফাইল আপডেট করুন' : 'প্রোফাইল সেভ করুন') : ($isEdit ? 'Update Profile' : 'Save Profile'); ?>
             </button>
           </div>
         </form>

@@ -54,6 +54,13 @@ if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
         $_SESSION["mikhmon_permissions"] = $effectivePerms;
         $_SESSION["mikhmon_last_activity"] = time();
         $_SESSION["mikhmon_login_handshake"] = 1;
+        unset($_SESSION['lang']);
+        if (function_exists('ngwResolveCurrentUserLang')) {
+            $GLOBALS['langid'] = ngwResolveCurrentUserLang();
+        }
+        if (function_exists('ngwResolveCurrentUserTheme')) {
+            ngwResolveCurrentUserTheme();
+        }
         ngwRecordActivity('reseller_impersonation', array('target' => $targetReseller['username']));
         $isResetOnly = isResetOnlyReseller();
         $allowedR = $_SESSION["mikhmon_routers"];
@@ -125,7 +132,7 @@ if (isset($_POST['save_permission_groups'])) {
         }
         saveResellers($resellers);
         ngwRecordActivity('permission_groups_updated');
-        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Permission Groups updated successfully.</div>";
+        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? 'পারমিশন গ্রুপ সফলভাবে আপডেট হয়েছে।' : 'Permission Groups updated successfully.') . "</div>";
     }
 }
 
@@ -142,7 +149,7 @@ if (isset($_POST['reset_permission_groups'])) {
         }
     }
     saveResellers($resellers);
-    $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-refresh'></i> Permission Groups restored to default settings.</div>";
+    $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-refresh'></i> " . ($isBn ? 'পারমিশন গ্রুপ ডিফল্ট সেটিংসে রিস্টোর হয়েছে।' : 'Permission Groups restored to default settings.') . "</div>";
 }
 
 // Save (Create or Update) reseller
@@ -166,7 +173,7 @@ if (isset($_POST['save_reseller'])) {
     $customPerms = sanitizeResellerPermissions($customPerms);
 
     if ($rUser === '' || strtolower($rUser) === strtolower($useradm)) {
-        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> Invalid Reseller Username (cannot be empty or equal to Admin username).</div>";
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'অবৈধ রিসেলার ইউজারনেম (খালি বা অ্যাডমিন ইউজারনেমের সমান হতে পারবে না)।' : 'Invalid Reseller Username (cannot be empty or equal to Admin username).') . "</div>";
         $openModalOnLoad = true;
     } else {
         $duplicate = false;
@@ -177,7 +184,7 @@ if (isset($_POST['save_reseller'])) {
             }
         }
         if ($duplicate) {
-            $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> Username <b>" . htmlspecialchars($rUser) . "</b> already exists.</div>";
+            $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? ('ইউজারনেম <b>' . htmlspecialchars($rUser) . '</b> আগে থেকেই রয়েছে।') : ('Username <b>' . htmlspecialchars($rUser) . '</b> already exists.')) . "</div>";
             $openModalOnLoad = true;
         } else {
             if ($editId !== '') {
@@ -203,7 +210,7 @@ if (isset($_POST['save_reseller'])) {
                 saveResellers($resellers);
                 ngwRecordActivity('reseller_updated', array('target' => $rUser, 'status' => $rStatus));
                 ensureResellerTemplateFiles($editId);
-                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> updated successfully.</div>";
+                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? ('রিসেলার <b>' . htmlspecialchars($rUser) . '</b> সফলভাবে আপডেট হয়েছে।') : ('Reseller <b>' . htmlspecialchars($rUser) . '</b> updated successfully.')) . "</div>";
             } else {
                 if ($rPass === '') {
                     $rPass = '123456';
@@ -230,7 +237,7 @@ if (isset($_POST['save_reseller'])) {
                 saveResellers($resellers);
                 ngwRecordActivity('reseller_created', array('target' => $rUser, 'status' => $rStatus));
                 ensureResellerTemplateFiles($newId);
-                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> Reseller <b>" . htmlspecialchars($rUser) . "</b> created successfully.</div>";
+                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? ('রিসেলার <b>' . htmlspecialchars($rUser) . '</b> সফলভাবে তৈরি হয়েছে।') : ('Reseller <b>' . htmlspecialchars($rUser) . '</b> created successfully.')) . "</div>";
             }
         }
     }
@@ -1069,7 +1076,7 @@ function openEditResellerModal(id) {
     var passEl = document.getElementById('r_password');
     passEl.value = '';
     passEl.required = false;
-    passEl.placeholder = 'Leave blank to keep current password';
+    passEl.placeholder = <?= json_encode($isBn ? 'বর্তমান পাসওয়ার্ড অপরিবর্তিত রাখতে খালি রাখুন' : 'Leave blank to keep current password'); ?>;
     document.getElementById('f_pass_hint').style.display = 'inline';
     document.getElementById('f_status').value = r.status;
     document.getElementById('r_permission_mode').value = r.permission_mode;
@@ -1109,8 +1116,8 @@ function openResellerDetailsModal(id) {
     }
     document.getElementById('det_name').textContent = r.name;
     document.getElementById('det_status').innerHTML = (r.status === 'active')
-        ? '<b class="text-green">Active</b>'
-        : '<b class="text-red">Disabled</b>';
+        ? '<b class="text-green">' + <?= json_encode($isBn ? 'সক্রিয়' : 'Active'); ?> + '</b>'
+        : '<b class="text-red">' + <?= json_encode($isBn ? 'নিষ্ক্রিয়' : 'Disabled'); ?> + '</b>';
     document.getElementById('det_mode').textContent = r.permission_mode;
     var routerList = Array.isArray(r.allowed_router_labels) ? r.allowed_router_labels : [];
     document.getElementById('det_router_count').textContent = Number(r.allowed_routers_count || routerList.length);
@@ -1134,10 +1141,10 @@ function openResellerDetailsModal(id) {
         });
         routerContainer.appendChild(routerListElement);
     } else {
-        routerContainer.textContent = 'No routers assigned';
+        routerContainer.textContent = <?= json_encode($isBn ? 'কোনো রাউটার অ্যাসাইন করা নেই' : 'No routers assigned'); ?>;
     }
     var permissionCount = Number(r.granted_permissions_count || 0);
-    document.getElementById('det_permission_count').textContent = permissionCount + ' permissions available';
+    document.getElementById('det_permission_count').textContent = permissionCount + <?= json_encode($isBn ? 'টি পারমিশন চালু আছে' : ' permissions available'); ?>;
     document.getElementById('det_template').textContent = r.template_code + ' (' + r.assigned_template + ')';
     document.getElementById('det_created').textContent = r.created_at;
     document.getElementById('det_logo_img').src = r.logo_url;
@@ -1334,22 +1341,22 @@ function closeResellerDetailsModal() {
                         <th class="text-center" style="width: 70px;"><?= $_action ?></th>
                         <th><?= $_user_name ?></th>
                         <th><?= $_name ?></th>
-                        <th>Mode</th>
+                        <th><?= $isBn ? 'পারমিশন মোড' : 'Mode' ?></th>
                         <th class="text-center"><?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?></th>
                         <th><?= isset($_status) ? $_status : 'Status' ?></th>
                       </tr>
                     </thead>
                     <tbody>
                       <?php if (empty($resellers)) { ?>
-                        <tr><td colspan="6" class="text-center">No reseller accounts configured.</td></tr>
+                        <tr><td colspan="6" class="text-center"><?= $isBn ? 'কোনো রিসেলার অ্যাকাউন্ট তৈরি করা হয়নি।' : 'No reseller accounts configured.' ?></td></tr>
                       <?php } else {
                         foreach ($resellers as $r) {
                           $rId = (string)$r['id'];
                           $rModeBadge = isset($r['permission_mode']) ? $r['permission_mode'] : 'Custom';
                           $rAssignedVariant = isset($r['assigned_template']) ? $r['assigned_template'] : 'default';
                           $statusBadge = ($r['status'] === 'active')
-                            ? "<b class='text-green'>Active</b>"
-                            : "<b class='text-red'>Disabled</b>";
+                            ? ("<b class='text-green'>" . ($isBn ? 'সক্রিয়' : 'Active') . "</b>")
+                            : ("<b class='text-red'>" . ($isBn ? 'নিষ্ক্রিয়' : 'Disabled') . "</b>");
                       ?>
                         <tr>
                           <td class="text-center">
@@ -1365,9 +1372,9 @@ function closeResellerDetailsModal() {
                                   <i class="fa fa-edit text-primary"></i> <?= htmlspecialchars($_edit); ?>
                                 </a>
                                 <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($rId); ?>">
-                                  <i class="fa <?= $r['status'] === 'active' ? 'fa-lock text-warning' : 'fa-unlock text-green'; ?>"></i> <?= $r['status'] === 'active' ? 'Deactivate' : 'Activate'; ?>
+                                  <i class="fa <?= $r['status'] === 'active' ? 'fa-lock text-warning' : 'fa-unlock text-green'; ?>"></i> <?= $r['status'] === 'active' ? ($isBn ? 'নিষ্ক্রিয় করুন' : 'Deactivate') : ($isBn ? 'সক্রিয় করুন' : 'Activate'); ?>
                                 </a>
-                                <a href="javascript:void(0)" onclick="if(confirm('Are you sure you want to delete reseller <?= htmlspecialchars($r['username'], ENT_QUOTES); ?>?')){window.location='<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>';}">
+                                <a href="javascript:void(0)" onclick="if(confirm('<?= $isBn ? 'আপনি কি নিশ্চিতভাবে এই রিসেলার মুছে ফেলতে চান: ' : 'Are you sure you want to delete reseller ' ?><?= htmlspecialchars($r['username'], ENT_QUOTES); ?>?')){window.location='<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>';}">
                                   <i class="fa fa-trash text-danger"></i> <?= htmlspecialchars($_delete); ?>
                                 </a>
                               </div>
@@ -1585,7 +1592,7 @@ function closeResellerDetailsModal() {
     <div class="card-body">
       <table class="table table-bordered table-sm">
         <tr>
-          <td style="width: 36%;"><b>Reseller ID</b></td>
+          <td style="width: 36%;"><b><?= $isBn ? 'রিসেলার আইডি' : 'Reseller ID' ?></b></td>
           <td><code id="det_id"></code></td>
         </tr>
         <tr>
@@ -1605,33 +1612,33 @@ function closeResellerDetailsModal() {
           <td id="det_status"></td>
         </tr>
         <tr>
-          <td><b>Permission Mode</b></td>
+          <td><b><?= $isBn ? 'পারমিশন মোড' : 'Permission Mode' ?></b></td>
           <td><span id="det_mode" class="pd-2p5 radius-3 bg-primary"></span></td>
         </tr>
         <tr>
-          <td><b>Assigned Routers</b></td>
+          <td><b><?= $isBn ? 'অনুমোদিত রাউটারসমূহ' : 'Assigned Routers' ?></b></td>
           <td>
-            <div class="ngw-router-detail-summary"><b id="det_router_count">0</b> assigned</div>
+            <div class="ngw-router-detail-summary"><b id="det_router_count">0</b> <?= $isBn ? 'টি নির্ধারিত' : 'assigned' ?></div>
             <div id="det_routers" class="ngw-router-detail-list"></div>
           </td>
         </tr>
         <tr>
-          <td><b>Access Permissions</b></td>
+          <td><b><?= $isBn ? 'অ্যাক্সেস পারমিশন' : 'Access Permissions' ?></b></td>
           <td id="det_permission_count"></td>
         </tr>
         <tr>
-          <td><b>Template</b></td>
+          <td><b><?= $isBn ? 'টেমপ্লেট' : 'Template' ?></b></td>
           <td><code id="det_template"></code></td>
         </tr>
         <tr>
-          <td><b>Logo</b></td>
+          <td><b><?= $isBn ? 'লোগো' : 'Logo' ?></b></td>
           <td>
             <img id="det_logo_img" src="./img/logo.png" alt="Logo" style="height:28px; background:#fff; padding:2px; border-radius:3px; vertical-align:middle;">
             &nbsp;<small id="det_logo_name"></small>
           </td>
         </tr>
         <tr>
-          <td><b>Created At</b></td>
+          <td><b><?= $isBn ? 'তৈরির সময়' : 'Created At' ?></b></td>
           <td id="det_created"></td>
         </tr>
       </table>

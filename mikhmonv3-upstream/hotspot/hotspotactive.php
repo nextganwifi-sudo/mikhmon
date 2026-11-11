@@ -71,13 +71,13 @@ if (!isset($_SESSION["mikhmon"])) {
 					echo $serveractive . " ";
 				}
 				if ($counthotspotactive < 2) {
-					echo "$counthotspotactive item";
+					echo $counthotspotactive . ($langid === 'bn' ? " টি আইটেম" : " item");
 				} elseif ($counthotspotactive > 1) {
-					echo "$counthotspotactive items";
+					echo $counthotspotactive . ($langid === 'bn' ? " টি আইটেম" : " items");
 				};
 				if ($serveractive == "") {
 				} else {
-					echo " | <a href='./?hotspot=active&session=" . $session . "'> <i class='fa fa-search'></i> Show all</a>";
+					echo " | <a href='./?hotspot=active&session=" . $session . "'> <i class='fa fa-search'></i> " . ($langid === 'bn' ? 'সব দেখুন' : 'Show all') . "</a>";
 				}
 				?>			</h3>
         </div>
@@ -86,15 +86,15 @@ if (!isset($_SESSION["mikhmon"])) {
   <thead>
   <tr>
     <th></th>
-    <th>Server</th>
-    <th>User</th>
-    <th>Address</th>
-    <th>Mac Address</th>
-    <th class="text-right">Uptime</th>
-    <th class="text-right">Bytes In</th>
-    <th class="text-right">Bytes Out</th>
-    <th class="text-right">Time Left</th>
-    <th>Login By</th>
+    <th><?= ($langid === 'bn') ? 'সার্ভার' : 'Server'; ?></th>
+    <th><?= ($langid === 'bn') ? 'ইউজার' : 'User'; ?></th>
+    <th><?= ($langid === 'bn') ? 'অ্যাড্রেস' : 'Address'; ?></th>
+    <th><?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?></th>
+    <th class="text-right"><?= $_uptime ?></th>
+    <th class="text-right"><?= ($langid === 'bn') ? 'বাইটস ইন' : 'Bytes In'; ?></th>
+    <th class="text-right"><?= ($langid === 'bn') ? 'বাইটস আউট' : 'Bytes Out'; ?></th>
+    <th class="text-right"><?= ($langid === 'bn') ? 'বাকি সময়' : 'Time Left'; ?></th>
+    <th><?= ($langid === 'bn') ? 'লগইন মাধ্যম' : 'Login By'; ?></th>
     <th><?= $_comment ?></th>
   </tr>
   </thead>

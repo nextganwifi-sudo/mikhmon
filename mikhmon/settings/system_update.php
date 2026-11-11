@@ -110,6 +110,7 @@ function collectProtectedDataFiles($rootDir) {
         'include/config.php',
         'include/backup_admin.json',
         'include/resellers.json',
+        'include/user_prefs.json',
         'include/permission_groups.json',
         'include/quickbt.php',
         'include/github_repo.txt',
@@ -179,7 +180,9 @@ function isProtectedDataRelPath($relPath) {
     $norm = ltrim(str_replace('\\', '/', $relPath), '/');
     $exactLocked = array(
         'include/config.php',
+        'include/backup_admin.json',
         'include/resellers.json',
+        'include/user_prefs.json',
         'include/permission_groups.json',
         'include/quickbt.php',
         'include/github_repo.txt',
@@ -575,7 +578,7 @@ if (isset($_POST['apply_git_safe_update'])) {
               <td>
                 <input type="text" id="ngw_git_repo_url" name="git_repo_url" class="form-control" value="<?= htmlspecialchars($savedGitRepoUrl); ?>" placeholder="https://github.com/username/repository.git" required="1">
                 <div style="margin-top:5px; display:flex; align-items:center; flex-wrap:wrap; gap:5px; font-size:11px;">
-                  <span style="opacity:0.75;">Quick Select:</span>
+                  <span style="opacity:0.75;"><?= (isset($langid) && $langid === 'bn') ? 'দ্রুত নির্বাচন:' : 'Quick Select:'; ?></span>
                   <button type="button" class="btn bg-secondary pd-2p5 radius-3" style="font-size:10px; margin:0; cursor:pointer;" onclick="document.getElementById('ngw_git_repo_url').value='https://github.com/nextganwifi-sudo/mikhmon.git';">
                     <i class="fa fa-github"></i> nextganwifi-sudo/mikhmon.git
                   </button>

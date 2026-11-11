@@ -35,12 +35,12 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-	<h3><i class=" fa fa-clock-o"></i> System Scheduler 
+	<h3><i class=" fa fa-clock-o"></i> <?= $_system_scheduler ?> 
 <?php
 if ($countsch < 2) {
-	echo "$countsch item";
+	echo $countsch . ($langid === 'bn' ? " টি আইটেম" : " item");
 } elseif ($countsch > 1) {
-	echo "$countsch items";
+	echo $countsch . ($langid === 'bn' ? " টি আইটেম" : " items");
 };
 echo "</th>";
 ?>
@@ -49,20 +49,20 @@ echo "</th>";
 </div>
 <div class="card-body">	   
 <div class="w-6">
-    <input id="filterTable" type="text" class="form-control" placeholder="Search..">
+    <input id="filterTable" type="text" class="form-control" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>">
   </div>
 <div class="overflow box-bordered mr-t-10" style="max-height: 75vh">   	   
 <table id="dataTable" class="table table-bordered table-hover text-nowrap">
   <thead>
   <tr>
   	<th></th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Name</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Start Date</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Start Time</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Interval</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Next Run</th>
-		<th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Run Count</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Comment</th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'শুরুর তারিখ' : 'Start Date'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'শুরুর সময়' : 'Start Time'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ইন্টারভাল' : 'Interval'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'পরবর্তী রান' : 'Next Run'; ?></th>
+		<th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'রান সংখ্যা' : 'Run Count'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_comment ?></th>
   </tr>
   </thead>
   <tbody> 

@@ -425,8 +425,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                             . "<td>" . htmlspecialchars($historyRec['mac'] !== '' ? $historyRec['mac'] : '-') . "</td>"
                             . "</tr>";
                     }
-                    $recentHistoryHtml = "<tr><th colspan='6'>Voucher records — last 30 days</th></tr>"
-                        . "<tr><th>Login time</th><th>Profile</th><th>Validity</th><th>Expiry</th><th>IP</th><th>MAC</th></tr>"
+                    $recentHistoryHtml = "<tr><th colspan='6'>" . ($langid === 'bn' ? 'ভাউচার রেকর্ড — গত ৩০ দিন' : 'Voucher records — last 30 days') . "</th></tr>"
+                        . "<tr><th>" . ($langid === 'bn' ? 'লগইন সময়' : 'Login time') . "</th><th>" . htmlspecialchars($_profile) . "</th><th>" . htmlspecialchars($_validity) . "</th><th>" . htmlspecialchars($_expiry_date) . "</th><th>IP</th><th>MAC</th></tr>"
                         . $historyRows;
                 }
 
@@ -464,11 +464,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                     </tr>
                     <tr>
                       <th>" . htmlspecialchars($_uptime) . "</th>
-                      <td><b>" . htmlspecialchars($uUptime) . "</b>" . ($uTimeLeft !== '' ? " &nbsp;|&nbsp; Time Left: <b>" . htmlspecialchars($uTimeLeft) . "</b>" : "") . "</td>
+                      <td><b>" . htmlspecialchars($uUptime) . "</b>" . ($uTimeLeft !== '' ? " &nbsp;|&nbsp; " . ($langid === 'bn' ? 'বাকি সময়' : 'Time Left') . ": <b>" . htmlspecialchars($uTimeLeft) . "</b>" : "") . "</td>
                     </tr>
                     <tr>
                       <th>" . htmlspecialchars($_data_usage) . "</th>
-                      <td>Download: <b>" . htmlspecialchars($uBytesOut) . "</b> &nbsp;|&nbsp; Upload: <b>" . htmlspecialchars($uBytesIn) . "</b></td>
+                      <td>" . ($langid === 'bn' ? 'ডাউনলোড' : 'Download') . ": <b>" . htmlspecialchars($uBytesOut) . "</b> &nbsp;|&nbsp; " . ($langid === 'bn' ? 'আপলোড' : 'Upload') . ": <b>" . htmlspecialchars($uBytesIn) . "</b></td>
                     </tr>
                     " . $expiryRowHtml . "
                     " . $recentHistoryHtml . "
@@ -520,8 +520,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') {
                             . "<td>" . htmlspecialchars($historyRec['mac'] !== '' ? $historyRec['mac'] : '-') . "</td>"
                             . "</tr>";
                     }
-                    $recentHistoryHtml = "<tr><th colspan='7'>Voucher records — last 30 days</th></tr>"
-                        . "<tr><th>Voucher</th><th>Login time</th><th>Profile</th><th>Validity</th><th>Expiry</th><th>IP</th><th>MAC</th></tr>"
+                    $recentHistoryHtml = "<tr><th colspan='7'>" . ($langid === 'bn' ? 'ভাউচার রেকর্ড — গত ৩০ দিন' : 'Voucher records — last 30 days') . "</th></tr>"
+                        . "<tr><th>" . ($langid === 'bn' ? 'ভাউচার' : 'Voucher') . "</th><th>" . ($langid === 'bn' ? 'লগইন সময়' : 'Login time') . "</th><th>" . htmlspecialchars($_profile) . "</th><th>" . htmlspecialchars($_validity) . "</th><th>" . htmlspecialchars($_expiry_date) . "</th><th>IP</th><th>MAC</th></tr>"
                         . $historyRows;
 
                     $resultCardHtml = "

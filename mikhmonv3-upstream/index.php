@@ -31,6 +31,13 @@ $url = $_SERVER['REQUEST_URI'];
 
 $session = $_GET['session'];
 
+if (isset($_GET['setlang']) && $_GET['setlang'] !== '') {
+  include('./settings/setlang.php');
+}
+if (isset($_GET['set-theme']) && $_GET['set-theme'] !== '') {
+  include('./settings/settheme.php');
+}
+
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:./admin.php?id=login");
 } elseif (empty($session)) {

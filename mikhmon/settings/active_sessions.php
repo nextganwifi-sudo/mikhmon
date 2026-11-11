@@ -141,26 +141,27 @@ $nowTs = time();
 }
 </style>
 
+<?php $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn'); ?>
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
         <h3 style="margin:0;">
-          <i class="fa fa-desktop"></i> Active Sessions (<?= (int)$totalCount; ?>)
+          <i class="fa fa-desktop"></i> <?= $isBn ? 'অ্যাক্টিভ সেশন' : 'Active Sessions'; ?> (<?= (int)$totalCount; ?>)
           <small style="font-size:11px; opacity:0.8; font-weight:normal; margin-left:6px;">
-            Admin: <b><?= (int)$adminCount; ?></b> &middot; Reseller: <b><?= (int)$resellerCount; ?></b>
+            <?= $isBn ? 'অ্যাডমিন' : 'Admin'; ?>: <b><?= (int)$adminCount; ?></b> &middot; <?= $isBn ? 'রিসেলার' : 'Reseller'; ?>: <b><?= (int)$resellerCount; ?></b>
           </small>
         </h3>
         <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
           <a class="btn bg-primary pd-2p5 radius-3" style="font-size:11px;" href="./admin.php?id=activity">
-            <i class="fa fa-history"></i> Activity History
+            <i class="fa fa-history"></i> <?= $isBn ? 'অ্যাক্টিভিটি হিস্টরি' : 'Activity History'; ?>
           </a>
           <?php if ($totalCount > 1) { ?>
-          <form method="post" action="./admin.php?id=active-sessions" style="margin:0; display:inline;" onsubmit="return confirm('Force logout all other active sessions except your current browser?');">
+          <form method="post" action="./admin.php?id=active-sessions" style="margin:0; display:inline;" onsubmit="return confirm('<?= $isBn ? 'আপনার বর্তমান ব্রাউজার ব্যতীত অন্য সব সেশন ফোর্স লগআউট করতে চান?' : 'Force logout all other active sessions except your current browser?'; ?>');">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="force_logout_all_others" value="1">
             <button type="submit" class="btn bg-warning pd-2p5 radius-3" style="cursor:pointer; font-size:11px;">
-              <i class="fa fa-sign-out"></i> Logout All Others
+              <i class="fa fa-sign-out"></i> <?= $isBn ? 'অন্য সব সেশন লগআউট করুন' : 'Logout All Others'; ?>
             </button>
           </form>
           <?php } ?>
@@ -182,18 +183,18 @@ $nowTs = time();
           <table class="table table-sm table-bordered table-hover">
             <thead>
               <tr>
-                <th>User &amp; Role</th>
-                <th>Device &amp; Browser</th>
-                <th class="ngw-sess-hide-xs">Area / Location &amp; IP</th>
-                <th>Active Page / Router</th>
-                <th class="ngw-sess-hide-xs">Login &amp; Last Active</th>
-                <th class="text-center ngw-sess-col-act">Action</th>
+                <th><?= $isBn ? 'ইউজার ও রোল' : 'User &amp; Role'; ?></th>
+                <th><?= $isBn ? 'ডিভাইস ও ব্রাউজার' : 'Device &amp; Browser'; ?></th>
+                <th class="ngw-sess-hide-xs"><?= $isBn ? 'এলাকা / লোকেশন ও আইপি' : 'Area / Location &amp; IP'; ?></th>
+                <th><?= $isBn ? 'সক্রিয় পেজ / রাউটার' : 'Active Page / Router'; ?></th>
+                <th class="ngw-sess-hide-xs"><?= $isBn ? 'লগইন ও সর্বশেষ সক্রিয়' : 'Login &amp; Last Active'; ?></th>
+                <th class="text-center ngw-sess-col-act"><?= $_action ?></th>
               </tr>
             </thead>
             <tbody>
               <?php if (empty($activeSessions)) { ?>
                 <tr>
-                  <td colspan="6" class="text-center pd-10">No active sessions found.</td>
+                  <td colspan="6" class="text-center pd-10"><?= $isBn ? 'কোনো সক্রিয় সেশন পাওয়া যায়নি।' : 'No active sessions found.'; ?></td>
                 </tr>
               <?php } else {
                 foreach ($activeSessions as $tk => $sess) {
@@ -204,11 +205,11 @@ $nowTs = time();
                   $lastTs = isset($sess['last_active_ts']) ? (int)$sess['last_active_ts'] : $nowTs;
                   $agoSec = max(0, $nowTs - $lastTs);
                   if ($agoSec < 10) {
-                    $agoText = 'Just now';
+                    $agoText = $isBn ? 'এইমাত্র' : 'Just now';
                   } elseif ($agoSec < 60) {
-                    $agoText = $agoSec . 's ago';
+                    $agoText = $agoSec . ($isBn ? ' সেকেন্ড আগে' : 's ago');
                   } else {
-                    $agoText = floor($agoSec / 60) . 'm ' . ($agoSec % 60) . 's ago';
+                    $agoText = floor($agoSec / 60) . 'm ' . ($agoSec % 60) . ($isBn ? ' সেকেন্ড আগে' : 's ago');
                   }
                   $areaName = isset($sess['area']) && $sess['area'] !== '' ? $sess['area'] : 'Local Area';
                   $ipAddr = isset($sess['ip']) ? $sess['ip'] : '-';
@@ -218,10 +219,10 @@ $nowTs = time();
                     <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
                       <b><?= htmlspecialchars(isset($sess['display_name']) ? $sess['display_name'] : $sess['username'], ENT_QUOTES, 'UTF-8'); ?></b>
                       <span class="ngw-role-pill <?= $role === 'reseller' ? 'is-reseller' : 'is-admin'; ?>">
-                        <?= $role === 'reseller' ? 'Reseller' : 'Admin'; ?>
+                        <?= $role === 'reseller' ? ($isBn ? 'রিসেলার' : 'Reseller') : ($isBn ? 'অ্যাডমিন' : 'Admin'); ?>
                       </span>
                       <?php if ($isCurrent) { ?>
-                        <span style="background:rgba(56,189,248,0.18); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); border-radius:3px; padding:0 4px; font-size:9px; font-weight:700;">Current</span>
+                        <span style="background:rgba(56,189,248,0.18); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); border-radius:3px; padding:0 4px; font-size:9px; font-weight:700;"><?= $isBn ? 'বর্তমান' : 'Current'; ?></span>
                       <?php } ?>
                     </div>
                     <div style="font-size:11px; opacity:0.78;">
@@ -274,19 +275,19 @@ $nowTs = time();
 
                   <td class="align-middle ngw-sess-hide-xs" style="font-size:11px;">
                     <div>
-                      <b>Active:</b> <span class="text-green"><?= htmlspecialchars($agoText, ENT_QUOTES, 'UTF-8'); ?></span>
+                      <b><?= $isBn ? 'সক্রিয়:' : 'Active:'; ?></b> <span class="text-green"><?= htmlspecialchars($agoText, ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                     <div style="opacity:0.75;">
-                      Login: <?= htmlspecialchars(isset($sess['login_at']) ? $sess['login_at'] : '-', ENT_QUOTES, 'UTF-8'); ?>
+                      <?= $isBn ? 'লগইন:' : 'Login:'; ?> <?= htmlspecialchars(isset($sess['login_at']) ? $sess['login_at'] : '-', ENT_QUOTES, 'UTF-8'); ?>
                     </div>
                   </td>
 
                   <td class="align-middle text-center ngw-sess-col-act">
-                    <form method="post" action="./admin.php?id=active-sessions" style="margin:0;" onsubmit="return confirm('<?= $isCurrent ? 'Log out your own current session?' : ('Force logout ' . htmlspecialchars($sess['username'], ENT_QUOTES, 'UTF-8') . '? They will have to enter their password again to log in.'); ?>');">
+                    <form method="post" action="./admin.php?id=active-sessions" style="margin:0;" onsubmit="return confirm('<?= $isCurrent ? ($isBn ? 'আপনার বর্তমান সেশন লগআউট করতে চান?' : 'Log out your own current session?') : (($isBn ? 'ফোর্স লগআউট করতে চান: ' : 'Force logout ') . htmlspecialchars($sess['username'], ENT_QUOTES, 'UTF-8') . '?'); ?>');">
                       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                       <input type="hidden" name="force_logout_token" value="<?= htmlspecialchars($tk, ENT_QUOTES, 'UTF-8'); ?>">
                       <button type="submit" class="btn bg-danger pd-2p5 radius-3" style="cursor:pointer; font-weight:bold; font-size:10px; margin:0;">
-                        <i class="fa fa-power-off"></i> <?= $isCurrent ? 'Logout' : 'Force Logout'; ?>
+                        <i class="fa fa-power-off"></i> <?= $isCurrent ? ($isBn ? 'লগআউট' : 'Logout') : ($isBn ? 'ফোর্স লগআউট' : 'Force Logout'); ?>
                       </button>
                     </form>
                   </td>

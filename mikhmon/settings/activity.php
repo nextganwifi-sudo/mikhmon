@@ -111,34 +111,40 @@ if ($validFrom !== '') $dateQuerySuffix .= '&from=' . urlencode($validFrom);
 if ($validTo !== '') $dateQuerySuffix .= '&to=' . urlencode($validTo);
 if ($rangePreset !== '' && $validFrom === '' && $validTo === '') $dateQuerySuffix .= '&range=' . urlencode($rangePreset);
 
+$isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
+if ($actMsg !== '' && $isBn) {
+    $actMsg = 'অ্যাক্টিভিটি হিস্টরি মুছে ফেলা হয়েছে।';
+}
+
 function ngwFormatActivityBadge($action) {
+    global $isBn;
     switch ($action) {
         case 'login':
-            return array('label' => 'Login Success', 'bg' => '#2ea043', 'icon' => 'fa-sign-in');
+            return array('label' => $isBn ? 'সফল লগইন' : 'Login Success', 'bg' => '#2ea043', 'icon' => 'fa-sign-in');
         case 'logout':
-            return array('label' => 'Logout', 'bg' => '#6e7681', 'icon' => 'fa-sign-out');
+            return array('label' => $isBn ? 'লগআউট' : 'Logout', 'bg' => '#6e7681', 'icon' => 'fa-sign-out');
         case 'session_force_logout':
-            return array('label' => 'Force Logout', 'bg' => '#d29922', 'icon' => 'fa-power-off');
+            return array('label' => $isBn ? 'ফোর্স লগআউট' : 'Force Logout', 'bg' => '#d29922', 'icon' => 'fa-power-off');
         case 'login_failed':
-            return array('label' => 'Login Failed', 'bg' => '#f85149', 'icon' => 'fa-exclamation-triangle');
+            return array('label' => $isBn ? 'লগইন ব্যর্থ' : 'Login Failed', 'bg' => '#f85149', 'icon' => 'fa-exclamation-triangle');
         case 'router_connect_failed':
-            return array('label' => 'Router Error', 'bg' => '#f85149', 'icon' => 'fa-plug');
+            return array('label' => $isBn ? 'রাউটার ত্রুটি' : 'Router Error', 'bg' => '#f85149', 'icon' => 'fa-plug');
         case 'router_connected':
-            return array('label' => 'Router Connected', 'bg' => '#1f6feb', 'icon' => 'fa-server');
+            return array('label' => $isBn ? 'রাউটার সংযুক্ত' : 'Router Connected', 'bg' => '#1f6feb', 'icon' => 'fa-server');
         case 'voucher_batch_created':
-            return array('label' => 'Voucher Batch', 'bg' => '#1f6feb', 'icon' => 'fa-ticket');
+            return array('label' => $isBn ? 'ভাউচার ব্যাচ তৈরি' : 'Voucher Batch', 'bg' => '#1f6feb', 'icon' => 'fa-ticket');
         case 'hotspot_user_created':
-            return array('label' => 'User Added', 'bg' => '#1f6feb', 'icon' => 'fa-user-plus');
+            return array('label' => $isBn ? 'ইউজার যুক্ত' : 'User Added', 'bg' => '#1f6feb', 'icon' => 'fa-user-plus');
         case 'reseller_created':
-            return array('label' => 'Reseller Added', 'bg' => '#2ea043', 'icon' => 'fa-users');
+            return array('label' => $isBn ? 'রিসেলার যুক্ত' : 'Reseller Added', 'bg' => '#2ea043', 'icon' => 'fa-users');
         case 'reseller_updated':
-            return array('label' => 'Reseller Edited', 'bg' => '#1f6feb', 'icon' => 'fa-edit');
+            return array('label' => $isBn ? 'রিসেলার আপডেট' : 'Reseller Edited', 'bg' => '#1f6feb', 'icon' => 'fa-edit');
         case 'reseller_deleted':
-            return array('label' => 'Reseller Deleted', 'bg' => '#f85149', 'icon' => 'fa-trash');
+            return array('label' => $isBn ? 'রিসেলার মুছে ফেলা' : 'Reseller Deleted', 'bg' => '#f85149', 'icon' => 'fa-trash');
         case 'reseller_status_changed':
-            return array('label' => 'Status Changed', 'bg' => '#d29922', 'icon' => 'fa-exchange');
+            return array('label' => $isBn ? 'স্ট্যাটাস পরিবর্তন' : 'Status Changed', 'bg' => '#d29922', 'icon' => 'fa-exchange');
         case 'reseller_impersonation':
-            return array('label' => 'Reseller Login', 'bg' => '#8957e5', 'icon' => 'fa-user-secret');
+            return array('label' => $isBn ? 'রিসেলার লগইন' : 'Reseller Login', 'bg' => '#8957e5', 'icon' => 'fa-user-secret');
         default:
             return array('label' => ucwords(str_replace('_', ' ', (string)$action)), 'bg' => '#484f58', 'icon' => 'fa-info-circle');
     }
@@ -288,16 +294,16 @@ function ngwFormatActivityBadge($action) {
     <div class="card">
       <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
         <h3 style="margin:0;">
-          <i class="fa fa-history"></i> Activity History
+          <i class="fa fa-history"></i> <?= $isBn ? 'অ্যাক্টিভিটি হিস্টরি' : 'Activity History'; ?>
           <small style="font-size:11px; opacity:0.8; font-weight:normal; margin-left:4px;">(<?= count($events); ?>)</small>
         </h3>
         <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-          <a class="btn bg-primary pd-2p5 radius-3" style="font-size:11px;" href="./admin.php?id=active-sessions"><i class="fa fa-desktop"></i> Active Sessions</a>
+          <a class="btn bg-primary pd-2p5 radius-3" style="font-size:11px;" href="./admin.php?id=active-sessions"><i class="fa fa-desktop"></i> <?= $isBn ? 'অ্যাক্টিভ সেশন' : 'Active Sessions'; ?></a>
           <?php if (!empty($allEvents)) { ?>
-          <form method="post" action="./admin.php?id=activity" style="margin:0; display:inline;" onsubmit="return confirm('Clear all recorded activity history?');">
+          <form method="post" action="./admin.php?id=activity" style="margin:0; display:inline;" onsubmit="return confirm('<?= $isBn ? 'সব অ্যাক্টিভিটি হিস্টরি মুছে ফেলতে চান?' : 'Clear all recorded activity history?'; ?>');">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($actCsrf, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="clear_activity_log" value="1">
-            <button type="submit" class="btn bg-danger pd-2p5 radius-3" style="cursor:pointer; font-size:11px;"><i class="fa fa-trash"></i> Clear</button>
+            <button type="submit" class="btn bg-danger pd-2p5 radius-3" style="cursor:pointer; font-size:11px;"><i class="fa fa-trash"></i> <?= $isBn ? 'মুছে ফেলুন' : 'Clear'; ?></button>
           </form>
           <?php } ?>
           <a class="btn bg-primary pd-2p5 radius-3" style="font-size:11px;" href="./admin.php?id=activity&filter=<?= urlencode($filter) . $dateQuerySuffix; ?>" title="Refresh"><i class="fa fa-refresh"></i></a>
@@ -313,16 +319,16 @@ function ngwFormatActivityBadge($action) {
           <!-- Compact Category Filter Tabs -->
           <div class="ngw-act-tabs">
             <a href="./admin.php?id=activity&filter=all<?= $dateQuerySuffix; ?>" class="ngw-act-tab <?= $filter === 'all' ? 'is-active' : ''; ?>">
-              All (<?= (int)$counts['all']; ?>)
+              <?= $isBn ? 'সব' : 'All'; ?> (<?= (int)$counts['all']; ?>)
             </a>
             <a href="./admin.php?id=activity&filter=auth<?= $dateQuerySuffix; ?>" class="ngw-act-tab <?= $filter === 'auth' ? 'is-active' : ''; ?>">
-              <i class="fa fa-sign-in"></i> Login/Logout (<?= (int)$counts['auth']; ?>)
+              <i class="fa fa-sign-in"></i> <?= $isBn ? 'লগইন/লগআউট' : 'Login/Logout'; ?> (<?= (int)$counts['auth']; ?>)
             </a>
             <a href="./admin.php?id=activity&filter=login_failed<?= $dateQuerySuffix; ?>" class="ngw-act-tab <?= $filter === 'login_failed' ? 'is-active' : ''; ?>">
-              <i class="fa fa-warning text-danger"></i> Failed Login (<?= (int)$counts['login_failed']; ?>)
+              <i class="fa fa-warning text-danger"></i> <?= $isBn ? 'লগইন ব্যর্থ' : 'Failed Login'; ?> (<?= (int)$counts['login_failed']; ?>)
             </a>
             <a href="./admin.php?id=activity&filter=router_error<?= $dateQuerySuffix; ?>" class="ngw-act-tab <?= $filter === 'router_error' ? 'is-active' : ''; ?>">
-              <i class="fa fa-plug text-warning"></i> Router Error (<?= (int)$counts['router_error']; ?>)
+              <i class="fa fa-plug text-warning"></i> <?= $isBn ? 'রাউটার ত্রুটি' : 'Router Error'; ?> (<?= (int)$counts['router_error']; ?>)
             </a>
           </div>
 
@@ -333,10 +339,10 @@ function ngwFormatActivityBadge($action) {
             <a href="./admin.php?id=activity&filter=<?= urlencode($filter); ?>&range=15d" class="ngw-act-mini-btn <?= $rangePreset === '15d' ? 'is-active' : ''; ?>" title="Last 15 Days">15D</a>
             <a href="./admin.php?id=activity&filter=<?= urlencode($filter); ?>&range=1m" class="ngw-act-mini-btn <?= ($rangePreset === '1m' || $rangePreset === '30d') ? 'is-active' : ''; ?>" title="Last 1 Month (30 Days)">1M</a>
             <input type="date" name="from" value="<?= htmlspecialchars($validFrom, ENT_QUOTES, 'UTF-8'); ?>" class="ngw-act-date-input" title="From Date">
-            <span style="font-size:10px; opacity:0.7;">to</span>
+            <span style="font-size:10px; opacity:0.7;"><?= $isBn ? 'থেকে' : 'to'; ?></span>
             <input type="date" name="to" value="<?= htmlspecialchars($validTo, ENT_QUOTES, 'UTF-8'); ?>" class="ngw-act-date-input" title="To Date">
             <button type="submit" class="btn bg-primary pd-2p5 radius-3" style="height:22px; font-size:10px; line-height:1; cursor:pointer; margin:0;" title="Filter by Date">
-              <i class="fa fa-filter"></i> Filter
+              <i class="fa fa-filter"></i> <?= $isBn ? 'ফিল্টার' : 'Filter'; ?>
             </button>
             <?php if ($validFrom !== '' || $validTo !== '') { ?>
               <a href="./admin.php?id=activity&filter=<?= urlencode($filter); ?>" class="ngw-act-mini-btn" title="Reset Date Filter"><i class="fa fa-times text-danger"></i></a>
@@ -348,17 +354,17 @@ function ngwFormatActivityBadge($action) {
           <table class="table table-sm table-bordered table-hover">
             <thead>
               <tr>
-                <th class="ngw-col-time">Time</th>
-                <th class="ngw-col-user">User</th>
-                <th class="ngw-col-role ngw-hide-xs">Role</th>
-                <th class="ngw-col-act">Activity</th>
-                <th class="ngw-col-dev ngw-hide-xs">Device &amp; IP</th>
-                <th>Details / Error Reason</th>
+                <th class="ngw-col-time"><?= $isBn ? 'সময়' : 'Time'; ?></th>
+                <th class="ngw-col-user"><?= $isBn ? 'ইউজার' : 'User'; ?></th>
+                <th class="ngw-col-role ngw-hide-xs"><?= $isBn ? 'রোল' : 'Role'; ?></th>
+                <th class="ngw-col-act"><?= $isBn ? 'কার্যক্রম' : 'Activity'; ?></th>
+                <th class="ngw-col-dev ngw-hide-xs"><?= $isBn ? 'ডিভাইস ও আইপি' : 'Device &amp; IP'; ?></th>
+                <th><?= $isBn ? 'বিস্তারিত / ত্রুটির কারণ' : 'Details / Error Reason'; ?></th>
               </tr>
             </thead>
             <tbody>
             <?php if (empty($events)) { ?>
-              <tr><td colspan="6" class="text-center pd-10">No activity events found for the selected filter/date range.</td></tr>
+              <tr><td colspan="6" class="text-center pd-10"><?= $isBn ? 'নির্বাচিত ফিল্টার বা তারিখের মধ্যে কোনো অ্যাক্টিভিটি পাওয়া যায়নি।' : 'No activity events found for the selected filter/date range.'; ?></td></tr>
             <?php } else {
               foreach ($events as $event) {
                 $action = isset($event['action']) ? (string)$event['action'] : '';

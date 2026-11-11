@@ -452,20 +452,20 @@ $baseVpnUrl = "./admin.php?id=vpn";
           <?php if ($currentVpnRouter !== null) { ?>
             &nbsp; | &nbsp;
             <span style="font-size:14px; font-weight:normal;">
-              Router: <b><?= htmlspecialchars($currentVpnRouter['name']); ?></b> (<?= htmlspecialchars($currentVpnRouter['host']); ?>)
+              <?= vpnText('Router:', 'রাউটার:'); ?> <b><?= htmlspecialchars($currentVpnRouter['name']); ?></b> (<?= htmlspecialchars($currentVpnRouter['host']); ?>)
               <?php if ($isConnected) { ?>
-                <span class="text-green" style="font-size:12px; margin-left:6px;"><i class="fa fa-check-circle"></i> Connected</span>
+                <span class="text-green" style="font-size:12px; margin-left:6px;"><i class="fa fa-check-circle"></i> <?= vpnText('Connected', 'সংযুক্ত'); ?></span>
               <?php } else { ?>
-                <span class="text-red" style="font-size:12px; margin-left:6px;"><i class="fa fa-times-circle"></i> Disconnected</span>
+                <span class="text-red" style="font-size:12px; margin-left:6px;"><i class="fa fa-times-circle"></i> <?= vpnText('Disconnected', 'সংযোগ বিচ্ছিন্ন'); ?></span>
               <?php } ?>
             </span>
           <?php } ?>
         </h3>
         <div>
           <?php if ($currentVpnRouter !== null) { ?>
-            <a href="<?= $baseVpnUrl; ?>" class="btn bg-warning" style="margin-right:6px;"><i class="fa fa-arrow-left"></i> All VPN Routers</a>
+            <a href="<?= $baseVpnUrl; ?>" class="btn bg-warning" style="margin-right:6px;"><i class="fa fa-arrow-left"></i> <?= vpnText('All VPN Routers', 'সকল ভিপিএন রাউটার'); ?></a>
           <?php } ?>
-          <button type="button" class="btn bg-primary" onclick="document.getElementById('modalAddVpnRouter').style.display='block';"><i class="fa fa-plus"></i> Add VPN Router</button>
+          <button type="button" class="btn bg-primary" onclick="document.getElementById('modalAddVpnRouter').style.display='block';"><i class="fa fa-plus"></i> <?= vpnText('Add VPN Router', 'ভিপিএন রাউটার যুক্ত করুন'); ?></button>
         </div>
       </div>
       <div class="card-body">
@@ -480,15 +480,15 @@ $baseVpnUrl = "./admin.php?id=vpn";
           <!-- LIST OF CONFIGURED VPN ROUTERS -->
           <div class="card">
             <div class="card-header">
-              <h4 style="margin:0;"><i class="fa fa-server"></i> Configured VPN Server Routers (<?= count($vpnRouters); ?>)</h4>
+              <h4 style="margin:0;"><i class="fa fa-server"></i> <?= vpnText('Configured VPN Server Routers', 'কনফিগারকৃত ভিপিএন সার্ভার রাউটার'); ?> (<?= count($vpnRouters); ?>)</h4>
             </div>
             <div class="card-body">
               <?php if (empty($vpnRouters)) { ?>
                 <div class="pd-20 text-center text-muted" style="border: 2px dashed rgba(150,150,150,0.3); border-radius:6px;">
                   <i class="fa fa-shield" style="font-size:40px; margin-bottom:10px; opacity:0.6;"></i>
-                  <p style="font-size:15px; margin-bottom:15px;">No dedicated VPN Server router configured yet.</p>
+                  <p style="font-size:15px; margin-bottom:15px;"><?= vpnText('No dedicated VPN Server router configured yet.', 'এখনো কোনো ডেডিকেটেড ভিপিএন সার্ভার রাউটার কনফিগার করা হয়নি।'); ?></p>
                   <button type="button" class="btn bg-primary" onclick="document.getElementById('modalAddVpnRouter').style.display='block';">
-                    <i class="fa fa-plus"></i> Add Your First VPN Router
+                    <i class="fa fa-plus"></i> <?= vpnText('Add Your First VPN Router', 'প্রথম ভিপিএন রাউটার যুক্ত করুন'); ?>
                   </button>
                 </div>
               <?php } else { ?>
@@ -496,12 +496,12 @@ $baseVpnUrl = "./admin.php?id=vpn";
                   <table class="table table-bordered table-hover text-nowrap vpn-searchable-list">
                     <thead>
                       <tr>
-                        <th>Router Name</th>
-                        <th>IP / Host</th>
-                        <th>API Port</th>
+                        <th><?= vpnText('Router Name', 'রাউটারের নাম'); ?></th>
+                        <th><?= vpnText('IP / Host', 'আইপি / হোস্ট'); ?></th>
+                        <th><?= vpnText('API Port', 'API পোর্ট'); ?></th>
                         <th>RouterOS</th>
-                        <th>Created</th>
-                        <th class="text-right">Action</th>
+                        <th><?= vpnText('Created', 'তৈরির সময়'); ?></th>
+                        <th class="text-right"><?= vpnText('Action', 'অ্যাকশন'); ?></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -513,8 +513,8 @@ $baseVpnUrl = "./admin.php?id=vpn";
                           <td>v<?= htmlspecialchars(isset($vr['ros_ver']) ? $vr['ros_ver'] : '7'); ?></td>
                           <td><?= htmlspecialchars(isset($vr['created_at']) ? $vr['created_at'] : '-'); ?></td>
                           <td class="text-right" style="white-space:nowrap;">
-                            <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($vr['id']); ?>" class="btn bg-green" style="padding:5px 9px;font-size:12px;"><i class="fa fa-external-link"></i> Open</a>
-                            <button type="button" class="btn bg-primary" style="padding:5px 9px;font-size:12px;" onclick='openVpnRouterEdit(<?= json_encode($vr, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i> Edit</button>
+                            <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($vr['id']); ?>" class="btn bg-green" style="padding:5px 9px;font-size:12px;"><i class="fa fa-external-link"></i> <?= vpnText('Open', 'খুলুন'); ?></a>
+                            <button type="button" class="btn bg-primary" style="padding:5px 9px;font-size:12px;" onclick='openVpnRouterEdit(<?= json_encode($vr, JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_TAG|JSON_HEX_AMP); ?>)'><i class="fa fa-pencil"></i> <?= vpnText('Edit', 'সম্পাদনা'); ?></button>
                             <form method="post" action="" style="display:inline;" onsubmit="return confirm('Remove VPN Router <?= htmlspecialchars($vr['name'], ENT_QUOTES); ?>?');">
                               <input type="hidden" name="del_id" value="<?= htmlspecialchars($vr['id']); ?>">
                               <button type="submit" name="delete_vpn_router" class="btn bg-danger" style="padding:5px 9px;font-size:12px;" title="Delete"><i class="fa fa-trash"></i></button>
@@ -532,35 +532,35 @@ $baseVpnUrl = "./admin.php?id=vpn";
           <!-- OPENED VPN ROUTER DASHBOARD -->
           <?php if (!$isConnected) { ?>
             <div class="bg-danger pd-15 radius-3 mr-b-15">
-              <h4><i class="fa fa-plug"></i> Router Connection Failed</h4>
-              <p>Cannot reach MikroTik RouterOS API on <b><?= htmlspecialchars($currentVpnRouter['host']); ?>:<?= htmlspecialchars($currentVpnRouter['port']); ?></b>. Please ensure the router is online and API service (port 8728) is enabled.</p>
-              <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($currentVpnRouter['id']); ?>" class="btn bg-primary"><i class="fa fa-refresh"></i> Retry Connection</a>
+              <h4><i class="fa fa-plug"></i> <?= vpnText('Router Connection Failed', 'রাউটার সংযোগ ব্যর্থ হয়েছে'); ?></h4>
+              <p><?= vpnText('Cannot reach MikroTik RouterOS API on', 'মাইক্রোটিক RouterOS API-তে সংযোগ করা যাচ্ছে না:'); ?> <b><?= htmlspecialchars($currentVpnRouter['host']); ?>:<?= htmlspecialchars($currentVpnRouter['port']); ?></b>.</p>
+              <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($currentVpnRouter['id']); ?>" class="btn bg-primary"><i class="fa fa-refresh"></i> <?= vpnText('Retry Connection', 'পুনরায় চেষ্টা করুন'); ?></a>
             </div>
           <?php } else { ?>
             <!-- ROUTER INFO SUMMARY BAR -->
             <div class="row mr-b-10">
               <div class="col-3 col-box-6">
                 <div class="box pd-10 bg-primary radius-3">
-                  <div style="font-size:11px; opacity:0.8;">BOARD &amp; MODEL</div>
+                  <div style="font-size:11px; opacity:0.8;"><?= vpnText('BOARD & MODEL', 'বোর্ড ও মডেল'); ?></div>
                   <div style="font-size:15px; font-weight:bold;"><?= htmlspecialchars(isset($routerResource['board_name']) ? $routerResource['board_name'] : 'MikroTik'); ?></div>
                 </div>
               </div>
               <div class="col-3 col-box-6">
                 <div class="box pd-10 bg-blue radius-3">
-                  <div style="font-size:11px; opacity:0.8;">ROUTEROS VERSION</div>
+                  <div style="font-size:11px; opacity:0.8;"><?= vpnText('ROUTEROS VERSION', 'RouterOS ভার্সন'); ?></div>
                   <div style="font-size:15px; font-weight:bold;"><?= htmlspecialchars(isset($routerResource['version']) ? $routerResource['version'] : 'v7'); ?></div>
                 </div>
               </div>
               <div class="col-3 col-box-6">
                 <div class="box pd-10 bg-purple radius-3">
-                  <div style="font-size:11px; opacity:0.8;">ACTIVE VPN CLIENTS</div>
-                  <div style="font-size:15px; font-weight:bold;"><?= count($routerPppActive); ?> Active</div>
+                  <div style="font-size:11px; opacity:0.8;"><?= vpnText('ACTIVE VPN CLIENTS', 'সক্রিয় ভিপিএন ক্লায়েন্ট'); ?></div>
+                  <div style="font-size:15px; font-weight:bold;"><?= count($routerPppActive); ?> <?= vpnText('Active', 'সক্রিয়'); ?></div>
                 </div>
               </div>
               <div class="col-3 col-box-6">
                 <div class="box pd-10 bg-green radius-3">
-                  <div style="font-size:11px; opacity:0.8;">TOTAL PPP SECRETS</div>
-                  <div style="font-size:15px; font-weight:bold;"><?= count($routerPppSecrets); ?> Configured</div>
+                  <div style="font-size:11px; opacity:0.8;"><?= vpnText('TOTAL PPP SECRETS', 'মোট PPP সিক্রেট'); ?></div>
+                  <div style="font-size:15px; font-weight:bold;"><?= count($routerPppSecrets); ?> <?= vpnText('Configured', 'কনফিগারকৃত'); ?></div>
                 </div>
               </div>
             </div>
@@ -571,13 +571,13 @@ $baseVpnUrl = "./admin.php?id=vpn";
                 <i class="fa fa-key"></i> <?= vpnText('Secret List', 'VPN তালিকা'); ?>
               </a>
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=nat" class="btn <?= $tab === 'nat' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0; margin-right:4px;">
-                <i class="fa fa-exchange"></i> <?= vpnText('Port Forwarding', 'Port Forwarding'); ?>
+                <i class="fa fa-exchange"></i> <?= vpnText('Port Forwarding', 'পোর্ট ফরোয়ার্ডিং'); ?>
               </a>
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=bypass" class="btn <?= $tab === 'bypass' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0; margin-right:4px;">
                 <i class="fa fa-whatsapp"></i> <?= vpnText('Voice Call', 'ভয়েস কল'); ?>
               </a>
               <a href="<?= $baseVpnUrl; ?>&vpn_id=<?= urlencode($activeVpnId); ?>&tab=active" class="btn <?= $tab === 'active' ? 'bg-primary' : 'bg-secondary'; ?>" style="border-radius:4px 4px 0 0;">
-                <i class="fa fa-wifi"></i> Active Connections (<?= count($routerPppActive); ?>)
+                <i class="fa fa-wifi"></i> <?= vpnText('Active Connections', 'সক্রিয় সংযোগ'); ?> (<?= count($routerPppActive); ?>)
               </a>
             </div>
 
@@ -1389,32 +1389,32 @@ document.addEventListener('DOMContentLoaded',function(){
 <div id="modalAddVpnRouter" class="ngw-modal-backdrop" onclick="if(event.target===this)this.style.display='none';" style="display:none;">
   <div class="card ngw-modal-box">
     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0;"><i class="fa fa-plus"></i> <span id="vpnRouterModalTitle">Add VPN Server Router</span></h3>
+      <h3 style="margin:0;"><i class="fa fa-plus"></i> <span id="vpnRouterModalTitle"><?= vpnText('Add VPN Server Router', 'ভিপিএন সার্ভার রাউটার যুক্ত করুন'); ?></span></h3>
       <span class="pointer" onclick="document.getElementById('modalAddVpnRouter').style.display='none';"><i class="fa fa-close text-red"></i></span>
     </div>
     <div class="card-body">
       <form method="post" action="<?= $baseVpnUrl; ?>" autocomplete="off" id="vpnRouterForm">
         <input type="hidden" name="vpn_router_id" id="vpn_router_id" value="">
         <div class="form-group mr-b-10">
-          <label style="font-weight:bold; font-size:12px;">Router Name / Session:</label>
+          <label style="font-weight:bold; font-size:12px;"><?= vpnText('Router Name / Session:', 'রাউটারের নাম / সেশন:'); ?></label>
           <input type="text" name="vpn_name" class="form-control" required placeholder="e.g. Central-VPN-Server">
         </div>
 
         <div class="form-group mr-b-10">
-          <label style="font-weight:bold; font-size:12px;">IP Address / Domain:</label>
+          <label style="font-weight:bold; font-size:12px;"><?= vpnText('IP Address / Domain:', 'আইপি অ্যাড্রেস / ডোমেইন:'); ?></label>
           <input type="text" name="vpn_host" class="form-control" required placeholder="e.g. 130.94.119.86">
         </div>
 
         <div class="row">
           <div class="col-6">
             <div class="form-group mr-b-10">
-              <label style="font-weight:bold; font-size:12px;">API Port:</label>
+              <label style="font-weight:bold; font-size:12px;"><?= vpnText('API Port:', 'API পোর্ট:'); ?></label>
               <input type="number" name="vpn_port" class="form-control" value="8728" required>
             </div>
           </div>
           <div class="col-6">
             <div class="form-group mr-b-10">
-              <label style="font-weight:bold; font-size:12px;">RouterOS Version:</label>
+              <label style="font-weight:bold; font-size:12px;"><?= vpnText('RouterOS Version:', 'RouterOS ভার্সন:'); ?></label>
               <select name="vpn_ros_ver" class="form-control">
                 <option value="7" selected>RouterOS v7</option>
                 <option value="6">RouterOS v6</option>
@@ -1426,20 +1426,20 @@ document.addEventListener('DOMContentLoaded',function(){
         <div class="row">
           <div class="col-6">
             <div class="form-group mr-b-10">
-              <label style="font-weight:bold; font-size:12px;">Username:</label>
+              <label style="font-weight:bold; font-size:12px;"><?= vpnText('Username:', 'ইউজারনেম:'); ?></label>
               <input type="text" name="vpn_user" class="form-control" required placeholder="admin">
             </div>
           </div>
           <div class="col-6">
             <div class="form-group mr-b-10">
-              <label style="font-weight:bold; font-size:12px;">Password:</label>
+              <label style="font-weight:bold; font-size:12px;"><?= vpnText('Password:', 'পাসওয়ার্ড:'); ?></label>
               <input type="password" name="vpn_pass" class="form-control" placeholder="Router password">
             </div>
           </div>
         </div>
 
         <button type="submit" name="save_vpn_router" id="vpnRouterSaveButton" class="btn bg-primary btn-block" style="margin-top:10px;">
-          <i class="fa fa-save"></i> Save VPN Router
+          <i class="fa fa-save"></i> <?= vpnText('Save VPN Router', 'ভিপিএন রাউটার সংরক্ষণ করুন'); ?>
         </button>
       <input type="hidden" name="vpn_csrf_token" value="<?= htmlspecialchars($vpnCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"></form>
     </div>

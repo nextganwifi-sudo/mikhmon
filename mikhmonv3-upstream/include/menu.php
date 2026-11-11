@@ -107,7 +107,7 @@ if (!isset($_SESSION["mikhmon"])) {
     } else {
       $spppoe_users = "active";
     }
-    $mpage = "PPPoE Users";
+    $mpage = isset($_pppoe_users) ? $_pppoe_users : "PPPoE Users";
     $pppoemenu = "menu-open";
   } elseif ($pppoe == "profiles" || $pppoe == "add-profile" || $pppoe == "profile" || $remove_pppoe_profile != "") {
     $mpppoe = "active";
@@ -116,7 +116,7 @@ if (!isset($_SESSION["mikhmon"])) {
     } else {
       $spppoe_profiles = "active";
     }
-    $mpage = "PPPoE Profiles";
+    $mpage = isset($_pppoe_profiles) ? $_pppoe_profiles : "PPPoE Profiles";
     $pppoemenu = "menu-open";
   } elseif ($pppoe == "active" || $disconnect_pppoe_active != "") {
     $mpppoe = "active";
@@ -126,7 +126,7 @@ if (!isset($_SESSION["mikhmon"])) {
   } elseif ($pppoe == "reset") {
     $mpppoe = "active";
     $spppoe_reset = "active";
-    $mpage = "Reset PPPoE";
+    $mpage = isset($_reset_pppoe) ? $_reset_pppoe : "Reset PPPoE";
     $pppoemenu = "menu-open";
   } elseif ($sys == "scheduler" || $enablesch != "" || $disablesch != "" || $removesch != "") {
     $sysmenu = "active";
@@ -194,19 +194,34 @@ if (!isset($_SESSION["mikhmon"])) {
   } elseif ($id == "activity" || $hotspot == "activity") {
     $ssett = "active";
     $settmenu = "menu-open";
-    $mpage = "Activity History";
+    $mpage = ($langid === 'bn') ? "অ্যাক্টিভিটি হিস্টোরি" : "Activity History";
   } elseif ($id == "active-sessions" || $hotspot == "active-sessions") {
     $ssett = "active";
     $settmenu = "menu-open";
-    $mpage = "Active Sessions";
-  } elseif ($id == "my-profile") {
+    $mpage = ($langid === 'bn') ? "অ্যাক্টিভ সেশন" : "Active Sessions";
+  } elseif ($id == "my-profile" || $hotspot == "my-profile") {
     $smyprofile = "active";
-    $mpage = "My Profile";
+    $mpage = ($langid === 'bn') ? "আমার প্রোফাইল" : "My Profile";
   }
 }
 $ngwProfileInfo = getCurrentUserProfileSummary();
+if ($langid === 'bn') {
+  $ngwProfileInfo['role_badge'] = $ngwProfileInfo['is_reseller'] ? 'রিসেলার' : 'অ্যাডমিন';
+  $ngwProfileInfo['role_label'] = $ngwProfileInfo['is_reseller'] ? 'রিসেলার' : 'অ্যাডমিনিস্ট্রেটর';
+}
 $ngwProfileHref = './admin.php?id=my-profile' . (!empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : '');
 $ngwLogoutHref = (!empty($session) && $id == "") ? ('./?hotspot=logout&session=' . urlencode($session)) : './admin.php?id=logout';
+$ngwReqBase = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : './admin.php?id=sessions';
+$ngwReqBase = preg_replace('/([?&])setlang=[^&]*(&|$)/', '$1', $ngwReqBase);
+$ngwReqBase = str_replace('?&', '?', $ngwReqBase);
+$ngwReqBase = preg_replace('/&&+/', '&', $ngwReqBase);
+$ngwReqBase = rtrim($ngwReqBase, '?&');
+if ($ngwReqBase === '') {
+  $ngwReqBase = (!empty($session) && $id == '') ? ('./?session=' . rawurlencode($session)) : './admin.php?id=sessions';
+}
+$ngwLangSep = (strpos($ngwReqBase, '?') !== false) ? '&' : '?';
+$ngwLangUrlEn = $ngwReqBase . $ngwLangSep . 'setlang=en';
+$ngwLangUrlBn = $ngwReqBase . $ngwLangSep . 'setlang=bn';
 
 $idleto = "5";
 $didleto = 'display:block;';
@@ -411,8 +426,8 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
   </a>
   <div id="ngw-settings-dropdown" style="display:<?= $isSettingsDropdownOpen ? 'block' : 'none'; ?>;background:rgba(0,0,0,0.08);">
     <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>" style="padding-left:34px;"><i class="fa fa-sliders"></i> <?= $_settings ?></a>
-    <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-history"></i> Activity History</a>
-    <a href="./admin.php?id=active-sessions" class="menu <?= (isset($id) && $id === 'active-sessions') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-desktop"></i> Active Sessions</a>
+    <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-history"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভিটি হিস্টোরি' : 'Activity History'; ?></a>
+    <a href="./admin.php?id=active-sessions" class="menu <?= (isset($id) && $id === 'active-sessions') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-desktop"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভ সেশন' : 'Active Sessions'; ?></a>
     <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>" style="padding-left:34px;"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
   </div>
   <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
@@ -570,7 +585,7 @@ $(document).ready(function(){
   <?php } ?>
   <!--hotspot-->
   <?php if (hasResellerPermission('view_users') || hasResellerPermission('add_user') || hasResellerPermission('generate_voucher') || hasResellerPermission('view_profiles') || hasResellerPermission('add_profile') || hasResellerPermission('view_active') || hasResellerPermission('view_hosts') || hasResellerPermission('view_ipbinding') || hasResellerPermission('view_cookies')) { ?>
-  <div class="dropdown-btn <?= $susers . $suserprof . $sactive . $shosts . $sipbind . $scookies; ?>"><i class="fa fa-wifi"></i> Hotspot
+  <div class="dropdown-btn <?= $susers . $suserprof . $sactive . $shosts . $sipbind . $scookies; ?>"><i class="fa fa-wifi"></i> <?= isset($_hotspot_menu_label) ? $_hotspot_menu_label : (($langid === 'bn') ? 'হটস্পট' : 'Hotspot'); ?>
     <i class="fa fa-caret-down"></i>
   </div>
   <div class="dropdown-container <?= $umenu . $upmenu . $hamenu . $hmenu . $ibmenu . $cmenu; ?>">
@@ -670,7 +685,7 @@ $(document).ready(function(){
   </div>
   <div class="dropdown-container <?= $schmenu; ?>">
     <?php if ($canAccessUserTransfer) { ?>
-    <a href="./hotspot/usertransfer.php?session=<?= rawurlencode($session); ?>"><i class="fa fa-exchange"></i> User Transfer</a>
+    <a href="./hotspot/usertransfer.php?session=<?= rawurlencode($session); ?>"><i class="fa fa-exchange"></i> <?= ($langid === 'bn') ? 'ইউজার ট্রান্সফার' : 'User Transfer'; ?></a>
     <?php } ?>
     <?php if (hasResellerPermission('view_scheduler')) { ?>
     <a href="./?system=scheduler&session=<?= $session; ?>" class="<?= $ssch; ?>"> <i class="fa fa-clock-o "></i> <?= $_system_scheduler ?> </a>
@@ -1201,10 +1216,10 @@ $(document).ready(function(){
         <span><?= ($langid === 'bn') ? 'ভাষা নির্বাচন (Language)' : 'Language Selection'; ?>:</span>
       </div>
       <div style="display:flex; gap:6px;">
-        <a href="?setlang=en" class="btn btn-xs <?= ($langid === 'en' || empty($langid)) ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="flex:1; text-align:center; padding:4px 6px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">
+        <a href="<?= htmlspecialchars($ngwLangUrlEn, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-xs <?= ($langid === 'en' || empty($langid)) ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="flex:1; text-align:center; padding:4px 6px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">
           English <?= ($langid === 'en' || empty($langid)) ? '✓' : ''; ?>
         </a>
-        <a href="?setlang=bn" class="btn btn-xs <?= ($langid === 'bn') ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="flex:1; text-align:center; padding:4px 6px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">
+        <a href="<?= htmlspecialchars($ngwLangUrlBn, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-xs <?= ($langid === 'bn') ? 'bg-primary text-white' : 'bg-secondary text-white'; ?>" style="flex:1; text-align:center; padding:4px 6px; font-size:11px; text-decoration:none; border-radius:3px; font-weight:600;">
           বাংলা <?= ($langid === 'bn') ? '✓' : ''; ?>
         </a>
       </div>

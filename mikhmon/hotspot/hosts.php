@@ -47,15 +47,15 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header align-middle">
-	<h3><i class="fa fa-laptop"></i> Hosts  
+	<h3><i class="fa fa-laptop"></i> <?= $_hosts ?>  
 		<?php
 	if ($counthosts < 2) {
-		echo "$counthosts item";
+		echo $counthosts . ($langid === 'bn' ? " টি আইটেম" : " item");
 	} elseif ($counthosts > 1) {
-		echo "$counthosts items ";
+		echo $counthosts . ($langid === 'bn' ? " টি আইটেম " : " items ");
 	};
 	?>&nbsp;
-		 | <a class="text-info" title="All" href="./?hotspot=hosts&session=<?= $session; ?>">&nbsp;&nbsp;All&nbsp;&nbsp;</a>
+		 | <a class="text-info" title="All" href="./?hotspot=hosts&session=<?= $session; ?>">&nbsp;&nbsp;<?= ($langid === 'bn') ? 'সব' : 'All'; ?>&nbsp;&nbsp;</a>
 		 | <a class="text-success" title="Authorized" href="./?hotspot=hosta&session=<?= $session; ?>">&nbsp;&nbsp;A&nbsp;&nbsp;</a>
 		 | <a class="text-primary" title="Bypassed" href="./?hotspot=hostp&session=<?= $session; ?>">&nbsp;&nbsp;P&nbsp;&nbsp;</a>
 		 | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer " title="Reload data"></i>
@@ -64,7 +64,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <!-- /.card-header -->
 <div class="card-body">	
   <div class="w-6">
-    <input id="filterTable" type="text" class="form-control" placeholder="Search..">
+    <input id="filterTable" type="text" class="form-control" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>">
   </div>
 <div class="overflow box-bordered mr-t-10" style="max-height: 75vh"> 	   
 <table id="dataTable" class="table table-bordered table-hover text-nowrap">
@@ -72,10 +72,10 @@ if (!isset($_SESSION["mikhmon"])) {
   <tr>
     <th></th>
     <th></th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> MAC Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> To Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Server</th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'MAC Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'অ্যাড্রেস' : 'Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'টু অ্যাড্রেস' : 'To Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'সার্ভার' : 'Server'; ?></th>
 	<th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_comment ?></th>
   </thead>
   <tbody>  	

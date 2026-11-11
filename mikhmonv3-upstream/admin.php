@@ -78,24 +78,34 @@ enforceMikhmonSessionSecurity($id == "login" || $id == "logout" || substr($url, 
 <?php
 if ($id == "login" || substr($url, -1) == "p") {
 
+  $isBnLogin = (isset($langid) && $langid === 'bn');
   $loginCsrfToken = ngwCsrfToken('ngw_login_csrf');
   if (isset($_GET['reason']) && $_GET['reason'] === 'force_logout' && !isset($_POST['login'])) {
-    $error = '<div style="width: 100%; padding:6px 4px; border-radius:5px;" class="bg-warning"><i class="fa fa-info-circle"></i> Your session was logged out by an Administrator. Please enter your username and password to sign in again.</div>';
+    $forceMsg = $isBnLogin
+      ? 'অ্যাডমিনিস্ট্রেটর আপনার সেশনটি লগআউট করেছেন। অনুগ্রহ করে আবার ইউজারনেম ও পাসওয়ার্ড দিয়ে লগইন করুন।'
+      : 'Your session was logged out by an Administrator. Please enter your username and password to sign in again.';
+    $error = '<div style="width: 100%; padding:6px 4px; border-radius:5px;" class="bg-warning"><i class="fa fa-info-circle"></i> ' . htmlspecialchars($forceMsg) . '</div>';
   }
   if (isset($_POST['login'])) {
     $user = isset($_POST['user']) ? trim((string)$_POST['user']) : '';
     $pass = isset($_POST['pass']) ? (string)$_POST['pass'] : '';
     if (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_login_csrf')) {
       $auth = array('authenticated' => false);
-      $errText = 'Security token expired or invalid. Reload the login page and try again.';
-      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+      $errText = $isBnLogin
+        ? 'সিকিউরিটি টোকেনের মেয়াদ শেষ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
+        : 'Security token expired or invalid. Reload the login page and try again.';
+      $alertTitle = $isBnLogin ? 'সতর্কবার্তা!' : 'Alert!';
+      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> ' . $alertTitle . '<br>' . htmlspecialchars($errText) . '</div>';
     } elseif (ngwLoginIsThrottled($user)) {
       $auth = array('authenticated' => false);
-      $errText = 'Too many failed login attempts. Wait 15 minutes before trying again.';
+      $errText = $isBnLogin
+        ? 'অতিরিক্ত ভুল লগইন চেষ্টার কারণে ১৫ মিনিট অপেক্ষা করে আবার চেষ্টা করুন।'
+        : 'Too many failed login attempts. Wait 15 minutes before trying again.';
       ngwRecordActivity('login_failed', array(
         'error' => 'Login throttled (too many failed attempts)',
       ), $user !== '' ? $user : 'unknown', 'unknown');
-      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+      $alertTitle = $isBnLogin ? 'সতর্কবার্তা!' : 'Alert!';
+      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> ' . $alertTitle . '<br>' . htmlspecialchars($errText) . '</div>';
     } else {
       $auth = authenticateMikhmonUser($user, $pass, $useradm, decrypt($passadm));
       if (!$auth['authenticated']) {
@@ -122,6 +132,13 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon_last_activity"] = time();
       $_SESSION["mikhmon_login_handshake"] = 1;
       $_SESSION["ngw_session_token"] = bin2hex(random_bytes(16));
+      unset($_SESSION['login_lang'], $_SESSION['login_theme']);
+      if (function_exists('ngwResolveCurrentUserLang')) {
+        ngwResolveCurrentUserLang();
+      }
+      if (function_exists('ngwResolveCurrentUserTheme')) {
+        ngwResolveCurrentUserTheme();
+      }
       ngwRegisterOrTouchActiveSession(array(
         'is_new_login' => true,
         'page_label' => 'Router List',
@@ -146,8 +163,12 @@ if ($id == "login" || substr($url, -1) == "p") {
       exit;
     } else {
       if (!isset($error) || $error === '') {
-        $errText = isset($auth['error']) ? $auth['error'] : 'Invalid username or password.';
-        $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>' . htmlspecialchars($errText) . '</div>';
+        $errText = isset($auth['error']) ? $auth['error'] : ($isBnLogin ? 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।' : 'Invalid username or password.');
+        if ($isBnLogin && $errText === 'Invalid username or password.') {
+          $errText = 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।';
+        }
+        $alertTitle = $isBnLogin ? 'সতর্কবার্তা!' : 'Alert!';
+        $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> ' . $alertTitle . '<br>' . htmlspecialchars($errText) . '</div>';
       }
     }
   }
@@ -179,6 +200,12 @@ if ($id == "login" || substr($url, -1) == "p") {
   $_SESSION["mikhmon_permissions"] = getDefaultPermissionMap(true);
   $_SESSION["mikhmon_last_activity"] = time();
   $_SESSION["mikhmon_login_handshake"] = 1;
+  if (function_exists('ngwResolveCurrentUserLang')) {
+    ngwResolveCurrentUserLang();
+  }
+  if (function_exists('ngwResolveCurrentUserTheme')) {
+    ngwResolveCurrentUserTheme();
+  }
   session_write_close();
   echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=resellers'</script>";
   exit;

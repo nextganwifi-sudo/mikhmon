@@ -32,8 +32,8 @@ if (!isset($_SESSION["mikhmon"])) {
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> <small id="router-count" style="font-size:12px;font-weight:normal;"></small> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="Reload data"></i>
-          <input type="search" id="router-search" placeholder="Search" aria-label="Search routers" style="display:inline-block;width:170px;max-width:45%;margin-left:10px;padding:4px 7px;font-size:13px;font-weight:normal;">
+        <h3 class="card-title"><i class="fa fa-server"></i> <?= $_router_list ?> <small id="router-count" style="font-size:12px;font-weight:normal;"></small> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer" title="<?= ($langid === 'bn') ? 'রিলোড করুন' : 'Reload data'; ?>"></i>
+          <input type="search" id="router-search" placeholder="<?= ($langid === 'bn') ? 'অনুসন্ধান করুন...' : 'Search'; ?>" aria-label="Search routers" style="display:inline-block;width:170px;max-width:45%;margin-left:10px;padding:4px 7px;font-size:13px;font-weight:normal;">
         </h3>
       </div>
       <div class="card-body">
@@ -64,7 +64,7 @@ if (!isset($_SESSION["mikhmon"])) {
                         <span class="connect pointer" id="<?= $value; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
                         <?php if (hasResellerPermission('manage_router_settings')) { ?>
                         <a href="./admin.php?id=settings&session=<?= $value; ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
-                        <a href="javascript:void(0)" onclick="if(confirm('Are you sure to delete data <?= $value;
+                        <a href="javascript:void(0)" onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই রাউটার সেশন ডিলিট করতে চান: ' : 'Are you sure to delete data '; ?><?= $value;
                         echo " (" . explode('%', $data[$value][4])[1] . ")"; ?>?')){loadpage('./admin.php?id=remove-session&session=<?= $value; ?>')}else{}"><i class="fa fa-remove"></i> <?= $_delete ?></a>
                         <?php } ?>
                       </span>

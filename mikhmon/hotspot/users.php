@@ -148,7 +148,7 @@ if (!isset($_SESSION["mikhmon"])) {
     ?>
   <button class="btn bg-red" onclick='if(confirm(<?= json_encode($delBatchConfirm); ?>)){loadpage(<?= json_encode($delBatchUrl); ?>);loader();}' title="Delete users in batch <?= htmlspecialchars($comm, ENT_QUOTES); ?>">  <i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'ডিলিট ইউজার' : 'Delete User'; ?></button>
     <?php } else if ($exp == "1") { ?>
-  <button class="btn bg-red" onclick="if(confirm('Are you sure to delete users?')){loadpage('./?remove-hotspot-user-expired=1&session=<?= $session; ?>');loader();}else{}" title="Remove user expired">  <i class="fa fa-trash"></i> Expired Users</button>
+  <button class="btn bg-red" onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে সকল মেয়াদোত্তীর্ণ ইউজার ডিলিট করতে চান?' : 'Are you sure to delete users?'; ?>')){loadpage('./?remove-hotspot-user-expired=1&session=<?= $session; ?>');loader();}else{}" title="Remove user expired">  <i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'মেয়াদোত্তীর্ণ ইউজার ডিলিট' : 'Expired Users'; ?></button>
       <?php } ?>
     <?php } ?>
   <script>
@@ -156,7 +156,9 @@ if (!isset($_SESSION["mikhmon"])) {
     var comm = document.getElementById('comment').value;
     var url = "./voucher/print.php?id="+encodeURIComponent(comm)+"&"+a+"="+b+"&session=<?= $session; ?>";
     if (comm === "" ){
-      <?php if ($currency == in_array($currency, $cekindo['indo'])) { ?>
+      <?php if ($langid === 'bn') { ?>
+      alert('প্রিন্ট করার জন্য প্রথমে একটি কমেন্ট / ব্যাচ সিলেক্ট করুন!');
+      <?php } elseif ($currency == in_array($currency, $cekindo['indo'])) { ?>
       alert('Silakan pilih salah satu Comment terlebih dulu!');
       <?php
     } else { ?>
@@ -182,13 +184,13 @@ if (!isset($_SESSION["mikhmon"])) {
   <thead>
   <tr>
     <th style="min-width:50px;" class="align-middle text-center" id="cuser"><?= $counttuser; ?></th>
-    <th style="min-width:50px;" class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Server</th>
+    <th style="min-width:50px;" class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= isset($_server) ? $_server : 'Server'; ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_password ?></th>
-    <th>Print</th>
+    <th><?= isset($_print) ? $_print : 'Print'; ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_profile ?></th>
 	  <th class="pointer" title="Click to sort">
-      <i class="fa fa-sort"></i> Mac Address
+      <i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?>
       <?php if (hasResellerPermission('edit_user') || hasResellerPermission('enable_disable_user') || hasResellerPermission('reset_voucher')) {
         $resetMacConfirmMsg = ($langid === 'bn')
           ? ($comm != '' ? "আপনি কি নিশ্চিত যে এই ব্যাচের ($comm) সকল ইউজারের ম্যাক অ্যাড্রেস রিসেট করতে চান?" : (($prof != 'all' && $prof != '') ? "আপনি কি নিশ্চিত যে '$prof' প্রোফাইলের সকল ইউজারের ম্যাক অ্যাড্রেস রিসেট করতে চান?" : "আপনি কি নিশ্চিত যে সকল হটস্পট ইউজারের ম্যাক অ্যাড্রেস রিসেট করতে চান?"))
@@ -201,8 +203,8 @@ if (!isset($_SESSION["mikhmon"])) {
       <?php } ?>
     </th>
     <th class="text-right align-middle pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_uptime_user ?></th>
-    <th class="text-right align-middle pointer" title="Click to sort"><i class="fa fa-sort"></i> Bytes In</th>
-    <th class="text-right align-middle pointer" title="Click to sort"><i class="fa fa-sort"></i> Bytes Out</th>
+    <th class="text-right align-middle pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= isset($_bytes_in) ? $_bytes_in : 'Bytes In'; ?></th>
+    <th class="text-right align-middle pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= isset($_bytes_out) ? $_bytes_out : 'Bytes Out'; ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_comment ?></th>
     </tr>
   </thead>
@@ -239,7 +241,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
   ?>
   <td style='text-align:center;'>
   <?php if (hasResellerPermission('delete_user')) { ?>
-  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;&nbsp;
+  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?'; ?>')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
   if (hasResellerPermission('enable_disable_user')) {

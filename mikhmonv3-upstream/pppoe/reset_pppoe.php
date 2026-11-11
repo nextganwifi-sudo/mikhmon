@@ -190,6 +190,7 @@ if ($searchQuery !== '' && $isRouterConnected) {
 } elseif (!$isRouterConnected) {
   $actionError = "Router is offline or unreachable via API port 8728.";
 }
+$isBn = (isset($langid) && $langid === 'bn');
 ?>
 
 <div class="row">
@@ -197,10 +198,10 @@ if ($searchQuery !== '' && $isRouterConnected) {
     <div class="card box-bordered">
       <div class="card-header bg-navy text-white d-flex justify-content-between align-items-center" style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px;">
         <h3 style="margin:0; font-size:16px; font-weight:600;">
-          <i class="fa fa-refresh"></i> Reset PPPoE User & Session Recovery
+          <i class="fa fa-refresh"></i> <?= $isBn ? 'পিপিপিওই ইউজার রিসেট ও সেশন রিকভারি' : 'Reset PPPoE User & Session Recovery'; ?>
         </h3>
         <a class="btn btn-sm bg-secondary text-white" href="./?pppoe=users&session=<?= $session; ?>">
-          <i class="fa fa-users"></i> Users List
+          <i class="fa fa-users"></i> <?= $isBn ? 'ইউজার তালিকা' : 'Users List'; ?>
         </a>
       </div>
 
@@ -221,21 +222,21 @@ if ($searchQuery !== '' && $isRouterConnected) {
           <input type="hidden" name="pppoe" value="reset">
           <input type="hidden" name="session" value="<?= htmlspecialchars($session); ?>">
           <div style="display:flex; gap:6px;">
-            <input type="text" name="q" class="form-control" value="<?= htmlspecialchars($searchQuery); ?>" placeholder="Search by PPPoE Username, Caller ID / MAC, or Active IP..." autofocus required>
+            <input type="text" name="q" class="form-control" value="<?= htmlspecialchars($searchQuery); ?>" placeholder="<?= $isBn ? 'পিপিপিওই ইউজারনেম, কলার আইডি / ম্যাক অথবা অ্যাক্টিভ আইপি দিয়ে খুঁজুন...' : 'Search by PPPoE Username, Caller ID / MAC, or Active IP...'; ?>" autofocus required>
             <button type="submit" class="btn bg-primary text-white" style="font-weight:600; white-space:nowrap;">
-              <i class="fa fa-search"></i> Search
+              <i class="fa fa-search"></i> <?= $isBn ? 'খুঁজুন' : 'Search'; ?>
             </button>
           </div>
           <small class="text-muted" style="display:block; margin-top:4px; font-size:11px;">
-            Examples: <code>user123</code> &bull; <code>48:8F:5A:21:0B:4D</code> &bull; <code>192.168.10.45</code>
+            <?= $isBn ? 'উদাহরণ:' : 'Examples:'; ?> <code>user123</code> &bull; <code>48:8F:5A:21:0B:4D</code> &bull; <code>192.168.10.45</code>
           </small>
         </form>
 
         <?php if ($searchQuery !== '' && !$matchedSecret) { ?>
           <div style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:12px; border-radius:6px; text-align:center;">
             <i class="fa fa-info-circle fa-2x" style="display:block; margin-bottom:6px;"></i>
-            <strong>No PPPoE user found matching "<?= htmlspecialchars($searchQuery); ?>"</strong>
-            <p style="font-size:12px; margin:4px 0 0 0;">Please verify the username, MAC address, or active IP and try again.</p>
+            <strong><?= $isBn ? ('"' . htmlspecialchars($searchQuery) . '" এর সাথে কোনো পিপিপিওই ইউজার পাওয়া যায়নি') : ('No PPPoE user found matching "' . htmlspecialchars($searchQuery) . '"'); ?></strong>
+            <p style="font-size:12px; margin:4px 0 0 0;"><?= $isBn ? 'দয়া করে ইউজারনেম, ম্যাক অ্যাড্রেস বা অ্যাক্টিভ আইপি যাচাই করে আবার চেষ্টা করুন।' : 'Please verify the username, MAC address, or active IP and try again.'; ?></p>
           </div>
         <?php } ?>
 
@@ -261,16 +262,16 @@ if ($searchQuery !== '' && $isRouterConnected) {
                   <i class="fa fa-user"></i> <?= htmlspecialchars($sName); ?>
                 </strong>
                 <span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px; margin-left:6px;">
-                  Matched via <?= htmlspecialchars($matchedBy); ?>
+                  <?= $isBn ? 'পাওয়া গেছে:' : 'Matched via'; ?> <?= htmlspecialchars($matchedBy); ?>
                 </span>
               </div>
               <div>
                 <span class="badge" style="background:<?= $sDisabled ? '#ef4444' : '#10b981'; ?>; color:#fff; font-size:11px; padding:3px 8px;">
-                  <?= $sDisabled ? 'DISABLED' : 'ENABLED'; ?>
+                  <?= $sDisabled ? ($isBn ? 'নিষ্ক্রিয়' : 'DISABLED') : ($isBn ? 'সক্রিয়' : 'ENABLED'); ?>
                 </span>
                 <?php if ($hasExp) { ?>
                   <span class="badge" style="background:<?= $isExp ? '#f87171' : '#38bdf8'; ?>; color:#fff; font-size:11px; padding:3px 8px; margin-left:4px;">
-                    <?= $isExp ? 'EXPIRED' : 'VALID'; ?>
+                    <?= $isExp ? ($isBn ? 'মেয়াদোত্তীর্ণ' : 'EXPIRED') : ($isBn ? 'বৈধ' : 'VALID'); ?>
                   </span>
                 <?php } ?>
               </div>
@@ -280,35 +281,35 @@ if ($searchQuery !== '' && $isRouterConnected) {
               <!-- Details Grid -->
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:14px; font-size:13px;">
                 <div style="background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0;">
-                  <div style="color:#64748b; font-size:11px;">Profile</div>
+                  <div style="color:#64748b; font-size:11px;"><?= $isBn ? 'প্রোফাইল' : 'Profile'; ?></div>
                   <strong style="color:#0284c7;"><?= htmlspecialchars($sProf); ?></strong>
                 </div>
 
                 <div style="background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0;">
-                  <div style="color:#64748b; font-size:11px;">Password</div>
+                  <div style="color:#64748b; font-size:11px;"><?= $isBn ? 'পাসওয়ার্ড' : 'Password'; ?></div>
                   <strong id="resetPassTxt">&bull;&bull;&bull;&bull;&bull;&bull;</strong>
                   <button type="button" class="btn btn-xs btn-outline-secondary" style="padding:1px 6px; font-size:10px; margin-left:6px;" onclick="toggleResetPass('<?= addslashes(htmlspecialchars($sPass)); ?>')">
-                    Show
+                    <?= $isBn ? 'দেখুন' : 'Show'; ?>
                   </button>
                 </div>
 
                 <div style="background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0;">
-                  <div style="color:#64748b; font-size:11px;">Caller-ID (MAC Lock)</div>
-                  <strong><?= $sCaller !== '' ? htmlspecialchars($sCaller) : '<span style="color:#10b981;">None (Unlocked)</span>'; ?></strong>
+                  <div style="color:#64748b; font-size:11px;"><?= $isBn ? 'কলার আইডি (ম্যাক লক)' : 'Caller-ID (MAC Lock)'; ?></div>
+                  <strong><?= $sCaller !== '' ? htmlspecialchars($sCaller) : '<span style="color:#10b981;">' . ($isBn ? 'নেই (আনলকড)' : 'None (Unlocked)') . '</span>'; ?></strong>
                 </div>
 
                 <div style="background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0;">
-                  <div style="color:#64748b; font-size:11px;">Active Session</div>
+                  <div style="color:#64748b; font-size:11px;"><?= $isBn ? 'অ্যাক্টিভ সেশন' : 'Active Session'; ?></div>
                   <?php if ($matchedActive) { ?>
-                    <strong style="color:#15803d;"><i class="fa fa-bolt" style="color:#eab308;"></i> Connected (<?= htmlspecialchars($matchedActive['address']); ?>)</strong>
+                    <strong style="color:#15803d;"><i class="fa fa-bolt" style="color:#eab308;"></i> <?= $isBn ? 'সংযুক্ত' : 'Connected'; ?> (<?= htmlspecialchars($matchedActive['address']); ?>)</strong>
                   <?php } else { ?>
-                    <span style="color:#64748b;">Offline</span>
+                    <span style="color:#64748b;"><?= $isBn ? 'অফলাইন' : 'Offline'; ?></span>
                   <?php } ?>
                 </div>
 
                 <?php if ($hasExp) { ?>
                   <div style="background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0; grid-column:1 / -1;">
-                    <div style="color:#64748b; font-size:11px;">Expiration Details</div>
+                    <div style="color:#64748b; font-size:11px;"><?= $isBn ? 'মেয়াদের বিবরণ' : 'Expiration Details'; ?></div>
                     <strong style="color:<?= $isExp ? '#dc2626' : '#0369a1'; ?>;">
                       <?= date('Y-m-d H:i:s', $expTs); ?>
                     </strong>
@@ -322,7 +323,7 @@ if ($searchQuery !== '' && $isRouterConnected) {
 
               <!-- Quick Recovery Actions -->
               <h4 style="font-size:13px; font-weight:600; color:#334155; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">
-                <i class="fa fa-wrench"></i> Recovery & Reset Actions
+                <i class="fa fa-wrench"></i> <?= $isBn ? 'রিকভারি ও রিসেট অ্যাকশন' : 'Recovery & Reset Actions'; ?>
               </h4>
 
               <div style="display:flex; flex-direction:column; gap:8px;">
@@ -335,19 +336,19 @@ if ($searchQuery !== '' && $isRouterConnected) {
 
                   <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
-                      <strong style="color:#1d4ed8; font-size:13px;"><i class="fa fa-bolt"></i> 1-Click Complete Reset & Reconnect</strong>
-                      <div style="font-size:11px; color:#475569;">Clears Caller-ID lock, re-enables secret, and kicks active session.</div>
+                      <strong style="color:#1d4ed8; font-size:13px;"><i class="fa fa-bolt"></i> <?= $isBn ? '১-ক্লিক সম্পূর্ণ রিসেট ও রিকানেক্ট' : '1-Click Complete Reset & Reconnect'; ?></strong>
+                      <div style="font-size:11px; color:#475569;"><?= $isBn ? 'কলার আইডি লক মুছে ফেলে, সিক্রেট সক্রিয় করে এবং অ্যাক্টিভ সেশন ডিসকানেক্ট করে।' : 'Clears Caller-ID lock, re-enables secret, and kicks active session.'; ?></div>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center;">
                       <select name="reset_validity" class="form-control" style="font-size:12px; padding:3px 6px; height:auto; width:auto;">
-                        <option value="keep">Keep Expiry</option>
-                        <option value="1d">Renew 1 Day</option>
-                        <option value="5d">Renew 5 Days</option>
-                        <option value="10d">Renew 10 Days</option>
-                        <option value="1m">Renew 1 Month (Calendar)</option>
+                        <option value="keep"><?= $isBn ? 'মেয়াদ অপরিবর্তিত রাখুন' : 'Keep Expiry'; ?></option>
+                        <option value="1d"><?= $isBn ? '১ দিন নবায়ন' : 'Renew 1 Day'; ?></option>
+                        <option value="5d"><?= $isBn ? '৫ দিন নবায়ন' : 'Renew 5 Days'; ?></option>
+                        <option value="10d"><?= $isBn ? '১০ দিন নবায়ন' : 'Renew 10 Days'; ?></option>
+                        <option value="1m"><?= $isBn ? '১ মাস নবায়ন (ক্যালেন্ডার)' : 'Renew 1 Month (Calendar)'; ?></option>
                       </select>
                       <button type="submit" class="btn btn-sm bg-primary text-white" style="font-weight:600;" onclick="return confirm('Execute Full Reset for user \'<?= addslashes($sName); ?>\'?');">
-                        Execute Full Reset
+                        <?= $isBn ? 'সম্পূর্ণ রিসেট করুন' : 'Execute Full Reset'; ?>
                       </button>
                     </div>
                   </div>
@@ -363,7 +364,7 @@ if ($searchQuery !== '' && $isRouterConnected) {
                       <input type="hidden" name="action_type" value="clear_caller_id">
                       <input type="hidden" name="q" value="<?= htmlspecialchars($sName); ?>">
                       <button type="submit" class="btn btn-sm btn-outline-warning" style="width:100%; text-align:left; font-size:12px; padding:6px 10px;" onclick="return confirm('Clear Caller-ID (MAC) lock? User will be able to connect from any device.');">
-                        <i class="fa fa-unlock"></i> Clear Caller-ID (MAC Lock)
+                        <i class="fa fa-unlock"></i> <?= $isBn ? 'কলার আইডি (ম্যাক লক) মুছুন' : 'Clear Caller-ID (MAC Lock)'; ?>
                       </button>
                     </form>
                   <?php } ?>
@@ -376,7 +377,7 @@ if ($searchQuery !== '' && $isRouterConnected) {
                       <input type="hidden" name="action_type" value="disconnect_active">
                       <input type="hidden" name="q" value="<?= htmlspecialchars($sName); ?>">
                       <button type="submit" class="btn btn-sm btn-outline-danger" style="width:100%; text-align:left; font-size:12px; padding:6px 10px;" onclick="return confirm('Disconnect active session for user \'<?= addslashes($sName); ?>\'?');">
-                        <i class="fa fa-power-off"></i> Disconnect Active Session
+                        <i class="fa fa-power-off"></i> <?= $isBn ? 'অ্যাক্টিভ সেশন ডিসকানেক্ট করুন' : 'Disconnect Active Session'; ?>
                       </button>
                     </form>
                   <?php } ?>
@@ -389,7 +390,7 @@ if ($searchQuery !== '' && $isRouterConnected) {
                       <input type="hidden" name="action_type" value="enable_secret">
                       <input type="hidden" name="q" value="<?= htmlspecialchars($sName); ?>">
                       <button type="submit" class="btn btn-sm btn-outline-success" style="width:100%; text-align:left; font-size:12px; padding:6px 10px;">
-                        <i class="fa fa-check-circle"></i> Re-Enable Disabled Account
+                        <i class="fa fa-check-circle"></i> <?= $isBn ? 'নিষ্ক্রিয় অ্যাকাউন্ট সক্রিয় করুন' : 'Re-Enable Disabled Account'; ?>
                       </button>
                     </form>
                   <?php } ?>
@@ -402,13 +403,13 @@ if ($searchQuery !== '' && $isRouterConnected) {
                     <input type="hidden" name="q" value="<?= htmlspecialchars($sName); ?>">
                     <div style="display:flex; gap:4px;">
                       <select name="renew_preset" class="form-control" style="font-size:12px; padding:4px 6px; height:auto;">
-                        <option value="1d">Renew 1 Day</option>
-                        <option value="5d">Renew 5 Days</option>
-                        <option value="10d">Renew 10 Days</option>
-                        <option value="1m" selected>Renew 1 Month (Calendar)</option>
+                        <option value="1d"><?= $isBn ? '১ দিন নবায়ন' : 'Renew 1 Day'; ?></option>
+                        <option value="5d"><?= $isBn ? '৫ দিন নবায়ন' : 'Renew 5 Days'; ?></option>
+                        <option value="10d"><?= $isBn ? '১০ দিন নবায়ন' : 'Renew 10 Days'; ?></option>
+                        <option value="1m" selected><?= $isBn ? '১ মাস নবায়ন (ক্যালেন্ডার)' : 'Renew 1 Month (Calendar)'; ?></option>
                       </select>
                       <button type="submit" class="btn btn-sm btn-outline-primary" style="white-space:nowrap; font-size:12px;" onclick="return confirm('Renew validity for \'<?= addslashes($sName); ?>\'?');">
-                        Renew
+                        <?= $isBn ? 'নবায়ন করুন' : 'Renew'; ?>
                       </button>
                     </div>
                   </form>
@@ -418,7 +419,7 @@ if ($searchQuery !== '' && $isRouterConnected) {
               <!-- Direct edit link -->
               <div style="margin-top:14px; text-align:right;">
                 <a href="./?pppoe=user&id=<?= urlencode($sId); ?>&session=<?= $session; ?>" class="btn btn-xs bg-secondary text-white" style="padding:4px 10px;">
-                  <i class="fa fa-edit"></i> Full Edit in PPPoE Secret Form
+                  <i class="fa fa-edit"></i> <?= $isBn ? 'পিপিপিওই ফর্মে সম্পূর্ণ এডিট করুন' : 'Full Edit in PPPoE Secret Form'; ?>
                 </a>
               </div>
             </div>

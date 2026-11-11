@@ -47,7 +47,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $datalimit = ($datalimit === '') ? '0' : (string)((float)$datalimit * $mbgb);
 
     if ($name === '' || $password === '' || $profile === '') {
-      $addUserError = 'Username, password and profile are required.';
+      $addUserError = ($langid === 'bn') ? 'ইউজারনেম, পাসওয়ার্ড এবং প্রোফাইল আবশ্যক।' : 'Username, password and profile are required.';
     } else {
       $usermode = ($name === $password) ? 'vc-' : 'up-';
       $routerComment = $usermode . $comment;
@@ -65,7 +65,7 @@ if (!isset($_SESSION["mikhmon"])) {
       }
 
       if ($duplicate) {
-        $addUserError = 'This username already exists on the selected router.';
+        $addUserError = ($langid === 'bn') ? 'এই ইউজারনেমটি ইতিমধ্যেই রাউটারে বিদ্যমান আছে।' : 'This username already exists on the selected router.';
       } else {
         $addResult = $API->comm('/ip/hotspot/user/add', array(
           'server' => $server,
@@ -80,7 +80,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
         $apiRejected = is_array($addResult) && (isset($addResult['!trap']) || isset($addResult['!fatal']));
         if ($apiRejected) {
-          $addUserError = 'MikroTik rejected the user creation request. Check the username, profile and router permissions.';
+          $addUserError = ($langid === 'bn') ? 'মাইক্রোটিক রাউটার ইউজার তৈরির অনুরোধ গ্রহণ করেনি। ইউজারনেম ও প্রোফাইল যাচাই করুন।' : 'MikroTik rejected the user creation request. Check the username, profile and router permissions.';
         } else {
           // Verify the account on the router before showing a success message.
           $verifiedUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
@@ -101,14 +101,14 @@ if (!isset($_SESSION["mikhmon"])) {
               'profile' => $profile,
               'target' => $name
             ));
-            $_SESSION['ngw_adduser_success'] = 'User "' . $name . '" added successfully.';
+            $_SESSION['ngw_adduser_success'] = ($langid === 'bn') ? ('ইউজার "' . $name . '" সফলভাবে তৈরি হয়েছে।') : ('User "' . $name . '" added successfully.');
             // The main index template may already have emitted HTML, so use a
             // same-page client redirect rather than a PHP header redirect.
             $addUserReturnUrl = './?hotspot-user=add&session=' . rawurlencode((string)$session);
             echo '<script>window.location.replace(' . json_encode($addUserReturnUrl) . ');</script>';
             exit;
           }
-          $addUserError = 'Router confirmation failed. Check the user list before trying again.';
+          $addUserError = ($langid === 'bn') ? 'রাউটার নিশ্চিতকরণ ব্যর্থ হয়েছে। ইউজার লিস্ট চেক করে আবার চেষ্টা করুন।' : 'Router confirmation failed. Check the user list before trying again.';
         }
       }
     }
@@ -150,7 +150,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
 <table class="table">
   <tr>
-    <td class="align-middle" >Server</td>
+    <td class="align-middle" ><?= isset($_server) ? $_server : 'Server'; ?></td>
     <td>
 			<select class="form-control" name="server" required="1">
 				<option>all</option>

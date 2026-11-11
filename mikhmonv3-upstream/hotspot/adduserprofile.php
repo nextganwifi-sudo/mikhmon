@@ -130,7 +130,7 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
 <div class="col-8">
 <div class="card box-bordered">
   <div class="card-header">
-    <h3><i class="fa fa-plus"></i> <?= $_add.' '.$_user_profile ?> <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> Processing... </i></small></h3>
+    <h3><i class="fa fa-plus"></i> <?= $_add.' '.$_user_profile ?> <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> <?= ($langid === 'bn') ? 'প্রসেস হচ্ছে...' : 'Processing...'; ?> </i></small></h3>
   </div>
   <div class="card-body">
 <form autocomplete="off" method="post" action="">
@@ -143,7 +143,7 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
     <td class="align-middle"><?= $_name ?></td><td><input class="form-control" type="text" onchange="remSpace();" autocomplete="off" name="name" value="" required="1" autofocus></td>
   </tr>
   <tr>
-    <td class="align-middle">Address Pool</td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'অ্যাড্রেস পুল (Address Pool)' : 'Address Pool'; ?></td>
     <td>
     <select class="form-control " name="ppool">
       <option>none</option>
@@ -157,20 +157,20 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
     </td>
   </tr>
   <tr>
-    <td class="align-middle">Shared Users</td><td><input class="form-control" type="text" size="4" autocomplete="off" name="sharedusers" value="1" required="1"></td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'শেয়ার্ড ইউজার (Shared Users)' : 'Shared Users'; ?></td><td><input class="form-control" type="text" size="4" autocomplete="off" name="sharedusers" value="1" required="1"></td>
   </tr>
   <tr>
-    <td class="align-middle">Rate limit [up/down]</td><td><input class="form-control" type="text" name="ratelimit" autocomplete="off" value="" placeholder="Example : 512k/1M" ></td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'রেট লিমিট [আপ/ডাউন]' : 'Rate limit [up/down]'; ?></td><td><input class="form-control" type="text" name="ratelimit" autocomplete="off" value="" placeholder="<?= ($langid === 'bn') ? 'উদাহরণ : 512k/1M' : 'Example : 512k/1M'; ?>" ></td>
   </tr>
   <tr>
     <td class="align-middle"><?= $_expired_mode ?></td><td>
       <select class="form-control" onchange="RequiredV();" id="expmode" name="expmode" required="1">
-        <option value="">Select...</option>
-        <option value="0">None</option>
-        <option value="rem">Remove</option>
-        <option value="ntf">Notice</option>
-        <option value="remc">Remove & Record</option>
-        <option value="ntfc">Notice & Record</option>
+        <option value=""><?= ($langid === 'bn') ? 'নির্বাচন করুন...' : 'Select...'; ?></option>
+        <option value="0"><?= ($langid === 'bn') ? 'কোনোটিই নয় (None)' : 'None'; ?></option>
+        <option value="rem"><?= ($langid === 'bn') ? 'রিমুভ (Remove)' : 'Remove'; ?></option>
+        <option value="ntf"><?= ($langid === 'bn') ? 'নোটিশ (Notice)' : 'Notice'; ?></option>
+        <option value="remc"><?= ($langid === 'bn') ? 'রিমুভ ও রেকর্ড (Remove & Record)' : 'Remove & Record'; ?></option>
+        <option value="ntfc"><?= ($langid === 'bn') ? 'নোটিশ ও রেকর্ড (Notice & Record)' : 'Notice & Record'; ?></option>
       </select>
     </td>
   </tr>
@@ -189,13 +189,13 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
   <tr>
     <td><?= $_lock_user ?></td><td>
       <select class="form-control" id="lockunlock" name="lockunlock" required="1">
-        <option value="Disable">Disable</option>
-        <option value="Enable">Enable</option>
+        <option value="Disable"><?= ($langid === 'bn') ? 'বন্ধ (Disable)' : 'Disable'; ?></option>
+        <option value="Enable"><?= ($langid === 'bn') ? 'চালু (Enable)' : 'Enable'; ?></option>
       </select>
     </td>
   </tr>
   <tr>
-    <td class="align-middle">Parent Queue</td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'প্যারেন্ট কিউ (Parent Queue)' : 'Parent Queue'; ?></td>
     <td>
     <select class="form-control " name="parent">
       <option>none</option>

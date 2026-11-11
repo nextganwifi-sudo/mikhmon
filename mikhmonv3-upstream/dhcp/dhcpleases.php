@@ -32,12 +32,12 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="col-12">
 <div class="card">
 <div class="card-header">
-	<h3><i class=" fa fa-sitemap"></i> DHCP Leases 
+	<h3><i class=" fa fa-sitemap"></i> <?= $_dhcp_leases ?> 
 <?php
 if ($countlease < 2) {
-	echo "$countlease item";
+	echo $countlease . ($langid === 'bn' ? " টি আইটেম" : " item");
 } elseif ($countlease > 1) {
-	echo "$countlease items";
+	echo $countlease . ($langid === 'bn' ? " টি আইটেম" : " items");
 };
 echo "</th>";
 ?>
@@ -46,20 +46,20 @@ echo "</th>";
 </div>
 <div class="card-body">	   
 <div class="w-6">
-    <input id="filterTable" type="text" class="form-control" placeholder="Search..">
+    <input id="filterTable" type="text" class="form-control" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>">
   </div>
 <div class="overflow box-bordered mr-t-10" style="max-height: 75vh">   	   
 <table id="dataTable" class="table table-bordered table-hover text-nowrap">
   <thead>
   <tr>
   	<th></th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> MAC Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Server</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Active Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Active MAC Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Active Host Name</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Status</th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'অ্যাড্রেস' : 'Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'MAC Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'সার্ভার' : 'Server'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভ অ্যাড্রেস' : 'Active Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভ ম্যাক অ্যাড্রেস' : 'Active MAC Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভ হোস্ট নেম' : 'Active Host Name'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_status ?></th>
   </tr>
   </thead>
   <tbody> 

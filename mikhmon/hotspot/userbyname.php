@@ -309,14 +309,14 @@ include('./voucher/printbt.php');
     <button type="submit" name="save" class="btn bg-primary" > <i class="fa fa-save"></i> <?= $_save ?></button>
     <?php } ?>
     <?php if (hasResellerPermission('delete_user')) { ?>
-    <div class="btn bg-danger"  onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></div>
+    <div class="btn bg-danger"  onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?'; ?>')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></div>
     <?php } ?>
     <?php if (hasResellerPermission('print_voucher')) { ?>
     <a class="btn bg-secondary"  title="Print" href="javascript:window.open('./voucher/print.php?user=<?= $usermode . "-" . $uname; ?>&qr=no&session=<?= $session; ?>','_blank','width=310,height=450').print();"> <i class="fa fa-print"></i> <?= $_print ?></a>
     <a class="btn bg-info"  title="Print QR" href="javascript:window.open('./voucher/print.php?user=<?= $usermode . "-" . $uname; ?>&qr=yes&session=<?= $session; ?>','_blank','width=310,height=450').print();"> <i class="fa fa-qrcode"></i> <?= $_print_qr ?></a>
     <?php } ?>
     <?php if (hasResellerPermission('enable_disable_user') && ($utimelimit == "1s" || $utimelimit == "00:00:01")) {
-      echo '<a class="btn bg-info"  href="./?reset-hotspot-user=' . $uid . '&session=' . $session . '"> <i class="fa fa-retweet"></i> Reset</a>';
+      echo '<a class="btn bg-info"  href="./?reset-hotspot-user=' . $uid . '&session=' . $session . '"> <i class="fa fa-retweet"></i> ' . $_reset . '</a>';
     } ?>
     <?php if (hasResellerPermission('print_voucher')) { ?>
     <a id="shareWA" class="btn bg-green" title="Share WhatsApp" href="whatsapp://send?text=<?= $shareWA; ?>"> <i class="fa fa-whatsapp"></i> <?= $_share ?></a>
@@ -326,21 +326,21 @@ include('./voucher/printbt.php');
   </div>
 <table class="table">
   <tr>
-    <td class="align-middle">Enabled</td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'সক্রিয় (Enabled)' : 'Enabled'; ?></td>
     <td>
 			<select class="form-control" name="disabled" required="1">
 				<option value="<?= $ueduser; ?>"><?php if ($ueduser == "true") {
-          echo "No";
+          echo $_no;
         } else {
-          echo "Yes";
+          echo $_yes;
         } ?></option>
-				<option value="no">Yes</option>
-				<option value="yes">No</option>
+				<option value="no"><?= $_yes ?></option>
+				<option value="yes"><?= $_no ?></option>
 			</select>
     </td>
   </tr>
   <tr>
-    <td class="align-middle">Server</td>
+    <td class="align-middle"><?= isset($_server) ? $_server : 'Server'; ?></td>
     <td>
 			<select class="form-control" name="server" required="1">
 				<option><?php if ($userver == "") {
@@ -387,16 +387,16 @@ include('./voucher/printbt.php');
 		</td>
 	</tr>
   <tr>
-    <td class="align-middle">Mac Address</td><td><input class="form-control" type="text" value="<?= $umac; ?>"></td>
+    <td class="align-middle"><?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?></td><td><input class="form-control" type="text" value="<?= $umac; ?>"></td>
   </tr>
   <tr>
-    <td class="align-middle">Uptime</td><td><input class="form-control" type="text" value="<?php if ($uuptime == 0) {
+    <td class="align-middle"><?= $_uptime_user ?></td><td><input class="form-control" type="text" value="<?php if ($uuptime == 0) {
       } else {
         echo $uuptime;
       } ?>" disabled></td>
   </tr>
   <tr>
-    <td class="align-middle">Bytes  In / Out</td><td><input class="form-control" type="text" value="<?php if ($ubytesout == 0) {
+    <td class="align-middle"><?= ($langid === 'bn') ? 'ডেটা ব্যবহার (ইন / আউট)' : 'Bytes  In / Out'; ?></td><td><input class="form-control" type="text" value="<?php if ($ubytesout == 0) {
     } else {
       echo formatBytes($ubytesin, 2);
     } ?> / <?php if ($ubytesout == 0) {

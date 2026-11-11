@@ -189,17 +189,17 @@ date_default_timezone_set($_SESSION['timezone']);
 </div>
 <div id="voucher-batch-status" role="status" aria-live="polite" style="margin:12px 0;"></div>
 <progress id="voucher-batch-progress" value="0" max="100" style="display:none;width:100%;"></progress>
-<button type="button" id="voucher-batch-resume" class="btn bg-warning" style="display:none;">Resume this batch</button>
-<noscript><p>Enable JavaScript to generate vouchers.</p></noscript>
+<button type="button" id="voucher-batch-resume" class="btn bg-warning" style="display:none;"><?= ($langid === 'bn') ? 'ব্যাচ জেনারেশন পুনরায় শুরু করুন' : 'Resume this batch'; ?></button>
+<noscript><p><?= ($langid === 'bn') ? 'ভাউচার জেনারেট করতে জাভাস্ক্রিপ্ট চালু করুন।' : 'Enable JavaScript to generate vouchers.'; ?></p></noscript>
 <?php if ($isVoucherResultRequest && isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'])) { ?>
-<div class="alert alert-success"><?= (int)$_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'] ?> vouchers generated successfully.</div>
+<div class="alert alert-success"><?= (int)$_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'] ?> <?= ($langid === 'bn') ? 'টি ভাউচার সফলভাবে জেনারেট হয়েছে।' : 'vouchers generated successfully.'; ?></div>
 <?php } ?>
 <table class="table">
   <tr>
     <td class="align-middle"><?= $_qty ?></td><td><div><input class="form-control " type="number" name="qty" min="1" max="500" value="1" required="1"></div></td>
   </tr>
   <tr>
-    <td class="align-middle">Server</td>
+    <td class="align-middle"><?= isset($_server) ? $_server : 'Server'; ?></td>
     <td>
 		<select class="form-control " name="server" required="1">
 			<option>all</option>
@@ -357,6 +357,6 @@ function GetVP(){
 </div>
 
 <script>
-window.ngwVoucherBatch = <?= json_encode(array('router'=>(string)$session, 'csrf'=>$_SESSION['voucher_batch_csrf'], 'job'=>$voucherBatchId), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+window.ngwVoucherBatch = <?= json_encode(array('router'=>(string)$session, 'csrf'=>$_SESSION['voucher_batch_csrf'], 'job'=>$voucherBatchId, 'lang'=>isset($langid) ? $langid : 'en'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 </script>
-<script src="./js/voucher-batch.js?v=1"></script>
+<script src="./js/voucher-batch.js?v=2"></script>

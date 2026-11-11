@@ -14,6 +14,8 @@ if (isset($_SERVER["REQUEST_URI"]) && substr($_SERVER["REQUEST_URI"], -16) == "r
     exit;
 }
 
+include_once __DIR__ . '/lang.php';
+
 if (!defined('JSON_PRETTY_PRINT')) {
     define('JSON_PRETTY_PRINT', 128);
 }

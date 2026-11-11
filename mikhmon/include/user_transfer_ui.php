@@ -1,6 +1,11 @@
 <?php
-// Text and language selection scoped to User Transfer.
-include __DIR__ . '/lang.php';
+// Text and language selection scoped to User Transfer (isolated per user).
+include_once __DIR__ . '/lang.php';
+if (isset($_GET['lang']) && in_array($_GET['lang'], array('en', 'bn'), true)) {
+    $langid = ngwSaveCurrentUserLang($_GET['lang']);
+} elseif (isset($_GET['setlang']) && in_array($_GET['setlang'], array('en', 'bn'), true)) {
+    $langid = ngwSaveCurrentUserLang($_GET['setlang']);
+}
 $transferLanguage = isset($langid) ? $langid : 'en';
 $transferStrings = $transferLanguage === 'bn' ? array(
     'Ready.' => 'প্রস্তুত।',

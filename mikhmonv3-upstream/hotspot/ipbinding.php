@@ -36,16 +36,16 @@ if (!isset($_SESSION["mikhmon"])) {
 	<h3><i class=" fa fa-address-book"></i> <?= $_ip_bindings ?> 
 <?php
 if ($countbinding < 2) {
-	echo "$countbinding item";
+	echo $countbinding . ($langid === 'bn' ? " টি আইটেম" : " item");
 } elseif ($countbinding > 1) {
-	echo "$countbinding items";
+	echo $countbinding . ($langid === 'bn' ? " টি আইটেম" : " items");
 };
 ?>
     </h3>
 </div>
 <div class="card-body">	   
 <div class="w-6">
-    <input id="filterTable" type="text" class="form-control" placeholder="Search..">
+    <input id="filterTable" type="text" class="form-control" placeholder="<?= ($langid === 'bn') ? 'খুঁজুন..' : 'Search..'; ?>">
   </div>
 <div class="overflow box-bordered mr-t-10" style="max-height: 75vh">  	   
 <table id="dataTable" class="table table-bordered table-hover text-nowrap"> 
@@ -54,10 +54,10 @@ if ($countbinding < 2) {
     <th></th>
     <th></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> MAC Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> To Address</th>
-    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> Server</th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'MAC Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'অ্যাড্রেস' : 'Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'টু অ্যাড্রেস' : 'To Address'; ?></th>
+    <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'সার্ভার' : 'Server'; ?></th>
   </tr>
   </thead>
   <tbody> 

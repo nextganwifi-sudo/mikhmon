@@ -176,13 +176,14 @@ if (isset($_GET['edit_admin']) && $_GET['edit_admin'] !== '') {
   }
 }
 
+$isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 if (isset($_GET['msg'])) {
-  if ($_GET['msg'] === 'added') $settingsSuccess = 'New Admin user added successfully!';
-  elseif ($_GET['msg'] === 'updated') $settingsSuccess = 'Admin user updated successfully!';
-  elseif ($_GET['msg'] === 'deleted') $settingsSuccess = 'Admin user removed successfully!';
-  elseif ($_GET['msg'] === 'qrsaved') $settingsSuccess = 'Quick Print QR setting saved successfully!';
+  if ($_GET['msg'] === 'added') $settingsSuccess = $isBn ? 'নতুন অ্যাডমিন ইউজার সফলভাবে যুক্ত হয়েছে!' : 'New Admin user added successfully!';
+  elseif ($_GET['msg'] === 'updated') $settingsSuccess = $isBn ? 'অ্যাডমিন ইউজার সফলভাবে আপডেট হয়েছে!' : 'Admin user updated successfully!';
+  elseif ($_GET['msg'] === 'deleted') $settingsSuccess = $isBn ? 'অ্যাডমিন ইউজার সফলভাবে মুছে ফেলা হয়েছে!' : 'Admin user removed successfully!';
+  elseif ($_GET['msg'] === 'qrsaved') $settingsSuccess = $isBn ? 'কুইক প্রিন্ট QR সেটিং সংরক্ষিত হয়েছে!' : 'Quick Print QR setting saved successfully!';
 } elseif (isset($_GET['saved']) && $_GET['saved'] == '1') {
-  $settingsSuccess = 'Admin settings saved successfully!';
+  $settingsSuccess = $isBn ? 'অ্যাডমিন সেটিংস সফলভাবে সংরক্ষিত হয়েছে!' : 'Admin settings saved successfully!';
 }
 ?>
 <script>
@@ -201,15 +202,15 @@ if (isset($_GET['msg'])) {
   <div class="col-6">
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <h3 class="card-title" style="margin:0;"><i class="fa fa-user-secret"></i> Admin Users &amp; Settings</h3>
+        <h3 class="card-title" style="margin:0;"><i class="fa fa-user-secret"></i> <?= $isBn ? 'অ্যাডমিন ইউজার ও সেটিংস' : 'Admin Users &amp; Settings'; ?></h3>
         <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(31,111,235,0.25);color:#fff;font-weight:bold;">
-          <?= count($adminUsers); ?> Admin <?= count($adminUsers) === 1 ? 'User' : 'Users'; ?>
+          <?= count($adminUsers); ?> <?= $isBn ? 'জন অ্যাডমিন' : ('Admin ' . (count($adminUsers) === 1 ? 'User' : 'Users')); ?>
         </span>
       </div>
       <div class="card-body">
         <?php if ($forcePasswordChange) { ?>
         <div role="alert" style="padding:8px 12px; margin-bottom:10px; border-radius:4px; background:rgba(220,53,69,0.12); border:1px solid #dc3545; color:#dc3545; font-weight:bold;">
-          First login security: change the default administrator password before using the software.
+          <?= $isBn ? 'প্রথমবার লগইন নিরাপত্তা: সফটওয়্যার ব্যবহারের আগে ডিফল্ট অ্যাডমিন পাসওয়ার্ড পরিবর্তন করুন।' : 'First login security: change the default administrator password before using the software.'; ?>
         </div>
         <?php } ?>
         <?php if (!empty($settingsError)) { ?>
@@ -229,19 +230,19 @@ if (isset($_GET['msg'])) {
           <input type="hidden" name="edit_admin_id" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['id'], ENT_QUOTES, 'UTF-8') : ''; ?>">
           <div style="font-weight:bold; color:<?= $editingAdmin ? '#f0ad4e' : '#2ea043'; ?>; margin-bottom:8px; font-size:13px;">
             <i class="fa <?= $editingAdmin ? 'fa-pencil-square-o' : 'fa-user-plus'; ?>"></i>
-            <?= $editingAdmin ? ('Edit Admin User: ' . htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8')) : 'Add New Admin User'; ?>
+            <?= $editingAdmin ? (($isBn ? 'অ্যাডমিন ইউজার সম্পাদনা: ' : 'Edit Admin User: ') . htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8')) : ($isBn ? 'নতুন অ্যাডমিন ইউজার যুক্ত করুন' : 'Add New Admin User'); ?>
           </div>
           <table class="table table-sm" style="margin-bottom:6px;">
             <tr>
-              <td class="align-middle" style="width:34%;">Full Name</td>
+              <td class="align-middle" style="width:34%;"><?= $isBn ? 'পূর্ণ নাম' : 'Full Name'; ?></td>
               <td>
-                <input class="form-control" type="text" name="admin_name" maxlength="80" placeholder="e.g. Administrator / Manager" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+                <input class="form-control" type="text" name="admin_name" maxlength="80" placeholder="<?= $isBn ? 'যেমন: Administrator / Manager' : 'e.g. Administrator / Manager'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
               </td>
             </tr>
             <tr>
               <td class="align-middle"><?= $_user_name ?></td>
               <td>
-                <input class="form-control" type="text" name="admin_username" maxlength="64" placeholder="Enter Admin Username" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+                <input class="form-control" type="text" name="admin_username" maxlength="64" placeholder="<?= $isBn ? 'অ্যাডমিন ইউজারনেম লিখুন' : 'Enter Admin Username'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
               </td>
             </tr>
             <tr>
@@ -249,7 +250,7 @@ if (isset($_GET['msg'])) {
               <td>
                 <div class="input-group">
                   <div class="input-group-11 col-box-10">
-                    <input class="group-item group-item-l" id="adm_user_pass" type="password" name="admin_password" placeholder="<?= $editingAdmin ? 'Leave blank to keep current password' : 'Enter Admin Password'; ?>" autocomplete="new-password" <?= $editingAdmin ? '' : 'required'; ?>>
+                    <input class="group-item group-item-l" id="adm_user_pass" type="password" name="admin_password" placeholder="<?= $editingAdmin ? ($isBn ? 'বর্তমান পাসওয়ার্ড রাখতে খালি রাখুন' : 'Leave blank to keep current password') : ($isBn ? 'অ্যাডমিন পাসওয়ার্ড লিখুন' : 'Enter Admin Password'); ?>" autocomplete="new-password" <?= $editingAdmin ? '' : 'required'; ?>>
                   </div>
                   <div class="input-group-1 col-box-2">
                     <div class="group-item group-item-r pd-2p5 text-center align-middle">
@@ -262,13 +263,13 @@ if (isset($_GET['msg'])) {
           </table>
           <div style="display:flex; justify-content:flex-end; gap:6px;">
             <?php if ($editingAdmin) { ?>
-              <a class="btn bg-secondary" href="./admin.php?id=admin-settings"><i class="fa fa-times"></i> Cancel</a>
+              <a class="btn bg-secondary" href="./admin.php?id=admin-settings"><i class="fa fa-times"></i> <?= $isBn ? 'বাতিল' : 'Cancel'; ?></a>
               <button class="btn bg-warning" type="submit" name="save_admin_user" style="cursor:pointer;">
-                <i class="fa fa-check"></i> Update Admin User
+                <i class="fa fa-check"></i> <?= $isBn ? 'আপডেট করুন' : 'Update Admin User'; ?>
               </button>
             <?php } else { ?>
               <button class="btn bg-primary" type="submit" name="save_admin_user" style="cursor:pointer;">
-                <i class="fa fa-plus"></i> Add Admin User
+                <i class="fa fa-plus"></i> <?= $isBn ? 'অ্যাডমিন যুক্ত করুন' : 'Add Admin User'; ?>
               </button>
             <?php } ?>
           </div>
@@ -276,16 +277,16 @@ if (isset($_GET['msg'])) {
 
         <!-- Admin Users List Table -->
         <div style="font-weight:bold; color:#3c8dbc; margin-bottom:6px; font-size:13px;">
-          <i class="fa fa-users"></i> Configured Admin Users
+          <i class="fa fa-users"></i> <?= $isBn ? 'কনফিগারকৃত অ্যাডমিন ইউজার তালিকা' : 'Configured Admin Users'; ?>
         </div>
         <div class="overflow" style="margin-bottom:14px;">
           <table class="table table-bordered table-hover table-sm" style="margin-bottom:0;">
             <thead>
               <tr>
                 <th style="width:28px;">#</th>
-                <th>Full Name</th>
-                <th>Username</th>
-                <th style="width:105px;" class="text-center">Action</th>
+                <th><?= $isBn ? 'পূর্ণ নাম' : 'Full Name'; ?></th>
+                <th><?= $_user_name ?></th>
+                <th style="width:105px;" class="text-center"><?= $_action ?></th>
               </tr>
             </thead>
             <tbody>
@@ -297,19 +298,19 @@ if (isset($_GET['msg'])) {
                 <td class="align-middle">
                   <b><?= htmlspecialchars($adm['name'], ENT_QUOTES, 'UTF-8'); ?></b>
                   <?php if ($isSelf) { ?>
-                    <span style="font-size:10px; padding:1px 6px; border-radius:8px; background:#2ea043; color:#fff; margin-left:4px;">You</span>
+                    <span style="font-size:10px; padding:1px 6px; border-radius:8px; background:#2ea043; color:#fff; margin-left:4px;"><?= $isBn ? 'আপনি' : 'You'; ?></span>
                   <?php } ?>
                 </td>
                 <td class="align-middle"><code><?= htmlspecialchars($adm['username'], ENT_QUOTES, 'UTF-8'); ?></code></td>
                 <td class="align-middle text-center" style="white-space:nowrap;">
-                  <a class="btn bg-primary" style="padding:2px 6px; font-size:11px; margin:1px;" href="./admin.php?id=admin-settings&edit_admin=<?= urlencode($adm['id']); ?>" title="Edit Admin User">
-                    <i class="fa fa-edit"></i> Edit
+                  <a class="btn bg-primary" style="padding:2px 6px; font-size:11px; margin:1px;" href="./admin.php?id=admin-settings&edit_admin=<?= urlencode($adm['id']); ?>" title="<?= $isBn ? 'সম্পাদনা' : 'Edit Admin User'; ?>">
+                    <i class="fa fa-edit"></i> <?= $_edit ?>
                   </a>
                   <?php if (count($adminUsers) > 1) { ?>
-                  <form method="post" action="./admin.php?id=admin-settings" style="display:inline; margin:0;" onsubmit="return confirm('Delete Admin user <?= htmlspecialchars(addslashes($adm['username']), ENT_QUOTES, 'UTF-8'); ?>?');">
+                  <form method="post" action="./admin.php?id=admin-settings" style="display:inline; margin:0;" onsubmit="return confirm('<?= $isBn ? 'অ্যাডমিন ইউজার মুছে ফেলবেন: ' : 'Delete Admin user ' ?><?= htmlspecialchars(addslashes($adm['username']), ENT_QUOTES, 'UTF-8'); ?>?');">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="delete_admin_id" value="<?= htmlspecialchars($adm['id'], ENT_QUOTES, 'UTF-8'); ?>">
-                    <button type="submit" name="delete_admin_user" class="btn bg-danger" style="padding:2px 6px; font-size:11px; cursor:pointer; margin:1px;" title="Delete Admin User">
+                    <button type="submit" name="delete_admin_user" class="btn bg-danger" style="padding:2px 6px; font-size:11px; cursor:pointer; margin:1px;" title="<?= $_delete ?>">
                       <i class="fa fa-trash"></i>
                     </button>
                   </form>
