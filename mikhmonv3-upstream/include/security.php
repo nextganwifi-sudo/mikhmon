@@ -18,14 +18,24 @@ function ngwConfigureSecureSession() {
     ini_set('session.cookie_samesite', $samesite);
 
     $params = session_get_cookie_params();
-    session_set_cookie_params(array(
-        'lifetime' => isset($params['lifetime']) ? (int)$params['lifetime'] : 0,
-        'path' => isset($params['path']) && $params['path'] !== '' ? $params['path'] : '/',
-        'domain' => isset($params['domain']) ? $params['domain'] : '',
-        'secure' => $isHttps,
-        'httponly' => true,
-        'samesite' => $samesite,
-    ));
+    if (PHP_VERSION_ID >= 70300) {
+        @session_set_cookie_params(array(
+            'lifetime' => isset($params['lifetime']) ? (int)$params['lifetime'] : 0,
+            'path' => isset($params['path']) && $params['path'] !== '' ? $params['path'] : '/',
+            'domain' => isset($params['domain']) ? $params['domain'] : '',
+            'secure' => $isHttps,
+            'httponly' => true,
+            'samesite' => $samesite,
+        ));
+    } else {
+        @session_set_cookie_params(
+            isset($params['lifetime']) ? (int)$params['lifetime'] : 0,
+            (isset($params['path']) && $params['path'] !== '' ? $params['path'] : '/') . '; samesite=' . $samesite,
+            isset($params['domain']) ? $params['domain'] : '',
+            $isHttps,
+            true
+        );
+    }
 }
 
 function ngwCsrfToken($sessionKey = 'ngw_csrf_token') {

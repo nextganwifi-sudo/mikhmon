@@ -45,27 +45,43 @@ if (!isset($_SESSION["mikhmon"])) {
         <?php } ?>
         <div class="row">
           <?php
-          foreach (file('./include/config.php') as $line) {
-            $value = explode("'", $line)[1];
-            if ($value == "" || $value == "mikhmon" || !canAccessRouterSession($value)) {
-            } else { ?>
+          $configLines = is_file('./include/config.php') ? @file('./include/config.php') : array();
+          if (!is_array($configLines)) {
+            $configLines = array();
+          }
+          foreach ($configLines as $line) {
+            if (strpos($line, "'") === false) {
+              continue;
+            }
+            $parts = explode("'", $line);
+            if (!isset($parts[1])) {
+              continue;
+            }
+            $value = $parts[1];
+            if ($value === "" || $value === "mikhmon" || !canAccessRouterSession($value)) {
+              continue;
+            }
+            $hsName = (isset($data[$value][4]) && strpos($data[$value][4], '%') !== false)
+              ? explode('%', $data[$value][4])[1]
+              : $value;
+          ?>
               <div class="col-6" data-router-card>
                 <div class="box bmh-75 box-bordered <?= $color[rand(1, 11)]; ?>">
                   <div class="box-group">
                     <div class="box-group-icon">
-                      <span class="connect pointer" id="<?= $value; ?>">
+                      <span class="connect pointer" id="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>">
                         <i class="fa fa-server"></i>
                       </span>
                     </div>
                     <div class="box-group-area">
                       <span>
-                        <?= $_hotspot_name ?> : <?= explode('%', $data[$value][4])[1]; ?><br>
-                        <?= $_session_name ?> : <?= $value; ?><br>
-                        <span class="connect pointer" id="<?= $value; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
+                        <?= $_hotspot_name ?> : <?= htmlspecialchars($hsName, ENT_QUOTES, 'UTF-8'); ?><br>
+                        <?= $_session_name ?> : <?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?><br>
+                        <span class="connect pointer" id="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
                         <?php if (hasResellerPermission('manage_router_settings')) { 
-                          $delSessionMsg = ($langid === 'bn' ? 'আপনি কি নিশ্চিত যে এই রাউটার সেশন ডিলিট করতে চান: ' : 'Are you sure to delete data ') . $value . ' (' . explode('%', $data[$value][4])[1] . ')?';
+                          $delSessionMsg = ($langid === 'bn' ? 'আপনি কি নিশ্চিত যে এই রাউটার সেশন ডিলিট করতে চান: ' : 'Are you sure to delete data ') . $value . ' (' . $hsName . ')?';
                         ?>
-                        <a href="./admin.php?id=settings&session=<?= $value; ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
+                        <a href="./admin.php?id=settings&session=<?= urlencode($value); ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
                         <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delSessionMsg); ?>)){loadpage("./admin.php?id=remove-session&session=<?= urlencode($value); ?>")}else{}'><i class="fa fa-remove"></i> <?= $_delete ?></a>
                         <?php } ?>
                       </span>
@@ -74,7 +90,6 @@ if (!isset($_SESSION["mikhmon"])) {
                 </div>
               </div>
           <?php
-            }
           }
           ?>
         </div>

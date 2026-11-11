@@ -28,7 +28,9 @@ if (!isset($_SESSION["mikhmon"])) {
   include ('./include/lang.php');
 
   $btnmenuactive = "font-weight: bold;background-color: #f9f9f9; color: #000000";
-  if ($hotspot == "dashboard" || substr(end(explode("/", $url)), 0, 8) == "?session") {
+  $urlParts = explode("/", (string)$url);
+  $urlLastSegment = end($urlParts);
+  if ($hotspot == "dashboard" || substr((string)$urlLastSegment, 0, 8) == "?session") {
     $shome = "active";
     $mpage = $_dashboard;
   } elseif ($hotspot == "users" || $userbyprofile != "" || $hotspot == "export-users" || $removehotspotuserbycomment != "" || $removehotspotuser != "" || $removehotspotusers != "" || $disablehotspotuser || $enablehotspotuser != "" || $resethotspotmacs != "") {

@@ -1,2 +1,45 @@
 <?php http_response_code(404); exit; ?>
-[]
+{
+    "0ee1f25294ab9fa42d17df42d0bcd758": {
+        "token": "0ee1f25294ab9fa42d17df42d0bcd758",
+        "php_sid": "6p0jrvmnbio8ipr41n50jhapi3",
+        "username": "mikhmon",
+        "display_name": "Administrator",
+        "role": "admin",
+        "impersonated_by": "",
+        "ip": "169.254.169.126",
+        "area": "Dhaka, Bangladesh (Asia/Dhaka)",
+        "device": "Windows 10/11 \u00b7 Chrome 157 (Desktop)",
+        "device_type": "Desktop",
+        "os": "Windows 10/11",
+        "browser": "Chrome 157",
+        "current_page": "Router",
+        "router_session": "Local",
+        "login_at": "2026-11-11 23:14:01",
+        "login_ts": 1794438841,
+        "last_active": "2026-11-11 23:22:13",
+        "last_active_ts": 1794439333,
+        "revoked": false
+    },
+    "test": {
+        "token": "test",
+        "php_sid": "44lptv467kkt1chd2ojgurn1qk",
+        "username": "mikhmon",
+        "display_name": "Administrator",
+        "role": "admin",
+        "impersonated_by": "",
+        "ip": "127.0.0.1",
+        "area": "Local Area",
+        "device": "Unknown OS \u00b7 Browser (Desktop)",
+        "device_type": "Desktop",
+        "os": "Unknown OS",
+        "browser": "Browser",
+        "current_page": "Router List",
+        "router_session": "",
+        "login_at": "2026-11-11 23:22:11",
+        "login_ts": 1794439331,
+        "last_active": "2026-11-11 23:22:11",
+        "last_active_ts": 1794439331,
+        "revoked": false
+    }
+}
