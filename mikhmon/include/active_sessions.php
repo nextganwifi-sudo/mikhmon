@@ -17,8 +17,8 @@
         "router_session": "Local",
         "login_at": "2026-11-11 22:36:35",
         "login_ts": 1794436595,
-        "last_active": "2026-11-11 22:42:17",
-        "last_active_ts": 1794436937,
+        "last_active": "2026-11-11 22:43:47",
+        "last_active_ts": 1794437027,
         "revoked": false
     }
 }
