@@ -94,6 +94,8 @@ if (!function_exists('ngwSyncToLiveDataVault')) {
             'include/config.php',
             'include/resellers.json',
             'include/admin_users.json',
+            'include/router_owners.json',
+            'include/license_usage.json',
             'include/backup_admin.json',
             'include/permission_groups.json',
             'include/vpn_routers.json',

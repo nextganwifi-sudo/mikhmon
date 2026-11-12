@@ -114,9 +114,54 @@ if (!isset($_SESSION["mikhmon"])) {
     }
   }*/
 }
+$dashQuotaAdm = function_exists('ngwResolveQuotaAdminForSession') ? ngwResolveQuotaAdminForSession($session) : null;
+$dashIsLicensed = is_array($dashQuotaAdm) && isset($dashQuotaAdm['admin_tier']) && $dashQuotaAdm['admin_tier'] === 'licensed_admin';
+$dashMaxActive = $dashIsLicensed && isset($dashQuotaAdm['max_active_users']) ? (int)$dashQuotaAdm['max_active_users'] : 0;
+$dashMaxTotal = $dashIsLicensed && isset($dashQuotaAdm['max_total_users']) ? (int)$dashQuotaAdm['max_total_users'] : 0;
+$dashMaxMonthly = $dashIsLicensed && isset($dashQuotaAdm['max_monthly_vouchers']) ? (int)$dashQuotaAdm['max_monthly_vouchers'] : 0;
+$dashUsedMonthly = ($dashIsLicensed && function_exists('ngwGetAdminMonthlyVoucherUsage')) ? ngwGetAdminMonthlyVoucherUsage($dashQuotaAdm['id']) : 0;
+$dashActiveExceeded = ($dashMaxActive > 0 && (int)$counthotspotactive >= $dashMaxActive);
+$dashTotalExceeded = ($dashMaxTotal > 0 && (int)$countallusers >= $dashMaxTotal);
 ?>
     
 <div id="reloadHome">
+<?php if ($dashIsLicensed) { ?>
+    <div class="row">
+      <div class="col-12">
+        <?php if ($dashActiveExceeded || $dashTotalExceeded) { ?>
+        <div role="alert" style="margin-bottom:10px; padding:10px 14px; border-radius:5px; background:rgba(220,53,69,0.16); border:1px solid #dc3545; color:#ff6b6b; font-weight:bold;">
+          <i class="fa fa-exclamation-triangle"></i>
+          <?php if ($dashActiveExceeded) { ?>
+            <?= ($langid === 'bn')
+              ? ('সতর্কবার্তা: আপনার রাউটারের অ্যাক্টিভ ইউজার লিমিট পূর্ণ হয়ে গেছে (' . (int)$counthotspotactive . '/' . $dashMaxActive . ' জন অনলাইনে)। নতুন ভাউচার জেনারেট সাময়িকভাবে ব্লক করা হয়েছে।')
+              : ('Warning: Active Hotspot User limit reached (' . (int)$counthotspotactive . '/' . $dashMaxActive . ' online). New voucher generation is blocked.'); ?>
+          <?php } else { ?>
+            <?= ($langid === 'bn')
+              ? ('সতর্কবার্তা: রাউটারের মোট হটস্পট ইউজার লিমিট পূর্ণ হয়ে গেছে (' . (int)$countallusers . '/' . $dashMaxTotal . ' টি ইউজার)। নতুন ভাউচার জেনারেট ব্লক করা হয়েছে।')
+              : ('Warning: Total Hotspot User limit reached (' . (int)$countallusers . '/' . $dashMaxTotal . ' users). New voucher generation is blocked.'); ?>
+          <?php } ?>
+        </div>
+        <?php } ?>
+        <div style="margin-bottom:10px; padding:8px 12px; border-radius:5px; background:rgba(31,111,235,0.08); border-left:4px solid #388bfd; font-size:12.5px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <span>
+            <i class="fa fa-shield text-primary"></i>
+            <b><?= ($langid === 'bn') ? 'লাইসেন্স কোটা:' : 'License Quotas:'; ?></b>
+            &nbsp;
+            <?= ($langid === 'bn') ? 'অ্যাক্টিভ ইউজার:' : 'Active Users:'; ?> <b><?= (int)$counthotspotactive; ?> / <?= $dashMaxActive > 0 ? $dashMaxActive : '∞'; ?></b>
+            &nbsp;·&nbsp;
+            <?= ($langid === 'bn') ? 'মোট ইউজার:' : 'Total Users:'; ?> <b><?= (int)$countallusers; ?> / <?= $dashMaxTotal > 0 ? $dashMaxTotal : '∞'; ?></b>
+            &nbsp;·&nbsp;
+            <?= ($langid === 'bn') ? 'মাসিক ভাউচার:' : 'Monthly Vouchers:'; ?> <b><?= (int)$dashUsedMonthly; ?> / <?= $dashMaxMonthly > 0 ? $dashMaxMonthly : '∞'; ?></b>
+          </span>
+          <?php if (!empty($dashQuotaAdm['license_expires_at'])) { ?>
+          <span>
+            <i class="fa fa-calendar"></i> <?= ($langid === 'bn') ? 'মেয়াদ:' : 'Expires:'; ?> <b><?= htmlspecialchars($dashQuotaAdm['license_expires_at'], ENT_QUOTES, 'UTF-8'); ?></b>
+          </span>
+          <?php } ?>
+        </div>
+      </div>
+    </div>
+<?php } ?>
 
     <div id="r_1" class="row">
       <div class="col-4">

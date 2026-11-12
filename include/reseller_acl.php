@@ -15,6 +15,7 @@ if (isset($_SERVER["REQUEST_URI"]) && substr($_SERVER["REQUEST_URI"], -16) == "r
 }
 
 include_once __DIR__ . '/lang.php';
+include_once __DIR__ . '/license_manager.php';
 
 if (!defined('JSON_PRETTY_PRINT')) {
     define('JSON_PRETTY_PRINT', 128);
@@ -771,6 +772,13 @@ function loadResellers($forceReload = false) {
             $res['logo_filename'] = '';
             $needsSave = true;
         }
+        if (empty($res['parent_admin_id'])) {
+            $res['parent_admin_id'] = 'adm_1';
+            $needsSave = true;
+        }
+        if (!isset($res['parent_admin_username'])) {
+            $res['parent_admin_username'] = '';
+        }
 
         $perms = isset($res['permissions']) && is_array($res['permissions']) ? $res['permissions'] : getStandardSellerPermissions();
         if ($res['permission_mode'] !== 'Reset Voucher') {
@@ -963,6 +971,18 @@ function enforceMikhmonSessionSecurity($isLoginOrLogout = false) {
         echo "<script>try{sessionStorage.removeItem('ngw_tab_auth');sessionStorage.removeItem('ngw_last_act');}catch(e){} window.location='./admin.php?id=login&reason=force_logout';</script>";
         exit;
     }
+    // Check if current Licensed Sub-Admin's license has expired or been suspended
+    if (isMikhmonAdmin() && function_exists('isLicensedSubAdmin') && isLicensedSubAdmin()) {
+        $admRec = getCurrentAdminRecord();
+        $lockReason = '';
+        if (is_array($admRec) && ngwIsAdminAccountLocked($admRec, $lockReason)) {
+            $_SESSION = array();
+            @session_unset();
+            @session_destroy();
+            echo "<script>try{sessionStorage.removeItem('ngw_tab_auth');sessionStorage.removeItem('ngw_last_act');}catch(e){} window.location='./admin.php?id=login&reason=license_" . htmlspecialchars($lockReason, ENT_QUOTES) . "';</script>";
+            exit;
+        }
+    }
     if (!empty($_SESSION['mikhmon_login_handshake'])) {
         $GLOBALS['NGW_LOGIN_HANDSHAKE'] = true;
         unset($_SESSION['mikhmon_login_handshake']);
@@ -1041,16 +1061,7 @@ function loadAdminUsers($forceReload = false) {
         if (is_array($decoded)) {
             foreach ($decoded as $row) {
                 if (is_array($row) && !empty($row['username'])) {
-                    $admins[] = array(
-                        'id' => !empty($row['id']) ? (string)$row['id'] : ('adm_' . (count($admins) + 1)),
-                        'name' => !empty($row['name']) ? trim((string)$row['name']) : trim((string)$row['username']),
-                        'username' => trim((string)$row['username']),
-                        'password_enc' => isset($row['password_enc']) ? (string)$row['password_enc'] : '',
-                        'password_hash' => isset($row['password_hash']) ? (string)$row['password_hash'] : '',
-                        'avatar' => isset($row['avatar']) ? (string)$row['avatar'] : '',
-                        'created_at' => !empty($row['created_at']) ? (string)$row['created_at'] : date('Y-m-d H:i:s'),
-                        'updated_at' => !empty($row['updated_at']) ? (string)$row['updated_at'] : date('Y-m-d H:i:s'),
-                    );
+                    $admins[] = ngwNormalizeAdminLicenseRecord($row, count($admins));
                 }
             }
         }
@@ -1077,32 +1088,36 @@ function loadAdminUsers($forceReload = false) {
         if (function_exists('decrypt') && $cfgPassEnc !== '') {
             $cfgPassPlain = (string)decrypt($cfgPassEnc);
         }
-        $admins[] = array(
+        $admins[] = ngwNormalizeAdminLicenseRecord(array(
             'id' => 'adm_1',
             'name' => 'Administrator',
             'username' => $cfgUser !== '' ? $cfgUser : 'mikhmon',
             'password_enc' => $cfgPassEnc,
             'password_hash' => $cfgPassPlain !== '' ? password_hash($cfgPassPlain, PASSWORD_DEFAULT) : '',
             'avatar' => '',
+            'admin_tier' => 'super_admin',
+            'status' => 'active',
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
-        );
+        ), 0);
 
         $backup = getBackupAdminCredentials();
         if (!empty($backup['username']) && $backup['username'] !== $cfgUser) {
             $bPlain = !empty($backup['password']) ? (string)$backup['password'] : '';
             $bEnc = !empty($backup['password_enc']) ? (string)$backup['password_enc'] : ($bPlain !== '' && function_exists('encrypt') ? encrypt($bPlain) : '');
             $bHash = !empty($backup['password_hash']) ? (string)$backup['password_hash'] : ($bPlain !== '' ? password_hash($bPlain, PASSWORD_DEFAULT) : '');
-            $admins[] = array(
+            $admins[] = ngwNormalizeAdminLicenseRecord(array(
                 'id' => 'adm_2',
                 'name' => 'Admin (' . $backup['username'] . ')',
                 'username' => $backup['username'],
                 'password_enc' => $bEnc,
                 'password_hash' => $bHash,
                 'avatar' => '',
+                'admin_tier' => 'super_admin',
+                'status' => 'active',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
-            );
+            ), 1);
         }
         @file_put_contents($path, json_encode($admins, JSON_PRETTY_PRINT));
     }
@@ -1120,16 +1135,7 @@ function saveAdminUsers($admins) {
         if (!is_array($row) || empty($row['username'])) {
             continue;
         }
-        $clean[] = array(
-            'id' => !empty($row['id']) ? (string)$row['id'] : ('adm_' . (count($clean) + 1)),
-            'name' => !empty($row['name']) ? trim((string)$row['name']) : trim((string)$row['username']),
-            'username' => trim((string)$row['username']),
-            'password_enc' => isset($row['password_enc']) ? (string)$row['password_enc'] : '',
-            'password_hash' => isset($row['password_hash']) ? (string)$row['password_hash'] : '',
-            'avatar' => isset($row['avatar']) ? (string)$row['avatar'] : '',
-            'created_at' => !empty($row['created_at']) ? (string)$row['created_at'] : date('Y-m-d H:i:s'),
-            'updated_at' => !empty($row['updated_at']) ? (string)$row['updated_at'] : date('Y-m-d H:i:s'),
-        );
+        $clean[] = ngwNormalizeAdminLicenseRecord($row, count($clean));
     }
     if (empty($clean)) {
         return false;
@@ -1235,6 +1241,18 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
     $admins = loadAdminUsers();
     foreach ($admins as $idx => $adm) {
         if (isset($adm['username']) && $adm['username'] === $username && verifyAdminUserPassword($adm, $password)) {
+            $lockReason = '';
+            if (function_exists('ngwIsAdminAccountLocked') && ngwIsAdminAccountLocked($adm, $lockReason)) {
+                $errMsg = ($lockReason === 'expired')
+                    ? 'Your Admin License has expired (' . $adm['license_expires_at'] . '). Please contact the Main Admin Store to renew.'
+                    : 'Your Admin account is currently suspended by the Main Admin Store.';
+                return array(
+                    'authenticated' => false,
+                    'error' => $errMsg,
+                    'error_reason' => "Login blocked: Admin '{$username}' is {$lockReason}",
+                    'attempted_role' => 'admin',
+                );
+            }
             // Upgrade password_hash or password_enc if missing
             $needsSave = false;
             if (empty($adm['password_hash'])) {
@@ -1254,6 +1272,7 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
                 'id' => (string)$adm['id'],
                 'username' => (string)$adm['username'],
                 'name' => !empty($adm['name']) ? (string)$adm['name'] : 'Administrator',
+                'admin_tier' => isset($adm['admin_tier']) ? (string)$adm['admin_tier'] : (($adm['id'] === 'adm_1') ? 'super_admin' : 'licensed_admin'),
                 'permission_mode' => 'Admin',
                 'template_code' => 'GLOBAL',
                 'assigned_template' => 'default',
@@ -1279,6 +1298,7 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
             'id' => 'adm_1',
             'username' => $username,
             'name' => 'Administrator',
+            'admin_tier' => 'super_admin',
             'permission_mode' => 'Admin',
             'template_code' => 'GLOBAL',
             'assigned_template' => 'default',
@@ -1308,6 +1328,18 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
                     'authenticated' => false,
                     'error' => 'Reseller account is deactivated.',
                     'error_reason' => "Login blocked: Reseller account '{$username}' is deactivated",
+                    'attempted_role' => 'reseller',
+                );
+            }
+            // Check if parent Licensed Admin's license is locked/expired
+            $parentAdmId = !empty($reseller['parent_admin_id']) ? (string)$reseller['parent_admin_id'] : 'adm_1';
+            $parentAdm = findAdminUserByIdOrUsername($parentAdmId);
+            $parentLockReason = '';
+            if (is_array($parentAdm) && function_exists('ngwIsAdminAccountLocked') && ngwIsAdminAccountLocked($parentAdm, $parentLockReason)) {
+                return array(
+                    'authenticated' => false,
+                    'error' => 'Parent Admin license is expired or suspended. Please contact your Administrator.',
+                    'error_reason' => "Login blocked: Reseller '{$username}' parent admin '{$parentAdmId}' is {$parentLockReason}",
                     'attempted_role' => 'reseller',
                 );
             }
@@ -1379,6 +1411,15 @@ function syncActiveResellerSession() {
                 $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = false;
                 return false;
             }
+            $parentAdmId = !empty($r['parent_admin_id']) ? (string)$r['parent_admin_id'] : 'adm_1';
+            $parentAdm = findAdminUserByIdOrUsername($parentAdmId);
+            $parentLockReason = '';
+            if (is_array($parentAdm) && function_exists('ngwIsAdminAccountLocked') && ngwIsAdminAccountLocked($parentAdm, $parentLockReason)) {
+                session_destroy();
+                $GLOBALS['NGW_RESELLER_SYNCED'] = true;
+                $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = false;
+                return false;
+            }
             $_SESSION['mikhmon'] = $r['username'];
             $_SESSION['mikhmon_reseller_id'] = (string)$r['id'];
             $_SESSION['mikhmon_permission_mode'] = isset($r['permission_mode']) ? $r['permission_mode'] : 'Custom';
@@ -1438,6 +1479,22 @@ function canAccessRouterSession($sessionName) {
         return false;
     }
     if (isMikhmonAdmin()) {
+        if (function_exists('isSuperAdminStore') && isSuperAdminStore()) {
+            return true;
+        }
+        $admRec = getCurrentAdminRecord();
+        $lockReason = '';
+        if (is_array($admRec) && function_exists('ngwIsAdminAccountLocked') && ngwIsAdminAccountLocked($admRec, $lockReason)) {
+            return false;
+        }
+        if (strpos((string)$sessionName, 'new-') === 0 || $sessionName === 'new') {
+            return true;
+        }
+        $admId = is_array($admRec) && !empty($admRec['id']) ? (string)$admRec['id'] : '';
+        if ($admId !== '' && function_exists('ngwGetRouterOwnerInfo')) {
+            $ownerInfo = ngwGetRouterOwnerInfo($sessionName);
+            return (isset($ownerInfo['owner_admin_id']) && (string)$ownerInfo['owner_admin_id'] === $admId);
+        }
         return true;
     }
     $allowed = isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers']) ? $_SESSION['mikhmon_routers'] : array();
@@ -1928,15 +1985,17 @@ function getCurrentUserProfileSummary() {
     $admName = (is_array($admRec) && !empty($admRec['name'])) ? (string)$admRec['name'] : 'Administrator';
     $admUsername = (is_array($admRec) && !empty($admRec['username'])) ? (string)$admRec['username'] : $username;
     $admId = (is_array($admRec) && !empty($admRec['id'])) ? (string)$admRec['id'] : 'adm_1';
+    $isSuper = function_exists('isSuperAdminStore') && isSuperAdminStore();
 
     return array(
         'is_reseller' => false,
+        'is_super_admin' => $isSuper,
         'username' => $admUsername,
         'display_name' => $admName,
-        'role_label' => 'Administrator',
-        'role_badge' => 'Admin',
-        'permission_mode' => 'Full Admin Access',
-        'account_id' => 'Admin',
+        'role_label' => $isSuper ? 'Main Admin Store' : 'Licensed Admin',
+        'role_badge' => $isSuper ? 'Admin Store' : 'Licensed Admin',
+        'permission_mode' => $isSuper ? 'Super Admin Store' : 'Licensed Admin',
+        'account_id' => $isSuper ? 'Store Owner' : ('#' . $admId),
         'raw_id' => $admId,
         'template_code' => 'GLOBAL',
         'allowed_routers' => array('*'),

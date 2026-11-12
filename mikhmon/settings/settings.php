@@ -23,7 +23,16 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
 
+  include_once('./include/reseller_acl.php');
+
   if ($id == "settings" && explode("-",$router)[0] == "new") {
+    $quotaErrMsg = '';
+    if (function_exists('ngwCanAdminAddNewRouter') && !ngwCanAdminAddNewRouter($quotaErrMsg, isset($langid) ? $langid : 'en')) {
+      $_SESSION['router_quota_error'] = $quotaErrMsg;
+      session_write_close();
+      echo "<script>window.location='./admin.php?id=sessions'</script>";
+      exit;
+    }
     $dvar = '$data';
     $f = fopen('./include/config.php', 'a');
     fwrite($f, "\n'$'data['".$router."'] = array ('1'=>'".$router."!','".$router."@|@','".$router."#|#','".$router."%','".$router."^','".$router."&Rp','".$router."*10','".$router."(1','".$router.")','".$router."=10','".$router."@!@disable');");
@@ -39,6 +48,16 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
   if (isset($_POST['save'])) {
+    // If this was a newly created placeholder router (new-...), verify quota again before saving
+    if (strpos((string)$session, 'new-') === 0) {
+      $quotaErrMsg = '';
+      if (function_exists('ngwCanAdminAddNewRouter') && !ngwCanAdminAddNewRouter($quotaErrMsg, isset($langid) ? $langid : 'en')) {
+        $_SESSION['router_quota_error'] = $quotaErrMsg;
+        session_write_close();
+        echo "<script>window.location='./admin.php?id=sessions'</script>";
+        exit;
+      }
+    }
     $raw_ipmik = preg_replace('/\\s+/', '', isset($_POST['ipmik']) ? $_POST['ipmik'] : '');
     $siphost = $raw_ipmik;
     if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $siphost, $schemeMatch)) {
@@ -115,6 +134,13 @@ if (!isset($_SESSION["mikhmon"])) {
           : 'Could not save router settings: config.php is not writable.';
         echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
       } else {
+        if (function_exists('ngwRenameRouterOwnerSession')) {
+          ngwRenameRouterOwnerSession($session, $sesname);
+        }
+        if (function_exists('isSuperAdminStore') && isSuperAdminStore() && !empty($_POST['owner_admin_id'])) {
+          $postedOwnerId = trim((string)$_POST['owner_admin_id']);
+          ngwAssignRouterOwner($sesname, $postedOwnerId);
+        }
         // Post/Redirect/Get: reopen the saved router form.
         // This prevents the edit form from being re-submitted or appearing to cycle through previews.
         $_SESSION['connect'] = '';
@@ -185,6 +211,24 @@ if (!isset($_SESSION["mikhmon"])) {
                                                                                                                                echo $session;
                                                                                                                              } ?>" required="1"/></td>
                     </tr>
+                    <?php if (function_exists('isSuperAdminStore') && isSuperAdminStore()) {
+                      $currOwnerInfo = ngwGetRouterOwnerInfo($session);
+                      $currOwnerAdminId = isset($currOwnerInfo['owner_admin_id']) ? (string)$currOwnerInfo['owner_admin_id'] : 'adm_1';
+                      $allStoreAdmins = loadAdminUsers();
+                    ?>
+                    <tr>
+                      <td><?= (isset($langid) && $langid === 'bn') ? 'মালিক অ্যাডমিন (Owner Admin)' : 'Owner Admin'; ?></td>
+                      <td>
+                        <select class="form-control" name="owner_admin_id">
+                          <?php foreach ($allStoreAdmins as $admRow) { ?>
+                            <option value="<?= htmlspecialchars($admRow['id'], ENT_QUOTES, 'UTF-8'); ?>" <?= ((string)$admRow['id'] === $currOwnerAdminId) ? 'selected' : ''; ?>>
+                              <?= htmlspecialchars($admRow['name'] . ' (@' . $admRow['username'] . ')', ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                          <?php } ?>
+                        </select>
+                      </td>
+                    </tr>
+                    <?php } ?>
                   </table>
                 </div>
               </div>

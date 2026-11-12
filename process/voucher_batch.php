@@ -33,6 +33,7 @@ date_default_timezone_set(isset($_SESSION['timezone']) ? $_SESSION['timezone'] :
 $action = isset($_POST['action']) ? $_POST['action'] : '';
 if (!isset($_SESSION['voucher_batches'])) { $_SESSION['voucher_batches'] = array(); }
 try {
+    $langBatch = (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn') ? 'bn' : 'en';
     if ($action === 'start' && !isset($_SESSION['voucher_batches'][$id])) {
         foreach ($_SESSION['voucher_batches'] as $key => $old) {
             if (time() - $old['created_at'] > 172800) { unset($_SESSION['voucher_batches'][$key]); }
@@ -40,6 +41,13 @@ try {
         $activeCount = 0;
         foreach ($_SESSION['voucher_batches'] as $old) { if ($old['completed'] < $old['total']) { $activeCount++; } }
         if ($activeCount >= 5) { throw new InvalidArgumentException('Resume an existing batch before starting another one.'); }
+        $reqQty = isset($_POST['qty']) ? (int)$_POST['qty'] : 1;
+        if (function_exists('ngwValidateVoucherGenerationQuota')) {
+            $preCheck = ngwValidateVoucherGenerationQuota($router, $reqQty, null, $langBatch);
+            if (empty($preCheck['allowed'])) {
+                throw new InvalidArgumentException($preCheck['error']);
+            }
+        }
         $_SESSION['voucher_batches'][$id] = voucherBatchCreate($_POST, $router, $id);
         ngwRecordActivity('voucher_batch_created', array(
             'router' => $router,
@@ -62,8 +70,26 @@ try {
         $api->timeout = 5;
         $api->attempts = 1;
         if (!$api->connect($host[1], $login[1], decrypt($pass[1]))) { throw new RuntimeException('Router connection failed. Resume the same batch when the router is reachable.'); }
+        // On first step of batch, verify live RouterOS active users and total users against Licensed Admin quota
+        if ((int)$job['completed'] === 0 && empty($job['live_quota_checked']) && function_exists('ngwValidateVoucherGenerationQuota')) {
+            $liveCheck = ngwValidateVoucherGenerationQuota($router, (int)$job['total'], $api, $langBatch);
+            if (empty($liveCheck['allowed'])) {
+                $api->disconnect();
+                unset($_SESSION['voucher_batches'][$id]);
+                throw new InvalidArgumentException($liveCheck['error']);
+            }
+            $job['live_quota_checked'] = true;
+        }
         // The session lock serializes duplicate step requests for this job.
+        $prevCompleted = (int)$job['completed'];
         voucherBatchStep($job, $api);
+        $newlyAdded = max(0, (int)$job['completed'] - $prevCompleted);
+        if ($newlyAdded > 0 && function_exists('ngwResolveQuotaAdminForSession') && function_exists('ngwIncrementAdminMonthlyVoucherUsage')) {
+            $qAdm = ngwResolveQuotaAdminForSession($router);
+            if (is_array($qAdm) && !empty($qAdm['id'])) {
+                ngwIncrementAdminMonthlyVoucherUsage($qAdm['id'], $newlyAdded);
+            }
+        }
         $api->disconnect();
     } elseif ($action !== 'start' && $action !== 'step' && $action !== 'status') {
         throw new InvalidArgumentException('Unknown batch action.');

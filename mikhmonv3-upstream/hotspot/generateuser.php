@@ -191,9 +191,27 @@ date_default_timezone_set($_SESSION['timezone']);
 <?php if ($isVoucherResultRequest && isset($_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'])) { ?>
 <div class="alert alert-success"><?= (int)$_SESSION['voucher_generation_cache'][$voucherCacheKey]['completed'] ?> <?= ($langid === 'bn') ? 'টি ভাউচার সফলভাবে জেনারেট হয়েছে।' : 'vouchers generated successfully.'; ?></div>
 <?php } ?>
+<?php
+$genQuotaAdm = function_exists('ngwResolveQuotaAdminForSession') ? ngwResolveQuotaAdminForSession($session) : null;
+$genMaxBatchAttr = 500;
+if (is_array($genQuotaAdm) && isset($genQuotaAdm['admin_tier']) && $genQuotaAdm['admin_tier'] === 'licensed_admin') {
+  $admMaxBatch = isset($genQuotaAdm['max_batch_qty']) ? (int)$genQuotaAdm['max_batch_qty'] : 0;
+  if ($admMaxBatch > 0 && $admMaxBatch < 500) {
+    $genMaxBatchAttr = $admMaxBatch;
+  }
+  $admMaxMonthly = isset($genQuotaAdm['max_monthly_vouchers']) ? (int)$genQuotaAdm['max_monthly_vouchers'] : 0;
+  $admUsedMonthly = function_exists('ngwGetAdminMonthlyVoucherUsage') ? ngwGetAdminMonthlyVoucherUsage($genQuotaAdm['id']) : 0;
+?>
+<div style="margin:8px 0; padding:6px 10px; border-radius:4px; background:rgba(31,111,235,0.1); border-left:3px solid #388bfd; font-size:12px;">
+  <i class="fa fa-info-circle"></i>
+  <?= ($langid === 'bn') ? 'ব্যাচ লিমিট:' : 'Batch Limit:'; ?> <b><?= $admMaxBatch > 0 ? $admMaxBatch : '500'; ?></b>
+  &nbsp;·&nbsp;
+  <?= ($langid === 'bn') ? 'মাসিক ভাউচার ব্যবহার:' : 'Monthly Voucher Usage:'; ?> <b><?= $admUsedMonthly; ?> / <?= $admMaxMonthly > 0 ? $admMaxMonthly : '∞'; ?></b>
+</div>
+<?php } ?>
 <table class="table">
   <tr>
-    <td class="align-middle"><?= $_qty ?></td><td><div><input class="form-control " type="number" name="qty" min="1" max="500" value="1" required="1"></div></td>
+    <td class="align-middle"><?= $_qty ?></td><td><div><input class="form-control " type="number" name="qty" min="1" max="<?= (int)$genMaxBatchAttr; ?>" value="1" required="1"></div></td>
   </tr>
   <tr>
     <td class="align-middle"><?= isset($_server) ? $_server : 'Server'; ?></td>

@@ -303,7 +303,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // system update & vps center
   elseif ($hotspot == "system-update") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdmin() || (function_exists('isSuperAdminStore') && !isSuperAdminStore())) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }

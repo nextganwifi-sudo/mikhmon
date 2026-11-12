@@ -49,66 +49,77 @@ if (!isset($_SESSION["mikhmon"])) {
     if ($name === '' || $password === '' || $profile === '') {
       $addUserError = ($langid === 'bn') ? 'ইউজারনেম, পাসওয়ার্ড এবং প্রোফাইল আবশ্যক।' : 'Username, password and profile are required.';
     } else {
-      $usermode = ($name === $password) ? 'vc-' : 'up-';
-      $routerComment = $usermode . $comment;
+      $quotaCheck = function_exists('ngwValidateVoucherGenerationQuota')
+        ? ngwValidateVoucherGenerationQuota($session, 1, $API, isset($langid) ? $langid : 'en')
+        : array('allowed' => true, 'error' => '', 'admin' => null);
 
-      // Prevent a duplicate username from being mistaken for a successful new add.
-      $existingUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
-      $duplicate = false;
-      if (is_array($existingUsers)) {
-        foreach ($existingUsers as $existingUser) {
-          if (isset($existingUser['name']) && (string)$existingUser['name'] === $name) {
-            $duplicate = true;
-            break;
-          }
-        }
-      }
-
-      if ($duplicate) {
-        $addUserError = ($langid === 'bn') ? 'এই ইউজারনেমটি ইতিমধ্যেই রাউটারে বিদ্যমান আছে।' : 'This username already exists on the selected router.';
+      if (empty($quotaCheck['allowed'])) {
+        $addUserError = $quotaCheck['error'];
       } else {
-        $addResult = $API->comm('/ip/hotspot/user/add', array(
-          'server' => $server,
-          'name' => $name,
-          'password' => $password,
-          'profile' => $profile,
-          'disabled' => 'no',
-          'limit-uptime' => $timelimit,
-          'limit-bytes-total' => $datalimit,
-          'comment' => $routerComment,
-        ));
+        $usermode = ($name === $password) ? 'vc-' : 'up-';
+        $routerComment = $usermode . $comment;
 
-        $apiRejected = is_array($addResult) && (isset($addResult['!trap']) || isset($addResult['!fatal']));
-        if ($apiRejected) {
-          $addUserError = ($langid === 'bn') ? 'মাইক্রোটিক রাউটার ইউজার তৈরির অনুরোধ গ্রহণ করেনি। ইউজারনেম ও প্রোফাইল যাচাই করুন।' : 'MikroTik rejected the user creation request. Check the username, profile and router permissions.';
-        } else {
-          // Verify the account on the router before showing a success message.
-          $verifiedUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
-          $createdUser = false;
-          if (is_array($verifiedUsers)) {
-            foreach ($verifiedUsers as $verifiedUser) {
-              if (isset($verifiedUser['name']) && (string)$verifiedUser['name'] === $name
-                  && isset($verifiedUser['profile']) && (string)$verifiedUser['profile'] === $profile) {
-                $createdUser = true;
-                break;
-              }
+        // Prevent a duplicate username from being mistaken for a successful new add.
+        $existingUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
+        $duplicate = false;
+        if (is_array($existingUsers)) {
+          foreach ($existingUsers as $existingUser) {
+            if (isset($existingUser['name']) && (string)$existingUser['name'] === $name) {
+              $duplicate = true;
+              break;
             }
           }
+        }
 
-          if ($createdUser) {
-            ngwRecordActivity('hotspot_user_created', array(
-              'router' => $session,
-              'profile' => $profile,
-              'target' => $name
-            ));
-            $_SESSION['ngw_adduser_success'] = ($langid === 'bn') ? ('ইউজার "' . $name . '" সফলভাবে তৈরি হয়েছে।') : ('User "' . $name . '" added successfully.');
-            // The main index template may already have emitted HTML, so use a
-            // same-page client redirect rather than a PHP header redirect.
-            $addUserReturnUrl = './?hotspot-user=add&session=' . rawurlencode((string)$session);
-            echo '<script>window.location.replace(' . json_encode($addUserReturnUrl) . ');</script>';
-            exit;
+        if ($duplicate) {
+          $addUserError = ($langid === 'bn') ? 'এই ইউজারনেমটি ইতিমধ্যেই রাউটারে বিদ্যমান আছে।' : 'This username already exists on the selected router.';
+        } else {
+          $addResult = $API->comm('/ip/hotspot/user/add', array(
+            'server' => $server,
+            'name' => $name,
+            'password' => $password,
+            'profile' => $profile,
+            'disabled' => 'no',
+            'limit-uptime' => $timelimit,
+            'limit-bytes-total' => $datalimit,
+            'comment' => $routerComment,
+          ));
+
+          $apiRejected = is_array($addResult) && (isset($addResult['!trap']) || isset($addResult['!fatal']));
+          if ($apiRejected) {
+            $addUserError = ($langid === 'bn') ? 'মাইক্রোটিক রাউটার ইউজার তৈরির অনুরোধ গ্রহণ করেনি। ইউজারনেম ও প্রোফাইল যাচাই করুন।' : 'MikroTik rejected the user creation request. Check the username, profile and router permissions.';
+          } else {
+            // Verify the account on the router before showing a success message.
+            $verifiedUsers = $API->comm('/ip/hotspot/user/print', array('?name' => $name));
+            $createdUser = false;
+            if (is_array($verifiedUsers)) {
+              foreach ($verifiedUsers as $verifiedUser) {
+                if (isset($verifiedUser['name']) && (string)$verifiedUser['name'] === $name
+                    && isset($verifiedUser['profile']) && (string)$verifiedUser['profile'] === $profile) {
+                  $createdUser = true;
+                  break;
+                }
+              }
+            }
+
+            if ($createdUser) {
+              if (function_exists('ngwIncrementAdminMonthlyVoucherUsage') && !empty($quotaCheck['admin']['id'])) {
+                ngwIncrementAdminMonthlyVoucherUsage($quotaCheck['admin']['id'], 1);
+              }
+              ngwRecordActivity('hotspot_user_created', array(
+                'router' => $session,
+                'profile' => $profile,
+                'target' => $name
+              ));
+              $_SESSION['ngw_adduser_success'] = ($langid === 'bn') ? ('ইউজার "' . $name . '" সফলভাবে তৈরি হয়েছে।') : ('User "' . $name . '" added successfully.');
+              // The main index template may already have emitted HTML, so use a
+              // same-page client redirect rather than a PHP header redirect.
+              $addUserReturnUrl = './?hotspot-user=add&session=' . rawurlencode((string)$session);
+              echo '<script>window.location.replace(' . json_encode($addUserReturnUrl) . ');</script>';
+              exit;
+            }
+            $addUserError = ($langid === 'bn') ? 'রাউটার নিশ্চিতকরণ ব্যর্থ হয়েছে। ইউজার লিস্ট চেক করে আবার চেষ্টা করুন।' : 'Router confirmation failed. Check the user list before trying again.';
           }
-          $addUserError = ($langid === 'bn') ? 'রাউটার নিশ্চিতকরণ ব্যর্থ হয়েছে। ইউজার লিস্ট চেক করে আবার চেষ্টা করুন।' : 'Router confirmation failed. Check the user list before trying again.';
         }
       }
     }

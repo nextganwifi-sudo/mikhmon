@@ -16,7 +16,7 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/reseller_acl.php');
 include_once('./include/data_recovery.php');
 
-if (!isMikhmonAdmin()) {
+if (!isMikhmonAdmin() || (function_exists('isSuperAdminStore') && !isSuperAdminStore())) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
 }
@@ -114,6 +114,8 @@ function collectProtectedDataFiles($rootDir) {
     $fixedRelPaths = array(
         'include/config.php',
         'include/admin_users.json',
+        'include/router_owners.json',
+        'include/license_usage.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
@@ -191,6 +193,8 @@ function isProtectedDataRelPath($relPath) {
     $exactLocked = array(
         'include/config.php',
         'include/admin_users.json',
+        'include/router_owners.json',
+        'include/license_usage.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
