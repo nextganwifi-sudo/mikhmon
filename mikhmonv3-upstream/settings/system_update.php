@@ -14,6 +14,7 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 
 include_once('./include/reseller_acl.php');
+include_once('./include/data_recovery.php');
 
 if (!isMikhmonAdmin()) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
@@ -28,6 +29,10 @@ $versionStateFile = $appRoot . '/include/version_state.json';
 $versionSnapDir = $appRoot . '/backups/version-history';
 if (!is_dir($versionSnapDir)) {
     @mkdir($versionSnapDir, 0755, true);
+}
+$dataSnapDir = $appRoot . '/backups/data-snapshots';
+if (!is_dir($dataSnapDir)) {
+    @mkdir($dataSnapDir, 0755, true);
 }
 
 /**
@@ -355,6 +360,134 @@ $updateNotice = '';
 $updateError = '';
 $updateInfo = '';
 $updateChangedFiles = array();
+$recoveryReport = null;
+$isBnUi = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
+
+// Always run an automatic non-destructive recovery & vault sync pass
+if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+    $autoRec = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+    if (!empty($autoRec['routers_recovered']) || !empty($autoRec['resellers_recovered']) || !empty($autoRec['admins_recovered'])) {
+        $recoveryReport = $autoRec;
+    }
+}
+
+// Handle Download Full Data Backup (.json)
+if (isset($_POST['download_data_backup'])) {
+    $backupBundle = array(
+        'exported_at' => date('Y-m-d H:i:s'),
+        'app' => 'NextGen WiFi Solution',
+        'version' => $versionState['current_version'],
+        'files' => array(),
+    );
+    $exportRelPaths = array(
+        'include/config.php',
+        'include/resellers.json',
+        'include/admin_users.json',
+        'include/backup_admin.json',
+        'include/permission_groups.json',
+        'include/vpn_routers.json',
+        'include/pppoe_areas.json',
+        'include/voice_call_services.json',
+        'include/user_prefs.json',
+        'uploads/user_prefs.json',
+        'voucher/template.php',
+        'voucher/template-small.php',
+        'voucher/template-thermal.php',
+    );
+    foreach ($exportRelPaths as $rel) {
+        $abs = $appRoot . '/' . $rel;
+        if (is_file($abs)) {
+            $backupBundle['files'][$rel] = base64_encode((string)@file_get_contents($abs));
+        }
+    }
+    if (!headers_sent()) {
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="NextGen-WiFi-Data-Backup-' . date('Ymd-His') . '.json"');
+        echo json_encode($backupBundle, JSON_PRETTY_PRINT);
+        exit;
+    }
+}
+
+// Handle Manual Deep Scan & Recover VPS Data
+if (isset($_POST['run_vps_data_recovery'])) {
+    if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+        $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+        $recRoutersCnt = count($recoveryReport['routers_recovered']);
+        $recResCnt = count($recoveryReport['resellers_recovered']);
+        $recAdmCnt = count($recoveryReport['admins_recovered']);
+        if ($recRoutersCnt > 0 || $recResCnt > 0 || $recAdmCnt > 0 || $recoveryReport['templates_restored'] > 0) {
+            $updateNotice = $isBnUi
+                ? ('ডাটা রিকভারি ও মার্জ সম্পন্ন হয়েছে! নতুন যুক্ত রাউটার: <b>' . $recRoutersCnt . 'টি</b>, রিসেলার: <b>' . $recResCnt . 'টি</b>, টেমপ্লেট: <b>' . (int)$recoveryReport['templates_restored'] . 'টি</b>। বর্তমান মোট রাউটার: <b>' . (int)$recoveryReport['total_routers_now'] . 'টি</b>, মোট রিসেলার: <b>' . (int)$recoveryReport['total_resellers_now'] . 'টি</b>।')
+                : ('Data recovery & merge complete! Recovered Routers: <b>' . $recRoutersCnt . '</b>, Resellers: <b>' . $recResCnt . '</b>, Templates: <b>' . (int)$recoveryReport['templates_restored'] . '</b>. Total Routers now: <b>' . (int)$recoveryReport['total_routers_now'] . '</b>, Total Resellers now: <b>' . (int)$recoveryReport['total_resellers_now'] . '</b>.');
+        } else {
+            $updateInfo = $isBnUi
+                ? ('ভিপিএস-এর সব ব্যাকআপ ফোল্ডার, আর্কাইভ ও গিট হিস্ট্রি স্ক্যান করা হয়েছে (' . count($recoveryReport['sources_scanned']) . 'টি সোর্স)। বর্তমান মোট রাউটার: ' . (int)$recoveryReport['total_routers_now'] . 'টি এবং রিসেলার: ' . (int)$recoveryReport['total_resellers_now'] . 'টি সুরক্ষিত আছে।')
+                : ('Scanned all VPS backup folders, archives, and Git history (' . count($recoveryReport['sources_scanned']) . ' sources). Currently active Routers: ' . (int)$recoveryReport['total_routers_now'] . ' and Resellers: ' . (int)$recoveryReport['total_resellers_now'] . ' are synced and protected in Vault.');
+        }
+    }
+}
+
+// Handle Upload & Merge Data Backup (.json or config.php or resellers.json)
+if (isset($_POST['upload_data_backup']) && isset($_FILES['backup_data_file']) && is_uploaded_file($_FILES['backup_data_file']['tmp_name'])) {
+    $rawUpload = (string)@file_get_contents($_FILES['backup_data_file']['tmp_name']);
+    $upName = strtolower(trim((string)$_FILES['backup_data_file']['name']));
+    $tempRestoreDir = rtrim(sys_get_temp_dir(), '/\\') . '/ngw_manual_import_' . uniqid();
+    @mkdir($tempRestoreDir . '/include', 0700, true);
+    @mkdir($tempRestoreDir . '/voucher', 0700, true);
+    @mkdir($tempRestoreDir . '/uploads', 0700, true);
+    $importedAny = false;
+
+    $decodedJson = @json_decode($rawUpload, true);
+    if (is_array($decodedJson) && isset($decodedJson['files']) && is_array($decodedJson['files'])) {
+        // Full Backup Bundle JSON
+        foreach ($decodedJson['files'] as $rel => $b64) {
+            $decodedContent = @base64_decode((string)$b64, true);
+            if ($decodedContent !== false) {
+                $dest = $tempRestoreDir . '/' . $rel;
+                if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0700, true);
+                @file_put_contents($dest, $decodedContent);
+                $importedAny = true;
+            }
+        }
+    } elseif (is_array($decodedJson)) {
+        // Direct resellers.json or admin_users.json
+        if (isset($decodedJson[0]['allowed_routers']) || isset($decodedJson[0]['permission_mode'])) {
+            @file_put_contents($tempRestoreDir . '/include/resellers.json', $rawUpload);
+            $importedAny = true;
+        } elseif (isset($decodedJson[0]['password_enc']) || isset($decodedJson[0]['username'])) {
+            @file_put_contents($tempRestoreDir . '/include/admin_users.json', $rawUpload);
+            $importedAny = true;
+        }
+    } elseif (strpos($rawUpload, '$data[') !== false) {
+        // Direct config.php upload
+        @file_put_contents($tempRestoreDir . '/include/config.php', $rawUpload);
+        $importedAny = true;
+    }
+
+    if ($importedAny) {
+        // Copy into live-data-vault and run deep merge
+        $vaultDir = $appRoot . '/backups/pre-update-manual-' . date('Ymd-His');
+        @mkdir($vaultDir . '/include', 0755, true);
+        foreach (array('include/config.php', 'include/resellers.json', 'include/admin_users.json', 'include/permission_groups.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
+            if (is_file($tempRestoreDir . '/' . $rel)) {
+                @copy($tempRestoreDir . '/' . $rel, $vaultDir . '/' . $rel);
+            }
+        }
+        @shell_exec('rm -rf ' . escapeshellarg($tempRestoreDir));
+        $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+        $updateNotice = $isBnUi
+            ? ('আপলোডকৃত ব্যাকআপ ফাইল সফলভাবে মার্জ করা হয়েছে! বর্তমান মোট রাউটার: <b>' . (int)$recoveryReport['total_routers_now'] . 'টি</b>, মোট রিসেলার: <b>' . (int)$recoveryReport['total_resellers_now'] . 'টি</b>।')
+            : ('Uploaded backup file merged successfully! Total Routers: <b>' . (int)$recoveryReport['total_routers_now'] . '</b>, Total Resellers: <b>' . (int)$recoveryReport['total_resellers_now'] . '</b>.');
+    } else {
+        @shell_exec('rm -rf ' . escapeshellarg($tempRestoreDir));
+        $updateError = $isBnUi
+            ? 'আপলোডকৃত ফাইলটি সঠিক ব্যাকআপ JSON, config.php অথবা resellers.json ফাইল নয়।'
+            : 'Uploaded file is not a valid Backup JSON, config.php, or resellers.json file.';
+    }
+}
 
 // Handle Rollback / Switch to a Previous Version
 if (isset($_POST['rollback_version_id'])) {
@@ -375,6 +508,9 @@ if (isset($_POST['rollback_version_id'])) {
             $protectedBefore = collectProtectedDataFiles($appRoot);
             $ok = extractVersionSnapshotArchive($appRoot, $snapPath);
             restoreProtectedDataFiles($appRoot, $protectedBefore);
+            if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+                ngwPerformDeepDataRecoveryAndMerge($appRoot);
+            }
 
             if ($ok) {
                 // Remove the restored snapshot from history and set it as current version
@@ -403,6 +539,9 @@ if (isset($_POST['apply_git_safe_update'])) {
         $savedGitRepoUrl = $gitRepoUrl;
     }
 
+    if (function_exists('ngwSyncToLiveDataVault')) {
+        ngwSyncToLiveDataVault($appRoot);
+    }
     $protectedBefore = collectProtectedDataFiles($appRoot);
     $gitDir = is_dir($appRoot . '/.git') ? $appRoot : (is_dir(dirname($appRoot) . '/.git') ? dirname($appRoot) : '');
 
@@ -448,6 +587,9 @@ if (isset($_POST['apply_git_safe_update'])) {
 
             if (count($changedFiles) === 0) {
                 restoreProtectedDataFiles($appRoot, $protectedBefore);
+                if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+                    $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+                }
                 @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
                 $updateNotice = '';
                 $updateInfo = 'No new files or changes were found. The installed software is already up to date.';
@@ -476,6 +618,12 @@ if (isset($_POST['apply_git_safe_update'])) {
                 }
 
                 restoreProtectedDataFiles($appRoot, $protectedBefore);
+                if (is_file($appRoot . '/include/data_recovery.php')) {
+                    include_once($appRoot . '/include/data_recovery.php');
+                }
+                if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+                    $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+                }
                 @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
 
                 if ($updatedCount > 0) {
@@ -507,6 +655,9 @@ if (isset($_POST['apply_git_safe_update'])) {
         $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
         $out = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' pull --ff-only 2>&1');
         restoreProtectedDataFiles($appRoot, $protectedBefore);
+        if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+            $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+        }
         $pullOutput = (string)$out;
         $alreadyCurrent = (stripos($pullOutput, 'Already up to date') !== false)
             || (stripos($pullOutput, 'Already up-to-date') !== false);
@@ -547,6 +698,15 @@ if (isset($_POST['apply_git_safe_update'])) {
         $updateError = isset($_git_url_required) ? $_git_url_required : 'Please enter your GitHub Repository URL to pull updates.';
     }
 }
+
+$curParsedCfg = function_exists('ngwParseConfigPhpRouters') && is_file($appRoot . '/include/config.php')
+    ? ngwParseConfigPhpRouters((string)@file_get_contents($appRoot . '/include/config.php'))
+    : array('routers' => array());
+$curResList = is_file($appRoot . '/include/resellers.json')
+    ? @json_decode((string)@file_get_contents($appRoot . '/include/resellers.json'), true)
+    : array();
+$liveRouterCount = isset($curParsedCfg['routers']) && is_array($curParsedCfg['routers']) ? count($curParsedCfg['routers']) : 0;
+$liveResellerCount = is_array($curResList) ? count($curResList) : 0;
 ?>
 
 <div class="row">
@@ -588,7 +748,7 @@ if (isset($_POST['apply_git_safe_update'])) {
               <td>
                 <input type="text" id="ngw_git_repo_url" name="git_repo_url" class="form-control" value="<?= htmlspecialchars($savedGitRepoUrl); ?>" placeholder="https://github.com/username/repository.git" required="1">
                 <div style="margin-top:5px; display:flex; align-items:center; flex-wrap:wrap; gap:5px; font-size:11px;">
-                  <span style="opacity:0.75;"><?= (isset($langid) && $langid === 'bn') ? 'দ্রুত নির্বাচন:' : 'Quick Select:'; ?></span>
+                  <span style="opacity:0.75;"><?= $isBnUi ? 'দ্রুত নির্বাচন:' : 'Quick Select:'; ?></span>
                   <button type="button" class="btn bg-secondary pd-2p5 radius-3" style="font-size:10px; margin:0; cursor:pointer;" onclick="document.getElementById('ngw_git_repo_url').value='https://github.com/nextganwifi-sudo/mikhmon.git';">
                     <i class="fa fa-github"></i> nextganwifi-sudo/mikhmon.git
                   </button>
@@ -653,4 +813,63 @@ if (isset($_POST['apply_git_safe_update'])) {
       </div>
     </div>
   </div>
+
+  <div class="col-6">
+    <div class="card">
+      <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+        <h3 class="card-title" style="margin:0;">
+          <i class="fa fa-database"></i> <?= $isBnUi ? 'ভিপিএস ডাটা রিকভারি ও সেফ ভল্ট' : 'VPS Data Recovery & Safe Vault'; ?>
+        </h3>
+        <span style="font-size:11px; padding:3px 8px; border-radius:4px; background:#1f6feb; color:#fff; font-weight:bold;">
+          <i class="fa fa-server"></i> <?= $isBnUi ? 'রাউটার:' : 'Routers:'; ?> <?= (int)$liveRouterCount; ?> | <?= $isBnUi ? 'রিসেলার:' : 'Resellers:'; ?> <?= (int)$liveResellerCount; ?>
+        </span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:12px; opacity:0.85; margin-top:0;">
+          <?= $isBnUi
+            ? 'টার্মিনালে <code>git reset --hard</code> বা আপডেটের কারণে ভিপিএস-এর কোনো রাউটার বা রিসেলার ডাটা বাদ পড়ে থাকলে নিচের বাটনে ক্লিক করে ভিপিএস-এর সকল ব্যাকআপ ফোল্ডার, স্ন্যাপশট ও গিট হিস্ট্রি স্ক্যান করে স্বয়ংক্রিয়ভাবে মার্জ ও রিকভার করতে পারবেন।'
+            : 'If any routers or resellers were overwritten by a terminal git reset, click below to deep-scan all VPS backup directories, archives, and Git reflogs to automatically recover and merge your data.'; ?>
+        </p>
+
+        <?php if (is_array($recoveryReport) && (!empty($recoveryReport['routers_recovered']) || !empty($recoveryReport['resellers_recovered']))) { ?>
+          <div class="bg-green pd-10 radius-3 mr-b-10" style="font-size:12px;">
+            <b><i class="fa fa-check"></i> <?= $isBnUi ? 'রিকভারকৃত ডাটা তালিকা:' : 'Recovered Data Items:'; ?></b>
+            <?php if (!empty($recoveryReport['routers_recovered'])) { ?>
+              <div><?= $isBnUi ? 'রাউটার:' : 'Routers:'; ?> <?= htmlspecialchars(implode(', ', $recoveryReport['routers_recovered'])); ?></div>
+            <?php } ?>
+            <?php if (!empty($recoveryReport['resellers_recovered'])) { ?>
+              <div><?= $isBnUi ? 'রিসেলার:' : 'Resellers:'; ?> <?= htmlspecialchars(implode(', ', $recoveryReport['resellers_recovered'])); ?></div>
+            <?php } ?>
+          </div>
+        <?php } ?>
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+          <form method="post" action="" style="margin:0;">
+            <button type="submit" name="run_vps_data_recovery" class="btn bg-green pd-10" style="cursor:pointer; font-weight:bold;">
+              <i class="fa fa-magic"></i> <?= $isBnUi ? 'ভিপিএস থেকে পূর্বের ডাটা স্ক্যান ও রিকভার করুন' : 'Scan & Recover Previous VPS Data'; ?>
+            </button>
+          </form>
+
+          <form method="post" action="" style="margin:0;">
+            <button type="submit" name="download_data_backup" class="btn bg-primary pd-10" style="cursor:pointer; font-weight:bold;">
+              <i class="fa fa-download"></i> <?= $isBnUi ? 'ডাটা ব্যাকআপ ডাউনলোড (.json)' : 'Download Data Backup (.json)'; ?>
+            </button>
+          </form>
+        </div>
+
+        <div style="border-top: 1px solid rgba(150,150,150,0.25); padding-top: 10px;">
+          <b style="font-size:12px; display:block; margin-bottom:6px;">
+            <i class="fa fa-upload"></i> <?= $isBnUi ? 'ব্যাকআপ ফাইল (.json / config.php / resellers.json) আপলোড ও মার্জ করুন:' : 'Upload & Merge Backup File (.json / config.php / resellers.json):'; ?>
+          </b>
+          <form method="post" action="" enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="file" name="backup_data_file" class="form-control" style="flex:1; min-width:180px; font-size:12px;" required="1">
+            <button type="submit" name="upload_data_backup" class="btn bg-warning pd-5" style="cursor:pointer; font-weight:bold; font-size:12px;">
+              <i class="fa fa-check-circle"></i> <?= $isBnUi ? 'আপলোড ও মার্জ করুন' : 'Upload & Merge'; ?>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+

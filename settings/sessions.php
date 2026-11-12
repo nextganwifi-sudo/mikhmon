@@ -22,6 +22,15 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
   include_once('./include/reseller_acl.php');
+  if (is_file('./include/data_recovery.php')) {
+    include_once('./include/data_recovery.php');
+    if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+      $recRes = ngwPerformDeepDataRecoveryAndMerge(realpath(__DIR__ . '/..'));
+      if (!empty($recRes['routers_recovered']) && is_file('./include/config.php')) {
+        include('./include/config.php');
+      }
+    }
+  }
 
   // array color
   $color = array('1' => 'bg-blue', 'bg-indigo', 'bg-purple', 'bg-pink', 'bg-red', 'bg-yellow', 'bg-green', 'bg-teal', 'bg-cyan', 'bg-grey', 'bg-light-blue');
