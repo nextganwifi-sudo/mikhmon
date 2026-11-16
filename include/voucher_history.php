@@ -14,6 +14,8 @@ if (!defined('NGW_VOUCHER_HISTORY_RETENTION')) {
     define('NGW_VOUCHER_HISTORY_RETENTION', 30 * 86400);
 }
 
+include_once __DIR__ . '/mac_vendor.php';
+
 /**
  * Resolve storage directory (/data) and ensure it is protected.
  */
@@ -106,6 +108,7 @@ function ngwLoadVoucherHistory($session, $nowTs = null) {
         'session'            => (string)$session,
         'updated_at_ts'      => 0,
         'last_full_scan_ts'  => 0,
+        'last_dhcp_scan_ts'  => 0,
         'records'            => array(),
     );
 
@@ -117,6 +120,7 @@ function ngwLoadVoucherHistory($session, $nowTs = null) {
                 $store['session'] = isset($decoded['session']) ? (string)$decoded['session'] : (string)$session;
                 $store['updated_at_ts'] = isset($decoded['updated_at_ts']) ? (int)$decoded['updated_at_ts'] : 0;
                 $store['last_full_scan_ts'] = isset($decoded['last_full_scan_ts']) ? (int)$decoded['last_full_scan_ts'] : 0;
+                $store['last_dhcp_scan_ts'] = isset($decoded['last_dhcp_scan_ts']) ? (int)$decoded['last_dhcp_scan_ts'] : 0;
                 if (isset($decoded['records']) && is_array($decoded['records'])) {
                     $store['records'] = $decoded['records'];
                 }
@@ -427,6 +431,66 @@ function ngwSyncVoucherHistorySnapshot($API, $session, $hotspotUsers = null, $ac
         }
     }
 
+    // Periodically enrich live users from MikroTik DHCP Leases (max once per 60s)
+    // so device hostname/model/vendor are preserved before DHCP leases expire or vouchers are deleted.
+    $lastDhcpScanTs = isset($store['last_dhcp_scan_ts']) ? (int)$store['last_dhcp_scan_ts'] : 0;
+    if ($API && !empty($API->connected) && ($now - $lastDhcpScanTs) >= 60 && function_exists('ngwClassifyDeviceFromMetadata')) {
+        $dhcpLeases = $API->comm('/ip/dhcp-server/lease/print');
+        if (is_array($dhcpLeases) && !isset($dhcpLeases['!trap'])) {
+            $leaseByMac = array();
+            $leaseByIp = array();
+            foreach ($dhcpLeases as $dl) {
+                if (!is_array($dl)) continue;
+                $lMac = isset($dl['mac-address']) ? ngwNormalizeMac($dl['mac-address']) : '';
+                $lAMac = isset($dl['active-mac-address']) ? ngwNormalizeMac($dl['active-mac-address']) : '';
+                $lIp = isset($dl['address']) ? trim((string)$dl['address']) : '';
+                $lAIp = isset($dl['active-address']) ? trim((string)$dl['active-address']) : '';
+                if ($lMac !== '' && $lMac !== '00:00:00:00:00:00') $leaseByMac[$lMac] = $dl;
+                if ($lAMac !== '' && $lAMac !== '00:00:00:00:00:00') $leaseByMac[$lAMac] = $dl;
+                if ($lIp !== '') $leaseByIp[$lIp] = $dl;
+                if ($lAIp !== '') $leaseByIp[$lAIp] = $dl;
+            }
+            foreach ($liveKeys as $k => $_unusedFlag) {
+                if (!isset($store['records'][$k]) || !is_array($store['records'][$k])) continue;
+                $rec = $store['records'][$k];
+                $rMac = isset($rec['mac']) ? ngwNormalizeMac($rec['mac']) : '';
+                $rIp = isset($rec['ip']) ? trim((string)$rec['ip']) : '';
+                if ($rMac === '' && $rIp === '') continue;
+
+                $hitLease = null;
+                if ($rMac !== '' && isset($leaseByMac[$rMac])) {
+                    $hitLease = $leaseByMac[$rMac];
+                } elseif ($rIp !== '' && isset($leaseByIp[$rIp])) {
+                    $hitLease = $leaseByIp[$rIp];
+                }
+
+                $lHost = ($hitLease && !empty($hitLease['host-name'])) ? trim((string)$hitLease['host-name']) : (isset($rec['device_hostname']) ? (string)$rec['device_hostname'] : '');
+                $lCls = '';
+                if ($hitLease) {
+                    $lCls = !empty($hitLease['class-id']) ? trim((string)$hitLease['class-id']) : (!empty($hitLease['vendor-class-id']) ? trim((string)$hitLease['vendor-class-id']) : '');
+                }
+                if ($lCls === '' && !empty($rec['device_class_id'])) {
+                    $lCls = (string)$rec['device_class_id'];
+                }
+
+                // Avoid slow remote OUI network calls inside bulk snapshot loop: run classify only when
+                // DHCP lease gives new info or MAC wasn't already classified
+                if ($hitLease !== null || (empty($rec['device_vendor']) && empty($rec['device_model']) && empty($rec['device_type']))) {
+                    if ($hitLease !== null || ($rMac !== '' && ngwLookupOfflineMacVendor($rMac) !== '')) {
+                        $dev = ngwClassifyDeviceFromMetadata($rMac, $lHost, $lCls);
+                        if (!empty($dev['vendor'])) $rec['device_vendor'] = $dev['vendor'];
+                        if (!empty($dev['model'])) $rec['device_model'] = $dev['model'];
+                        if (!empty($dev['device_type'])) $rec['device_type'] = $dev['device_type'];
+                        if (!empty($dev['hostname'])) $rec['device_hostname'] = $dev['hostname'];
+                        if (!empty($dev['class_id'])) $rec['device_class_id'] = $dev['class_id'];
+                        $store['records'][$k] = $rec;
+                    }
+                }
+            }
+            $store['last_dhcp_scan_ts'] = $now;
+        }
+    }
+
     $store['last_full_scan_ts'] = $now;
     return ngwSaveVoucherHistory($session, $store, $now);
 }
@@ -450,6 +514,43 @@ function ngwRecordSingleVoucherSnapshot($session, $u, $activeRow = null, $router
     $store['records'][$key] = $updated;
     ngwSaveVoucherHistory($session, $store, $now);
     return $updated;
+}
+
+/**
+ * Persist discovered Device Vendor / Model / Type / Hostname for a voucher into 30-day backend history.
+ */
+function ngwSaveVoucherDeviceInfo($session, $username, $deviceInfo, $routerNowTs = null) {
+    $uname = trim((string)$username);
+    if ((string)$session === '' || $uname === '' || $uname === 'default-trial' || !is_array($deviceInfo)) {
+        return false;
+    }
+    $now = ($routerNowTs !== null && (int)$routerNowTs > 0) ? (int)$routerNowTs : time();
+    $store = ngwLoadVoucherHistory($session, $now);
+    $key = strtolower($uname);
+    $rec = isset($store['records'][$key]) && is_array($store['records'][$key])
+        ? $store['records'][$key]
+        : array('voucher' => $uname, 'first_seen_ts' => $now, 'last_seen_ts' => $now, 'removed' => false);
+
+    $changed = false;
+    $fieldMap = array(
+        'vendor'      => 'device_vendor',
+        'model'       => 'device_model',
+        'device_type' => 'device_type',
+        'hostname'    => 'device_hostname',
+        'class_id'    => 'device_class_id',
+    );
+    foreach ($fieldMap as $srcKey => $dstKey) {
+        $val = isset($deviceInfo[$srcKey]) ? trim((string)$deviceInfo[$srcKey]) : '';
+        if ($val !== '' && (!isset($rec[$dstKey]) || (string)$rec[$dstKey] !== $val)) {
+            $rec[$dstKey] = $val;
+            $changed = true;
+        }
+    }
+    if (!$changed) {
+        return true;
+    }
+    $store['records'][$key] = $rec;
+    return ngwSaveVoucherHistory($session, $store, $now);
 }
 
 /**
@@ -847,6 +948,11 @@ function ngwMergeRemovedVoucherRecords($session, $searchQuery, $scriptRecs = arr
             $sr['bytes_in'] = ($hist && isset($hist['bytes_in'])) ? (int)$hist['bytes_in'] : 0;
             $sr['bytes_out'] = ($hist && isset($hist['bytes_out'])) ? (int)$hist['bytes_out'] : 0;
             $sr['password'] = ($hist && !empty($hist['password'])) ? (string)$hist['password'] : (string)$sr['voucher'];
+            $sr['device_vendor'] = ($hist && !empty($hist['device_vendor'])) ? (string)$hist['device_vendor'] : '';
+            $sr['device_model'] = ($hist && !empty($hist['device_model'])) ? (string)$hist['device_model'] : '';
+            $sr['device_type'] = ($hist && !empty($hist['device_type'])) ? (string)$hist['device_type'] : '';
+            $sr['device_hostname'] = ($hist && !empty($hist['device_hostname'])) ? (string)$hist['device_hostname'] : '';
+            $sr['device_class_id'] = ($hist && !empty($hist['device_class_id'])) ? (string)$hist['device_class_id'] : '';
             $merged[] = $sr;
         }
     }
@@ -922,6 +1028,11 @@ function ngwMergeRemovedVoucherRecords($session, $searchQuery, $scriptRecs = arr
             'uptime'                 => isset($hist['uptime']) ? (string)$hist['uptime'] : '',
             'bytes_in'               => isset($hist['bytes_in']) ? (int)$hist['bytes_in'] : 0,
             'bytes_out'              => isset($hist['bytes_out']) ? (int)$hist['bytes_out'] : 0,
+            'device_vendor'          => isset($hist['device_vendor']) ? (string)$hist['device_vendor'] : '',
+            'device_model'           => isset($hist['device_model']) ? (string)$hist['device_model'] : '',
+            'device_type'            => isset($hist['device_type']) ? (string)$hist['device_type'] : '',
+            'device_hostname'        => isset($hist['device_hostname']) ? (string)$hist['device_hostname'] : '',
+            'device_class_id'        => isset($hist['device_class_id']) ? (string)$hist['device_class_id'] : '',
         );
     }
 

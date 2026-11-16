@@ -37,3 +37,5 @@ Thumbs.db
 backups/
 data/voucher_history_*.json
 /mikhmonv3-upstream/data/voucher_history_*.json
+data/mac_vendor_cache.json
+/mikhmonv3-upstream/data/mac_vendor_cache.json

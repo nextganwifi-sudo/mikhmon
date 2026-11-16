@@ -81,6 +81,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
   include_once('./include/ros_version.php');
   include_once('./include/voucher_history.php');
+  include_once('./include/mac_vendor.php');
   $tzSync = ngwSyncRouterTimezone($API);
   $routerNowTs = $tzSync['now_ts'];
 
@@ -88,6 +89,11 @@ if (!isset($_SESSION["mikhmon"])) {
   $liveActiveRow = (is_array($liveActiveCheck) && !empty($liveActiveCheck[0]['.id'])) ? $liveActiveCheck[0] : null;
   $isOnlineUser = ($liveActiveRow !== null);
   $historyRec = ngwRecordSingleVoucherSnapshot($session, $userdetails, $liveActiveRow, $routerNowTs);
+  $uDeviceIp = ($liveActiveRow && !empty($liveActiveRow['address'])) ? $liveActiveRow['address'] : (!empty($historyRec['ip']) ? $historyRec['ip'] : '');
+  $uDeviceMac = ($umac !== '' && $umac !== '00:00:00:00:00:00') ? $umac : (!empty($historyRec['mac']) ? $historyRec['mac'] : '');
+  $uDeviceInfo = ngwResolveVoucherDeviceInfo($API, $session, $uname, $uDeviceMac, $uDeviceIp, $historyRec);
+  $uHasAnyConn = ((int)$ubytesin > 0 || (int)$ubytesout > 0 || ($uDeviceMac !== '' && $uDeviceMac !== '00:00:00:00:00:00') || $isOnlineUser);
+  $uDeviceVendorHtml = ngwRenderDeviceVendorHtml($uDeviceInfo, $langid, $uHasAnyConn);
 
   $parsedComment = parseExpiryFromComment($ucomment);
   if ($parsedComment['is_expiry']) {
@@ -447,6 +453,10 @@ include('./voucher/printbt.php');
 	</tr>
   <tr>
     <td class="align-middle"><?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?></td><td><input class="form-control" type="text" value="<?= $umac; ?>"></td>
+  </tr>
+  <tr>
+    <td class="align-middle"><?= htmlspecialchars(isset($_device_vendor_model) ? $_device_vendor_model : 'Device / Vendor & Model'); ?></td>
+    <td><div class="pd-5" style="background:rgba(0,0,0,0.06); border-radius:4px;"><?= $uDeviceVendorHtml; ?></div></td>
   </tr>
   <tr>
     <td class="align-middle"><?= $_uptime_user ?></td><td><input class="form-control" type="text" value="<?php if ($uuptime == 0) {

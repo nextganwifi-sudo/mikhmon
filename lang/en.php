@@ -255,6 +255,7 @@ $_status_manually_removed = "Deleted / Removed from Server";
 $_rv_msg_manually_removed_found = "was deleted/removed from the server (preserved in 30-day backend history).";
 $_never_logged_in = "Never logged in yet";
 $_no_disconnect_log = "No recent disconnect log on router";
+$_device_vendor_model = "Device / Vendor & Model";
 
 // About & Standalone Server Download Labels (English Default)
 $_about_subtitle = "Advanced MikroTik Hotspot, Voucher & Multi-Reseller Management System";

@@ -14,6 +14,7 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/config.php');
 include_once('./include/ros_version.php');
 include_once('./include/voucher_history.php');
+include_once('./include/mac_vendor.php');
 include_once('./include/reseller_acl.php');
 include_once('./lib/routeros_api.class.php');
 include_once('./lib/formatbytesbites.php');
@@ -440,6 +441,14 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                     }
                 }
 
+                $deviceIpForLookup = ($isOnline && !empty($activeRow['address']))
+                    ? $activeRow['address']
+                    : (($latestRec !== null && !empty($latestRec['ip'])) ? $latestRec['ip'] : (!empty($historyRec['ip']) ? $historyRec['ip'] : ''));
+                $deviceMacForLookup = ($uMac !== $_not_bound) ? $uMac : (!empty($historyRec['mac']) ? $historyRec['mac'] : '');
+                $deviceInfo = ngwResolveVoucherDeviceInfo($rvAPI, $selectedServer, $uname, $deviceMacForLookup, $deviceIpForLookup, $historyRec);
+                $hasAnyConn = ($rawIn > 0 || $rawOut > 0 || $uMac !== $_not_bound || $isOnline);
+                $deviceVendorHtml = ngwRenderDeviceVendorHtml($deviceInfo, $langid, $hasAnyConn);
+
                 // Always show expiry on the search result; no separate expiry action is needed.
                 $expiryRowHtml = '';
                 if ($effectiveExpiry !== null) {
@@ -503,6 +512,10 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                     <tr>
                       <th>" . htmlspecialchars($_mac_address) . "</th>
                       <td><code>" . htmlspecialchars($uMac) . "</code>" . renderRandomizedMacBadge($uMac) . "</td>
+                    </tr>
+                    <tr>
+                      <th>" . htmlspecialchars($_device_vendor_model) . "</th>
+                      <td>" . $deviceVendorHtml . "</td>
                     </tr>
                     <tr>
                       <th>" . htmlspecialchars($_profile) . "</th>
@@ -579,6 +592,9 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                             . "</div>";
                     }
 
+                    $deviceInfo = ngwResolveVoucherDeviceInfo($rvAPI, $selectedServer, $rec['voucher'], isset($rec['mac']) ? $rec['mac'] : '', isset($rec['ip']) ? $rec['ip'] : '', $rec);
+                    $deviceVendorHtml = ngwRenderDeviceVendorHtml($deviceInfo, $langid, true);
+
                     $extraStatsRow = '';
                     if (!empty($rec['uptime']) || !empty($rec['bytes_in']) || !empty($rec['bytes_out'])) {
                         $uUpDisp = !empty($rec['uptime']) ? $rec['uptime'] : '0s';
@@ -648,6 +664,10 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                         <tr>
                           <th>" . htmlspecialchars($_last_ip_mac) . "</th>
                           <td>IP: <code>" . htmlspecialchars(!empty($rec['ip']) ? $rec['ip'] : '-') . "</code> &nbsp;|&nbsp; MAC: <code>" . htmlspecialchars(!empty($rec['mac']) ? $rec['mac'] : '-') . "</code>" . renderRandomizedMacBadge(isset($rec['mac']) ? $rec['mac'] : '') . "</td>
+                        </tr>
+                        <tr>
+                          <th>" . htmlspecialchars($_device_vendor_model) . "</th>
+                          <td>" . $deviceVendorHtml . "</td>
                         </tr>
                         " . $extraStatsRow . "
                         " . $expiryRowHtml . "

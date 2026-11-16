@@ -284,6 +284,7 @@ $_status_manually_removed = "সার্ভার থেকে ডিলিট 
 $_rv_msg_manually_removed_found = "সার্ভার থেকে ডিলিট/রিমুভ হয়েছে (গত ১ মাসের ব্যাকএন্ড হিস্টোরিতে পাওয়া গেছে)।";
 $_never_logged_in = "এখনও লগইন করেনি";
 $_no_disconnect_log = "সার্ভার লগে ডিসকানেক্ট রেকর্ড পাওয়া যায়নি";
+$_device_vendor_model = "ডিভাইস / ভ্যান্ডোর ও মডেল";
 
 // About & Standalone Server Download Labels (Bangla)
 $_about_subtitle = "অ্যাডভান্সড মাইক্রোটিক হটস্পট, ভাউচার ও মাল্টি-রিসেলার ম্যানেজমেন্ট সিস্টেম";
