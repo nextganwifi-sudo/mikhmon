@@ -25,7 +25,15 @@ $getuser7 = $API->comm("/ip/hotspot/user/print", array(
   "?limit-uptime" => "00:00:01",
 ));
 $getuser = array_merge(is_array($getuser6) ? $getuser6 : array(), is_array($getuser7) ? $getuser7 : array());
+include_once('./include/ros_version.php');
+include_once('./include/voucher_history.php');
+$tzSync = ngwSyncRouterTimezone($API);
+$routerNowTs = $tzSync['now_ts'];
+
 $TotalReg = count($getuser);
+if ($TotalReg > 0) {
+  ngwMarkVouchersRemoved($session, $getuser, 'expired_auto_removed', $routerNowTs);
+}
 
 $_SESSION['ubp'] = isset($getuser[0]['profile']) ? $getuser[0]['profile'] : "";
 $_SESSION['ubc'] = "";

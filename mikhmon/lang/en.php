@@ -249,6 +249,12 @@ $_rv_msg_expiry_shown = "expiry date is displayed below.";
 $_rv_msg_removed_expiry_shown = "expired and was removed from the server. View its recorded expiry date below.";
 $_rv_msg_removed_found = "expired and was removed from the server (found in server records). Click Check Expiry Date below to view its expiration date.";
 $_rv_msg_not_found = "No voucher, user, password, or MAC address matching your search was found on server";
+$_last_disconnect = "Last Disconnect";
+$_removed_at = "Removed At";
+$_status_manually_removed = "Deleted / Removed from Server";
+$_rv_msg_manually_removed_found = "was deleted/removed from the server (preserved in 30-day backend history).";
+$_never_logged_in = "Never logged in yet";
+$_no_disconnect_log = "No recent disconnect log on router";
 
 // About & Standalone Server Download Labels (English Default)
 $_about_subtitle = "Advanced MikroTik Hotspot, Voucher & Multi-Reseller Management System";

@@ -42,7 +42,16 @@ if ($targetBatch !== '') {
   }
 }
 
+include_once('./include/ros_version.php');
+include_once('./include/voucher_history.php');
+$tzSync = ngwSyncRouterTimezone($API);
+$routerNowTs = $tzSync['now_ts'];
+
 $TotalReg = is_array($getuser) ? count($getuser) : 0;
+
+if ($TotalReg > 0) {
+  ngwMarkVouchersRemoved($session, $getuser, 'manual_batch_delete', $routerNowTs);
+}
 
 $_SESSION['ubp'] = ($TotalReg > 0 && isset($getuser[0]['profile'])) ? $getuser[0]['profile'] : '';
 $_SESSION['ubc'] = "";

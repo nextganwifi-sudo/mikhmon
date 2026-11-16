@@ -14,13 +14,14 @@ BACKUP_DIR="${APP_DIR}/backups"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 STAGE_BACKUP="${BACKUP_DIR}/pre-update-${TIMESTAMP}"
 
-mkdir -p "${BACKUP_DIR}" "${STAGE_BACKUP}/include" "${STAGE_BACKUP}/uploads" "${STAGE_BACKUP}/voucher" "${STAGE_BACKUP}/img" "${STAGE_BACKUP}/images"
+mkdir -p "${BACKUP_DIR}" "${STAGE_BACKUP}/include" "${STAGE_BACKUP}/uploads" "${STAGE_BACKUP}/voucher" "${STAGE_BACKUP}/img" "${STAGE_BACKUP}/images" "${STAGE_BACKUP}/data"
 
 echo "[1/4] Creating Zero-Data-Loss snapshot in ${STAGE_BACKUP}..."
 for runtime_file in config.php resellers.json admin_users.json permission_groups.json backup_admin.json vpn_routers.json pppoe_areas.json voice_call_services.json user_prefs.json active_sessions.php activity_log.php quickbt.php github_repo.txt version_state.json; do
   cp -a "${APP_DIR}/include/${runtime_file}" "${STAGE_BACKUP}/include/" 2>/dev/null || true
 done
 cp -a "${APP_DIR}/uploads/." "${STAGE_BACKUP}/uploads/" 2>/dev/null || true
+cp -a "${APP_DIR}/data/voucher_history_"*.json "${STAGE_BACKUP}/data/" 2>/dev/null || true
 cp -a "${APP_DIR}/voucher/template.php" "${STAGE_BACKUP}/voucher/" 2>/dev/null || true
 cp -a "${APP_DIR}/voucher/template-small.php" "${STAGE_BACKUP}/voucher/" 2>/dev/null || true
 cp -a "${APP_DIR}/voucher/template-thermal.php" "${STAGE_BACKUP}/voucher/" 2>/dev/null || true
@@ -57,6 +58,8 @@ echo "[3/4] Restoring protected routers, resellers, HTML templates & logos..."
 rm -f "${APP_DIR}/include/license_manager.php" "${APP_DIR}/include/store_licenses.json" "${APP_DIR}/include/router_owners.json" 2>/dev/null || true
 cp -a "${STAGE_BACKUP}/include/." "${APP_DIR}/include/" 2>/dev/null || true
 cp -a "${STAGE_BACKUP}/uploads/." "${APP_DIR}/uploads/" 2>/dev/null || true
+mkdir -p "${APP_DIR}/data"
+cp -a "${STAGE_BACKUP}/data/." "${APP_DIR}/data/" 2>/dev/null || true
 cp -a "${STAGE_BACKUP}/voucher/." "${APP_DIR}/voucher/" 2>/dev/null || true
 cp -a "${STAGE_BACKUP}/img/." "${APP_DIR}/img/" 2>/dev/null || true
 cp -a "${STAGE_BACKUP}/images/." "${APP_DIR}/images/" 2>/dev/null || true
@@ -71,13 +74,13 @@ chown -R root:www-data "${APP_DIR}" 2>/dev/null || true
 find "${APP_DIR}" -type d -exec chmod 755 {} + 2>/dev/null || true
 find "${APP_DIR}" -type f -exec chmod 644 {} + 2>/dev/null || true
 chmod 1770 "${APP_DIR}/include" 2>/dev/null || true
-mkdir -p "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups"
+mkdir -p "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" "${APP_DIR}/data"
 [[ -f "${APP_DIR}/include/resellers.json" ]] || printf '[]\n' > "${APP_DIR}/include/resellers.json"
 [[ -f "${APP_DIR}/include/backup_admin.json" ]] || printf '{"username":"","password_enc":""}\n' > "${APP_DIR}/include/backup_admin.json"
 [[ -f "${APP_DIR}/include/vpn_routers.json" ]] || printf '[]\n' > "${APP_DIR}/include/vpn_routers.json"
-chown -R www-data:www-data "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" 2>/dev/null || true
-find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" -type d -exec chmod 750 {} + 2>/dev/null || true
-find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" -type f -exec chmod 640 {} + 2>/dev/null || true
+chown -R www-data:www-data "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" "${APP_DIR}/data" 2>/dev/null || true
+find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/data" -type d -exec chmod 750 {} + 2>/dev/null || true
+find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/data" -type f -exec chmod 640 {} + 2>/dev/null || true
 chown root:www-data "${APP_DIR}/include" 2>/dev/null || true
 chmod 750 "${APP_DIR}/backups" 2>/dev/null || true
 for runtime_file in config.php resellers.json admin_users.json permission_groups.json backup_admin.json vpn_routers.json pppoe_areas.json voice_call_services.json user_prefs.json active_sessions.php activity_log.php quickbt.php github_repo.txt version_state.json; do

@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for Same-Router Hotspot Profile User Migration and Cross-Router Hotspot User Transfer with Auto-Activation (RouterOS 6 & 7 compatible).",
-  "updatedAt":  "2026-11-10T12:47:34.185191189Z",
+  "summary":  "Implementation plan for the 3-tier Admin Store & Licensed Admin Quota System (Super Admin Store -> Licensed Admin -> Reseller) with router limits, user/voucher limits, active user limits, reseller limits, license validity/expiry auto-lock, and full hierarchical visibility in the Main Admin Store.",
+  "updatedAt":  "2026-11-12T20:17:09.568502490Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

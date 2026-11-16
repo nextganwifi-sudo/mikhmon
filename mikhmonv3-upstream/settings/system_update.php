@@ -165,6 +165,16 @@ function collectProtectedDataFiles($rootDir) {
             }
         }
     }
+    // 30-Day Backend Voucher History files inside data/
+    $dataDir = $rootDir . '/data';
+    if (is_dir($dataDir)) {
+        foreach (glob($dataDir . '/voucher_history_*.json') as $vhFile) {
+            if (is_file($vhFile)) {
+                $rel = 'data/' . basename($vhFile);
+                $protectedFiles[$rel] = @file_get_contents($vhFile);
+            }
+        }
+    }
     return $protectedFiles;
 }
 
@@ -213,7 +223,7 @@ function isProtectedDataRelPath($relPath) {
     if (strpos($norm, 'uploads/reseller-templates/') === 0 || strpos($norm, 'uploads/reseller-logos/') === 0 || $norm === 'uploads/user_prefs.json') {
         return true;
     }
-    if (strpos($norm, 'backups/') === 0) {
+    if (strpos($norm, 'backups/') === 0 || strpos($norm, 'data/') === 0) {
         return true;
     }
     if (preg_match('#^(img|images)/logo-.*\.(png|jpg|jpeg|webp)$#i', $norm)) {

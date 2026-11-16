@@ -24,6 +24,8 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
   include_once('./include/ros_version.php');
+  include_once('./include/voucher_history.php');
+  $tzSync = ngwSyncRouterTimezone($API);
 
   if (empty($API->is_virtual) && !empty($API->connected) && empty($_SESSION['ngw_ros7_synced'][$session])) {
     if (detectRouterOSMajorVersion($API) === 7) {
@@ -32,7 +34,15 @@ if (!isset($_SESSION["mikhmon"])) {
     $_SESSION['ngw_ros7_synced'][$session] = time();
   }
 
-  if ($prof == "all") {
+  $exp = isset($_GET['exp']) ? $_GET['exp'] : '';
+  if ($prof == "all" && $comm == "" && $exp == "") {
+    $getuser = $API->comm("/ip/hotspot/user/print");
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
+    if (!empty($API->connected) && is_array($getuser)) {
+      ngwSyncVoucherHistorySnapshot($API, $session, $getuser, null, $tzSync['now_ts'], 10);
+    }
+  } elseif ($prof == "all") {
     $getuser = $API->comm("/ip/hotspot/user/print");
     $TotalReg = is_array($getuser) ? count($getuser) : 0;
     $counttuser = $TotalReg;
@@ -281,9 +291,19 @@ for ($i = 0; $i < $TotalReg; $i++) {
   $popup = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=no&session=" . $session . "','_blank','width=320,height=550').print();";
   $popupQR = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=yes&session=" . $session . "','_blank','width=320,height=550').print();";
   if (hasResellerPermission('edit_user')) {
-    echo "<td><a title='Open User " . $uname . "' href=./?hotspot-user=" . $uid . "&session=" . $session . "><i class='fa fa-edit'></i> " . $uname . " </a></td>";
+    echo "<td><a title='Open User " . $uname . "' href=./?hotspot-user=" . $uid . "&session=" . $session . "><i class='fa fa-edit'></i> " . $uname . " </a>";
+    if (hasResellerPermission('reset_voucher') && $uname !== 'default-trial') {
+      echo " <a title='" . htmlspecialchars($_check_voucher, ENT_QUOTES) . "' href='./?hotspot=reset-voucher&voucher=" . rawurlencode($uname) . "&session=" . rawurlencode($session) . "' style='margin-left:4px; opacity:0.8;'><i class='fa fa-search'></i></a>";
+    }
+    echo "</td>";
   } else {
-    echo "<td>" . $uname . "</td>";
+    echo "<td>";
+    if (hasResellerPermission('reset_voucher') && $uname !== 'default-trial') {
+      echo "<a title='" . htmlspecialchars($_check_voucher, ENT_QUOTES) . "' href='./?hotspot=reset-voucher&voucher=" . rawurlencode($uname) . "&session=" . rawurlencode($session) . "'>" . htmlspecialchars($uname) . "</a>";
+    } else {
+      echo htmlspecialchars($uname);
+    }
+    echo "</td>";
   }
   // Password column
   if ($usermode == "vc") {

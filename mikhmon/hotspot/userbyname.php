@@ -80,6 +80,15 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
   include_once('./include/ros_version.php');
+  include_once('./include/voucher_history.php');
+  $tzSync = ngwSyncRouterTimezone($API);
+  $routerNowTs = $tzSync['now_ts'];
+
+  $liveActiveCheck = $API->comm("/ip/hotspot/active/print", array("?user" => "$uname"));
+  $liveActiveRow = (is_array($liveActiveCheck) && !empty($liveActiveCheck[0]['.id'])) ? $liveActiveCheck[0] : null;
+  $isOnlineUser = ($liveActiveRow !== null);
+  $historyRec = ngwRecordSingleVoucherSnapshot($session, $userdetails, $liveActiveRow, $routerNowTs);
+
   $parsedComment = parseExpiryFromComment($ucomment);
   if ($parsedComment['is_expiry']) {
     $commt = 'disabled';
@@ -93,6 +102,54 @@ if (!isset($_SESSION["mikhmon"])) {
     $_tcomment = $_comment;
     $_tcomment2 = "";
     $display = 'style="display:none"';
+  }
+
+  $isDisabledUser = ($ueduser === 'true' || $ueduser === 'yes');
+  $isLimitExpUser = ($utimelimit === '1s' || $utimelimit === '00:00:01');
+  $isCalExpUser = false;
+  if (!empty($parsedComment['is_expiry']) && !empty($parsedComment['iso_datetime'])) {
+    $calTs = strtotime($parsedComment['iso_datetime']);
+    if ($calTs !== false && $calTs <= $routerNowTs) {
+      $isCalExpUser = true;
+    }
+  }
+  if ($isDisabledUser) {
+    $uStatusBadge = "<span class='bg-danger pd-5 radius-3'><i class='fa fa-lock'></i> " . htmlspecialchars($_status_disabled) . "</span>";
+  } elseif ($isLimitExpUser || $isCalExpUser) {
+    $uStatusBadge = "<span class='bg-danger pd-5 radius-3'><i class='fa fa-clock-o'></i> " . htmlspecialchars($_status_expired) . "</span>";
+  } elseif ($isOnlineUser) {
+    $uStatusBadge = "<span class='bg-green pd-5 radius-3'><i class='fa fa-wifi'></i> " . htmlspecialchars($_status_active_online) . "</span>";
+  } elseif (!empty($parsedComment['is_expiry'])) {
+    $uStatusBadge = "<span class='bg-primary pd-5 radius-3'><i class='fa fa-check'></i> " . htmlspecialchars($_status_enabled) . "</span>";
+  } else {
+    $uStatusBadge = "<span class='bg-info pd-5 radius-3'><i class='fa fa-ticket'></i> " . htmlspecialchars($_status_unused) . "</span>";
+  }
+
+  $uLastDisconnectHtml = '';
+  if (!$isOnlineUser) {
+    $discInfo = ngwResolveVoucherDisconnectInfo($API, $session, $uname, $umac, false, $historyRec, $routerNowTs, $langid, $userdetails);
+    if (!empty($discInfo['has_disconnect'])) {
+      $reasonTag = !empty($discInfo['reason'])
+        ? " <small style='opacity:0.75;'>[" . htmlspecialchars($discInfo['reason']) . "]</small>"
+        : '';
+      $uLastDisconnectHtml = "<div style='margin-top:6px; font-size:12px;'>"
+        . "<i class='fa fa-plug text-warning'></i> "
+        . "<b>" . htmlspecialchars($_last_disconnect) . ":</b> "
+        . "<span class='text-warning' style='font-weight:bold;'>" . htmlspecialchars($discInfo['relative']) . "</span> "
+        . "<small style='opacity:0.8;'>(" . htmlspecialchars($discInfo['datetime']) . ")</small>"
+        . $reasonTag
+        . "</div>";
+    } elseif (!empty($discInfo['never_logged_in'])) {
+      $uLastDisconnectHtml = "<div style='margin-top:6px; font-size:12px; opacity:0.85;'>"
+        . "<i class='fa fa-plug'></i> "
+        . "<b>" . htmlspecialchars($_last_disconnect) . ":</b> " . htmlspecialchars($_never_logged_in)
+        . "</div>";
+    } else {
+      $uLastDisconnectHtml = "<div style='margin-top:6px; font-size:12px; opacity:0.85;'>"
+        . "<i class='fa fa-plug'></i> "
+        . "<b>" . htmlspecialchars($_last_disconnect) . ":</b> " . htmlspecialchars($_no_disconnect_log)
+        . "</div>";
+    }
   }
   
   $getprofilebyuser = $API->comm("/ip/hotspot/user/profile/print", array(
@@ -317,9 +374,16 @@ include('./voucher/printbt.php');
     <?php } ?>
     <?php if (hasResellerPermission('enable_disable_user') && ($utimelimit == "1s" || $utimelimit == "00:00:01")) {
       echo '<a class="btn bg-info"  href="./?reset-hotspot-user=' . $uid . '&session=' . $session . '"> <i class="fa fa-retweet"></i> ' . $_reset . '</a>';
-    } ?><br>
+    } ?>
+    <?php if (hasResellerPermission('reset_voucher')) { ?>
+    <a class="btn bg-secondary" href="./?hotspot=reset-voucher&voucher=<?= urlencode($uname); ?>&session=<?= urlencode($session); ?>"><i class="fa fa-search"></i> <?= htmlspecialchars($_check_voucher); ?></a>
+    <?php } ?><br>
   </div>
 <table class="table">
+  <tr>
+    <td class="align-middle"><?= htmlspecialchars($_status); ?></td>
+    <td><?= $uStatusBadge . $uLastDisconnectHtml; ?></td>
+  </tr>
   <tr>
     <td class="align-middle"><?= ($langid === 'bn') ? 'সক্রিয় (Enabled)' : 'Enabled'; ?></td>
     <td>

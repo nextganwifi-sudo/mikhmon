@@ -35,3 +35,5 @@ Thumbs.db
 /mikhmonv3-upstream/uploads/reseller-templates/*/*.draft.php
 
 backups/
+data/voucher_history_*.json
+/mikhmonv3-upstream/data/voucher_history_*.json

@@ -19,6 +19,11 @@ session_start();
 // hide all error
 error_reporting(0);
 
+include_once('./include/ros_version.php');
+include_once('./include/voucher_history.php');
+$tzSync = ngwSyncRouterTimezone($API);
+$routerNowTs = $tzSync['now_ts'];
+
 // get user active
 $getuser = $API->comm("/ip/hotspot/active/print", array(
     "?.id" => "$removeuseractive",
@@ -37,6 +42,9 @@ $API->comm("/ip/hotspot/cookie/remove", array(
 $API->comm("/ip/hotspot/active/remove", array(
     ".id" => "$removeuseractive",
 ));
+if (!empty($user)) {
+    ngwMarkVoucherDisconnected($session, $user, $routerNowTs, 'manual_disconnect', 'admin reset');
+}
 // redirect to user active
 echo "<script>window.location='./?hotspot=active&session=" . $session . "'</script>";
 ?>

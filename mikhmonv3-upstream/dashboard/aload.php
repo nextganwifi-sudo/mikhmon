@@ -138,7 +138,13 @@ if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
   $countusedusers = countUsedHotspotVouchers($allhotspotusers);
 
 // get & counting hotspot active
-  $counthotspotactive = $API->comm("/ip/hotspot/active/print", array("count-only" => ""));
+  $counthotspotactiveList = $API->comm("/ip/hotspot/active/print");
+  $counthotspotactive = is_array($counthotspotactiveList) ? count($counthotspotactiveList) : 0;
+  include_once('../include/voucher_history.php');
+  $tzSync = ngwSyncRouterTimezone($API);
+  if (!empty($API->connected) && is_array($allhotspotusers)) {
+    ngwSyncVoucherHistorySnapshot($API, $session, $allhotspotusers, is_array($counthotspotactiveList) ? $counthotspotactiveList : null, $tzSync['now_ts'], 10);
+  }
   if ($counthotspotactive < 2) {
     $hunit = ($langid === 'bn') ? "টি" : "item";
   } elseif ($counthotspotactive > 1) {

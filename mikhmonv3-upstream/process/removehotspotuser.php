@@ -18,16 +18,26 @@
 session_start();
 // hide all error
 error_reporting(0);
+include_once('./include/ros_version.php');
+include_once('./include/voucher_history.php');
+$tzSync = ngwSyncRouterTimezone($API);
+$routerNowTs = $tzSync['now_ts'];
+
 if ($removehotspotusers != "") {
 	$uids = explode("~", $removehotspotusers);
 
 	$nuids = count($uids);
+	$removedUsersList = array();
 
 	for ($i = 0; $i < $nuids; $i++) {
 
 		$getuname = $API->comm("/ip/hotspot/user/print", array(
 			"?.id" => "$uids[$i]",
 		));
+
+		if (is_array($getuname) && !empty($getuname[0]) && !empty($getuname[0]['name'])) {
+			$removedUsersList[] = $getuname[0];
+		}
 
 		$name = $getuname[0]['name'];
 
@@ -57,6 +67,10 @@ if ($removehotspotusers != "") {
 
 	}
 
+	if (!empty($removedUsersList)) {
+		ngwMarkVouchersRemoved($session, $removedUsersList, 'manual_delete', $routerNowTs);
+	}
+
 	if ($_SESSION['ubp'] != "") {
 		echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
 	} elseif ($_SESSION['ubc'] != "") {
@@ -70,6 +84,10 @@ if ($removehotspotusers != "") {
 	$getuname = $API->comm("/ip/hotspot/user/print", array(
 		"?.id" => "$removehotspotuser",
 	));
+
+	if (is_array($getuname) && !empty($getuname[0]) && !empty($getuname[0]['name'])) {
+		ngwMarkVouchersRemoved($session, array($getuname[0]), 'manual_delete', $routerNowTs);
+	}
 
 	$name = $getuname[0]['name'];
 

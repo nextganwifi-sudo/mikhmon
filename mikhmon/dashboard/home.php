@@ -71,7 +71,12 @@ if (!isset($_SESSION["mikhmon"])) {
   $countusedusers = countUsedHotspotVouchers($allhotspotusers);
 
 // get & counting hotspot active
-  $counthotspotactive = $API->comm("/ip/hotspot/active/print", array("count-only" => ""));
+  $counthotspotactiveList = $API->comm("/ip/hotspot/active/print");
+  $counthotspotactive = is_array($counthotspotactiveList) ? count($counthotspotactiveList) : 0;
+  include_once('./include/voucher_history.php');
+  if (!empty($API->connected) && is_array($allhotspotusers)) {
+    ngwSyncVoucherHistorySnapshot($API, $session, $allhotspotusers, is_array($counthotspotactiveList) ? $counthotspotactiveList : null, time(), 10);
+  }
   if ($counthotspotactive < 2) {
     $hunit = ($langid === 'bn') ? "টি" : "item";
   } elseif ($counthotspotactive > 1) {

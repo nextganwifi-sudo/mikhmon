@@ -7,10 +7,11 @@ coverage/
 .env*
 !.env.example
 .php-runtime/
-public/assets/aistudio/*.zip
-
-
+public/assets/aistudio/
+*.zip
 backups/
 mikhmon/backups/
 mikhmonv3-upstream/backups/
-public/assets/aistudio/
+data/voucher_history_*.json
+mikhmon/data/voucher_history_*.json
+mikhmonv3-upstream/data/voucher_history_*.json
