@@ -28,7 +28,14 @@ if (!isset($_SESSION["mikhmon"])) {
 date_default_timezone_set($_SESSION['timezone']);
 
     require_once __DIR__ . '/../include/voucher_request.php';
+    include_once(__DIR__ . '/../include/ros_version.php');
     $isVoucherResultRequest = isLocalVoucherResultRequest($_SERVER['REQUEST_METHOD'], $_GET);
+    if (!$isVoucherResultRequest && empty($API->is_virtual) && !empty($API->connected) && empty($_SESSION['ngw_ros7_synced'][$session])) {
+        if (detectRouterOSMajorVersion($API) === 7) {
+            syncOutdatedRos7ProfilesAndComments($API, false);
+        }
+        $_SESSION['ngw_ros7_synced'][$session] = time();
+    }
     // Keep server/profile choices isolated to the selected router.
     $voucherCacheKey = (string)$session;
 	$genprof = $_GET['genprof'];

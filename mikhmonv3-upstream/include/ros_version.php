@@ -165,10 +165,38 @@ function parseExpiryFromComment($comment) {
 }
 
 /**
+ * Normalize an activated voucher comment so ONLY the calendar expiry date/time remains
+ * (strips any accidental trailing vc-... / up-... batch serial attached after the date).
+ */
+function normalizeActivatedVoucherComment($comment) {
+    $comment = trim((string)$comment);
+    if ($comment === '') {
+        return '';
+    }
+    $parsed = parseExpiryFromComment($comment);
+    if (!empty($parsed['is_expiry'])) {
+        $note = isset($parsed['note']) ? trim((string)$parsed['note']) : '';
+        if ($note !== '') {
+            $note = trim((string)preg_replace('/(?:^|\s*)(?:vc|up)-.*$/i', '', $note));
+        }
+        return $note !== '' ? ($parsed['datetime'] . ' ' . $note) : $parsed['datetime'];
+    }
+    $stripped = trim((string)preg_replace('/\s*(?:vc|up)-.*$/i', '', $comment));
+    if ($stripped !== '' && $stripped !== $comment) {
+        $parsedStripped = parseExpiryFromComment($stripped);
+        if (!empty($parsedStripped['is_expiry'])) {
+            return $parsedStripped['datetime'];
+        }
+    }
+    return $comment;
+}
+
+/**
  * Build universal dual-stack (RouterOS 6.x + RouterOS 7.x) on-login and scheduler scripts.
  * 1. Stamped comment matches ROS6 format (mmm/dd/yyyy HH:MM:SS) across both ROS6 and ROS7.
- * 2. Unlocks/locks client device MAC address on initial activation.
- * 3. Schedules and performs 100% reliable background user expiration check.
+ * 2. Never preserves or appends vc-/up- batch serials in the user comment after activation.
+ * 3. Unlocks/locks client device MAC address on initial activation.
+ * 4. Schedules and performs 100% reliable background user expiration check.
  */
 function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $sprice, $getlock, $routerOsMajor = 6) {
     if ($getlock == "Enable") {
@@ -180,31 +208,53 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
     // Universal sales record script snippet: adds script into /system script with comment="mikhmon"
     $record = '; :local time [/system clock get time]; :if ([:len [/system script find where comment="mikhmon" and name~("\\-\\|\\-" . $user . "\\-\\|\\-")]] = 0) do={ /system script add name=("$curdate6-|-$time-|-$user-|-' . $price . '-|-$address-|-$mac-|-' . $validity . '-|-' . $name . '-|-$comment") owner=("$curmonth$curyear") source="$curdate6" comment="mikhmon" }';
 
-    // ROS7 follows the user's supplied MikroTik calendar arithmetic on-login script.
-    // The configured profile validity is injected dynamically (e.g. 3h, 1d, 7d, 30d).
+    // ROS7 follows MikroTik calendar arithmetic on-login script with normalized lowercase validity.
     // ROS6 keeps its original temporary-scheduler next-run implementation below.
     if ((int)$routerOsMajor === 7) {
         $ros7LockMac = ($getlock == "Enable") ? "YES" : "NO";
+        $ros7Validity = strtolower(trim((string)$validity));
+        if ($ros7Validity === '') {
+            $ros7Validity = '0s';
+        }
         $onloginBase = ':put (",' . $expmode . ',' . $price . ',' . $validity . ',' . $sprice . ',,' . $getlock . ',"); {' . "\n" . str_replace(
             array('__VALIDITY__', '__LOCK__'),
-            array(addslashes((string)$validity), $ros7LockMac),
+            array(addslashes($ros7Validity), $ros7LockMac),
             <<<'ROS7'
-:local comment [/ip hotspot user get [/ip hotspot user find where name=$user] comment];
+:local comment [/ip hotspot user get [/ip hotspot user find where name="$user"] comment];
 :local cdate [/system clock get date];
 :local ctime [/system clock get time];
 :local validity [:totime "__VALIDITY__"];
+:if ([:typeof $validity] != "time") do={ :set validity 0s; };
 :local lockmac "__LOCK__";
 :local addsales "__ADDSALES__";
 :local price "__PRICE__";
 :local tlimit "__TLIMIT__";
-:local hsProfile [/ip hotspot user get [/ip hotspot user find where name=$user] profile];
+:local hsProfile [/ip hotspot user get [/ip hotspot user find where name="$user"] profile];
 :local mac $"mac-address";
 :local originalComment $comment;
-:if (([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") or ([:pick $comment 4 5] = "-" and [:pick $comment 7 8] = "-")) do={
+:local ucode [:pick $comment 0 2];
+:local isActivated false;
+:if ($ucode != "vc" and $ucode != "up" and $comment != "") do={
+    :if (([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") or ([:pick $comment 4 5] = "-" and [:pick $comment 7 8] = "-")) do={
+        :set isActivated true;
+    };
+};
+:if ($isActivated) do={
+    :local vcPos [:find $comment " vc-"];
+    :local upPos [:find $comment " up-"];
+    :if ([:typeof $vcPos] = "num") do={
+        :set comment [:pick $comment 0 $vcPos];
+        /ip hotspot user set comment="$comment" [find where name="$user"];
+    } else={
+        :if ([:typeof $upPos] = "num") do={
+            :set comment [:pick $comment 0 $upPos];
+            /ip hotspot user set comment="$comment" [find where name="$user"];
+        };
+    };
     :if (($lockmac = "YES") && ([:len $mac] > 0)) do={
-        :local curmac [/ip hotspot user get [/ip hotspot user find where name=$user] mac-address];
+        :local curmac [/ip hotspot user get [/ip hotspot user find where name="$user"] mac-address];
         :if ([:len $curmac] = 0 or $curmac = "00:00:00:00:00:00") do={
-            /ip hotspot user set mac-address=$mac [find where name=$user];
+            /ip hotspot user set mac-address=$mac [find where name="$user"];
         };
     };
 } else={
@@ -246,9 +296,9 @@ function buildUniversalMikhmonScripts($name, $expmode, $price, $validity, $spric
     :local expTime [:tostr $exptime];
     :if ([:pick $expTime 1 2] = ":") do={ :set expTime ("0" . $expTime); };
     :local expiryStamp ($vdate . " " . $expTime);
-    /ip hotspot user set comment=$expiryStamp [find where name=$user];
+    /ip hotspot user set comment="$expiryStamp" [find where name="$user"];
     :if (($lockmac = "YES") && ([:len $mac] > 0)) do={
-        /ip hotspot user set mac-address=$mac [find where name=$user];
+        /ip hotspot user set mac-address=$mac [find where name="$user"];
     };
     :local Tmonth [:pick $monthr ($startMonth - 1)];
     :local zero "";
@@ -302,10 +352,10 @@ ROS7
     }
 
     // Universal background scheduler monitor script:
-    // Periodically checks all users in profile $name, compares comment expiration date/time
-    // with current router clock on both ROS6 and ROS7, and terminates expired vouchers.
+    // Periodically checks all users in profile $name, cleans any leftover vc-/up- from activated comments,
+    // compares comment expiration date/time with current router clock on both ROS6 and ROS7, and terminates expired vouchers.
     $guardNotAlreadyExpired = ($mode == "set limit-uptime=1s") ? ' and $limit != "1s" and $limit != "00:00:01"' : '';
-    $bgservice = ':local dateint do={ :local montharray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :if ([:pick $d 4 5] = "-") do={ :local yr [:pick $d 0 4]; :local mo [:pick $d 5 7]; :local dy [:pick $d 8 10]; :return [:tonum ("$yr$mo$dy")]; } else={ :local days [:pick $d 4 6]; :local month [:pick $d 0 3]; :local year [:pick $d 7 11]; :local monthint ([:find $montharray $month]); :if ([:len $monthint] > 0) do={ :local mnum ($monthint + 1); :if ($mnum < 10) do={ :return [:tonum ("$year" . "0" . "$mnum$days")]; } else={ :return [:tonum ("$year$mnum$days")]; }; } else={ :return 0; }; }; }; :local timeint do={ :local hours [:tonum [:pick $t 0 2]]; :local minutes [:tonum [:pick $t 3 5]]; :local seconds [:tonum [:pick $t 6 8]]; :return ($hours * 3600 + $minutes * 60 + $seconds); }; :local date [/system clock get date]; :local time [/system clock get time]; :local today [$dateint d=$date]; :local curtime [$timeint t=$time]; :if ($today > 20200000) do={ :foreach i in=[/ip hotspot user find where profile="' . $name . '"] do={ :local comment [/ip hotspot user get $i comment]; :local uname [/ip hotspot user get $i name]; :local umac [/ip hotspot user get $i mac-address]; :local limit [/ip hotspot user get $i limit-uptime]; :local expd 0; :local expt 0; :if ([:pick $comment 4 5] = "-") do={ :set expd [$dateint d=[:pick $comment 0 10]]; :set expt [$timeint t=[:pick $comment 11 19]]; } else={ :if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={ :set expd [$dateint d=[:pick $comment 0 11]]; :set expt [$timeint t=[:pick $comment 12 20]]; }; }; :if ($expd > 20200000) do={ :if (($expd < $today) or ($expd = $today and $expt <= $curtime)' . $guardNotAlreadyExpired . ') do={ [ /ip hotspot user ' . $mode . ' $i ]; [ /ip hotspot active remove [find where user=$uname] ]; [ /ip hotspot cookie remove [find where user=$uname] ]; [ /ip hotspot ip-binding remove [find where comment~("ngw-auto-active:" . $uname)] ]; :if ([:len $umac] > 0) do={ [ /ip hotspot host remove [find where mac-address=$umac] ]; }; }; }; }; }';
+    $bgservice = ':local dateint do={ :local montharray ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); :if ([:pick $d 4 5] = "-") do={ :local yr [:pick $d 0 4]; :local mo [:pick $d 5 7]; :local dy [:pick $d 8 10]; :return [:tonum ("$yr$mo$dy")]; } else={ :local days [:pick $d 4 6]; :local month [:pick $d 0 3]; :local year [:pick $d 7 11]; :local monthint ([:find $montharray $month]); :if ([:len $monthint] > 0) do={ :local mnum ($monthint + 1); :if ($mnum < 10) do={ :return [:tonum ("$year" . "0" . "$mnum$days")]; } else={ :return [:tonum ("$year$mnum$days")]; }; } else={ :return 0; }; }; }; :local timeint do={ :local hours [:tonum [:pick $t 0 2]]; :local minutes [:tonum [:pick $t 3 5]]; :local seconds [:tonum [:pick $t 6 8]]; :return ($hours * 3600 + $minutes * 60 + $seconds); }; :local date [/system clock get date]; :local time [/system clock get time]; :local today [$dateint d=$date]; :local curtime [$timeint t=$time]; :if ($today > 20200000) do={ :foreach i in=[/ip hotspot user find where profile="' . $name . '"] do={ :local comment [/ip hotspot user get $i comment]; :local uname [/ip hotspot user get $i name]; :local umac [/ip hotspot user get $i mac-address]; :local limit [/ip hotspot user get $i limit-uptime]; :local ucode [:pick $comment 0 2]; :local expd 0; :local expt 0; :if ($ucode != "vc" and $ucode != "up") do={ :local vcPos [:find $comment " vc-"]; :local upPos [:find $comment " up-"]; :if ([:typeof $vcPos] = "num") do={ :set comment [:pick $comment 0 $vcPos]; /ip hotspot user set comment="$comment" $i; } else={ :if ([:typeof $upPos] = "num") do={ :set comment [:pick $comment 0 $upPos]; /ip hotspot user set comment="$comment" $i; }; }; :if ([:pick $comment 4 5] = "-") do={ :set expd [$dateint d=[:pick $comment 0 10]]; :set expt [$timeint t=[:pick $comment 11 19]]; } else={ :if ([:pick $comment 3 4] = "/" and [:pick $comment 6 7] = "/") do={ :set expd [$dateint d=[:pick $comment 0 11]]; :set expt [$timeint t=[:pick $comment 12 20]]; }; }; }; :if ($expd > 20200000) do={ :if (($expd < $today) or ($expd = $today and $expt <= $curtime)' . $guardNotAlreadyExpired . ') do={ [ /ip hotspot user ' . $mode . ' $i ]; [ /ip hotspot active remove [find where user=$uname] ]; [ /ip hotspot cookie remove [find where user=$uname] ]; [ /ip hotspot ip-binding remove [find where comment~("ngw-auto-active:" . $uname)] ]; :if ([:len $umac] > 0) do={ [ /ip hotspot host remove [find where mac-address=$umac] ]; }; }; }; }; }';
 
     return array(
         'onlogin' => $onlogin,
@@ -313,6 +363,131 @@ ROS7
         'bgservice' => $bgservice,
         'mode' => $mode
     );
+}
+
+/**
+ * Upgrade outdated Mikhmon Hotspot profile scripts on RouterOS 7 and strip any trailing vc-/up-
+ * serials from already-activated user comments so ONLY the calendar expiry date/time remains.
+ */
+function syncOutdatedRos7ProfilesAndComments($API, $forceCleanUsers = false) {
+    $result = array('profiles_updated' => 0, 'users_cleaned' => 0);
+    if (!$API || empty($API->connected)) {
+        return $result;
+    }
+
+    $routerOsMajor = detectRouterOSMajorVersion($API);
+    if ($routerOsMajor !== 7 && !$forceCleanUsers) {
+        return $result;
+    }
+
+    $routerClockRow = array();
+    if ($routerOsMajor === 7) {
+        $routerClock = $API->comm("/system/clock/print");
+        $routerClockRow = (is_array($routerClock) && isset($routerClock[0]) && is_array($routerClock[0])) ? $routerClock[0] : array();
+    }
+
+    $allProfs = $API->comm("/ip/hotspot/user/profile/print");
+    $allScheds = $API->comm("/system/scheduler/print");
+    $schedMap = array();
+    if (is_array($allScheds)) {
+        foreach ($allScheds as $sc) {
+            if (isset($sc['name'])) {
+                $schedMap[$sc['name']] = $sc;
+            }
+        }
+    }
+
+    if (is_array($allProfs)) {
+        foreach ($allProfs as $pr) {
+            $pname = isset($pr['name']) ? $pr['name'] : '';
+            $ponlogin = isset($pr['on-login']) ? $pr['on-login'] : '';
+            if ($pname === '' || $ponlogin === '' || strpos($ponlogin, ':put (",') === false) {
+                continue;
+            }
+            $meta = explode(',', $ponlogin);
+            $expmode = isset($meta[1]) ? trim($meta[1]) : '0';
+            $price = isset($meta[2]) ? trim($meta[2]) : '0';
+            $validity = isset($meta[3]) ? trim($meta[3]) : '';
+            $sprice = isset($meta[4]) ? trim($meta[4]) : '0';
+            $getlock = isset($meta[6]) ? trim($meta[6]) : 'Disable';
+            if ($expmode === 'rem' || $expmode === 'ntf' || $expmode === 'remc' || $expmode === 'ntfc') {
+                $uScripts = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock, $routerOsMajor);
+                $needProfileUpdate = $forceCleanUsers || (trim((string)$ponlogin) !== trim((string)$uScripts['onlogin']));
+                $needSchedUpdate = $forceCleanUsers || !isset($schedMap[$pname]) || (trim((string)(isset($schedMap[$pname]['on-event']) ? $schedMap[$pname]['on-event'] : '')) !== trim((string)$uScripts['bgservice']));
+                if ($needProfileUpdate && !empty($pr['.id'])) {
+                    $API->comm("/ip/hotspot/user/profile/set", array(
+                        ".id" => $pr['.id'],
+                        "on-login" => $uScripts['onlogin'],
+                    ));
+                    $result['profiles_updated']++;
+                }
+                if ($needSchedUpdate) {
+                    $randstarttime = "0" . rand(1, 5) . ":" . rand(10, 59) . ":" . rand(10, 59);
+                    $randinterval = "00:02:" . rand(10, 59);
+                    if ($routerOsMajor === 7) {
+                        $randstarttime = isset($routerClockRow["time"]) ? $routerClockRow["time"] : date("H:i:s");
+                        $randinterval = "00:02:00";
+                    }
+                    if (!isset($schedMap[$pname])) {
+                        $schedulerParams = array(
+                            "name" => $pname,
+                            "start-time" => $randstarttime,
+                            "interval" => $randinterval,
+                            "on-event" => $uScripts['bgservice'],
+                            "disabled" => "no",
+                            "comment" => "Monitor Profile $pname",
+                        );
+                        if ($routerOsMajor === 7 && isset($routerClockRow["date"])) {
+                            $schedulerParams["start-date"] = $routerClockRow["date"];
+                        }
+                        $API->comm("/system/scheduler/add", $schedulerParams);
+                    } else {
+                        $schedulerParams = array(
+                            ".id" => $schedMap[$pname]['.id'],
+                            "on-event" => $uScripts['bgservice'],
+                            "disabled" => "no",
+                            "comment" => "Monitor Profile $pname",
+                        );
+                        if ($routerOsMajor === 7) {
+                            $schedulerParams["interval"] = "00:02:00";
+                            if (isset($routerClockRow["time"])) {
+                                $schedulerParams["start-time"] = $routerClockRow["time"];
+                            }
+                            if (isset($routerClockRow["date"])) {
+                                $schedulerParams["start-date"] = $routerClockRow["date"];
+                            }
+                        }
+                        $API->comm("/system/scheduler/set", $schedulerParams);
+                    }
+                }
+            }
+        }
+    }
+
+    $allUsers = $API->comm("/ip/hotspot/user/print", array(
+        ".proplist" => ".id,name,comment",
+    ));
+    if (is_array($allUsers)) {
+        foreach ($allUsers as $u) {
+            if (!is_array($u) || empty($u['.id']) || !isset($u['comment'])) {
+                continue;
+            }
+            $rawComm = trim((string)$u['comment']);
+            if ($rawComm === '') {
+                continue;
+            }
+            $cleanComm = normalizeActivatedVoucherComment($rawComm);
+            if ($cleanComm !== $rawComm) {
+                $API->comm("/ip/hotspot/user/set", array(
+                    ".id" => $u['.id'],
+                    "comment" => $cleanComm,
+                ));
+                $result['users_cleaned']++;
+            }
+        }
+    }
+
+    return $result;
 }
 
 /**

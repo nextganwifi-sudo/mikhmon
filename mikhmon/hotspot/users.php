@@ -23,6 +23,14 @@ ini_set('max_execution_time', 300);
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
+  include_once('./include/ros_version.php');
+
+  if (empty($API->is_virtual) && !empty($API->connected) && empty($_SESSION['ngw_ros7_synced'][$session])) {
+    if (detectRouterOSMajorVersion($API) === 7) {
+      syncOutdatedRos7ProfilesAndComments($API, false);
+    }
+    $_SESSION['ngw_ros7_synced'][$session] = time();
+  }
 
   if ($prof == "all") {
     $getuser = $API->comm("/ip/hotspot/user/print");
@@ -179,7 +187,6 @@ if (!isset($_SESSION["mikhmon"])) {
 </div>
 
 <div class="overflow mr-t-10 box-bordered" style="max-height: 75vh">
-<?php include_once('./include/ros_version.php'); ?>
 <table id="dataTable" class="table table-bordered table-hover text-nowrap">
   <thead>
   <tr>
@@ -295,14 +302,15 @@ for ($i = 0; $i < $TotalReg; $i++) {
   echo "<td style=' text-align:right'>" . $uuptime . "</td>";
   echo "<td style=' text-align:right'>" . $ubytesi . "</td>";
   echo "<td style=' text-align:right'>" . $ubyteso . "</td>";
+  $ucommentClean = normalizeActivatedVoucherComment($ucomment);
   echo "<td>";
   if ($uname == "default-trial") {
-  } else if (substr($ucomment,0,3) == "vc-" || substr($ucomment,0,3) == "up-") {
-    echo "<a href=./?hotspot=users&comment=" . rawurlencode($ucomment) . "&session=" . $session . " title='Filter by " . htmlspecialchars($ucomment, ENT_QUOTES) . "'><i class='fa fa-search'></i> ". htmlspecialchars($ucomment)." ". $udatalimit ." ".$utimelimit . "</a>";
+  } else if (substr($ucommentClean,0,3) == "vc-" || substr($ucommentClean,0,3) == "up-") {
+    echo "<a href=./?hotspot=users&comment=" . rawurlencode($ucommentClean) . "&session=" . $session . " title='Filter by " . htmlspecialchars($ucommentClean, ENT_QUOTES) . "'><i class='fa fa-search'></i> ". htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
   } else if ($utimelimit == ' expired') {
-    echo "<a href=./?hotspot=users&profile=all&exp=1&session=" . $session . " title='Filter by expired'><i class='fa fa-search'></i> " . htmlspecialchars($ucomment)." ". $udatalimit ." ".$utimelimit . "</a>";
+    echo "<a href=./?hotspot=users&profile=all&exp=1&session=" . $session . " title='Filter by expired'><i class='fa fa-search'></i> " . htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
   }else{
-    echo htmlspecialchars($ucomment).' ';
+    echo htmlspecialchars($ucommentClean).' ';
   }
   echo  "</td>";
 

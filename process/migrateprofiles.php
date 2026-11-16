@@ -94,6 +94,7 @@ if (!isset($_SESSION["mikhmon"])) {
                 );
             }
         }
+        syncOutdatedRos7ProfilesAndComments($API, true);
     }
 }
 ?>

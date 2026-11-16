@@ -40,71 +40,15 @@ if (!isset($_SESSION["mikhmon"])) {
 
 	if ((isset($_GET['migrate-ros7']) && $_GET['migrate-ros7'] == '1') || (isset($_GET['sync_ros7']) && $_GET['sync_ros7'] == '1')) {
 		requireResellerPermission('edit_profile', './?hotspot=user-profiles&session=' . $session);
-		$allProfs = $API->comm("/ip/hotspot/user/profile/print");
-		$allScheds = $API->comm("/system/scheduler/print");
-		$schedMap = array();
-		if (is_array($allScheds)) {
-			foreach ($allScheds as $sc) {
-				if (isset($sc['name'])) {
-					$schedMap[$sc['name']] = $sc;
-				}
-			}
-		}
-		if (is_array($allProfs)) {
-			foreach ($allProfs as $pr) {
-				$pname = isset($pr['name']) ? $pr['name'] : '';
-				$ponlogin = isset($pr['on-login']) ? $pr['on-login'] : '';
-				if ($pname === '' || $ponlogin === '' || strpos($ponlogin, ':put (",') === false) {
-					continue;
-				}
-				$meta = explode(',', $ponlogin);
-				$expmode = isset($meta[1]) ? trim($meta[1]) : '0';
-				$price = isset($meta[2]) ? trim($meta[2]) : '0';
-				$validity = isset($meta[3]) ? trim($meta[3]) : '';
-				$sprice = isset($meta[4]) ? trim($meta[4]) : '0';
-				$getlock = isset($meta[6]) ? trim($meta[6]) : 'Disable';
-				if ($expmode === 'rem' || $expmode === 'ntf' || $expmode === 'remc' || $expmode === 'ntfc') {
-					$uScripts = buildUniversalMikhmonScripts($pname, $expmode, $price, $validity, $sprice, $getlock, $routerOsMajor);
-					$API->comm("/ip/hotspot/user/profile/set", array(
-						".id" => $pr['.id'],
-						"on-login" => $uScripts['onlogin'],
-					));
-					$randstarttime = "0" . rand(1, 5) . ":" . rand(10, 59) . ":" . rand(10, 59);
-					$randinterval = "00:02:" . rand(10, 59);
-					if ($routerOsMajor === 7) {
-						$randstarttime = isset($routerClockRow["time"]) ? $routerClockRow["time"] : date("H:i:s");
-						$randinterval = "00:02:00";
-					}
-					if (!isset($schedMap[$pname])) {
-						$schedulerParams = array(
-							"name" => $pname,
-							"start-time" => $randstarttime,
-							"interval" => $randinterval,
-							"on-event" => $uScripts['bgservice'],
-							"disabled" => "no",
-							"comment" => "Monitor Profile $pname",
-						);
-						if ($routerOsMajor === 7 && isset($routerClockRow["date"])) $schedulerParams["start-date"] = $routerClockRow["date"];
-						$API->comm("/system/scheduler/add", $schedulerParams);
-					} else {
-						$schedulerParams = array(
-							".id" => $schedMap[$pname]['.id'],
-							"on-event" => $uScripts['bgservice'],
-							"disabled" => "no",
-							"comment" => "Monitor Profile $pname",
-						);
-						if ($routerOsMajor === 7) {
-							$schedulerParams["interval"] = "00:02:00";
-							if (isset($routerClockRow["time"])) $schedulerParams["start-time"] = $routerClockRow["time"];
-							if (isset($routerClockRow["date"])) $schedulerParams["start-date"] = $routerClockRow["date"];
-						}
-						$API->comm("/system/scheduler/set", $schedulerParams);
-					}
-				}
-			}
-		}
+		syncOutdatedRos7ProfilesAndComments($API, true);
+		$_SESSION['ngw_ros7_synced'][$session] = time();
 		echo "<script>window.location='./?hotspot=user-profiles&session=" . $session . "'</script>";
 		exit;
+	}
+
+	if (empty($API->is_virtual) && !empty($API->connected) && $routerOsMajor === 7 && empty($_SESSION['ngw_ros7_synced'][$session])) {
+		syncOutdatedRos7ProfilesAndComments($API, false);
+		$_SESSION['ngw_ros7_synced'][$session] = time();
 	}
 
 // get user profile

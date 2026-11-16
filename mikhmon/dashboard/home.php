@@ -53,6 +53,12 @@ if (!isset($_SESSION["mikhmon"])) {
 */
 // get & counting hotspot users in a single API call
   include_once('./include/ros_version.php');
+  if (empty($API->is_virtual) && !empty($API->connected) && empty($_SESSION['ngw_ros7_synced'][$session])) {
+    if (detectRouterOSMajorVersion($API) === 7) {
+      syncOutdatedRos7ProfilesAndComments($API, false);
+    }
+    $_SESSION['ngw_ros7_synced'][$session] = time();
+  }
   $allhotspotusers = $API->comm("/ip/hotspot/user/print");
   $rawUserCount = is_array($allhotspotusers) ? count($allhotspotusers) : 0;
   $hasDefaultTrial = ($rawUserCount > 0 && isset($allhotspotusers[0]['name']) && $allhotspotusers[0]['name'] === 'default-trial');

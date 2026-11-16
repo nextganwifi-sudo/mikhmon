@@ -86,7 +86,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $comment2t = 'text';
     $_tcomment = $_expired;
     $_tcomment2 = $_comment;
-    $ucomment2 = $parsedComment['note'];
+    $ucomment2 = trim((string)preg_replace('/(?:^|\s*)(?:vc|up)-.*$/i', '', (string)$parsedComment['note']));
     $ucomment = $parsedComment['datetime'];
   } else {
     $comment2t = 'hidden';
@@ -245,9 +245,11 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
     $parsedHComment = parseExpiryFromComment($hcomment);
     $parsedCComment = parseExpiryFromComment($comment);
     if ($parsedHComment['is_expiry']) {
-      $comment = trim($hcomment . " " . $comment2);
+      $cleanComment2 = trim((string)preg_replace('/(?:^|\s*)(?:vc|up)-.*$/i', '', (string)$comment2));
+      $comment = normalizeActivatedVoucherComment(trim($hcomment . " " . $cleanComment2));
     } elseif ($parsedCComment['is_expiry']) {
-      $comment = trim($comment . " " . $comment2);
+      $cleanComment2 = trim((string)preg_replace('/(?:^|\s*)(?:vc|up)-.*$/i', '', (string)$comment2));
+      $comment = normalizeActivatedVoucherComment(trim($comment . " " . $cleanComment2));
     } elseif (substr($comment,0,3) == "vc-" || substr($comment,0,3) == "up-") {
       $comment = $comment;
     } else {

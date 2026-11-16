@@ -45,6 +45,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	session_write_close();
 	include_once('../lib/routeros_api.class.php');
 	include_once('../lib/formatbytesbites.php');
+	include_once('../include/ros_version.php');
 	$API = new RouterosAPI();
 	$API->debug = false;
 	$API->connect($iphost, $userhost, decrypt($passwdhost));
@@ -57,6 +58,20 @@ if (!isset($_SESSION["mikhmon"])) {
 		$gethotspotactive = $API->comm("/ip/hotspot/active/print");
 		$TotalReg = is_array($gethotspotactive) ? count($gethotspotactive) : 0;
 		$counthotspotactive = $TotalReg;
+	}
+
+	$userCommentMap = array();
+	if ($TotalReg > 0 && !empty($API->connected)) {
+		$hsUsersForActive = $API->comm("/ip/hotspot/user/print", array(
+			".proplist" => "name,comment",
+		));
+		if (is_array($hsUsersForActive)) {
+			foreach ($hsUsersForActive as $hsu) {
+				if (is_array($hsu) && !empty($hsu['name']) && isset($hsu['comment'])) {
+					$userCommentMap[(string)$hsu['name']] = trim((string)$hsu['comment']);
+				}
+			}
+		}
 	}
 }
 ?>
@@ -112,7 +127,16 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	$bytesi = formatBytes($hotspotactive['bytes-in'], 2);
 	$byteso = formatBytes($hotspotactive['bytes-out'], 2);
 	$loginby = $hotspotactive['login-by'];
-	$comment = $hotspotactive['comment'];
+	$comment = isset($hotspotactive['comment']) ? trim((string)$hotspotactive['comment']) : '';
+	if (isset($userCommentMap[$user]) && $userCommentMap[$user] !== '') {
+		$mappedClean = normalizeActivatedVoucherComment($userCommentMap[$user]);
+		$mappedParsed = parseExpiryFromComment($mappedClean);
+		if (!empty($mappedParsed['is_expiry']) || $comment === '' || preg_match('/^(?:vc|up)-/i', $comment)) {
+			$comment = $mappedClean;
+		}
+	} else {
+		$comment = normalizeActivatedVoucherComment($comment);
+	}
 	$uriprocess = "'./?remove-user-active=" . $id . "&session=" . $session . "'";
 	echo "<tr>";
 	echo "<td style='text-align:center;'>";
@@ -133,7 +157,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	echo "<td style='text-align:right;'>" . $byteso . "</td>";
 	echo "<td style='text-align:right;'>" . $usesstime . "</td>";
 	echo "<td>" . $loginby . "</td>";
-	echo "<td>" . $comment . "</td>";
+	echo "<td>" . htmlspecialchars($comment) . "</td>";
 	echo "</tr>";
 }
 ?>
