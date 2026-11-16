@@ -33,3 +33,5 @@ Thumbs.db
 !/mikhmonv3-upstream/uploads/reseller-logos/.htaccess
 /mikhmonv3-upstream/uploads/reseller-templates/*/*.bak.php
 /mikhmonv3-upstream/uploads/reseller-templates/*/*.draft.php
+
+backups/

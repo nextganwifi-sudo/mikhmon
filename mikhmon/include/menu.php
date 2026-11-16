@@ -209,16 +209,8 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 $ngwProfileInfo = getCurrentUserProfileSummary();
 if ($langid === 'bn') {
-  if ($ngwProfileInfo['is_reseller']) {
-    $ngwProfileInfo['role_badge'] = 'রিসেলার';
-    $ngwProfileInfo['role_label'] = 'রিসেলার';
-  } elseif (!empty($ngwProfileInfo['is_super_admin'])) {
-    $ngwProfileInfo['role_badge'] = 'অ্যাডমিন স্টোর';
-    $ngwProfileInfo['role_label'] = 'মেইন অ্যাডমিন স্টোর';
-  } else {
-    $ngwProfileInfo['role_badge'] = 'লাইসেন্সড অ্যাডমিন';
-    $ngwProfileInfo['role_label'] = 'লাইসেন্সড অ্যাডমিন';
-  }
+  $ngwProfileInfo['role_badge'] = $ngwProfileInfo['is_reseller'] ? 'রিসেলার' : 'অ্যাডমিন';
+  $ngwProfileInfo['role_label'] = $ngwProfileInfo['is_reseller'] ? 'রিসেলার' : 'অ্যাডমিনিস্ট্রেটর';
 }
 $ngwProfileHref = './admin.php?id=my-profile' . (!empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : '');
 $ngwLogoutHref = (!empty($session) && $id == "") ? ('./?hotspot=logout&session=' . urlencode($session)) : './admin.php?id=logout';
@@ -234,7 +226,7 @@ $ngwLangSep = (strpos($ngwReqBase, '?') !== false) ? '&' : '?';
 $ngwLangUrlEn = $ngwReqBase . $ngwLangSep . 'setlang=en';
 $ngwLangUrlBn = $ngwReqBase . $ngwLangSep . 'setlang=bn';
 
-$idleto = "5";
+$nav_idleto = "5";
 $didleto = 'display:block;';
 $ngwHandshake = !empty($GLOBALS['NGW_LOGIN_HANDSHAKE']) || !empty($_SESSION['mikhmon_login_handshake']);
 if (!empty($_SESSION['mikhmon_login_handshake'])) {
@@ -243,7 +235,7 @@ if (!empty($_SESSION['mikhmon_login_handshake'])) {
 $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
 $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings', 'activity', 'active-sessions', 'system-update'), true);
 ?>
-<span style="display:none;" id="idto"><?= $idleto ;?></span>
+<span style="display:none;" id="idto"><?= $nav_idleto; ?></span>
 <?php if (!$isLogoutReq) { ?>
 <script>
 (function(){
@@ -436,12 +428,10 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
     <i id="ngw-settings-dropdown-chevron" class="fa fa-chevron-<?= $isSettingsDropdownOpen ? 'up' : 'down'; ?>" style="font-size:11px;"></i>
   </a>
   <div id="ngw-settings-dropdown" style="display:<?= $isSettingsDropdownOpen ? 'block' : 'none'; ?>;background:rgba(0,0,0,0.08);">
-    <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>" style="padding-left:34px;"><i class="fa fa-key"></i> <?= (function_exists('isSuperAdminStore') && isSuperAdminStore()) ? (($langid === 'bn') ? 'অ্যাডমিন স্টোর ও লাইসেন্স' : 'Admin Store & Licenses') : (($langid === 'bn') ? 'আমার লাইসেন্স ও অ্যাকাউন্ট' : 'My License & Account'); ?></a>
+    <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>" style="padding-left:34px;"><i class="fa fa-sliders"></i> <?= $_settings ?></a>
     <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-history"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভিটি হিস্টোরি' : 'Activity History'; ?></a>
     <a href="./admin.php?id=active-sessions" class="menu <?= (isset($id) && $id === 'active-sessions') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-desktop"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভ সেশন' : 'Active Sessions'; ?></a>
-    <?php if (!function_exists('isSuperAdminStore') || isSuperAdminStore()) { ?>
     <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>" style="padding-left:34px;"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
-    <?php } ?>
   </div>
   <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
   <?php if (!isset($id) || $id !== 'vpn') { ?>

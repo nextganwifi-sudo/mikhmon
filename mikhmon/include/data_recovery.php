@@ -80,12 +80,35 @@ if (!function_exists('ngwGetLiveVaultDirs')) {
     }
 }
 
+if (!function_exists('ngwInvalidatePhpFileCache')) {
+    /**
+     * Clear stat cache and invalidate Zend OPcache for a modified PHP file (critical on Ubuntu 24.04 PHP-FPM/Apache)
+     */
+    function ngwInvalidatePhpFileCache($filePath) {
+        if (!is_string($filePath) || $filePath === '') {
+            return;
+        }
+        clearstatcache(true, $filePath);
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($filePath, true);
+        }
+        $real = @realpath($filePath);
+        if ($real && $real !== $filePath) {
+            clearstatcache(true, $real);
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($real, true);
+            }
+        }
+    }
+}
+
 if (!function_exists('ngwSyncToLiveDataVault')) {
     /**
-     * Save current live data files into the persistent vault directories
-     * Only updates vault if current live data has routers/resellers, merging with existing vault data.
+     * Save current live data files into the persistent vault directories.
+     * When $authoritativeOverwrite is true (e.g. after router add/edit/delete or before system update),
+     * the vault copy is overwritten with the exact current live file so deleted/edited routers stay in sync.
      */
-    function ngwSyncToLiveDataVault($appRoot) {
+    function ngwSyncToLiveDataVault($appRoot, $authoritativeOverwrite = false) {
         $appRoot = rtrim((string)$appRoot, '/\\');
         if ($appRoot === '' || !is_dir($appRoot . '/include')) {
             return false;
@@ -94,8 +117,6 @@ if (!function_exists('ngwSyncToLiveDataVault')) {
             'include/config.php',
             'include/resellers.json',
             'include/admin_users.json',
-            'include/router_owners.json',
-            'include/license_usage.json',
             'include/backup_admin.json',
             'include/permission_groups.json',
             'include/vpn_routers.json',
@@ -123,36 +144,202 @@ if (!function_exists('ngwSyncToLiveDataVault')) {
                 if (!is_dir(dirname($dest))) {
                     @mkdir(dirname($dest), 0755, true);
                 }
-                // For config.php and resellers.json, merge rather than blindly overwriting if vault has more entries
+                if ($authoritativeOverwrite) {
+                    @copy($src, $dest);
+                    if ($rel === 'include/config.php') {
+                        ngwInvalidatePhpFileCache($dest);
+                    }
+                    continue;
+                }
+                // If not authoritativeOverwrite, protect vault against accidental empty config.php after git reset --hard
                 if ($rel === 'include/config.php' && is_file($dest)) {
                     $curParsed = ngwParseConfigPhpRouters((string)@file_get_contents($src));
                     $vltParsed = ngwParseConfigPhpRouters((string)@file_get_contents($dest));
-                    $mergedRouters = array_merge($vltParsed['routers'], $curParsed['routers']);
-                    $admLine = !empty($curParsed['admin_line']) ? $curParsed['admin_line'] : $vltParsed['admin_line'];
-                    @file_put_contents($dest, ngwBuildConfigPhpContent($admLine, $mergedRouters));
+                    if (empty($curParsed['routers']) && !empty($vltParsed['routers'])) {
+                        // Live config was wiped; keep vault intact
+                        continue;
+                    }
+                    @copy($src, $dest);
+                    ngwInvalidatePhpFileCache($dest);
                 } elseif ($rel === 'include/resellers.json' && is_file($dest)) {
                     $curList = @json_decode((string)@file_get_contents($src), true);
                     $vltList = @json_decode((string)@file_get_contents($dest), true);
-                    if (is_array($curList) && is_array($vltList)) {
-                        $mergedMap = array();
-                        foreach ($vltList as $r) {
-                            if (is_array($r) && !empty($r['id'])) {
-                                $mergedMap[(string)$r['id']] = $r;
-                            }
-                        }
-                        foreach ($curList as $r) {
-                            if (is_array($r) && !empty($r['id'])) {
-                                $mergedMap[(string)$r['id']] = $r;
-                            }
-                        }
-                        @file_put_contents($dest, json_encode(array_values($mergedMap), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                    } else {
-                        @copy($src, $dest);
+                    if ((!is_array($curList) || empty($curList)) && is_array($vltList) && !empty($vltList)) {
+                        continue;
                     }
+                    @copy($src, $dest);
                 } else {
                     @copy($src, $dest);
                 }
             }
+        }
+        return true;
+    }
+}
+
+if (!function_exists('ngwSaveRouterSessionToConfig')) {
+    /**
+     * Reliably add or update a router session entry in include/config.php, invalidate OPcache,
+     * update reseller router assignments if renamed, and sync to the Live Data Vault.
+     */
+    function ngwSaveRouterSessionToConfig($oldSession, $newSession, $newRouterLine, $configPath = './include/config.php') {
+        $oldSession = trim((string)$oldSession);
+        $newSession = trim((string)$newSession);
+        $newRouterLine = trim((string)$newRouterLine);
+        if ($newSession === '' || $newRouterLine === '') {
+            return false;
+        }
+
+        $rawContent = is_file($configPath) ? (string)@file_get_contents($configPath) : '';
+        $lines = ($rawContent !== '') ? preg_split('/\r?\n/', $rawContent) : array();
+
+        $headerLines = array();
+        $adminLine = "\$data['mikhmon'] = array ('1'=>'mikhmon<|<mikhmon','mikhmon>|>aWNlbA==');";
+        $routerEntries = array();
+        $replacedInPlace = false;
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '') {
+                continue;
+            }
+            if (preg_match('/^\$data\[\s*[\'"]([^\'"]+)[\'"]\s*\]\s*=\s*array\s*\(.*\);\s*$/', $trimmed, $m)) {
+                $k = $m[1];
+                if ($k === 'mikhmon') {
+                    $adminLine = $trimmed;
+                } elseif ($k === $oldSession) {
+                    $routerEntries[$newSession] = $newRouterLine;
+                    $replacedInPlace = true;
+                } elseif ($k === $newSession) {
+                    $routerEntries[$newSession] = $newRouterLine;
+                    $replacedInPlace = true;
+                } else {
+                    $routerEntries[$k] = $trimmed;
+                }
+            }
+        }
+
+        if (!$replacedInPlace) {
+            $routerEntries[$newSession] = $newRouterLine;
+        }
+
+        $newContent = ngwBuildConfigPhpContent($adminLine, $routerEntries);
+        if (@file_put_contents($configPath, $newContent, LOCK_EX) === false) {
+            return false;
+        }
+        ngwInvalidatePhpFileCache($configPath);
+
+        // Also update global $data in current process memory
+        $appRoot = @realpath(dirname($configPath) . '/..');
+        if (!$appRoot) {
+            $appRoot = dirname(dirname(@realpath($configPath) ?: $configPath));
+        }
+
+        // Sync sibling config.php if dual webroot exists in workspace
+        foreach (array($appRoot . '/mikhmon/include/config.php', dirname($appRoot) . '/include/config.php') as $siblingCfg) {
+            if ($siblingCfg && is_file($siblingCfg) && @realpath($siblingCfg) !== @realpath($configPath)) {
+                @file_put_contents($siblingCfg, $newContent, LOCK_EX);
+                ngwInvalidatePhpFileCache($siblingCfg);
+            }
+        }
+
+        // If router session was renamed (or converted from new-XXXX), update reseller allowed_routers and current session
+        if ($oldSession !== '' && $oldSession !== $newSession) {
+            $resFile = $appRoot . '/include/resellers.json';
+            if (is_file($resFile)) {
+                $resList = @json_decode((string)@file_get_contents($resFile), true);
+                if (is_array($resList)) {
+                    $resChanged = false;
+                    foreach ($resList as $idx => $r) {
+                        if (isset($r['allowed_routers']) && is_array($r['allowed_routers'])) {
+                            $pos = array_search($oldSession, $r['allowed_routers'], true);
+                            if ($pos !== false) {
+                                $resList[$idx]['allowed_routers'][$pos] = $newSession;
+                                $resList[$idx]['allowed_routers'] = array_values(array_unique($resList[$idx]['allowed_routers']));
+                                $resChanged = true;
+                            }
+                        }
+                    }
+                    if ($resChanged) {
+                        @file_put_contents($resFile, json_encode(array_values($resList), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+                        unset($GLOBALS['NGW_CACHE_RESELLERS'], $GLOBALS['NGW_RESELLER_SYNCED']);
+                    }
+                }
+            }
+            if (isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers'])) {
+                $sPos = array_search($oldSession, $_SESSION['mikhmon_routers'], true);
+                if ($sPos !== false) {
+                    $_SESSION['mikhmon_routers'][$sPos] = $newSession;
+                    $_SESSION['mikhmon_routers'] = array_values(array_unique($_SESSION['mikhmon_routers']));
+                } elseif (!in_array('*', $_SESSION['mikhmon_routers'], true) && strpos($oldSession, 'new-') === 0) {
+                    $_SESSION['mikhmon_routers'][] = $newSession;
+                }
+            }
+        }
+
+        if ($appRoot && is_dir($appRoot . '/include')) {
+            ngwSyncToLiveDataVault($appRoot, true);
+        }
+        return true;
+    }
+}
+
+if (!function_exists('ngwDeleteRouterSessionFromConfig')) {
+    /**
+     * Reliably delete a router session from include/config.php, invalidate OPcache,
+     * and remove it from all Live Data Vault copies so it never reappears.
+     */
+    function ngwDeleteRouterSessionFromConfig($targetSession, $configPath = './include/config.php') {
+        $targetSession = trim((string)$targetSession);
+        if ($targetSession === '' || $targetSession === 'mikhmon') {
+            return false;
+        }
+
+        $rawContent = is_file($configPath) ? (string)@file_get_contents($configPath) : '';
+        if ($rawContent === '') {
+            return false;
+        }
+        $lines = preg_split('/\r?\n/', $rawContent);
+        $adminLine = "\$data['mikhmon'] = array ('1'=>'mikhmon<|<mikhmon','mikhmon>|>aWNlbA==');";
+        $routerEntries = array();
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '') {
+                continue;
+            }
+            if (preg_match('/^\$data\[\s*[\'"]([^\'"]+)[\'"]\s*\]\s*=\s*array\s*\(.*\);\s*$/', $trimmed, $m)) {
+                $k = $m[1];
+                if ($k === 'mikhmon') {
+                    $adminLine = $trimmed;
+                } elseif ($k !== $targetSession) {
+                    $routerEntries[$k] = $trimmed;
+                }
+            }
+        }
+
+        $newContent = ngwBuildConfigPhpContent($adminLine, $routerEntries);
+        if (@file_put_contents($configPath, $newContent, LOCK_EX) === false) {
+            return false;
+        }
+        ngwInvalidatePhpFileCache($configPath);
+
+        $appRoot = @realpath(dirname($configPath) . '/..');
+        if (!$appRoot) {
+            $appRoot = dirname(dirname(@realpath($configPath) ?: $configPath));
+        }
+
+        // Sync sibling config.php if dual webroot exists in workspace
+        foreach (array($appRoot . '/mikhmon/include/config.php', dirname($appRoot) . '/include/config.php') as $siblingCfg) {
+            if ($siblingCfg && is_file($siblingCfg) && @realpath($siblingCfg) !== @realpath($configPath)) {
+                @file_put_contents($siblingCfg, $newContent, LOCK_EX);
+                ngwInvalidatePhpFileCache($siblingCfg);
+            }
+        }
+
+        // Overwrite Live Data Vault copies immediately so the deleted router cannot be resurrected
+        if ($appRoot && is_dir($appRoot . '/include')) {
+            ngwSyncToLiveDataVault($appRoot, true);
         }
         return true;
     }
@@ -477,19 +664,14 @@ if (!function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
                     $mergedRouters[$sessName] = $rLine;
                     $report['routers_recovered'][] = $sessName;
                     $configModified = true;
-                } elseif (strpos($srcLabel, 'pre-update:') === 0 || strpos($srcLabel, 'vault:') === 0 || strpos($srcLabel, 'webdir:') === 0) {
-                    // If a local VPS backup has an updated line for the same router session, prefer the VPS backup line
-                    if ($mergedRouters[$sessName] !== $rLine) {
-                        $mergedRouters[$sessName] = $rLine;
-                        $configModified = true;
-                    }
                 }
             }
         }
 
         if ($configModified) {
             $newConfigContent = ngwBuildConfigPhpContent($adminLine, $mergedRouters);
-            @file_put_contents($configFile, $newConfigContent);
+            @file_put_contents($configFile, $newConfigContent, LOCK_EX);
+            ngwInvalidatePhpFileCache($configFile);
         }
         $report['total_routers_now'] = count($mergedRouters);
 

@@ -71,6 +71,14 @@ if ($_SESSION['theme'] == "") {
 
 // load config
 include_once('./include/headhtml.php');
+clearstatcache(true, './include/config.php');
+if (function_exists('opcache_invalidate')) {
+  @opcache_invalidate('./include/config.php', true);
+  $realCfg = @realpath('./include/config.php');
+  if ($realCfg) {
+    @opcache_invalidate($realCfg, true);
+  }
+}
 include('./include/config.php');
 include('./include/readcfg.php');
 
@@ -91,11 +99,6 @@ if ($id == "login" || substr($url, -1) == "p") {
       ? 'অ্যাডমিনিস্ট্রেটর আপনার সেশনটি লগআউট করেছেন। অনুগ্রহ করে আবার ইউজারনেম ও পাসওয়ার্ড দিয়ে লগইন করুন।'
       : 'Your session was logged out by an Administrator. Please enter your username and password to sign in again.';
     $error = '<div style="width: 100%; padding:6px 4px; border-radius:5px;" class="bg-warning"><i class="fa fa-info-circle"></i> ' . htmlspecialchars($forceMsg) . '</div>';
-  } elseif (isset($_GET['reason']) && ($_GET['reason'] === 'license_expired' || $_GET['reason'] === 'license_suspended') && !isset($_POST['login'])) {
-    $licMsg = ($_GET['reason'] === 'license_expired')
-      ? ($isBnLogin ? 'আপনার অ্যাডমিন লাইসেন্সের মেয়াদ শেষ হয়ে গেছে। রিনিউ করতে মেইন অ্যাডমিন স্টোরের সাথে যোগাযোগ করুন।' : 'Your Admin License has expired. Please contact the Main Admin Store to renew.')
-      : ($isBnLogin ? 'আপনার অ্যাডমিন অ্যাকাউন্টটি স্থগিত করা হয়েছে। মেইন অ্যাডমিন স্টোরের সাথে যোগাযোগ করুন।' : 'Your Admin account has been suspended by the Main Admin Store.');
-    $error = '<div style="width: 100%; padding:6px 4px; border-radius:5px;" class="bg-danger"><i class="fa fa-lock"></i> ' . htmlspecialchars($licMsg) . '</div>';
   }
   if (isset($_POST['login'])) {
     $user = isset($_POST['user']) ? trim((string)$_POST['user']) : '';
@@ -194,20 +197,14 @@ if ($id == "login" || substr($url, -1) == "p") {
   echo "<script>window.location='./admin.php?id=admin-settings'</script>";
   exit;
 } elseif ($id == "return-to-admin" && !empty($_SESSION['mikhmon_impersonator_admin'])) {
-  // Rotate the session ID when returning from reseller or sub-admin impersonation to parent admin.
+  // Rotate the session ID when returning from reseller impersonation to admin.
   if (session_status() === PHP_SESSION_ACTIVE) {
     session_regenerate_id(true);
   }
   $admUser = $_SESSION['mikhmon_impersonator_admin'];
-  $admId = !empty($_SESSION['mikhmon_impersonator_admin_id']) ? (string)$_SESSION['mikhmon_impersonator_admin_id'] : '';
-  unset($_SESSION['mikhmon_impersonator_admin'], $_SESSION['mikhmon_impersonator_admin_id']);
-  if ($admId === '') {
-    $foundAdm = findAdminUserByIdOrUsername($admUser);
-    $admId = is_array($foundAdm) && !empty($foundAdm['id']) ? (string)$foundAdm['id'] : 'adm_1';
-  }
+  unset($_SESSION['mikhmon_impersonator_admin']);
   $_SESSION["mikhmon"] = $admUser;
   $_SESSION["mikhmon_role"] = 'admin';
-  $_SESSION["mikhmon_admin_id"] = $admId;
   $_SESSION["mikhmon_reseller_id"] = 'admin';
   $_SESSION["mikhmon_permission_mode"] = 'Admin';
   $_SESSION["mikhmon_template_code"] = 'GLOBAL';
@@ -225,7 +222,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     ngwResolveCurrentUserTheme(true);
   }
   session_write_close();
-  echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=sessions'</script>";
+  echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=resellers'</script>";
   exit;
 } elseif (isResetOnlyReseller() && $id !== "reset-voucher" && $id !== "my-profile" && $id !== "logout") {
   session_write_close();
@@ -236,7 +233,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./include/menu.php');
   session_write_close();
   include_once('./hotspot/resetvoucher.php');
-} elseif (!empty($session) && $session !== "new" && !canAccessRouterSession($session)) {
+} elseif (!empty($session) && $session !== "new" && strpos((string)$session, 'new-') !== 0 && !canAccessRouterSession($session)) {
   session_write_close();
   echo "<script>window.location='./admin.php?id=sessions'</script>";
   exit;
@@ -299,7 +296,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   include_once('./vpn/vpn_hub.php');
 } elseif ($id == "system-update") {
-  if (!isMikhmonAdmin() || (function_exists('isSuperAdminStore') && !isSuperAdminStore())) {
+  if (!isMikhmonAdmin()) {
     session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
@@ -381,26 +378,30 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./process/shutdown.php');
 } elseif ($id == "remove-session" && $session != "") {
   requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
-  if (!canAccessRouterSession($session)) {
-    session_write_close();
-    echo "<script>window.location='./admin.php?id=sessions'</script>";
-    exit;
+  if (is_file('./include/data_recovery.php')) {
+    include_once('./include/data_recovery.php');
   }
-  include_once('./include/menu.php');
+  if (function_exists('ngwDeleteRouterSessionFromConfig')) {
+    ngwDeleteRouterSessionFromConfig($session, './include/config.php');
+  } else {
+    $fc = is_file("./include/config.php") ? file("./include/config.php") : array();
+    $f = fopen("./include/config.php", "w");
+    if ($f) {
+      $q = "'";
+      $rem = '$data['.$q.$session.$q.']';
+      foreach ($fc as $line) {
+        if (!strstr($line, $rem))
+          fputs($f, $line);
+      }
+      fclose($f);
+    }
+  }
+  $_SESSION['router_settings_notice'] = (isset($langid) && $langid === 'bn')
+    ? ('রাউটার সেশন (' . $session . ') সফলভাবে ডিলিট করা হয়েছে।')
+    : ('Router session (' . $session . ') has been deleted successfully.');
   session_write_close();
-  $fc = file("./include/config.php" );
-  $f = fopen("./include/config.php", "w");
-  $q = "'";
-  $rem = '$data['.$q.$session.$q.']';
-  foreach ($fc as $line) {
-    if (!strstr($line, $rem))
-      fputs($f, $line);
-  }
-  fclose($f);
-  if (function_exists('ngwRemoveRouterOwnerSession')) {
-    ngwRemoveRouterOwnerSession($session);
-  }
-  echo "<script>window.location='./admin.php?id=sessions'</script>";
+  echo "<script>window.location.replace('./admin.php?id=sessions')</script>";
+  exit;
 } elseif ($id == "about") {
   include_once('./include/menu.php');
   session_write_close();

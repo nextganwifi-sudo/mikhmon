@@ -16,7 +16,7 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/reseller_acl.php');
 include_once('./include/data_recovery.php');
 
-if (!isMikhmonAdmin() || (function_exists('isSuperAdminStore') && !isSuperAdminStore())) {
+if (!isMikhmonAdmin()) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
 }
@@ -114,8 +114,6 @@ function collectProtectedDataFiles($rootDir) {
     $fixedRelPaths = array(
         'include/config.php',
         'include/admin_users.json',
-        'include/router_owners.json',
-        'include/license_usage.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
@@ -193,8 +191,6 @@ function isProtectedDataRelPath($relPath) {
     $exactLocked = array(
         'include/config.php',
         'include/admin_users.json',
-        'include/router_owners.json',
-        'include/license_usage.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
@@ -544,7 +540,7 @@ if (isset($_POST['apply_git_safe_update'])) {
     }
 
     if (function_exists('ngwSyncToLiveDataVault')) {
-        ngwSyncToLiveDataVault($appRoot);
+        ngwSyncToLiveDataVault($appRoot, true);
     }
     $protectedBefore = collectProtectedDataFiles($appRoot);
     $gitDir = is_dir($appRoot . '/.git') ? $appRoot : (is_dir(dirname($appRoot) . '/.git') ? dirname($appRoot) : '');
@@ -561,6 +557,12 @@ if (isset($_POST['apply_git_safe_update'])) {
             $srcRoot = $tmpClone;
         }
         if (is_file($srcRoot . '/admin.php') && is_file($srcRoot . '/index.php')) {
+            // Clean up any deprecated license files if they existed on the server
+            foreach (array('include/license_manager.php', 'include/store_licenses.json', 'include/router_owners.json') as $deprecatedRel) {
+                if (is_file($appRoot . '/' . $deprecatedRel) && !is_file($srcRoot . '/' . $deprecatedRel)) {
+                    @unlink($appRoot . '/' . $deprecatedRel);
+                }
+            }
             // Compare remote source files with the live installation first.
             // Do not snapshot, bump the version, or show success when nothing changed.
             $changedFiles = array();
@@ -591,8 +593,8 @@ if (isset($_POST['apply_git_safe_update'])) {
 
             if (count($changedFiles) === 0) {
                 restoreProtectedDataFiles($appRoot, $protectedBefore);
-                if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
-                    $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+                if (function_exists('ngwSyncToLiveDataVault')) {
+                    ngwSyncToLiveDataVault($appRoot, true);
                 }
                 @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
                 $updateNotice = '';
@@ -611,6 +613,9 @@ if (isset($_POST['apply_git_safe_update'])) {
                         @mkdir(dirname($dest), 0755, true);
                     }
                     if (@copy($change['source'], $dest)) {
+                        if (substr($dest, -4) === '.php' && function_exists('ngwInvalidatePhpFileCache')) {
+                            ngwInvalidatePhpFileCache($dest);
+                        }
                         $updatedCount++;
                         if ($change['status'] === 'new') {
                             $newFileCount++;
@@ -625,8 +630,13 @@ if (isset($_POST['apply_git_safe_update'])) {
                 if (is_file($appRoot . '/include/data_recovery.php')) {
                     include_once($appRoot . '/include/data_recovery.php');
                 }
-                if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+                $chkCfg = function_exists('ngwParseConfigPhpRouters') && is_file($appRoot . '/include/config.php')
+                    ? ngwParseConfigPhpRouters((string)@file_get_contents($appRoot . '/include/config.php'))
+                    : array('routers' => array());
+                if (empty($chkCfg['routers']) && function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
                     $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+                } elseif (function_exists('ngwSyncToLiveDataVault')) {
+                    ngwSyncToLiveDataVault($appRoot, true);
                 }
                 @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
 
@@ -659,8 +669,13 @@ if (isset($_POST['apply_git_safe_update'])) {
         $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
         $out = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' pull --ff-only 2>&1');
         restoreProtectedDataFiles($appRoot, $protectedBefore);
-        if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
+        $chkCfg = function_exists('ngwParseConfigPhpRouters') && is_file($appRoot . '/include/config.php')
+            ? ngwParseConfigPhpRouters((string)@file_get_contents($appRoot . '/include/config.php'))
+            : array('routers' => array());
+        if (empty($chkCfg['routers']) && function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
             $recoveryReport = ngwPerformDeepDataRecoveryAndMerge($appRoot);
+        } elseif (function_exists('ngwSyncToLiveDataVault')) {
+            ngwSyncToLiveDataVault($appRoot, true);
         }
         $pullOutput = (string)$out;
         $alreadyCurrent = (stripos($pullOutput, 'Already up to date') !== false)

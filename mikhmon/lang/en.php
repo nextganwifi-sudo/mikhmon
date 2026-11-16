@@ -21,6 +21,7 @@ $_character = "Character";
 $_close = "Close";
 $_comment = "Comment";
 $_confirm = "Confirm";
+$_connect = "Open";
 $_connecting = "Connecting";
 $_cpu_load = "CPU Load";
 $_currency = "Currency";

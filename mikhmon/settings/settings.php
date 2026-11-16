@@ -22,144 +22,151 @@ error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
+  if (is_file('./include/data_recovery.php')) {
+    include_once('./include/data_recovery.php');
+  }
 
-  include_once('./include/reseller_acl.php');
-
-  if ($id == "settings" && explode("-",$router)[0] == "new") {
-    $quotaErrMsg = '';
-    if (function_exists('ngwCanAdminAddNewRouter') && !ngwCanAdminAddNewRouter($quotaErrMsg, isset($langid) ? $langid : 'en')) {
-      $_SESSION['router_quota_error'] = $quotaErrMsg;
-      session_write_close();
-      echo "<script>window.location='./admin.php?id=sessions'</script>";
-      exit;
+  if ($id == "settings" && explode("-", (string)$router)[0] == "new") {
+    $router = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$router);
+    if ($router === '') {
+      $router = 'new-' . rand(1111, 9999);
     }
-    $dvar = '$data';
-    $f = fopen('./include/config.php', 'a');
-    fwrite($f, "\n'$'data['".$router."'] = array ('1'=>'".$router."!','".$router."@|@','".$router."#|#','".$router."%','".$router."^','".$router."&Rp','".$router."*10','".$router."(1','".$router.")','".$router."=10','".$router."@!@disable');");
-    fclose($f);
-    $search = "'$'data";
-    $replace = (string)"$dvar";
-    $file = file("./include/config.php");
-    $content = file_get_contents("./include/config.php");
-    $newcontent = str_replace((string)$search, (string)$replace, "$content");
-    file_put_contents("./include/config.php", "$newcontent");
-    echo "<script>window.location='./admin.php?id=settings&session=" . rawurlencode($router) . "'</script>";
+    $placeholderLine = "\$data['" . $router . "'] = array ('1'=>'" . $router . "!','" . $router . "@|@','" . $router . "#|#','" . $router . "%','" . $router . "^','" . $router . "&Tk','" . $router . "*10','" . $router . "(1','" . $router . ")','" . $router . "=10','" . $router . "@!@disable');";
+    if (function_exists('ngwSaveRouterSessionToConfig')) {
+      ngwSaveRouterSessionToConfig($router, $router, $placeholderLine, './include/config.php');
+    } else {
+      $f = @fopen('./include/config.php', 'a');
+      if ($f) {
+        fwrite($f, "\n" . $placeholderLine . "\n");
+        fclose($f);
+      }
+    }
+    if (!isMikhmonAdmin() && isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers']) && !in_array('*', $_SESSION['mikhmon_routers'], true)) {
+      if (!in_array($router, $_SESSION['mikhmon_routers'], true)) {
+        $_SESSION['mikhmon_routers'][] = $router;
+      }
+    }
+    session_write_close();
+    echo "<script>window.location.replace('./admin.php?id=settings&session=" . rawurlencode($router) . "')</script>";
     exit;
   }
 
+  // Always reload config.php & readcfg.php with OPcache invalidated so $idleto and all fields reflect disk state
+  if (function_exists('ngwInvalidatePhpFileCache')) {
+    ngwInvalidatePhpFileCache('./include/config.php');
+  }
+  if (is_file('./include/config.php')) {
+    include('./include/config.php');
+  }
+  if (is_file('./include/readcfg.php')) {
+    include('./include/readcfg.php');
+  }
+
   if (isset($_POST['save'])) {
-    // If this was a newly created placeholder router (new-...), verify quota again before saving
-    if (strpos((string)$session, 'new-') === 0) {
-      $quotaErrMsg = '';
-      if (function_exists('ngwCanAdminAddNewRouter') && !ngwCanAdminAddNewRouter($quotaErrMsg, isset($langid) ? $langid : 'en')) {
-        $_SESSION['router_quota_error'] = $quotaErrMsg;
-        session_write_close();
-        echo "<script>window.location='./admin.php?id=sessions'</script>";
-        exit;
-      }
-    }
-    $raw_ipmik = preg_replace('/\\s+/', '', isset($_POST['ipmik']) ? $_POST['ipmik'] : '');
-    $siphost = $raw_ipmik;
+    $raw_ipmik = preg_replace('/\s+/', '', isset($_POST['ipmik']) ? (string)$_POST['ipmik'] : '');
+    $siphost = str_replace("'", '', $raw_ipmik);
     if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $siphost, $schemeMatch)) {
       $siphost = substr($siphost, strlen($schemeMatch[0]));
-      if (preg_match('/:\\d+$/', $siphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+      if (preg_match('/:\d+$/', $siphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
         $siphost = substr($siphost, 0, -strlen($portMatch[0]));
       }
     }
-    $suserhost = isset($_POST['usermik']) ? trim($_POST['usermik']) : '';
-    $spasswdhost = encrypt(isset($_POST['passmik']) ? $_POST['passmik'] : '');
-    $shotspotname = str_replace("'", '', isset($_POST['hotspotname']) ? $_POST['hotspotname'] : '');
-    $sdnsname = isset($_POST['dnsname']) ? $_POST['dnsname'] : '';
-    $scurrency = isset($_POST['currency']) ? $_POST['currency'] : '';
+    $suserhost = str_replace("'", '', isset($_POST['usermik']) ? trim((string)$_POST['usermik']) : '');
+    $spasswdhost = encrypt(isset($_POST['passmik']) ? (string)$_POST['passmik'] : '');
+    $shotspotname = str_replace("'", '', isset($_POST['hotspotname']) ? trim((string)$_POST['hotspotname']) : '');
+    $sdnsname = str_replace("'", '', isset($_POST['dnsname']) ? trim((string)$_POST['dnsname']) : '');
+    $scurrency = str_replace("'", '', isset($_POST['currency']) ? trim((string)$_POST['currency']) : 'Tk');
+    if ($scurrency === '') {
+      $scurrency = 'Tk';
+    }
     $sreload = isset($_POST['areload']) ? (int)$_POST['areload'] : 10;
-    if ($sreload < 10) { $sreload = 10; }
-    $siface = isset($_POST['iface']) ? $_POST['iface'] : '';
-    $sinfolp = isset($_POST['infolp']) ? implode(unpack('H*', $_POST['infolp'])) : '';
-    $sidleto = isset($_POST['idleto']) ? $_POST['idleto'] : '';
-    $sesname = preg_replace('/\\s+/', '-', trim(isset($_POST['sessname']) ? $_POST['sessname'] : $session));
-    $slivereport = isset($_POST['livereport']) ? $_POST['livereport'] : 'disable';
+    if ($sreload < 10) {
+      $sreload = 10;
+    }
+    $siface = str_replace("'", '', isset($_POST['iface']) ? trim((string)$_POST['iface']) : '1');
+    if ($siface === '') {
+      $siface = '1';
+    }
+    $sinfolp = isset($_POST['infolp']) ? implode(unpack('H*', (string)$_POST['infolp'])) : (isset($infolp) ? (string)$infolp : '');
+    $sidleto = str_replace("'", '', isset($_POST['idleto']) ? trim((string)$_POST['idleto']) : '10');
+    if ($sidleto === '') {
+      $sidleto = '10';
+    }
+    $sesname = preg_replace('/\s+/', '-', trim(isset($_POST['sessname']) ? (string)$_POST['sessname'] : (string)$session));
+    $sesname = str_replace(array("'", '"', "\\"), '', $sesname);
+    if ($sesname === '' || strtolower($sesname) === 'mikhmon') {
+      $sesname = (string)$session;
+    }
+    $slivereport = str_replace("'", '', isset($_POST['livereport']) ? trim((string)$_POST['livereport']) : (isset($livereport) && $livereport !== '' ? (string)$livereport : 'disable'));
+    if ($slivereport === '') {
+      $slivereport = 'disable';
+    }
 
-    // Read the exact stored host token because readcfg.php normalizes display values,
-    // while config.php may retain a legacy URL-shaped host until this save completes.
-    $storedIpHost = isset($data[$session][1]) ? explode('!', $data[$session][1], 2)[1] : $iphost;
-    $storedIpHost = isset($storedIpHost) ? $storedIpHost : $iphost;
-    $search = array(
-      "$session!$storedIpHost",
-      "$session@|@$userhost",
-      "$session#|#$passwdhost",
-      "$session%$hotspotname",
-      "$session^$dnsname",
-      "$session&$currency",
-      "$session*$areload",
-      "$session($iface",
-      "$session)$infolp",
-      "$session=$idleto",
-      "'$session'",
-      "$session@!@$livereport"
-    );
-    $replace = array(
-      "$sesname!$siphost",
-      "$sesname@|@$suserhost",
-      "$sesname#|#$spasswdhost",
-      "$sesname%$shotspotname",
-      "$sesname^$sdnsname",
-      "$sesname&$scurrency",
-      "$sesname*$sreload",
-      "$sesname($siface",
-      "$sesname)$sinfolp",
-      "$sesname=$sidleto",
-      "'$sesname'",
-      "$sesname@!@$slivereport"
-    );
+    $newRouterLine = "\$data['" . $sesname . "'] = array ('1'=>'" . $sesname . "!" . $siphost . "','" . $sesname . "@|@" . $suserhost . "','" . $sesname . "#|#" . $spasswdhost . "','" . $sesname . "%" . $shotspotname . "','" . $sesname . "^" . $sdnsname . "','" . $sesname . "&" . $scurrency . "','" . $sesname . "*" . $sreload . "','" . $sesname . "(" . $siface . "','" . $sesname . ")" . $sinfolp . "','" . $sesname . "=" . $sidleto . "','" . $sesname . "@!@" . $slivereport . "');";
 
     $configPath = './include/config.php';
-    $content = @file_get_contents($configPath);
-    if ($content === false || strpos($content, "'$session'") === false) {
+    $savedOk = false;
+    if (function_exists('ngwSaveRouterSessionToConfig')) {
+      $savedOk = ngwSaveRouterSessionToConfig($session, $sesname, $newRouterLine, $configPath);
+    } else {
+      $content = @file_get_contents($configPath);
+      if ($content !== false) {
+        $lines = preg_split('/\r?\n/', $content);
+        $outLines = array();
+        $found = false;
+        foreach ($lines as $ln) {
+          if (strpos($ln, "\$data['" . $session . "']") !== false || strpos($ln, '$data["' . $session . '"]') !== false) {
+            $outLines[] = $newRouterLine;
+            $found = true;
+          } elseif ($sesname !== $session && (strpos($ln, "\$data['" . $sesname . "']") !== false || strpos($ln, '$data["' . $sesname . '"]') !== false)) {
+            continue;
+          } else {
+            $outLines[] = $ln;
+          }
+        }
+        if (!$found) {
+          $outLines[] = $newRouterLine;
+        }
+        $savedOk = (@file_put_contents($configPath, implode("\n", $outLines) . "\n", LOCK_EX) !== false);
+      }
+    }
+
+    if (!$savedOk) {
       $_SESSION['connect'] = "";
       $errMsg = (isset($langid) && $langid === 'bn')
-        ? 'রাউটার সেটিংস সেভ করা যায়নি: সেশন এন্ট্রি পাওয়া যায়নি অথবা config.php রাইটেবল নয়।'
-        : 'Could not save router settings: the session entry was not found or config.php is not writable.';
+        ? 'রাউটার সেটিংস সেভ করা যায়নি: config.php রাইটেবল নয়।'
+        : 'Could not save router settings: config.php is not writable.';
       echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
     } else {
-      // Apply all field replacements to the same original content, then write once.
-      $newcontent = str_replace($search, $replace, $content);
-      if ($newcontent === $content && $session !== $sesname) {
-        $errMsg = (isset($langid) && $langid === 'bn')
-          ? 'রাউটার সেটিংস সেভ করা যায়নি: কোনো মিল থাকা কনফিগারেশন ভ্যালু পাওয়া যায়নি।'
-          : 'Could not save router settings: no matching configuration values were found.';
-        echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
-      } elseif (@file_put_contents($configPath, $newcontent, LOCK_EX) === false) {
-        $errMsg = (isset($langid) && $langid === 'bn')
-          ? 'রাউটার সেটিংস সেভ করা যায়নি: config.php রাইটেবল নয়।'
-          : 'Could not save router settings: config.php is not writable.';
-        echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
-      } else {
-        if (function_exists('ngwRenameRouterOwnerSession')) {
-          ngwRenameRouterOwnerSession($session, $sesname);
-        }
-        if (function_exists('isSuperAdminStore') && isSuperAdminStore() && !empty($_POST['owner_admin_id'])) {
-          $postedOwnerId = trim((string)$_POST['owner_admin_id']);
-          ngwAssignRouterOwner($sesname, $postedOwnerId);
-        }
-        // Post/Redirect/Get: reopen the saved router form.
-        // This prevents the edit form from being re-submitted or appearing to cycle through previews.
-        $_SESSION['connect'] = '';
-        $_SESSION['router_settings_notice'] = (isset($langid) && $langid === 'bn')
-          ? ($sesname . ' এর জন্য রাউটার সেটিংস সফলভাবে সেভ হয়েছে।')
-          : ('Router settings saved successfully for ' . $sesname . '.');
-        session_write_close();
-        echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
-        exit;
-      }
+      @session_start();
+      $_SESSION['connect'] = '';
+      $_SESSION['router_settings_notice'] = (isset($langid) && $langid === 'bn')
+        ? ($sesname . ' এর জন্য রাউটার সেটিংস সফলভাবে সেভ হয়েছে।')
+        : ('Router settings saved successfully for ' . $sesname . '.');
+      session_write_close();
+      echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
+      exit;
     }
   }
   if ($currency == "") {
-    echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";
+    $currency = "Tk";
+  }
+  if ($areload == "") {
+    $areload = "10";
+  }
+  if ($iface == "") {
+    $iface = "1";
+  }
+  if ($idleto == "") {
+    $idleto = "10";
+  }
+  if ($livereport == "") {
+    $livereport = "disable";
   }
   $display_iphost = $iphost;
   if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $display_iphost, $schemeMatch)) {
     $display_iphost = substr($display_iphost, strlen($schemeMatch[0]));
-    if (preg_match('/:\\d+$/', $display_iphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+    if (preg_match('/:\d+$/', $display_iphost, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
       $display_iphost = substr($display_iphost, 0, -strlen($portMatch[0]));
     }
   }
@@ -206,29 +213,11 @@ if (!isset($_SESSION["mikhmon"])) {
                     <tr>
                       <td><?= $_session_name ?></td>
                       <td><input class="form-control" id="sessname" type="text" name="sessname" title="Session Name" value="<?php if (explode("-",$session)[0] == "new") {
-                                                                                                                               echo "";
-                                                                                                                             } else {
-                                                                                                                               echo $session;
-                                                                                                                             } ?>" required="1"/></td>
+                                                                                                                                echo "";
+                                                                                                                              } else {
+                                                                                                                                echo htmlspecialchars($session, ENT_QUOTES, 'UTF-8');
+                                                                                                                              } ?>" required="1"/></td>
                     </tr>
-                    <?php if (function_exists('isSuperAdminStore') && isSuperAdminStore()) {
-                      $currOwnerInfo = ngwGetRouterOwnerInfo($session);
-                      $currOwnerAdminId = isset($currOwnerInfo['owner_admin_id']) ? (string)$currOwnerInfo['owner_admin_id'] : 'adm_1';
-                      $allStoreAdmins = loadAdminUsers();
-                    ?>
-                    <tr>
-                      <td><?= (isset($langid) && $langid === 'bn') ? 'মালিক অ্যাডমিন (Owner Admin)' : 'Owner Admin'; ?></td>
-                      <td>
-                        <select class="form-control" name="owner_admin_id">
-                          <?php foreach ($allStoreAdmins as $admRow) { ?>
-                            <option value="<?= htmlspecialchars($admRow['id'], ENT_QUOTES, 'UTF-8'); ?>" <?= ((string)$admRow['id'] === $currOwnerAdminId) ? 'selected' : ''; ?>>
-                              <?= htmlspecialchars($admRow['name'] . ' (@' . $admRow['username'] . ')', ENT_QUOTES, 'UTF-8'); ?>
-                            </option>
-                          <?php } ?>
-                        </select>
-                      </td>
-                    </tr>
-                    <?php } ?>
                   </table>
                 </div>
               </div>
@@ -244,19 +233,19 @@ if (!isset($_SESSION["mikhmon"])) {
 	  					<td class="align-middle"><?= isset($langid) && $langid === 'bn' ? 'মাইক্রোটিক আইপি' : 'IP MikroTik' ?> </td><td>
 							<div class="input-group">
 								<div class="input-group-12 col-box-12">
-									<input class="form-control" id="ipmik_input" type="text" size="15" name="ipmik" title="IP MikroTik / IP Cloud MikroTik" value="<?= htmlspecialchars($display_iphost); ?>" required="1"/>
+									<input class="form-control" id="ipmik_input" type="text" size="15" name="ipmik" title="IP MikroTik / IP Cloud MikroTik" value="<?= htmlspecialchars($display_iphost, ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
 								</div>
 							</div>
 						</td>
 					</tr>
 					<tr>
-						<td class="align-middle"><?= $_user_name ?>  </td><td><input class="form-control" id="usermk" type="text" size="10" name="usermik" title="User MikroTik" value="<?= $userhost; ?>" required="1"/></td>
+						<td class="align-middle"><?= $_user_name ?>  </td><td><input class="form-control" id="usermk" type="text" size="10" name="usermik" title="User MikroTik" value="<?= htmlspecialchars($userhost, ENT_QUOTES, 'UTF-8'); ?>" required="1"/></td>
 					</tr>
 					<tr>
 						<td class="align-middle"><?= $_password ?>  </td><td>
 							<div class="input-group">
 								<div class="input-group-11 col-box-10">
-        						<input class="group-item group-item-l" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= decrypt($passwdhost); ?>" required="1"/>
+        						<input class="group-item group-item-l" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= htmlspecialchars(decrypt($passwdhost), ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
         						</div>
             					<div class="input-group-1 col-box-2">
             						<div class="group-item group-item-r pd-2p5 text-center align-middle">
@@ -269,10 +258,10 @@ if (!isset($_SESSION["mikhmon"])) {
 					<tr>
 						<td colspan="2">
 								<div class="input-group-4">
-									<input class="group-item group-item-md" type="submit" style="cursor: pointer;" name="save" value="<?= $_save ?>"/>
+									<input class="group-item group-item-l" type="submit" style="cursor: pointer;" name="save" value="<?= $_save ?>"/>
 								</div>
 								<div class="input-group-4">	
-                  <span class="connect pointer group-item group-item-md pd-2p5 text-center align-middle" id="<?= $session; ?>&c=settings"><?= $_connect ?></span>
+                  <span class="connect pointer group-item group-item-md pd-2p5 text-center align-middle" id="<?= htmlspecialchars($session, ENT_QUOTES, 'UTF-8'); ?>&c=settings"><i class="fa fa-external-link"></i> <?= (isset($langid) && $langid === 'bn') ? 'ওপেন' : 'Open' ?></span>
 								</div>
 								<div class="input-group-3">	
                   <span class="pointer group-item group-item-md pd-2p5 text-center align-middle" id="ping_test"><?= isset($_ping) ? $_ping : 'Ping' ?></span>

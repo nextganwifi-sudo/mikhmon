@@ -9,3 +9,8 @@ coverage/
 .php-runtime/
 public/assets/aistudio/*.zip
 
+
+backups/
+mikhmon/backups/
+mikhmonv3-upstream/backups/
+public/assets/aistudio/

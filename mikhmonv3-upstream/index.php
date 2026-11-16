@@ -85,6 +85,14 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
 // load config
+  clearstatcache(true, './include/config.php');
+  if (function_exists('opcache_invalidate')) {
+    @opcache_invalidate('./include/config.php', true);
+    $realCfg = @realpath('./include/config.php');
+    if ($realCfg) {
+      @opcache_invalidate($realCfg, true);
+    }
+  }
   include('./include/config.php');
   include('./include/readcfg.php');
 
@@ -303,7 +311,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // system update & vps center
   elseif ($hotspot == "system-update") {
-    if (!isMikhmonAdmin() || (function_exists('isSuperAdminStore') && !isSuperAdminStore())) {
+    if (!isMikhmonAdmin()) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
