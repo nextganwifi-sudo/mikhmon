@@ -311,7 +311,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./settings/admin_settings.php');
   session_write_close();
 } elseif ($id == "vpn") {
-  if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
+  if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_vpn'))) {
     session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;

@@ -1039,6 +1039,161 @@ function syncPrimaryAdminToConfigFile($username, $passwordEnc) {
 }
 
 /**
+ * Define the 4 high-level shortcut permissions for regular Admin users:
+ * Hotspot, PPP (PPPoE), Reseller, and VPN.
+ */
+function getAdminShortcutPermissionGroups() {
+    return array(
+        'hotspot' => array(
+            'title_en' => 'Hotspot Permission',
+            'title_bn' => 'হটস্পট পারমিশন (Hotspot)',
+            'short_en' => 'Hotspot',
+            'short_bn' => 'হটস্পট',
+            'desc_en'  => 'Full Hotspot access (Users, Vouchers, Profiles, Reset Voucher & Templates)',
+            'desc_bn'  => 'হটস্পটের সবকিছু করতে পারবে (ইউজার, ভাউচার, প্রোফাইল, রিসেট ভাউচার ও টেমপ্লেট)',
+            'icon'     => 'fa-wifi',
+            'color'    => '#0ea5e9',
+            'keys'     => array(
+                'view_users', 'add_user', 'generate_voucher', 'edit_user', 'delete_user',
+                'enable_disable_user', 'reset_voucher', 'reset_mac_address', 'print_voucher',
+                'transfer_users_access', 'export_users', 'export_rsc_users', 'import_transfer_users',
+                'auto_activate_transfer_users', 'same_router_profile_transfer', 'view_profiles',
+                'add_profile', 'edit_profile', 'delete_profile', 'view_active', 'disconnect_active',
+                'view_hosts', 'manage_hosts', 'bind_host_ip', 'view_ipbinding', 'manage_ipbinding',
+                'edit_ipbinding', 'view_cookies', 'delete_cookies', 'use_assigned_template',
+                'preview_assigned_template', 'edit_own_template', 'save_own_template',
+                'publish_own_template', 'restore_own_template', 'assign_template', 'manage_global_templates'
+            ),
+        ),
+        'pppoe' => array(
+            'title_en' => 'PPP Permission',
+            'title_bn' => 'পিপিপি পারমিশন (PPP / PPPoE)',
+            'short_en' => 'PPP',
+            'short_bn' => 'পিপিপি',
+            'desc_en'  => 'Full PPPoE access (PPPoE Users, Profiles, Online Sessions & Reset PPPoE)',
+            'desc_bn'  => 'পিপিপি (PPPoE)-এর সবকিছু করতে পারবে (ইউজার, প্রোফাইল, অনলাইন সেশন ও রিসেট)',
+            'icon'     => 'fa-plug',
+            'color'    => '#8b5cf6',
+            'keys'     => array(
+                'manage_pppoe', 'view_ppp', 'manage_ppp', 'view_pppoe_users', 'add_pppoe_user',
+                'edit_pppoe_user', 'delete_pppoe_user', 'enable_disable_pppoe_user',
+                'view_pppoe_profiles', 'manage_pppoe_profiles', 'view_pppoe_active',
+                'disconnect_pppoe_active', 'reset_pppoe'
+            ),
+        ),
+        'reseller' => array(
+            'title_en' => 'Reseller Permission',
+            'title_bn' => 'রিসেলার পারমিশন (Reseller)',
+            'short_en' => 'Reseller',
+            'short_bn' => 'রিসেলার',
+            'desc_en'  => 'Full Reseller function (Add, Edit, Delete Resellers & Full Reseller Control)',
+            'desc_bn'  => 'রিসেলারের সম্পূর্ণ ফাংশন (রিসেলার অ্যাড, এডিট, ডিলিট ও সবকিছু নিয়ন্ত্রণ)',
+            'icon'     => 'fa-users',
+            'color'    => '#2ea043',
+            'keys'     => array(
+                'view_resellers', 'manage_resellers', 'manage_permission_groups'
+            ),
+        ),
+        'vpn' => array(
+            'title_en' => 'VPN Permission',
+            'title_bn' => 'ভিপিএন পারমিশন (VPN)',
+            'short_en' => 'VPN',
+            'short_bn' => 'ভিপিএন',
+            'desc_en'  => 'Full VPN function (Manage VPN Routers, Secrets & Port Forwarding)',
+            'desc_bn'  => 'ভিপিএন (VPN)-এর সবকিছু করতে পারবে (VPN রাউটার, সিক্রেট ও পোর্ট ফরওয়ার্ডিং)',
+            'icon'     => 'fa-shield',
+            'color'    => '#f0ad4e',
+            'keys'     => array(
+                'manage_vpn'
+            ),
+        ),
+    );
+}
+
+/**
+ * Check if a shortcut permission group ('hotspot', 'pppoe', 'reseller', 'vpn') is enabled for an Admin user
+ */
+function isAdminShortcutGroupEnabled($shortcutKey, $disabledPerms) {
+    if (!is_array($disabledPerms) || empty($disabledPerms)) {
+        return true;
+    }
+    if (in_array($shortcutKey, $disabledPerms, true)) {
+        return false;
+    }
+    $groups = getAdminShortcutPermissionGroups();
+    if (!isset($groups[$shortcutKey]['keys'])) {
+        return true;
+    }
+    foreach ($groups[$shortcutKey]['keys'] as $k) {
+        if (in_array($k, $disabledPerms, true)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Normalize disabled permissions array for an Admin user record.
+ */
+function sanitizeAdminDisabledPermissions($disabledList, $adminRole = 'admin') {
+    if ($adminRole === 'admin_store') {
+        return array();
+    }
+    if (!is_array($disabledList)) {
+        return array();
+    }
+    $shortcutGroups = getAdminShortcutPermissionGroups();
+    $allLabels = getFlatMikhmonPermissionLabels();
+    $allLabels['manage_vpn'] = 'Manage VPN Hub';
+    $clean = array();
+    foreach ($disabledList as $k => $v) {
+        $permKey = is_int($k) ? trim((string)$v) : (!empty($v) ? trim((string)$k) : '');
+        if ($permKey === '' || $permKey === 'manage_admin_account') {
+            continue;
+        }
+        if (isset($shortcutGroups[$permKey]) || isset($allLabels[$permKey])) {
+            $clean[$permKey] = $permKey;
+        }
+    }
+    return array_values($clean);
+}
+
+/**
+ * Resolve effective permission map for an Admin Store or Admin account.
+ */
+function resolveEffectiveAdminPermissions($admRecord) {
+    $map = getDefaultPermissionMap(true);
+    $map['manage_vpn'] = true;
+    $role = (is_array($admRecord) && isset($admRecord['admin_role']) && $admRecord['admin_role'] === 'admin')
+        ? 'admin'
+        : 'admin_store';
+    if ($role === 'admin_store') {
+        return $map;
+    }
+    // Regular Admin cannot manage Admin Store / Admin users or global system update
+    $map['manage_admin_account'] = false;
+    $map['manage_global_security'] = false;
+    $disabled = isset($admRecord['disabled_permissions']) && is_array($admRecord['disabled_permissions'])
+        ? $admRecord['disabled_permissions']
+        : array();
+    $shortcutGroups = getAdminShortcutPermissionGroups();
+    foreach ($disabled as $disKey) {
+        $disKey = trim((string)$disKey);
+        if ($disKey === '') {
+            continue;
+        }
+        if (isset($shortcutGroups[$disKey]['keys'])) {
+            foreach ($shortcutGroups[$disKey]['keys'] as $subKey) {
+                $map[$subKey] = false;
+            }
+        } elseif (array_key_exists($disKey, $map)) {
+            $map[$disKey] = false;
+        }
+    }
+    return $map;
+}
+
+/**
  * Load all configured Administrator accounts from include/admin_users.json.
  * Seeds automatically from include/config.php and include/backup_admin.json if not yet created.
  */
@@ -1054,10 +1209,14 @@ function loadAdminUsers($forceReload = false) {
         if (is_array($decoded)) {
             foreach ($decoded as $row) {
                 if (is_array($row) && !empty($row['username'])) {
+                    $admRole = (isset($row['admin_role']) && $row['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+                    $disPerms = isset($row['disabled_permissions']) ? sanitizeAdminDisabledPermissions($row['disabled_permissions'], $admRole) : array();
                     $admins[] = array(
                         'id' => !empty($row['id']) ? (string)$row['id'] : ('adm_' . (count($admins) + 1)),
                         'name' => !empty($row['name']) ? trim((string)$row['name']) : trim((string)$row['username']),
                         'username' => trim((string)$row['username']),
+                        'admin_role' => $admRole,
+                        'disabled_permissions' => $disPerms,
                         'password_enc' => isset($row['password_enc']) ? (string)$row['password_enc'] : '',
                         'password_hash' => isset($row['password_hash']) ? (string)$row['password_hash'] : '',
                         'avatar' => isset($row['avatar']) ? (string)$row['avatar'] : '',
@@ -1094,6 +1253,8 @@ function loadAdminUsers($forceReload = false) {
             'id' => 'adm_1',
             'name' => 'Administrator',
             'username' => $cfgUser !== '' ? $cfgUser : 'mikhmon',
+            'admin_role' => 'admin_store',
+            'disabled_permissions' => array(),
             'password_enc' => $cfgPassEnc,
             'password_hash' => $cfgPassPlain !== '' ? password_hash($cfgPassPlain, PASSWORD_DEFAULT) : '',
             'avatar' => '',
@@ -1110,6 +1271,8 @@ function loadAdminUsers($forceReload = false) {
                 'id' => 'adm_2',
                 'name' => 'Admin (' . $backup['username'] . ')',
                 'username' => $backup['username'],
+                'admin_role' => 'admin_store',
+                'disabled_permissions' => array(),
                 'password_enc' => $bEnc,
                 'password_hash' => $bHash,
                 'avatar' => '',
@@ -1118,6 +1281,19 @@ function loadAdminUsers($forceReload = false) {
             );
         }
         @file_put_contents($path, json_encode($admins, JSON_PRETTY_PRINT));
+    }
+
+    // Guarantee at least one Admin Store account always exists
+    $hasAdminStore = false;
+    foreach ($admins as $aItem) {
+        if (!isset($aItem['admin_role']) || $aItem['admin_role'] === 'admin_store') {
+            $hasAdminStore = true;
+            break;
+        }
+    }
+    if (!$hasAdminStore && !empty($admins)) {
+        $admins[0]['admin_role'] = 'admin_store';
+        $admins[0]['disabled_permissions'] = array();
     }
 
     $GLOBALS['NGW_CACHE_ADMIN_USERS'] = $admins;
@@ -1133,10 +1309,14 @@ function saveAdminUsers($admins) {
         if (!is_array($row) || empty($row['username'])) {
             continue;
         }
+        $admRole = (isset($row['admin_role']) && $row['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+        $disPerms = isset($row['disabled_permissions']) ? sanitizeAdminDisabledPermissions($row['disabled_permissions'], $admRole) : array();
         $clean[] = array(
             'id' => !empty($row['id']) ? (string)$row['id'] : ('adm_' . (count($clean) + 1)),
             'name' => !empty($row['name']) ? trim((string)$row['name']) : trim((string)$row['username']),
             'username' => trim((string)$row['username']),
+            'admin_role' => $admRole,
+            'disabled_permissions' => $disPerms,
             'password_enc' => isset($row['password_enc']) ? (string)$row['password_enc'] : '',
             'password_hash' => isset($row['password_hash']) ? (string)$row['password_hash'] : '',
             'avatar' => isset($row['avatar']) ? (string)$row['avatar'] : '',
@@ -1147,12 +1327,32 @@ function saveAdminUsers($admins) {
     if (empty($clean)) {
         return false;
     }
+    // Guarantee at least one Admin Store account remains
+    $hasStore = false;
+    foreach ($clean as $cRow) {
+        if ($cRow['admin_role'] === 'admin_store') {
+            $hasStore = true;
+            break;
+        }
+    }
+    if (!$hasStore) {
+        $clean[0]['admin_role'] = 'admin_store';
+        $clean[0]['disabled_permissions'] = array();
+    }
     $path = getAdminUsersStoragePath();
     $ok = @file_put_contents($path, json_encode($clean, JSON_PRETTY_PRINT), LOCK_EX) !== false;
     if ($ok) {
         $GLOBALS['NGW_CACHE_ADMIN_USERS'] = $clean;
+        unset($GLOBALS['NGW_ADMIN_SYNCED']);
         if (!empty($clean[0]['username']) && !empty($clean[0]['password_enc'])) {
             syncPrimaryAdminToConfigFile($clean[0]['username'], $clean[0]['password_enc']);
+        }
+        // Mirror to sibling webroot if dual directory exists
+        $appRoot = dirname(__DIR__);
+        foreach (array($appRoot . '/mikhmon/include/admin_users.json', dirname($appRoot) . '/include/admin_users.json') as $sibFile) {
+            if ($sibFile && is_dir(dirname($sibFile)) && @realpath($sibFile) !== @realpath($path)) {
+                @file_put_contents($sibFile, json_encode($clean, JSON_PRETTY_PRINT), LOCK_EX);
+            }
         }
     }
     return $ok;
@@ -1204,7 +1404,7 @@ function findAdminUserByIdOrUsername($identifier) {
     }
     $admins = loadAdminUsers();
     foreach ($admins as $adm) {
-        if ((string)$adm['id'] === $identifier || (string)$adm['username'] === $identifier) {
+        if ((string)$adm['id'] === $identifier || strcasecmp((string)$adm['username'], $identifier) === 0) {
             return $adm;
         }
     }
@@ -1239,7 +1439,34 @@ function getCurrentAdminRecord() {
 }
 
 /**
- * Authenticate user as Admin (from multi-admin list or primary config) or Reseller
+ * Sync active Admin session role & permissions from disk on every request.
+ */
+function syncActiveAdminSession() {
+    if (!isMikhmonAdmin()) {
+        return true;
+    }
+    if (!empty($GLOBALS['NGW_ADMIN_SYNCED'])) {
+        return $GLOBALS['NGW_ADMIN_SYNC_RESULT'];
+    }
+    $adm = getCurrentAdminRecord();
+    if (!is_array($adm) || empty($adm['username'])) {
+        $GLOBALS['NGW_ADMIN_SYNCED'] = true;
+        $GLOBALS['NGW_ADMIN_SYNC_RESULT'] = false;
+        return false;
+    }
+    $admRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+    $_SESSION['mikhmon'] = (string)$adm['username'];
+    $_SESSION['mikhmon_admin_id'] = (string)$adm['id'];
+    $_SESSION['mikhmon_admin_role'] = $admRole;
+    $_SESSION['mikhmon_permission_mode'] = ($admRole === 'admin_store') ? 'Admin Store' : 'Admin';
+    $_SESSION['mikhmon_permissions'] = resolveEffectiveAdminPermissions($adm);
+    $GLOBALS['NGW_ADMIN_SYNCED'] = true;
+    $GLOBALS['NGW_ADMIN_SYNC_RESULT'] = true;
+    return true;
+}
+
+/**
+ * Authenticate user as Admin Store, Admin, or Reseller
  */
 function authenticateMikhmonUser($username, $password, $useradm, $passadm_decrypted) {
     $username = trim((string)$username);
@@ -1248,7 +1475,6 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
     $admins = loadAdminUsers();
     foreach ($admins as $idx => $adm) {
         if (isset($adm['username']) && $adm['username'] === $username && verifyAdminUserPassword($adm, $password)) {
-            // Upgrade password_hash or password_enc if missing
             $needsSave = false;
             if (empty($adm['password_hash'])) {
                 $admins[$idx]['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
@@ -1261,19 +1487,21 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
             if ($needsSave) {
                 saveAdminUsers($admins);
             }
+            $admRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
             return array(
                 'authenticated' => true,
                 'role' => 'admin',
+                'admin_role' => $admRole,
                 'id' => (string)$adm['id'],
                 'username' => (string)$adm['username'],
                 'name' => !empty($adm['name']) ? (string)$adm['name'] : 'Administrator',
-                'permission_mode' => 'Admin',
+                'permission_mode' => ($admRole === 'admin_store') ? 'Admin Store' : 'Admin',
                 'template_code' => 'GLOBAL',
                 'assigned_template' => 'default',
                 'template_status' => 'active',
                 'logo_filename' => isset($adm['avatar']) ? (string)$adm['avatar'] : '',
                 'allowed_routers' => array('*'),
-                'permissions' => getDefaultPermissionMap(true),
+                'permissions' => resolveEffectiveAdminPermissions($adm),
             );
         }
     }
@@ -1289,10 +1517,11 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
         return array(
             'authenticated' => true,
             'role' => 'admin',
+            'admin_role' => 'admin_store',
             'id' => 'adm_1',
             'username' => $username,
             'name' => 'Administrator',
-            'permission_mode' => 'Admin',
+            'permission_mode' => 'Admin Store',
             'template_code' => 'GLOBAL',
             'assigned_template' => 'default',
             'template_status' => 'active',
@@ -1302,24 +1531,41 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
         );
     }
 
-    $matchedAdminUsername = false;
+    if ($username === '' || $password === '') {
+        return array(
+            'authenticated' => false,
+            'error' => 'Invalid username or password.',
+            'fault' => ($username === '' && $password === '') ? 'Empty Username & Password' : ($username === '' ? 'Empty Username' : 'Empty Password'),
+            'error_reason' => ($username === '' && $password === '') ? 'Both username and password were submitted empty' : ($username === '' ? 'Username field was submitted empty' : "Password field was submitted empty for '{$username}'"),
+            'attempted_role' => 'unknown',
+        );
+    }
+
+    $matchedAdminUsername = '';
     foreach ($admins as $adm) {
-        if (isset($adm['username']) && strtolower((string)$adm['username']) === strtolower($username)) {
-            $matchedAdminUsername = true;
-            break;
+        if (isset($adm['username'])) {
+            if ($adm['username'] === $username) {
+                $matchedAdminUsername = (string)$adm['username'];
+                break;
+            }
+            if (strtolower((string)$adm['username']) === strtolower($username)) {
+                $matchedAdminUsername = (string)$adm['username'];
+            }
         }
     }
-    if ($username !== '' && strtolower($username) === strtolower((string)$useradm)) {
-        $matchedAdminUsername = true;
+    if ($matchedAdminUsername === '' && $username !== '' && strtolower($username) === strtolower((string)$useradm)) {
+        $matchedAdminUsername = (string)$useradm;
     }
 
     $resellers = loadResellers();
+    $resellerCaseMatch = '';
     foreach ($resellers as $reseller) {
         if (isset($reseller['username']) && $reseller['username'] === $username) {
             if (!isset($reseller['status']) || $reseller['status'] !== 'active') {
                 return array(
                     'authenticated' => false,
                     'error' => 'Reseller account is deactivated.',
+                    'fault' => 'Account Disabled',
                     'error_reason' => "Login blocked: Reseller account '{$username}' is deactivated",
                     'attempted_role' => 'reseller',
                 );
@@ -1344,25 +1590,49 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
             return array(
                 'authenticated' => false,
                 'error' => 'Invalid username or password.',
-                'error_reason' => "Wrong password entered for Reseller '{$username}'",
+                'fault' => 'Wrong Password',
+                'error_reason' => "Wrong password entered for Reseller '{$username}' (Username is valid, password mismatch)",
                 'attempted_role' => 'reseller',
             );
+        } elseif (isset($reseller['username']) && strtolower((string)$reseller['username']) === strtolower($username)) {
+            $resellerCaseMatch = (string)$reseller['username'];
         }
     }
 
-    if ($matchedAdminUsername) {
+    if ($matchedAdminUsername !== '') {
+        if ($matchedAdminUsername !== $username) {
+            return array(
+                'authenticated' => false,
+                'error' => 'Invalid username or password.',
+                'fault' => 'Username Case Mismatch',
+                'error_reason' => "Username '{$username}' case mismatch — Admin account exists as '{$matchedAdminUsername}'",
+                'attempted_role' => 'admin',
+            );
+        }
         return array(
             'authenticated' => false,
             'error' => 'Invalid username or password.',
-            'error_reason' => "Wrong password entered for Administrator '{$username}'",
+            'fault' => 'Wrong Password',
+            'error_reason' => "Wrong password entered for Administrator '{$username}' (Username is valid, password mismatch)",
             'attempted_role' => 'admin',
+        );
+    }
+
+    if ($resellerCaseMatch !== '') {
+        return array(
+            'authenticated' => false,
+            'error' => 'Invalid username or password.',
+            'fault' => 'Username Case Mismatch',
+            'error_reason' => "Username '{$username}' case mismatch — Reseller account exists as '{$resellerCaseMatch}'",
+            'attempted_role' => 'reseller',
         );
     }
 
     return array(
         'authenticated' => false,
         'error' => 'Invalid username or password.',
-        'error_reason' => "Unknown username '{$username}' (Invalid username & password)",
+        'fault' => 'Username Not Found',
+        'error_reason' => "Unknown username '{$username}' — No Admin or Reseller account found with this username (Wrong username or both wrong)",
         'attempted_role' => 'unknown',
     );
 }
@@ -1373,7 +1643,7 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
  */
 function syncActiveResellerSession() {
     if (!isset($_SESSION['mikhmon_role']) || $_SESSION['mikhmon_role'] !== 'reseller') {
-        return true;
+        return syncActiveAdminSession();
     }
     if (!empty($GLOBALS['NGW_RESELLER_SYNCED'])) {
         return $GLOBALS['NGW_RESELLER_SYNC_RESULT'];
@@ -1441,13 +1711,268 @@ function getCurrentResellerRecord() {
 }
 
 /**
- * Check if current user is Administrator
+ * Check if current user is Administrator (either Admin Store or Admin)
  */
 function isMikhmonAdmin() {
     if (!isset($_SESSION['mikhmon'])) {
         return false;
     }
     return !isset($_SESSION['mikhmon_role']) || $_SESSION['mikhmon_role'] === 'admin';
+}
+
+/**
+ * Check if current user has the top-level Admin Store role
+ */
+function isMikhmonAdminStore() {
+    if (!isMikhmonAdmin()) {
+        return false;
+    }
+    syncActiveAdminSession();
+    if (isset($_SESSION['mikhmon_admin_role'])) {
+        return $_SESSION['mikhmon_admin_role'] === 'admin_store';
+    }
+    $adm = getCurrentAdminRecord();
+    return !is_array($adm) || !isset($adm['admin_role']) || $adm['admin_role'] === 'admin_store';
+}
+
+/**
+ * Check if current user is a sub-Admin (role = 'admin', not 'admin_store')
+ */
+function isMikhmonSubAdmin() {
+    return isMikhmonAdmin() && !isMikhmonAdminStore();
+}
+
+/**
+ * Path to router ownership metadata file (include/router_meta.json)
+ */
+function getRouterMetaStoragePath() {
+    return __DIR__ . '/router_meta.json';
+}
+
+/**
+ * Load router ownership metadata map: sessionName => array(added_by_id, added_by_username, added_by_name, added_by_role, created_at, updated_at)
+ */
+function loadRouterMeta($forceReload = false) {
+    if (!$forceReload && isset($GLOBALS['NGW_CACHE_ROUTER_META']) && is_array($GLOBALS['NGW_CACHE_ROUTER_META'])) {
+        return $GLOBALS['NGW_CACHE_ROUTER_META'];
+    }
+    $path = getRouterMetaStoragePath();
+    if (!is_file($path)) {
+        $GLOBALS['NGW_CACHE_ROUTER_META'] = array();
+        return array();
+    }
+    $raw = @file_get_contents($path);
+    $decoded = @json_decode((string)$raw, true);
+    if (!is_array($decoded)) {
+        $decoded = array();
+    }
+    $GLOBALS['NGW_CACHE_ROUTER_META'] = $decoded;
+    return $decoded;
+}
+
+/**
+ * Save router ownership metadata map to include/router_meta.json (and mirror to sibling webroot if present)
+ */
+function saveRouterMeta($metaMap) {
+    if (!is_array($metaMap)) {
+        $metaMap = array();
+    }
+    $path = getRouterMetaStoragePath();
+    $json = json_encode($metaMap, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    $ok = @file_put_contents($path, $json, LOCK_EX) !== false;
+    if ($ok) {
+        $GLOBALS['NGW_CACHE_ROUTER_META'] = $metaMap;
+        $appRoot = dirname(__DIR__);
+        foreach (array($appRoot . '/mikhmon/include/router_meta.json', dirname($appRoot) . '/include/router_meta.json') as $sib) {
+            if ($sib && is_dir(dirname($sib)) && @realpath($sib) !== @realpath($path)) {
+                @file_put_contents($sib, $json, LOCK_EX);
+            }
+        }
+    }
+    return $ok;
+}
+
+/**
+ * Record or migrate router ownership when a router is added or renamed.
+ */
+function recordRouterOwnerOnCreateOrRename($oldSession, $newSession) {
+    $oldSession = trim((string)$oldSession);
+    $newSession = trim((string)$newSession);
+    if ($newSession === '' || $newSession === 'mikhmon') {
+        return false;
+    }
+    $meta = loadRouterMeta(true);
+    $now = date('Y-m-d H:i:s');
+
+    if ($oldSession !== '' && isset($meta[$oldSession]) && is_array($meta[$oldSession])) {
+        $entry = $meta[$oldSession];
+        $entry['updated_at'] = $now;
+        if ($oldSession !== $newSession) {
+            unset($meta[$oldSession]);
+        }
+        $meta[$newSession] = $entry;
+        return saveRouterMeta($meta);
+    }
+
+    if (isset($meta[$newSession]) && is_array($meta[$newSession]) && !empty($meta[$newSession]['added_by_username'])) {
+        $meta[$newSession]['updated_at'] = $now;
+        return saveRouterMeta($meta);
+    }
+
+    $addedById = 'adm_1';
+    $addedByUsername = isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : 'admin';
+    $addedByName = $addedByUsername;
+    $addedByRole = 'admin_store';
+
+    if (isMikhmonAdmin()) {
+        $adm = getCurrentAdminRecord();
+        if (is_array($adm)) {
+            $addedById = !empty($adm['id']) ? (string)$adm['id'] : 'adm_1';
+            $addedByUsername = !empty($adm['username']) ? (string)$adm['username'] : $addedByUsername;
+            $addedByName = !empty($adm['name']) ? (string)$adm['name'] : $addedByUsername;
+            $addedByRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+        }
+    } else {
+        $res = getCurrentResellerRecord();
+        if (is_array($res) && !empty($res['created_by_admin_id'])) {
+            $parentAdm = findAdminUserByIdOrUsername($res['created_by_admin_id']);
+            if (is_array($parentAdm)) {
+                $addedById = (string)$parentAdm['id'];
+                $addedByUsername = (string)$parentAdm['username'];
+                $addedByName = !empty($parentAdm['name']) ? (string)$parentAdm['name'] : $addedByUsername;
+                $addedByRole = (isset($parentAdm['admin_role']) && $parentAdm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+            }
+        }
+    }
+
+    $meta[$newSession] = array(
+        'added_by_id' => $addedById,
+        'added_by_username' => $addedByUsername,
+        'added_by_name' => $addedByName,
+        'added_by_role' => $addedByRole,
+        'created_at' => $now,
+        'updated_at' => $now,
+    );
+    return saveRouterMeta($meta);
+}
+
+/**
+ * Remove router ownership metadata when a router session is deleted.
+ */
+function removeRouterOwnerMeta($sessionName) {
+    $sessionName = trim((string)$sessionName);
+    if ($sessionName === '') {
+        return false;
+    }
+    $meta = loadRouterMeta(true);
+    if (isset($meta[$sessionName])) {
+        unset($meta[$sessionName]);
+        return saveRouterMeta($meta);
+    }
+    return true;
+}
+
+/**
+ * Resolve ownership details for a router session (who added it and which role).
+ */
+function getRouterOwnerInfo($sessionName) {
+    $sessionName = trim((string)$sessionName);
+    $meta = loadRouterMeta();
+    $admins = loadAdminUsers();
+
+    // Find primary Admin Store fallback for pre-existing routers
+    $primaryStoreAdmin = !empty($admins[0]) ? $admins[0] : array(
+        'id' => 'adm_1',
+        'username' => 'admin',
+        'name' => 'Administrator',
+        'admin_role' => 'admin_store',
+    );
+    foreach ($admins as $aItem) {
+        if (!isset($aItem['admin_role']) || $aItem['admin_role'] === 'admin_store') {
+            $primaryStoreAdmin = $aItem;
+            break;
+        }
+    }
+
+    if ($sessionName !== '' && isset($meta[$sessionName]) && is_array($meta[$sessionName])) {
+        $entry = $meta[$sessionName];
+        $admId = isset($entry['added_by_id']) ? (string)$entry['added_by_id'] : '';
+        $admUser = isset($entry['added_by_username']) ? (string)$entry['added_by_username'] : '';
+        // Sync live username/role if admin record still exists
+        foreach ($admins as $adm) {
+            if (($admId !== '' && (string)$adm['id'] === $admId) || ($admUser !== '' && strcasecmp((string)$adm['username'], $admUser) === 0)) {
+                return array(
+                    'added_by_id' => (string)$adm['id'],
+                    'added_by_username' => (string)$adm['username'],
+                    'added_by_name' => !empty($adm['name']) ? (string)$adm['name'] : (string)$adm['username'],
+                    'added_by_role' => (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store',
+                    'is_explicit' => true,
+                );
+            }
+        }
+        return array(
+            'added_by_id' => $admId !== '' ? $admId : 'adm_1',
+            'added_by_username' => $admUser !== '' ? $admUser : (string)$primaryStoreAdmin['username'],
+            'added_by_name' => !empty($entry['added_by_name']) ? (string)$entry['added_by_name'] : $admUser,
+            'added_by_role' => (isset($entry['added_by_role']) && $entry['added_by_role'] === 'admin') ? 'admin' : 'admin_store',
+            'is_explicit' => true,
+        );
+    }
+
+    return array(
+        'added_by_id' => (string)$primaryStoreAdmin['id'],
+        'added_by_username' => (string)$primaryStoreAdmin['username'],
+        'added_by_name' => !empty($primaryStoreAdmin['name']) ? (string)$primaryStoreAdmin['name'] : (string)$primaryStoreAdmin['username'],
+        'added_by_role' => 'admin_store',
+        'is_explicit' => false,
+    );
+}
+
+/**
+ * Check if the currently logged-in Admin (Admin Store or Admin) can view/manage a reseller record.
+ */
+function canCurrentAdminAccessReseller($reseller) {
+    if (!isMikhmonAdmin() || !is_array($reseller)) {
+        return false;
+    }
+    if (isMikhmonAdminStore()) {
+        return true;
+    }
+    $adm = getCurrentAdminRecord();
+    if (!is_array($adm)) {
+        return false;
+    }
+    $myId = (string)$adm['id'];
+    $myUser = (string)$adm['username'];
+    $resOwnerId = isset($reseller['created_by_admin_id']) ? trim((string)$reseller['created_by_admin_id']) : '';
+    $resOwnerUser = isset($reseller['created_by_admin_username']) ? trim((string)$reseller['created_by_admin_username']) : '';
+    if ($resOwnerId !== '' && $resOwnerId === $myId) {
+        return true;
+    }
+    if ($resOwnerUser !== '' && strcasecmp($resOwnerUser, $myUser) === 0) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Return resellers accessible to the currently logged-in user (all for Admin Store, own resellers for Admin).
+ */
+function getAccessibleResellers($forceReload = false) {
+    $all = loadResellers($forceReload);
+    if (isMikhmonAdminStore()) {
+        return $all;
+    }
+    if (!isMikhmonAdmin()) {
+        return array();
+    }
+    $filtered = array();
+    foreach ($all as $r) {
+        if (canCurrentAdminAccessReseller($r)) {
+            $filtered[] = $r;
+        }
+    }
+    return $filtered;
 }
 
 /**
@@ -1460,8 +1985,28 @@ function canAccessRouterSession($sessionName) {
     if (!syncActiveResellerSession()) {
         return false;
     }
-    if (isMikhmonAdmin()) {
+    if (isMikhmonAdminStore()) {
         return true;
+    }
+    if (isMikhmonSubAdmin()) {
+        $adm = getCurrentAdminRecord();
+        if (!is_array($adm)) {
+            return false;
+        }
+        $meta = loadRouterMeta();
+        if (!isset($meta[$sessionName]) || !is_array($meta[$sessionName])) {
+            return false;
+        }
+        $entry = $meta[$sessionName];
+        $myId = (string)$adm['id'];
+        $myUser = (string)$adm['username'];
+        if (!empty($entry['added_by_id']) && (string)$entry['added_by_id'] === $myId) {
+            return true;
+        }
+        if (!empty($entry['added_by_username']) && strcasecmp((string)$entry['added_by_username'], $myUser) === 0) {
+            return true;
+        }
+        return false;
     }
     $allowed = isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers']) ? $_SESSION['mikhmon_routers'] : array();
     return in_array('*', $allowed, true) || in_array($sessionName, $allowed, true);
@@ -1502,16 +2047,32 @@ function hasResellerPermission($permKey) {
     if ($permKey === 'about' || $permKey === 'view_about') {
         return true;
     }
-    if (isMikhmonAdmin()) {
+    if (isMikhmonAdminStore()) {
         return true;
-    }
-    if (isProtectedAdminPermission($permKey)) {
-        return false;
     }
     // Alias support
     if ($permKey === 'remove_host') $permKey = 'manage_hosts';
     if ($permKey === 'remove_cookie') $permKey = 'delete_cookies';
     if ($permKey === 'manage_template_logo') $permKey = 'edit_own_template';
+
+    if (isMikhmonSubAdmin()) {
+        if ($permKey === 'manage_admin_account') {
+            return false;
+        }
+        $admPerms = isset($_SESSION['mikhmon_permissions']) && is_array($_SESSION['mikhmon_permissions'])
+            ? $_SESSION['mikhmon_permissions']
+            : resolveEffectiveAdminPermissions(getCurrentAdminRecord());
+        if ($permKey !== 'manage_pppoe' && (strpos($permKey, 'pppoe') !== false || $permKey === 'view_ppp' || $permKey === 'manage_ppp')) {
+            if (empty($admPerms['manage_pppoe'])) {
+                return false;
+            }
+        }
+        return !array_key_exists($permKey, $admPerms) || !empty($admPerms[$permKey]);
+    }
+
+    if (isProtectedAdminPermission($permKey)) {
+        return false;
+    }
 
     $perms = isset($_SESSION['mikhmon_permissions']) && is_array($_SESSION['mikhmon_permissions']) ? $_SESSION['mikhmon_permissions'] : array();
 
@@ -1951,15 +2512,16 @@ function getCurrentUserProfileSummary() {
     $admName = (is_array($admRec) && !empty($admRec['name'])) ? (string)$admRec['name'] : 'Administrator';
     $admUsername = (is_array($admRec) && !empty($admRec['username'])) ? (string)$admRec['username'] : $username;
     $admId = (is_array($admRec) && !empty($admRec['id'])) ? (string)$admRec['id'] : 'adm_1';
+    $isStore = isMikhmonAdminStore();
 
     return array(
         'is_reseller' => false,
         'username' => $admUsername,
         'display_name' => $admName,
-        'role_label' => 'Administrator',
-        'role_badge' => 'Admin',
-        'permission_mode' => 'Full Admin Access',
-        'account_id' => 'Admin',
+        'role_label' => $isStore ? 'Admin Store' : 'Admin',
+        'role_badge' => $isStore ? 'Admin Store' : 'Admin',
+        'permission_mode' => $isStore ? 'Admin Store (Full Control)' : 'Admin',
+        'account_id' => $isStore ? 'Admin Store' : 'Admin',
         'raw_id' => $admId,
         'template_code' => 'GLOBAL',
         'allowed_routers' => array('*'),

@@ -209,8 +209,16 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 $ngwProfileInfo = getCurrentUserProfileSummary();
 if ($langid === 'bn') {
-  $ngwProfileInfo['role_badge'] = $ngwProfileInfo['is_reseller'] ? 'রিসেলার' : 'অ্যাডমিন';
-  $ngwProfileInfo['role_label'] = $ngwProfileInfo['is_reseller'] ? 'রিসেলার' : 'অ্যাডমিনিস্ট্রেটর';
+  if ($ngwProfileInfo['is_reseller']) {
+    $ngwProfileInfo['role_badge'] = 'রিসেলার';
+    $ngwProfileInfo['role_label'] = 'রিসেলার';
+  } elseif (isMikhmonAdminStore()) {
+    $ngwProfileInfo['role_badge'] = 'অ্যাডমিন স্টোর';
+    $ngwProfileInfo['role_label'] = 'অ্যাডমিন স্টোর';
+  } else {
+    $ngwProfileInfo['role_badge'] = 'অ্যাডমিন';
+    $ngwProfileInfo['role_label'] = 'অ্যাডমিনিস্ট্রেটর';
+  }
 }
 $ngwProfileHref = './admin.php?id=my-profile' . (!empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : '');
 $ngwLogoutHref = (!empty($session) && $id == "") ? ('./?hotspot=logout&session=' . urlencode($session)) : './admin.php?id=logout';
@@ -463,19 +471,33 @@ $ngwUiConfig = array(
   <a href="./admin.php?id=settings&router=new-<?= rand(1111,9999) ?>" class="menu <?= $snsettings ?>"><i class="fa fa-plus"></i> <?= $_add_router ?></a>
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
+  <?php if (hasResellerPermission('view_resellers') || hasResellerPermission('manage_resellers')) { ?>
   <a href="./admin.php?id=resellers" class="menu <?= $sresellers; ?>"><i class="fa fa-users"></i> <?= isset($_reseller) ? $_reseller : 'Reseller'; ?></a>
+  <?php } ?>
+  <?php if (isMikhmonAdminStore() || hasResellerPermission('view_logs') || hasResellerPermission('view_active') || hasResellerPermission('manage_global_security')) { ?>
   <a href="javascript:void(0)" id="ngw-settings-dropdown-toggle" class="menu <?= $isSettingsDropdownOpen ? 'active' : ''; ?>" role="button" aria-controls="ngw-settings-dropdown" aria-expanded="<?= $isSettingsDropdownOpen ? 'true' : 'false'; ?>" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
     <span><i class="fa fa-gear"></i> <?= $_settings ?></span>
     <i id="ngw-settings-dropdown-chevron" class="fa fa-chevron-<?= $isSettingsDropdownOpen ? 'up' : 'down'; ?>" style="font-size:11px;"></i>
   </a>
   <div id="ngw-settings-dropdown" style="display:<?= $isSettingsDropdownOpen ? 'block' : 'none'; ?>;background:rgba(0,0,0,0.08);">
+    <?php if (isMikhmonAdminStore()) { ?>
     <a href="./admin.php?id=admin-settings" class="menu <?= $sadmsettings; ?>" style="padding-left:34px;"><i class="fa fa-sliders"></i> <?= $_settings ?></a>
+    <?php } ?>
+    <?php if (hasResellerPermission('view_logs')) { ?>
     <a href="./admin.php?id=activity" class="menu <?= (isset($id) && $id === 'activity') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-history"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভিটি হিস্টোরি' : 'Activity History'; ?></a>
+    <?php } ?>
+    <?php if (hasResellerPermission('view_active')) { ?>
     <a href="./admin.php?id=active-sessions" class="menu <?= (isset($id) && $id === 'active-sessions') ? 'active' : ''; ?>" style="padding-left:34px;"><i class="fa fa-desktop"></i> <?= ($langid === 'bn') ? 'অ্যাক্টিভ সেশন' : 'Active Sessions'; ?></a>
+    <?php } ?>
+    <?php if (isMikhmonAdminStore() || hasResellerPermission('manage_global_security')) { ?>
     <a href="./admin.php?id=system-update" class="menu <?= $ssysupdate; ?>" style="padding-left:34px;"><i class="fa fa-cloud-upload"></i> <?= isset($_system_update) ? $_system_update : 'System Update'; ?></a>
+    <?php } ?>
   </div>
+  <?php } ?>
+  <?php if (isMikhmonAdminStore() || hasResellerPermission('manage_vpn')) { ?>
   <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
-  <?php if (!isset($id) || $id !== 'vpn') { ?>
+  <?php } ?>
+  <?php if ((!isset($id) || $id !== 'vpn') && (hasResellerPermission('manage_global_templates') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template') || hasResellerPermission('preview_assigned_template'))) { ?>
   <a href="./admin.php?id=editor" class="menu <?= $seditor; ?>"><i class="fa fa-edit"></i> <?= isset($_template_editor) ? $_template_editor : 'Template Editor'; ?></a>
   <?php } ?>
 

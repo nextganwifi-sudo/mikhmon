@@ -26,8 +26,8 @@ include_once('./include/config.php');
 include_once('./lib/routeros_api.class.php');
 include_once('./lib/formatbytesbites.php');
 
-if (!isMikhmonAdmin() && !hasResellerPermission('manage_router_settings')) {
-    echo "<div class='card pd-15'><h3 class='text-danger'><i class='fa fa-ban'></i> Access Denied</h3><p>Only Administrator or authorized users can access the VPN Hub.</p></div>";
+if ((!isMikhmonAdmin() && !hasResellerPermission('manage_router_settings')) || (isMikhmonSubAdmin() && !hasResellerPermission('manage_vpn'))) {
+    echo "<div class='card pd-15'><h3 class='text-danger'><i class='fa fa-ban'></i> Access Denied</h3><p>Only Administrator or authorized users with VPN permission can access the VPN Hub.</p></div>";
     exit;
 }
 
@@ -63,7 +63,32 @@ function vpnSafeName($value) {
     return $value !== '' ? $value : 'vpn';
 }
 
-function loadVpnRouters() {
+function canCurrentAdminAccessVpnRouter($vr) {
+    if (!is_array($vr)) {
+        return false;
+    }
+    if (isMikhmonAdminStore()) {
+        return true;
+    }
+    if (isMikhmonSubAdmin()) {
+        $adm = getCurrentAdminRecord();
+        if (!is_array($adm)) {
+            return false;
+        }
+        $myId = (string)$adm['id'];
+        $myUser = (string)$adm['username'];
+        if (!empty($vr['created_by_admin_id']) && (string)$vr['created_by_admin_id'] === $myId) {
+            return true;
+        }
+        if (!empty($vr['created_by_admin_username']) && strcasecmp((string)$vr['created_by_admin_username'], $myUser) === 0) {
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+function loadAllVpnRoutersRaw() {
     global $vpnStoragePath;
     if (!file_exists($vpnStoragePath)) {
         return array();
@@ -71,6 +96,20 @@ function loadVpnRouters() {
     $raw = @file_get_contents($vpnStoragePath);
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : array();
+}
+
+function loadVpnRouters() {
+    $all = loadAllVpnRoutersRaw();
+    if (isMikhmonAdminStore()) {
+        return $all;
+    }
+    $filtered = array();
+    foreach ($all as $vr) {
+        if (canCurrentAdminAccessVpnRouter($vr)) {
+            $filtered[] = $vr;
+        }
+    }
+    return $filtered;
 }
 
 function saveVpnRouters($routers) {
@@ -119,16 +158,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
         if ($rName === '' || $rHost === '' || $rUser === '' || $rPort < 1 || $rPort > 65535) {
             $vpnErr = 'Please enter a valid router name, host, username and API port.';
         } else {
+            $allVpnRouters = loadAllVpnRoutersRaw();
             $found = false;
-            foreach ($vpnRouters as $idx => $vr) {
-                if ($editId !== '' && isset($vr['id']) && $vr['id'] === $editId) {
-                    $vpnRouters[$idx]['name'] = $rName;
-                    $vpnRouters[$idx]['host'] = $rHost;
-                    $vpnRouters[$idx]['user'] = $rUser;
-                    $vpnRouters[$idx]['port'] = $rPort;
-                    $vpnRouters[$idx]['ros_ver'] = $rVer;
+            foreach ($allVpnRouters as $idx => $vr) {
+                if ($editId !== '' && isset($vr['id']) && $vr['id'] === $editId && canCurrentAdminAccessVpnRouter($vr)) {
+                    $allVpnRouters[$idx]['name'] = $rName;
+                    $allVpnRouters[$idx]['host'] = $rHost;
+                    $allVpnRouters[$idx]['user'] = $rUser;
+                    $allVpnRouters[$idx]['port'] = $rPort;
+                    $allVpnRouters[$idx]['ros_ver'] = $rVer;
                     if ($rPass !== '') {
-                        $vpnRouters[$idx]['pass_enc'] = function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass);
+                        $allVpnRouters[$idx]['pass_enc'] = function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass);
                     }
                     $found = true;
                     break;
@@ -138,17 +178,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
                 $vpnErr = 'VPN Router not found; no changes were saved.';
             } else {
                 if ($editId === '') {
-                    $vpnRouters[] = array(
+                    $admRec = getCurrentAdminRecord();
+                    $allVpnRouters[] = array(
                         'id' => 'vpn_' . time() . '_' . mt_rand(100, 999),
                         'name' => $rName, 'host' => $rHost, 'user' => $rUser,
                         'pass_enc' => function_exists('encrypt') ? encrypt($rPass) : base64_encode($rPass),
-                        'port' => $rPort, 'ros_ver' => $rVer, 'created_at' => date('Y-m-d H:i:s'),
+                        'port' => $rPort, 'ros_ver' => $rVer,
+                        'created_by_admin_id' => is_array($admRec) && !empty($admRec['id']) ? (string)$admRec['id'] : 'adm_1',
+                        'created_by_admin_username' => is_array($admRec) && !empty($admRec['username']) ? (string)$admRec['username'] : (isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : 'admin'),
+                        'created_at' => date('Y-m-d H:i:s'),
                     );
-                    // Success is reported only after the configuration is persisted.
-                } else {
-                    // Success is reported only after the configuration is persisted.
                 }
-                if (saveVpnRouters($vpnRouters)) {
+                if (saveVpnRouters($allVpnRouters)) {
+                    $vpnRouters = loadVpnRouters();
                     $vpnMsg = $editId === '' ? 'VPN Router added successfully.' : 'VPN Router updated successfully.';
                 } else {
                     $vpnRouters = loadVpnRouters();
@@ -158,10 +200,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vpnCsrfValid) {
         }
     } elseif (isset($_POST['delete_vpn_router'])) {
         $delId = trim((string)$_POST['del_id']);
-        $vpnRouters = array_values(array_filter($vpnRouters, function($vr) use ($delId) {
-            return !isset($vr['id']) || $vr['id'] !== $delId;
+        $allVpnRouters = loadAllVpnRoutersRaw();
+        $allVpnRouters = array_values(array_filter($allVpnRouters, function($vr) use ($delId) {
+            if (!isset($vr['id']) || $vr['id'] !== $delId) {
+                return true;
+            }
+            return !canCurrentAdminAccessVpnRouter($vr);
         }));
-        if (saveVpnRouters($vpnRouters)) {
+        if (saveVpnRouters($allVpnRouters)) {
+            $vpnRouters = loadVpnRouters();
             $vpnMsg = 'VPN Router removed.';
         } else {
             $vpnRouters = loadVpnRouters();

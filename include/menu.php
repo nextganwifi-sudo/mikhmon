@@ -494,7 +494,7 @@ $ngwUiConfig = array(
     <?php } ?>
   </div>
   <?php } ?>
-  <?php if (isMikhmonAdminStore() || hasResellerPermission('manage_global_security')) { ?>
+  <?php if (isMikhmonAdminStore() || hasResellerPermission('manage_vpn')) { ?>
   <a href="./admin.php?id=vpn" class="menu <?= $svpn; ?>"><i class="fa fa-shield"></i> <?= isset($_vpn) ? $_vpn : 'VPN'; ?></a>
   <?php } ?>
   <?php if ((!isset($id) || $id !== 'vpn') && (hasResellerPermission('manage_global_templates') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template') || hasResellerPermission('preview_assigned_template'))) { ?>

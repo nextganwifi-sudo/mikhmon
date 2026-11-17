@@ -1039,6 +1039,100 @@ function syncPrimaryAdminToConfigFile($username, $passwordEnc) {
 }
 
 /**
+ * Define the 4 high-level shortcut permissions for regular Admin users:
+ * Hotspot, PPP (PPPoE), Reseller, and VPN.
+ */
+function getAdminShortcutPermissionGroups() {
+    return array(
+        'hotspot' => array(
+            'title_en' => 'Hotspot Permission',
+            'title_bn' => 'হটস্পট পারমিশন (Hotspot)',
+            'short_en' => 'Hotspot',
+            'short_bn' => 'হটস্পট',
+            'desc_en'  => 'Full Hotspot access (Users, Vouchers, Profiles, Reset Voucher & Templates)',
+            'desc_bn'  => 'হটস্পটের সবকিছু করতে পারবে (ইউজার, ভাউচার, প্রোফাইল, রিসেট ভাউচার ও টেমপ্লেট)',
+            'icon'     => 'fa-wifi',
+            'color'    => '#0ea5e9',
+            'keys'     => array(
+                'view_users', 'add_user', 'generate_voucher', 'edit_user', 'delete_user',
+                'enable_disable_user', 'reset_voucher', 'reset_mac_address', 'print_voucher',
+                'transfer_users_access', 'export_users', 'export_rsc_users', 'import_transfer_users',
+                'auto_activate_transfer_users', 'same_router_profile_transfer', 'view_profiles',
+                'add_profile', 'edit_profile', 'delete_profile', 'view_active', 'disconnect_active',
+                'view_hosts', 'manage_hosts', 'bind_host_ip', 'view_ipbinding', 'manage_ipbinding',
+                'edit_ipbinding', 'view_cookies', 'delete_cookies', 'use_assigned_template',
+                'preview_assigned_template', 'edit_own_template', 'save_own_template',
+                'publish_own_template', 'restore_own_template', 'assign_template', 'manage_global_templates'
+            ),
+        ),
+        'pppoe' => array(
+            'title_en' => 'PPP Permission',
+            'title_bn' => 'পিপিপি পারমিশন (PPP / PPPoE)',
+            'short_en' => 'PPP',
+            'short_bn' => 'পিপিপি',
+            'desc_en'  => 'Full PPPoE access (PPPoE Users, Profiles, Online Sessions & Reset PPPoE)',
+            'desc_bn'  => 'পিপিপি (PPPoE)-এর সবকিছু করতে পারবে (ইউজার, প্রোফাইল, অনলাইন সেশন ও রিসেট)',
+            'icon'     => 'fa-plug',
+            'color'    => '#8b5cf6',
+            'keys'     => array(
+                'manage_pppoe', 'view_ppp', 'manage_ppp', 'view_pppoe_users', 'add_pppoe_user',
+                'edit_pppoe_user', 'delete_pppoe_user', 'enable_disable_pppoe_user',
+                'view_pppoe_profiles', 'manage_pppoe_profiles', 'view_pppoe_active',
+                'disconnect_pppoe_active', 'reset_pppoe'
+            ),
+        ),
+        'reseller' => array(
+            'title_en' => 'Reseller Permission',
+            'title_bn' => 'রিসেলার পারমিশন (Reseller)',
+            'short_en' => 'Reseller',
+            'short_bn' => 'রিসেলার',
+            'desc_en'  => 'Full Reseller function (Add, Edit, Delete Resellers & Full Reseller Control)',
+            'desc_bn'  => 'রিসেলারের সম্পূর্ণ ফাংশন (রিসেলার অ্যাড, এডিট, ডিলিট ও সবকিছু নিয়ন্ত্রণ)',
+            'icon'     => 'fa-users',
+            'color'    => '#2ea043',
+            'keys'     => array(
+                'view_resellers', 'manage_resellers', 'manage_permission_groups'
+            ),
+        ),
+        'vpn' => array(
+            'title_en' => 'VPN Permission',
+            'title_bn' => 'ভিপিএন পারমিশন (VPN)',
+            'short_en' => 'VPN',
+            'short_bn' => 'ভিপিএন',
+            'desc_en'  => 'Full VPN function (Manage VPN Routers, Secrets & Port Forwarding)',
+            'desc_bn'  => 'ভিপিএন (VPN)-এর সবকিছু করতে পারবে (VPN রাউটার, সিক্রেট ও পোর্ট ফরওয়ার্ডিং)',
+            'icon'     => 'fa-shield',
+            'color'    => '#f0ad4e',
+            'keys'     => array(
+                'manage_vpn'
+            ),
+        ),
+    );
+}
+
+/**
+ * Check if a shortcut permission group ('hotspot', 'pppoe', 'reseller', 'vpn') is enabled for an Admin user
+ */
+function isAdminShortcutGroupEnabled($shortcutKey, $disabledPerms) {
+    if (!is_array($disabledPerms) || empty($disabledPerms)) {
+        return true;
+    }
+    if (in_array($shortcutKey, $disabledPerms, true)) {
+        return false;
+    }
+    $groups = getAdminShortcutPermissionGroups();
+    if (!isset($groups[$shortcutKey]['keys'])) {
+        return true;
+    }
+    foreach ($groups[$shortcutKey]['keys'] as $k) {
+        if (in_array($k, $disabledPerms, true)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Normalize disabled permissions array for an Admin user record.
  */
 function sanitizeAdminDisabledPermissions($disabledList, $adminRole = 'admin') {
@@ -1048,11 +1142,16 @@ function sanitizeAdminDisabledPermissions($disabledList, $adminRole = 'admin') {
     if (!is_array($disabledList)) {
         return array();
     }
+    $shortcutGroups = getAdminShortcutPermissionGroups();
     $allLabels = getFlatMikhmonPermissionLabels();
+    $allLabels['manage_vpn'] = 'Manage VPN Hub';
     $clean = array();
     foreach ($disabledList as $k => $v) {
         $permKey = is_int($k) ? trim((string)$v) : (!empty($v) ? trim((string)$k) : '');
-        if ($permKey !== '' && isset($allLabels[$permKey]) && $permKey !== 'manage_admin_account') {
+        if ($permKey === '' || $permKey === 'manage_admin_account') {
+            continue;
+        }
+        if (isset($shortcutGroups[$permKey]) || isset($allLabels[$permKey])) {
             $clean[$permKey] = $permKey;
         }
     }
@@ -1064,20 +1163,30 @@ function sanitizeAdminDisabledPermissions($disabledList, $adminRole = 'admin') {
  */
 function resolveEffectiveAdminPermissions($admRecord) {
     $map = getDefaultPermissionMap(true);
+    $map['manage_vpn'] = true;
     $role = (is_array($admRecord) && isset($admRecord['admin_role']) && $admRecord['admin_role'] === 'admin')
         ? 'admin'
         : 'admin_store';
     if ($role === 'admin_store') {
         return $map;
     }
-    // Regular Admin cannot manage Admin Store / Admin users
+    // Regular Admin cannot manage Admin Store / Admin users or global system update
     $map['manage_admin_account'] = false;
+    $map['manage_global_security'] = false;
     $disabled = isset($admRecord['disabled_permissions']) && is_array($admRecord['disabled_permissions'])
         ? $admRecord['disabled_permissions']
         : array();
+    $shortcutGroups = getAdminShortcutPermissionGroups();
     foreach ($disabled as $disKey) {
         $disKey = trim((string)$disKey);
-        if ($disKey !== '' && array_key_exists($disKey, $map)) {
+        if ($disKey === '') {
+            continue;
+        }
+        if (isset($shortcutGroups[$disKey]['keys'])) {
+            foreach ($shortcutGroups[$disKey]['keys'] as $subKey) {
+                $map[$subKey] = false;
+            }
+        } elseif (array_key_exists($disKey, $map)) {
             $map[$disKey] = false;
         }
     }

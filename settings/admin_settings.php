@@ -63,16 +63,26 @@ if (isset($_POST['save_admin_user'])) {
     $admPass = isset($_POST['admin_password']) ? (string)$_POST['admin_password'] : '';
     $admRole = (isset($_POST['admin_role']) && $_POST['admin_role'] === 'admin') ? 'admin' : 'admin_store';
 
+    $shortcutGroups = function_exists('getAdminShortcutPermissionGroups') ? getAdminShortcutPermissionGroups() : array();
     $disabledPerms = array();
     if ($admRole === 'admin' && !empty($_POST['admin_perm_form_submitted'])) {
-      $postedAllowed = isset($_POST['adm_perms']) && is_array($_POST['adm_perms']) ? $_POST['adm_perms'] : array();
-      foreach ($permCategories as $catName => $catItems) {
-        foreach ($catItems as $pKey => $pLabel) {
-          if ($pKey === 'manage_admin_account') {
-            continue;
+      if (isset($_POST['adm_shortcut_submitted'])) {
+        $postedShortcuts = isset($_POST['adm_shortcut_perms']) && is_array($_POST['adm_shortcut_perms']) ? $_POST['adm_shortcut_perms'] : array();
+        foreach ($shortcutGroups as $sKey => $sMeta) {
+          if (empty($postedShortcuts[$sKey])) {
+            $disabledPerms[] = $sKey;
           }
-          if (empty($postedAllowed[$pKey])) {
-            $disabledPerms[] = $pKey;
+        }
+      } else {
+        $postedAllowed = isset($_POST['adm_perms']) && is_array($_POST['adm_perms']) ? $_POST['adm_perms'] : array();
+        foreach ($permCategories as $catName => $catItems) {
+          foreach ($catItems as $pKey => $pLabel) {
+            if ($pKey === 'manage_admin_account') {
+              continue;
+            }
+            if (empty($postedAllowed[$pKey])) {
+              $disabledPerms[] = $pKey;
+            }
           }
         }
       }
@@ -304,38 +314,46 @@ if (isset($_GET['msg'])) {
 }
 .ngw-adm-perm-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
   gap: 8px;
-  max-height: 290px;
-  overflow-y: auto;
-  padding-right: 4px;
 }
-.ngw-adm-perm-cat {
-  border: 1px solid rgba(128, 128, 128, 0.22);
-  border-radius: 5px;
-  padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.12);
-}
-.ngw-adm-perm-cat-title {
-  font-size: 11px;
-  font-weight: 700;
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-.ngw-adm-perm-item {
+.ngw-adm-shortcut-card {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  font-size: 11px;
-  line-height: 1.3;
-  margin-bottom: 4px;
+  gap: 9px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin: 0;
+}
+.ngw-adm-shortcut-card:hover {
+  border-color: rgba(56, 139, 253, 0.65);
+  background: rgba(31, 111, 235, 0.08);
+}
+.ngw-adm-shortcut-card input[type="checkbox"] {
+  margin-top: 3px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
   cursor: pointer;
 }
-.ngw-adm-perm-item input[type="checkbox"] {
-  margin-top: 2px;
+.ngw-adm-shortcut-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.ngw-adm-shortcut-desc {
+  font-size: 10.5px;
+  opacity: 0.82;
+  line-height: 1.3;
+  font-weight: normal;
 }
 </style>
 <script>
@@ -455,12 +473,14 @@ if (isset($_GET['msg'])) {
               : '<b>Admin Store:</b> Full unrestricted access to Admin Store user management, all routers added by any Admin, and all software features.'; ?>
           </div>
 
-          <!-- Granular Permission Toggle Box when Admin role is selected -->
+          <!-- Shortcut Permission Toggle Box when Admin role is selected -->
+          <?php $adminShortcutGroups = function_exists('getAdminShortcutPermissionGroups') ? getAdminShortcutPermissionGroups() : array(); ?>
+          <input type="hidden" name="adm_shortcut_submitted" value="1">
           <div id="ngw_admin_perm_box" class="ngw-adm-perm-panel" style="display:<?= $formRole === 'admin' ? 'block' : 'none'; ?>;">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
               <div style="font-size:12px; font-weight:bold;">
                 <i class="fa fa-sliders text-primary"></i>
-                <?= $isBn ? 'অ্যাডমিন পারমিশন কন্ট্রোল (চাইলে নির্দিষ্ট পারমিশন বন্ধ করতে পারবেন):' : 'Admin Permissions (Uncheck any specific permission to turn it off):'; ?>
+                <?= $isBn ? 'অ্যাডমিন শর্টকাট পারমিশন (যেটি দিবেন সেটির সম্পূর্ণ ফাংশন কাজ করবে):' : 'Admin Shortcut Permissions (Each toggle enables the full module):'; ?>
               </div>
               <div style="display:flex; gap:4px;">
                 <button type="button" class="btn bg-primary" style="padding:2px 7px; font-size:10px; cursor:pointer;" onclick="ngwSetAllAdminPerms(true)">
@@ -471,36 +491,26 @@ if (isset($_GET['msg'])) {
                 </button>
               </div>
             </div>
-            <div style="font-size:11px; opacity:0.85; margin-bottom:7px;">
-              <?= $isBn
-                ? 'ডিফল্টভাবে অ্যাডমিন স্টোর ইউজার ম্যানেজমেন্ট ছাড়া বাকি সব পারমিশন চালু থাকে। যে পারমিশনটি বন্ধ করতে চান সেটির টিক (✓) তুলে দিন।'
-                : 'By default, an Admin can use everything (add routers, add resellers, vouchers, etc.) except Admin Store user management. Uncheck any item below to disable it.'; ?>
-            </div>
             <div class="ngw-adm-perm-grid">
-              <?php foreach ($permCategories as $catKey => $catItems) {
-                $catMeta = isset($permMeta[$catKey]) ? $permMeta[$catKey] : array();
-                $catTitle = $isBn && !empty($catMeta['title_bn']) ? $catMeta['title_bn'] : (!empty($catMeta['title_en']) ? $catMeta['title_en'] : $catKey);
-                $catIcon = !empty($catMeta['icon']) ? $catMeta['icon'] : 'fa-check-circle';
-                $catColor = !empty($catMeta['color']) ? $catMeta['color'] : '#3c8dbc';
-                $itemsBn = isset($catMeta['items_bn']) && is_array($catMeta['items_bn']) ? $catMeta['items_bn'] : array();
+              <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
+                $isShortcutChecked = function_exists('isAdminShortcutGroupEnabled')
+                  ? isAdminShortcutGroupEnabled($sKey, $formDisabledPerms)
+                  : (!in_array($sKey, $formDisabledPerms, true));
+                $sTitle = $isBn ? $sInfo['title_bn'] : $sInfo['title_en'];
+                $sDesc  = $isBn ? $sInfo['desc_bn'] : $sInfo['desc_en'];
+                $sIcon  = $sInfo['icon'];
+                $sColor = $sInfo['color'];
               ?>
-                <div class="ngw-adm-perm-cat">
-                  <div class="ngw-adm-perm-cat-title" style="color:<?= htmlspecialchars($catColor, ENT_QUOTES, 'UTF-8'); ?>;">
-                    <span><i class="fa <?= htmlspecialchars($catIcon, ENT_QUOTES, 'UTF-8'); ?>"></i> <?= htmlspecialchars($catTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+                <label class="ngw-adm-shortcut-card">
+                  <input type="checkbox" class="ngw-adm-perm-cb" name="adm_shortcut_perms[<?= htmlspecialchars($sKey, ENT_QUOTES, 'UTF-8'); ?>]" value="1" <?= $isShortcutChecked ? 'checked' : ''; ?>>
+                  <div style="min-width:0; flex:1;">
+                    <div class="ngw-adm-shortcut-title" style="color:<?= htmlspecialchars($sColor, ENT_QUOTES, 'UTF-8'); ?>;">
+                      <i class="fa <?= htmlspecialchars($sIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
+                      <span><?= htmlspecialchars($sTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <div class="ngw-adm-shortcut-desc"><?= htmlspecialchars($sDesc, ENT_QUOTES, 'UTF-8'); ?></div>
                   </div>
-                  <?php foreach ($catItems as $pKey => $pLabelEn) {
-                    if ($pKey === 'manage_admin_account') {
-                      continue; // Reserved strictly for Admin Store
-                    }
-                    $isChecked = !in_array($pKey, $formDisabledPerms, true);
-                    $pLabel = ($isBn && !empty($itemsBn[$pKey])) ? $itemsBn[$pKey] : $pLabelEn;
-                  ?>
-                    <label class="ngw-adm-perm-item">
-                      <input type="checkbox" class="ngw-adm-perm-cb" name="adm_perms[<?= htmlspecialchars($pKey, ENT_QUOTES, 'UTF-8'); ?>]" value="1" <?= $isChecked ? 'checked' : ''; ?>>
-                      <span><?= htmlspecialchars($pLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                    </label>
-                  <?php } ?>
-                </div>
+                </label>
               <?php } ?>
             </div>
           </div>
@@ -556,19 +566,22 @@ if (isset($_GET['msg'])) {
                     <span class="ngw-adm-role-badge is-store">
                       <i class="fa fa-shield"></i> <?= $isBn ? 'Admin Store (অ্যাডমিন স্টোর)' : 'Admin Store'; ?>
                     </span>
-                  <?php } else { ?>
+                  <?php } else {
+                    $rowDisList = isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']) ? $adm['disabled_permissions'] : array();
+                  ?>
                     <span class="ngw-adm-role-badge is-admin">
                       <i class="fa fa-user-circle-o"></i> <?= $isBn ? 'Admin (অ্যাডমিন)' : 'Admin'; ?>
                     </span>
-                    <?php if ($rowDisCount > 0) { ?>
-                      <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(240,173,78,0.22); border:1px solid #f0ad4e; color:#f0ad4e; margin-left:4px;">
-                        <?= $isBn ? ($rowDisCount . 'টি পারমিশন বন্ধ') : ($rowDisCount . ' off'); ?>
-                      </span>
-                    <?php } else { ?>
-                      <span style="font-size:10px; opacity:0.75; margin-left:4px;">
-                        <?= $isBn ? 'সব চালু' : 'All Allowed'; ?>
-                      </span>
-                    <?php } ?>
+                    <div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px;">
+                      <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
+                        $sEnabled = function_exists('isAdminShortcutGroupEnabled') ? isAdminShortcutGroupEnabled($sKey, $rowDisList) : (!in_array($sKey, $rowDisList, true));
+                        $sShort = $isBn ? $sInfo['short_bn'] : $sInfo['short_en'];
+                      ?>
+                        <span style="font-size:10px; padding:1px 5px; border-radius:3px; border:1px solid <?= $sEnabled ? '#2ea043' : 'rgba(248,81,73,0.55)'; ?>; background:<?= $sEnabled ? 'rgba(46,160,67,0.16)' : 'rgba(248,81,73,0.14)'; ?>; color:<?= $sEnabled ? '#4ade80' : '#ff7b72'; ?>;">
+                          <i class="fa <?= $sEnabled ? 'fa-check' : 'fa-times'; ?>"></i> <?= htmlspecialchars($sShort, ENT_QUOTES, 'UTF-8'); ?>
+                        </span>
+                      <?php } ?>
+                    </div>
                   <?php } ?>
                 </td>
                 <td class="align-middle text-center" style="white-space:nowrap;">
