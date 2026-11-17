@@ -3,7 +3,11 @@
  *  NextGan WiFi Solution — Dedicated Reset Voucher Module (Two-Step Verification & Multi-Field Search)
  *  Fully localized via lang/en.php (default English) and lang/bn.php (Bengali)
  */
-session_start();
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    @session_start();
+}
 error_reporting(0);
 
 if (!isset($_SESSION["mikhmon"])) {
@@ -20,6 +24,8 @@ include_once('./lib/routeros_api.class.php');
 include_once('./lib/formatbytesbites.php');
 
 requireResellerPermission('reset_voucher', './admin.php?id=sessions');
+$rvCsrfToken = ngwCsrfToken('ngw_rv_csrf');
+session_write_close();
 
 /**
  * Multi-field voucher lookup on RouterOS:
@@ -190,7 +196,9 @@ $resultCardHtml  = '';
 if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherParam !== '' && $rvAction === 'verify')) {
     $lookupKey = ($targetVoucher !== '' && $rvAction !== 'verify') ? $targetVoucher : $voucherCode;
 
-    if ($selectedServer === '' || !isset($allowedServers[$selectedServer])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_rv_csrf')) {
+        $actionAlertHtml = "<div class='bg-danger pd-10 radius-3 mr-b-10'><i class='fa fa-ban'></i> " . htmlspecialchars(($langid === 'bn') ? 'সিকিউরিটি টোকেন অবৈধ বা মেয়াদোত্তীর্ণ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload the page and try again.') . "</div>";
+    } elseif ($selectedServer === '' || !isset($allowedServers[$selectedServer])) {
         $actionAlertHtml = "<div class='bg-danger pd-10 radius-3 mr-b-10'><i class='fa fa-ban'></i> " . htmlspecialchars($_rv_err_select_server) . "</div>";
     } elseif ($lookupKey === '') {
         $actionAlertHtml = "<div class='bg-danger pd-10 radius-3 mr-b-10'><i class='fa fa-ban'></i> " . htmlspecialchars($_rv_err_enter_code) . "</div>";
@@ -225,7 +233,15 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
 
                 // Execute action if user clicked Reset / Enable / Disable / Check Expiry
                 if ($rvAction === 'reset') {
-                    // 1. Clear MAC address binding
+                    // Collect previously bound/active MAC & IP before clearing so host & cookie caches are cleaned too
+                    $oldMacMap = array();
+                    $oldIpMap = array();
+                    $boundMac = isset($foundLiveUser['mac-address']) ? str_replace('-', ':', strtolower(trim((string)$foundLiveUser['mac-address']))) : '';
+                    if ($boundMac !== '' && $boundMac !== '00:00:00:00:00:00') {
+                        $oldMacMap[$boundMac] = true;
+                    }
+
+                    // 1. Clear MAC address binding (preserve comment/date untouched)
                     $rvAPI->comm("/ip/hotspot/user/set", array(
                         ".id" => $uid,
                         "mac-address" => "00:00:00:00:00:00",
@@ -244,11 +260,18 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                     $activeRows = $rvAPI->comm("/ip/hotspot/active/print", array(
                         "?user" => $uname,
                     ));
-                    $hadActiveSession = false;
                     if (is_array($activeRows)) {
                         foreach ($activeRows as $ar) {
+                            if (!empty($ar['mac-address'])) {
+                                $am = str_replace('-', ':', strtolower(trim((string)$ar['mac-address'])));
+                                if ($am !== '' && $am !== '00:00:00:00:00:00') {
+                                    $oldMacMap[$am] = true;
+                                }
+                            }
+                            if (!empty($ar['address'])) {
+                                $oldIpMap[trim((string)$ar['address'])] = true;
+                            }
                             if (!empty($ar['.id'])) {
-                                $hadActiveSession = true;
                                 $rvAPI->comm("/ip/hotspot/active/remove", array(
                                     ".id" => $ar['.id'],
                                 ));
@@ -262,6 +285,12 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                     ));
                     if (is_array($cookieRows)) {
                         foreach ($cookieRows as $cr) {
+                            if (!empty($cr['mac-address'])) {
+                                $cm = str_replace('-', ':', strtolower(trim((string)$cr['mac-address'])));
+                                if ($cm !== '' && $cm !== '00:00:00:00:00:00') {
+                                    $oldMacMap[$cm] = true;
+                                }
+                            }
                             if (!empty($cr['.id'])) {
                                 $rvAPI->comm("/ip/hotspot/cookie/remove", array(
                                     ".id" => $cr['.id'],
@@ -270,9 +299,25 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                         }
                     }
 
-                    if ($hadActiveSession) {
-                        ngwMarkVoucherDisconnected($selectedServer, $uname, $routerNowTs, 'reset', 'admin reset');
+                    // 5. Remove stale /ip/hotspot/host entries matching the old MAC or active IP
+                    if (!empty($oldMacMap) || !empty($oldIpMap)) {
+                        $hostRows = $rvAPI->comm("/ip/hotspot/host/print");
+                        if (is_array($hostRows) && !isset($hostRows['!trap'])) {
+                            foreach ($hostRows as $hr) {
+                                if (!is_array($hr) || empty($hr['.id'])) continue;
+                                $hMac = isset($hr['mac-address']) ? str_replace('-', ':', strtolower(trim((string)$hr['mac-address']))) : '';
+                                $hIp = isset($hr['address']) ? trim((string)$hr['address']) : '';
+                                if (($hMac !== '' && isset($oldMacMap[$hMac])) || ($hIp !== '' && isset($oldIpMap[$hIp]))) {
+                                    $rvAPI->comm("/ip/hotspot/host/remove", array(
+                                        ".id" => $hr['.id'],
+                                    ));
+                                }
+                            }
+                        }
                     }
+
+                    // 6. Reset 30-day backend history device/usage/uptime/disconnect fields while keeping comment & expiry date intact
+                    ngwResetVoucherHistoryState($selectedServer, $uname, $routerNowTs);
 
                     $actionAlertHtml = "<div class='bg-green pd-10 radius-3 mr-b-10'><i class='fa fa-check-circle'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($uname) . "</b> " . htmlspecialchars($_rv_msg_reset_ok) . "</div>";
                 } elseif ($rvAction === 'enable') {
@@ -347,34 +392,50 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
 
                 $uPass     = isset($foundLiveUser['password']) ? $foundLiveUser['password'] : $uname;
                 $uProfile  = isset($foundLiveUser['profile']) ? $foundLiveUser['profile'] : '-';
-                $uUptime   = ($isOnline && !empty($activeRow['uptime'])) ? $activeRow['uptime'] : (isset($foundLiveUser['uptime']) ? $foundLiveUser['uptime'] : '00:00:00');
-                $uTimeLeft = ($isOnline && !empty($activeRow['session-time-left'])) ? $activeRow['session-time-left'] : '';
-                $uLimitUp  = isset($foundLiveUser['limit-uptime']) ? $foundLiveUser['limit-uptime'] : '-';
+                $uLiveMacRaw = isset($foundLiveUser['mac-address']) ? trim((string)$foundLiveUser['mac-address']) : '';
+                $hasBoundLiveMac = ($uLiveMacRaw !== '' && $uLiveMacRaw !== '00:00:00:00:00:00');
                 $rawIn     = ($isOnline && isset($activeRow['bytes-in']) && (int)$activeRow['bytes-in'] > (int)(isset($foundLiveUser['bytes-in']) ? $foundLiveUser['bytes-in'] : 0))
                     ? (int)$activeRow['bytes-in']
                     : (isset($foundLiveUser['bytes-in']) ? (int)$foundLiveUser['bytes-in'] : 0);
                 $rawOut    = ($isOnline && isset($activeRow['bytes-out']) && (int)$activeRow['bytes-out'] > (int)(isset($foundLiveUser['bytes-out']) ? $foundLiveUser['bytes-out'] : 0))
                     ? (int)$activeRow['bytes-out']
                     : (isset($foundLiveUser['bytes-out']) ? (int)$foundLiveUser['bytes-out'] : 0);
+
+                $isResetPending = ($rvAction === 'reset') || (!empty($historyRec['reset_at_ts']) && !$isOnline && !$hasBoundLiveMac && $rawIn === 0 && $rawOut === 0);
+
+                if ($isResetPending) {
+                    $uUptime = '0s';
+                    $uTimeLeft = '';
+                    $rawIn = 0;
+                    $rawOut = 0;
+                } else {
+                    $uUptime = ($isOnline && !empty($activeRow['uptime'])) ? $activeRow['uptime'] : (isset($foundLiveUser['uptime']) ? $foundLiveUser['uptime'] : '00:00:00');
+                    $uTimeLeft = ($isOnline && !empty($activeRow['session-time-left'])) ? $activeRow['session-time-left'] : '';
+                }
+                $uLimitUp  = isset($foundLiveUser['limit-uptime']) ? $foundLiveUser['limit-uptime'] : '-';
                 $uBytesIn  = formatBytes($rawIn, 2);
                 $uBytesOut = formatBytes($rawOut, 2);
 
-                // Resolve IP Address (from active session or script record)
+                // Resolve IP Address (from active session or script record unless pending reset)
                 $uIpAddress = '-';
-                if ($isOnline && !empty($activeRow['address'])) {
-                    $uIpAddress = $activeRow['address'] . ' (' . $_active_tag . ')';
-                } elseif ($latestRec !== null && !empty($latestRec['ip'])) {
-                    $uIpAddress = $latestRec['ip'] . ' (' . $_last_known_tag . ')';
+                if (!$isResetPending) {
+                    if ($isOnline && !empty($activeRow['address'])) {
+                        $uIpAddress = $activeRow['address'] . ' (' . $_active_tag . ')';
+                    } elseif ($latestRec !== null && !empty($latestRec['ip'])) {
+                        $uIpAddress = $latestRec['ip'] . ' (' . $_last_known_tag . ')';
+                    }
                 }
 
-                // Resolve MAC Address (from user binding, active session, or script record)
+                // Resolve MAC Address (from user binding, active session, or script record unless pending reset)
                 $uMac = $_not_bound;
-                if (isset($foundLiveUser['mac-address']) && $foundLiveUser['mac-address'] !== '' && $foundLiveUser['mac-address'] !== '00:00:00:00:00:00') {
-                    $uMac = $foundLiveUser['mac-address'];
-                } elseif ($isOnline && !empty($activeRow['mac-address'])) {
-                    $uMac = $activeRow['mac-address'];
-                } elseif ($latestRec !== null && !empty($latestRec['mac'])) {
-                    $uMac = $latestRec['mac'];
+                if (!$isResetPending) {
+                    if ($hasBoundLiveMac) {
+                        $uMac = $uLiveMacRaw;
+                    } elseif ($isOnline && !empty($activeRow['mac-address'])) {
+                        $uMac = $activeRow['mac-address'];
+                    } elseif ($latestRec !== null && !empty($latestRec['mac'])) {
+                        $uMac = $latestRec['mac'];
+                    }
                 }
 
                 $uDisabled = (isset($foundLiveUser['disabled']) && ($foundLiveUser['disabled'] === 'true' || $foundLiveUser['disabled'] === 'yes'));
@@ -441,12 +502,17 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                     }
                 }
 
-                $deviceIpForLookup = ($isOnline && !empty($activeRow['address']))
-                    ? $activeRow['address']
-                    : (($latestRec !== null && !empty($latestRec['ip'])) ? $latestRec['ip'] : (!empty($historyRec['ip']) ? $historyRec['ip'] : ''));
-                $deviceMacForLookup = ($uMac !== $_not_bound) ? $uMac : (!empty($historyRec['mac']) ? $historyRec['mac'] : '');
-                $deviceInfo = ngwResolveVoucherDeviceInfo($rvAPI, $selectedServer, $uname, $deviceMacForLookup, $deviceIpForLookup, $historyRec);
-                $hasAnyConn = ($rawIn > 0 || $rawOut > 0 || $uMac !== $_not_bound || $isOnline);
+                if ($isResetPending) {
+                    $deviceInfo = array('vendor' => '', 'model' => '', 'device_type' => '', 'hostname' => '', 'class_id' => '', 'is_random_mac' => false, 'source' => '');
+                    $hasAnyConn = false;
+                } else {
+                    $deviceIpForLookup = ($isOnline && !empty($activeRow['address']))
+                        ? $activeRow['address']
+                        : (($latestRec !== null && !empty($latestRec['ip'])) ? $latestRec['ip'] : (!empty($historyRec['ip']) ? $historyRec['ip'] : ''));
+                    $deviceMacForLookup = ($uMac !== $_not_bound) ? $uMac : (!empty($historyRec['mac']) ? $historyRec['mac'] : '');
+                    $deviceInfo = ngwResolveVoucherDeviceInfo($rvAPI, $selectedServer, $uname, $deviceMacForLookup, $deviceIpForLookup, $historyRec);
+                    $hasAnyConn = ($rawIn > 0 || $rawOut > 0 || $uMac !== $_not_bound || $isOnline);
+                }
                 $deviceVendorHtml = ngwRenderDeviceVendorHtml($deviceInfo, $langid, $hasAnyConn);
 
                 // Always show expiry on the search result; no separate expiry action is needed.
@@ -465,7 +531,7 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                   </tr>";
 
                 $recentHistoryHtml = '';
-                if (($isLimitExpired || $isCalendarExpired) && !empty($recentScriptRecs)) {
+                if (!$isResetPending && ($isLimitExpired || $isCalendarExpired) && !empty($recentScriptRecs)) {
                     $historyRows = '';
                     foreach ($recentScriptRecs as $historyRec) {
                         $historyExpiry = !empty($historyRec['has_expiry'])
@@ -534,6 +600,7 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                   </table>
 
                   <form method='post' action='' autocomplete='off' class='mr-t-10'>
+                    <input type='hidden' name='csrf_token' value='" . htmlspecialchars($rvCsrfToken, ENT_QUOTES, 'UTF-8') . "'>
                     <input type='hidden' name='server_session' value='" . htmlspecialchars($selectedServer, ENT_QUOTES) . "'>
                     <input type='hidden' name='voucher_code' value='" . htmlspecialchars($voucherCode !== '' ? $voucherCode : $uname, ENT_QUOTES) . "'>
                     <input type='hidden' name='target_voucher' value='" . htmlspecialchars($uname, ENT_QUOTES) . "'>
@@ -703,6 +770,7 @@ $formActionUrl = (isset($id) && $id === 'reset-voucher')
           </div>
         <?php } else { ?>
           <form method="post" action="<?= htmlspecialchars($formActionUrl, ENT_QUOTES); ?>" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($rvCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="box box-bordered pd-10">
               <table class="table table-sm">
                 <tr>

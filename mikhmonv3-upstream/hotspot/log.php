@@ -25,6 +25,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	$getlog = $API->comm("/log/print", array(
 		"?topics" => "hotspot,info,debug"
 	));
+	$getlog = is_array($getlog) ? $getlog : array();
 	$log = array_reverse($getlog);
 	$TotalReg = count($getlog);
 }

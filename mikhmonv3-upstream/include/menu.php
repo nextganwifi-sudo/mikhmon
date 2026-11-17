@@ -234,7 +234,48 @@ if (!empty($_SESSION['mikhmon_login_handshake'])) {
 }
 $isLogoutReq = ($id === 'logout' || $hotspot === 'logout');
 $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings', 'activity', 'active-sessions', 'system-update'), true);
+
+$ngwMainMenuLabel = isset($_main_menu_label) ? $_main_menu_label : (($langid === 'bn') ? 'মেইন মেনু' : 'Main Menu');
+$ngwMainMenuTitle = ($langid === 'bn') ? 'মেইন মেনু (রাউটার লিস্ট)' : 'Main Menu (Router List)';
+$ngwBackLabel = isset($_back_btn_label) ? $_back_btn_label : (($langid === 'bn') ? 'ফিরুন' : 'Back');
+
+$ngwBackUrl = '';
+if (!$isLogoutReq) {
+  if ($id != "") {
+    if (!in_array($id, array('sessions', 'login', 'logout'), true) && !(isResetOnlyReseller() && $id === 'reset-voucher')) {
+      if ($id === 'my-profile' && !empty($session) && $session !== 'new' && !isResetOnlyReseller()) {
+        $ngwBackUrl = './?session=' . rawurlencode((string)$session);
+      } else {
+        $ngwBackUrl = './admin.php?id=sessions';
+      }
+    }
+  } else {
+    $isDashboardRoot = ($hotspot == "dashboard" || substr((string)$urlLastSegment, 0, 8) == "?session");
+    $isResetOnlyHome = (isResetOnlyReseller() && $hotspot === "reset-voucher");
+    if (!$isDashboardRoot && !$isResetOnlyHome && !empty($session)) {
+      $sesEnc = rawurlencode((string)$session);
+      if ($userbyname != "" || $hotspotuser == "add" || $hotspotuser == "generate") {
+        $ngwBackUrl = './?hotspot=users&profile=all&session=' . $sesEnc;
+      } elseif ($userprofile == "add" || $userprofilebyname != "") {
+        $ngwBackUrl = './?hotspot=user-profiles&session=' . $sesEnc;
+      } elseif ($pppoe == "add-user" || $pppoe == "addsecret" || $pppoe == "user" || $pppoe == "secret" || $pppoe_user != "" || $pppoe == "reset") {
+        $ngwBackUrl = './?pppoe=users&session=' . $sesEnc;
+      } elseif ($pppoe == "add-profile" || $pppoe == "profile" || $pppoe == "edit-profile") {
+        $ngwBackUrl = './?pppoe=profiles&session=' . $sesEnc;
+      } else {
+        $ngwBackUrl = hasResellerPermission('view_dashboard') ? ('./?session=' . $sesEnc) : './admin.php?id=sessions';
+      }
+    }
+  }
+}
+$ngwUiConfig = array(
+  'lang' => (isset($langid) && $langid === 'bn') ? 'bn' : 'en',
+  'canEditRouter' => hasResellerPermission('manage_router_settings'),
+  'backUrl' => $ngwBackUrl,
+  'backLabel' => $ngwBackLabel,
+);
 ?>
+<script>window.NGW_UI_CONFIG = <?= json_encode($ngwUiConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES); ?>;</script>
 <span style="display:none;" id="idto"><?= $nav_idleto; ?></span>
 <?php if (!$isLogoutReq) { ?>
 <script>
@@ -356,7 +397,7 @@ $isSettingsDropdownOpen = in_array(isset($id) ? $id : '', array('admin-settings'
 </div>
  <div class="navbar-right">
   <?php if (!empty($_SESSION['mikhmon_impersonator_admin'])) { ?>
-  <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
+  <a href="./admin.php?id=return-to-admin&csrf=<?= urlencode(ngwCsrfToken('ngw_admin_csrf')); ?>" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
   <?php } ?>
   <a href="javascript:void(0)" class="ngw-profile-trigger" aria-haspopup="true" aria-expanded="false" title="<?= htmlspecialchars($ngwProfileInfo['display_name'] . ' (' . $ngwProfileInfo['role_label'] . ')', ENT_QUOTES, 'UTF-8'); ?>">
     <span class="ngw-profile-trigger-avatar">
@@ -459,8 +500,7 @@ $(document).ready(function(){
     $('#ngw-settings-dropdown-chevron').toggleClass('fa-chevron-down', isOpen).toggleClass('fa-chevron-up', !isOpen);
   });
   $(".connect").click(function(){
-    notify("<?= $_connecting ?>");
-    connect(this.id)
+    connect(this.id);
   });
   $(".stheme").change(function(){
     notify("<?= $_loading_theme ?>");
@@ -517,8 +557,14 @@ $(document).ready(function(){
 <span id="ngw-local-datetime" class="navbar-left" title="Your browser's local date and time" style="display:inline-flex;align-items:center;gap:5px;padding:10px 7px;font-size:10px;line-height:1.2;opacity:.86;white-space:nowrap;"><i class="fa fa-calendar-o" aria-hidden="true"></i><span>--</span></span>
 </div>
  <div class="navbar-right">
+  <?php if (!isResetOnlyReseller()) { ?>
+  <a href="./admin.php?id=sessions" class="ngw-navbar-mainmenu" title="<?= htmlspecialchars($ngwMainMenuTitle, ENT_QUOTES, 'UTF-8'); ?>">
+    <i class="fa fa-th-large" aria-hidden="true"></i>
+    <span><?= htmlspecialchars($ngwMainMenuLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+  </a>
+  <?php } ?>
   <?php if (!empty($_SESSION['mikhmon_impersonator_admin'])) { ?>
-  <a href="./admin.php?id=return-to-admin" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
+  <a href="./admin.php?id=return-to-admin&csrf=<?= urlencode(ngwCsrfToken('ngw_admin_csrf')); ?>" style="background:#1f6feb; color:#fff; border-radius:3px; padding:4px 8px; margin-right:6px; font-weight:bold; font-size:12px;" title="Return to Admin Panel"><i class="fa fa-user-secret mr-1"></i> <?= htmlspecialchars(isset($_back_to_admin_btn) ? $_back_to_admin_btn : 'Admin Panel'); ?></a>
   <?php } ?>
   <a href="javascript:void(0)" class="ngw-profile-trigger" aria-haspopup="true" aria-expanded="false" title="<?= htmlspecialchars($ngwProfileInfo['display_name'] . ' (' . $ngwProfileInfo['role_label'] . ')', ENT_QUOTES, 'UTF-8'); ?>">
     <span class="ngw-profile-trigger-avatar">
@@ -711,8 +757,8 @@ $(document).ready(function(){
   <?php if (hasResellerPermission('view_report')) { ?>
   <a href="./?report=selling&idbl=<?= strtolower(date("M")) . date("Y"); ?>&session=<?= $session; ?>" class="menu <?= $sselling; ?>"><i class="nav-icon fa fa-money"></i> <?= $_report ?></a>
   <?php } ?>
-  <!--router switch / back to sessions-->
-  <a href="./admin.php?id=sessions" class="menu" title="Back to Router List"><i class="fa fa-server"></i> <?= isset($_router_menu_label) ? $_router_menu_label : 'Router'; ?></a>
+  <!--back to main menu (router list)-->
+  <a href="./admin.php?id=sessions" class="menu ngw-sidenav-mainmenu" title="<?= htmlspecialchars($ngwMainMenuTitle, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-th-large"></i> <?= htmlspecialchars($ngwMainMenuLabel, ENT_QUOTES, 'UTF-8'); ?></a>
   <!--about-->
   <a href="./?hotspot=about&session=<?= $session; ?>" class="menu <?= $sabout; ?>"><i class="fa fa-info-circle"></i> <?= $_about ?></a>
   <!--logout-->
@@ -722,8 +768,7 @@ $(document).ready(function(){
 <script>
 $(document).ready(function(){
   $(".connect").change(function(){
-    notify("<?= $_connecting ?>");
-    connect(this.value)
+    connect(this.value);
   });
   $(".stheme").change(function(){
     notify("<?= $_loading_theme ?>");
@@ -1180,6 +1225,269 @@ $(document).ready(function(){
   .ngw-profile-trigger-name {
     max-width: 72px;
   }
+}
+
+/* Main Menu button inside opened router navbar & sidebar */
+.ngw-navbar-mainmenu {
+  float: none !important;
+  order: 0;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  height: 26px !important;
+  padding: 2px 9px !important;
+  margin: 0 !important;
+  border-radius: 5px !important;
+  background: rgba(14, 165, 233, 0.22) !important;
+  border: 1px solid rgba(56, 189, 248, 0.45) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+.ngw-navbar-mainmenu:hover {
+  background: rgba(14, 165, 233, 0.38) !important;
+  border-color: rgba(125, 211, 252, 0.85) !important;
+  color: #ffffff !important;
+}
+.sidenav a.menu.ngw-sidenav-mainmenu {
+  border-left: 3px solid #0ea5e9;
+  font-weight: 600;
+}
+@media screen and (max-width: 750px) {
+  .ngw-navbar-mainmenu {
+    height: 24px !important;
+    padding: 2px 7px !important;
+    font-size: 10px !important;
+  }
+}
+@media screen and (max-width: 480px) {
+  .ngw-navbar-mainmenu {
+    padding: 2px 6px !important;
+  }
+  .ngw-navbar-mainmenu span {
+    display: none !important;
+  }
+}
+
+/* Compact inline Back button for inner card headers */
+<?php $ngwIsLightTheme = in_array(isset($theme) ? $theme : 'dark', array('light', 'blue', 'green', 'pink'), true); ?>
+.ngw-compact-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  margin: 0 8px 0 0;
+  border-radius: 4px;
+  border: 1px solid <?= $ngwIsLightTheme ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.22)'; ?>;
+  background: <?= $ngwIsLightTheme ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.09)'; ?>;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.ngw-compact-back-btn:hover {
+  background: rgba(32, 168, 216, 0.22);
+  border-color: #20a8d8;
+}
+.ngw-compact-back-btn i {
+  font-size: 10px;
+}
+
+/* Live Two-Stage Router Connection Probe HUD */
+.ngw-connect-hud-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(9, 13, 20, 0.68);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.ngw-connect-hud-backdrop.is-open {
+  opacity: 1;
+}
+.ngw-connect-hud-card {
+  width: 100%;
+  max-width: 410px;
+  border-radius: 10px;
+  padding: 16px;
+  background: <?= $ngwIsLightTheme ? '#ffffff' : '#262c33'; ?>;
+  color: <?= $ngwIsLightTheme ? '#1e293b' : '#f1f5f9'; ?>;
+  border: 1px solid <?= $ngwIsLightTheme ? '#cbd5e1' : 'rgba(255, 255, 255, 0.16)'; ?>;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+}
+.ngw-connect-hud-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ngw-connect-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.ngw-connect-hud-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 165, 233, 0.16);
+  color: #0ea5e9;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.ngw-connect-hud-heading {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.ngw-connect-hud-sub {
+  font-size: 12px;
+  opacity: 0.78;
+  word-break: break-word;
+}
+.ngw-connect-hud-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ngw-connect-hud-pill.is-pending {
+  background: rgba(14, 165, 233, 0.18);
+  color: <?= $ngwIsLightTheme ? '#0369a1' : '#38bdf8'; ?>;
+}
+.ngw-connect-hud-pill.is-ok {
+  background: rgba(46, 160, 67, 0.2);
+  color: <?= $ngwIsLightTheme ? '#15803d' : '#4ade80'; ?>;
+}
+.ngw-connect-hud-pill.is-error {
+  background: rgba(248, 81, 73, 0.2);
+  color: <?= $ngwIsLightTheme ? '#b91c1c' : '#ff7b72'; ?>;
+}
+.ngw-connect-hud-progress {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: <?= $ngwIsLightTheme ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)'; ?>;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.ngw-connect-hud-bar {
+  height: 100%;
+  background: #0ea5e9;
+  border-radius: 3px;
+  transition: width 0.24s ease, background-color 0.2s ease;
+}
+.ngw-connect-hud-bar.is-ok {
+  background: #2ea043;
+}
+.ngw-connect-hud-bar.is-error {
+  background: #f85149;
+}
+.ngw-connect-hud-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ngw-connect-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid <?= $ngwIsLightTheme ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'; ?>;
+  background: <?= $ngwIsLightTheme ? '#f8fafc' : 'rgba(0, 0, 0, 0.18)'; ?>;
+  opacity: 0.72;
+}
+.ngw-connect-step.is-active,
+.ngw-connect-step.is-ok,
+.ngw-connect-step.is-error {
+  opacity: 1;
+}
+.ngw-connect-step.is-active {
+  border-color: rgba(14, 165, 233, 0.55);
+}
+.ngw-connect-step.is-ok {
+  border-color: rgba(46, 160, 67, 0.55);
+}
+.ngw-connect-step.is-error {
+  border-color: rgba(248, 81, 73, 0.65);
+}
+.ngw-connect-step-ico {
+  width: 18px;
+  text-align: center;
+  padding-top: 1px;
+  font-size: 14px;
+  color: <?= $ngwIsLightTheme ? '#64748b' : '#94a3b8'; ?>;
+}
+.ngw-connect-step.is-active .ngw-connect-step-ico {
+  color: #0ea5e9;
+}
+.ngw-connect-step.is-ok .ngw-connect-step-ico {
+  color: #2ea043;
+}
+.ngw-connect-step.is-error .ngw-connect-step-ico {
+  color: #f85149;
+}
+.ngw-connect-step-body {
+  min-width: 0;
+  flex: 1;
+}
+.ngw-connect-step-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.ngw-connect-latency {
+  font-variant-numeric: tabular-nums;
+  color: <?= $ngwIsLightTheme ? '#15803d' : '#4ade80'; ?>;
+  font-weight: 700;
+}
+.ngw-connect-step-desc {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 2px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+.ngw-connect-hud-alert {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(248, 81, 73, 0.14);
+  border: 1px solid rgba(248, 81, 73, 0.45);
+  color: <?= $ngwIsLightTheme ? '#991b1b' : '#ffb4ae'; ?>;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ngw-connect-hud-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.ngw-hud-btn {
+  font-size: 12px !important;
+  padding: 5px 10px !important;
 }
 </style>
 <div id="ngw-profile-dropdown" class="ngw-profile-dropdown-card" role="menu" aria-label="Account Profile Menu">

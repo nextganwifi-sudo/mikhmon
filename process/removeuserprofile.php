@@ -15,9 +15,21 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+if (!isset($API) || !is_object($API)) {
+    http_response_code(403);
+    exit('Access denied.');
+}
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 // hide all error
 error_reporting(0);
+if (!isset($_SESSION["mikhmon"])) {
+    http_response_code(403);
+    exit('Access denied.');
+}
 
 $pid = $removeuserprofile;
 $pname = $_GET['pname'];

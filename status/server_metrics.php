@@ -13,6 +13,8 @@ if (isset($_GET['health'])) {
     exit;
 }
 
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
 session_start();
 
 if (!isset($_SESSION["mikhmon"])) {
@@ -22,7 +24,9 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 
 include_once('../include/reseller_acl.php');
-if (!isMikhmonAdmin()) {
+if ((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) ||
+    (isset($_SESSION['mikhmon_last_activity']) && (time() - (int)$_SESSION['mikhmon_last_activity']) > 300) ||
+    !isMikhmonAdmin()) {
     session_write_close();
     echo json_encode(array('ok' => false));
     exit;

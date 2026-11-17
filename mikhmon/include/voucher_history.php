@@ -232,36 +232,76 @@ function ngwBuildOrUpdateHistoryRecord($existingRec, $u, $activeRow, $nowTs, $la
     }
 
     $uMac = isset($u['mac-address']) ? trim((string)$u['mac-address']) : '';
-    if ($uMac !== '' && $uMac !== '00:00:00:00:00:00') {
-        $rec['mac'] = $uMac;
-    } elseif ($activeRow && !empty($activeRow['mac-address']) && $activeRow['mac-address'] !== '00:00:00:00:00:00') {
-        $rec['mac'] = trim((string)$activeRow['mac-address']);
-    } elseif ($latestScriptRec && !empty($latestScriptRec['mac'])) {
-        $rec['mac'] = trim((string)$latestScriptRec['mac']);
-    } elseif (!isset($rec['mac'])) {
-        $rec['mac'] = '';
-    }
-
-    if ($activeRow && !empty($activeRow['address'])) {
-        $rec['ip'] = trim((string)$activeRow['address']);
-    } elseif ($latestScriptRec && !empty($latestScriptRec['ip'])) {
-        $rec['ip'] = trim((string)$latestScriptRec['ip']);
-    } elseif (!isset($rec['ip'])) {
-        $rec['ip'] = '';
-    }
-
-    $rec['uptime'] = ($activeRow && !empty($activeRow['uptime']))
-        ? (string)$activeRow['uptime']
-        : (isset($u['uptime']) && $u['uptime'] !== '' ? (string)$u['uptime'] : (isset($rec['uptime']) ? $rec['uptime'] : '0s'));
-    $rec['limit_uptime'] = isset($u['limit-uptime']) ? (string)$u['limit-uptime'] : (isset($rec['limit_uptime']) ? $rec['limit_uptime'] : '');
-
+    $hasLiveMac = ($uMac !== '' && $uMac !== '00:00:00:00:00:00');
+    $liveUp = isset($u['uptime']) ? trim((string)$u['uptime']) : '';
     $liveIn = isset($u['bytes-in']) ? (int)$u['bytes-in'] : 0;
-    $actIn = ($activeRow && isset($activeRow['bytes-in'])) ? (int)$activeRow['bytes-in'] : 0;
-    $rec['bytes_in'] = max($liveIn, $actIn, isset($rec['bytes_in']) ? (int)$rec['bytes_in'] : 0);
-
     $liveOut = isset($u['bytes-out']) ? (int)$u['bytes-out'] : 0;
+    $actIn = ($activeRow && isset($activeRow['bytes-in'])) ? (int)$activeRow['bytes-in'] : 0;
     $actOut = ($activeRow && isset($activeRow['bytes-out'])) ? (int)$activeRow['bytes-out'] : 0;
-    $rec['bytes_out'] = max($liveOut, $actOut, isset($rec['bytes_out']) ? (int)$rec['bytes_out'] : 0);
+    $hasLiveUsage = ($liveIn > 0 || $liveOut > 0 || $actIn > 0 || $actOut > 0 || ($liveUp !== '' && $liveUp !== '0s' && $liveUp !== '00:00:00'));
+    $resetAtTs = isset($rec['reset_at_ts']) ? (int)$rec['reset_at_ts'] : 0;
+    $reconnectedAfterReset = ($activeRow !== null || $hasLiveMac || $hasLiveUsage);
+    $isPendingReset = ($resetAtTs > 0 && !$reconnectedAfterReset);
+
+    $scriptRecForUsage = $latestScriptRec;
+    if ($resetAtTs > 0 && is_array($latestScriptRec)) {
+        $scriptTs = isset($latestScriptRec['_timestamp']) ? (int)$latestScriptRec['_timestamp'] : 0;
+        if ($scriptTs <= 0 && !empty($latestScriptRec['login_datetime'])) {
+            $parsedScriptTs = strtotime((string)$latestScriptRec['login_datetime']);
+            if ($parsedScriptTs !== false) {
+                $scriptTs = (int)$parsedScriptTs;
+            }
+        }
+        if ($scriptTs <= $resetAtTs) {
+            $scriptRecForUsage = null;
+        }
+    }
+
+    if ($isPendingReset) {
+        $rec['mac'] = '';
+        $rec['ip'] = '';
+        $rec['uptime'] = '0s';
+        $rec['bytes_in'] = 0;
+        $rec['bytes_out'] = 0;
+        $rec['device_vendor'] = '';
+        $rec['device_model'] = '';
+        $rec['device_type'] = '';
+        $rec['device_hostname'] = '';
+        $rec['device_class_id'] = '';
+        $rec['login_date'] = '';
+        $rec['login_time'] = '';
+        $rec['login_datetime'] = '';
+    } else {
+        if ($resetAtTs > 0 && $reconnectedAfterReset) {
+            $rec['reset_at_ts'] = 0;
+        }
+
+        if ($hasLiveMac) {
+            $rec['mac'] = $uMac;
+        } elseif ($activeRow && !empty($activeRow['mac-address']) && $activeRow['mac-address'] !== '00:00:00:00:00:00') {
+            $rec['mac'] = trim((string)$activeRow['mac-address']);
+        } elseif ($scriptRecForUsage && !empty($scriptRecForUsage['mac'])) {
+            $rec['mac'] = trim((string)$scriptRecForUsage['mac']);
+        } elseif (!isset($rec['mac'])) {
+            $rec['mac'] = '';
+        }
+
+        if ($activeRow && !empty($activeRow['address'])) {
+            $rec['ip'] = trim((string)$activeRow['address']);
+        } elseif ($scriptRecForUsage && !empty($scriptRecForUsage['ip'])) {
+            $rec['ip'] = trim((string)$scriptRecForUsage['ip']);
+        } elseif (!isset($rec['ip'])) {
+            $rec['ip'] = '';
+        }
+
+        $rec['uptime'] = ($activeRow && !empty($activeRow['uptime']))
+            ? (string)$activeRow['uptime']
+            : ($liveUp !== '' ? $liveUp : (isset($rec['uptime']) ? $rec['uptime'] : '0s'));
+
+        $rec['bytes_in'] = max($liveIn, $actIn, isset($rec['bytes_in']) ? (int)$rec['bytes_in'] : 0);
+        $rec['bytes_out'] = max($liveOut, $actOut, isset($rec['bytes_out']) ? (int)$rec['bytes_out'] : 0);
+    }
+    $rec['limit_uptime'] = isset($u['limit-uptime']) ? (string)$u['limit-uptime'] : (isset($rec['limit_uptime']) ? $rec['limit_uptime'] : '');
 
     // Parse expiry from comment or script record
     $parsedExp = function_exists('parseExpiryFromComment') ? parseExpiryFromComment($cleanComment) : array('is_expiry' => false);
@@ -279,18 +319,20 @@ function ngwBuildOrUpdateHistoryRecord($existingRec, $u, $activeRow, $nowTs, $la
         $rec['expiry_legacy'] = '';
     }
 
-    if ($latestScriptRec && !empty($latestScriptRec['login_datetime'])) {
-        $rec['login_date'] = isset($latestScriptRec['login_date']) ? (string)$latestScriptRec['login_date'] : '';
-        $rec['login_time'] = isset($latestScriptRec['login_time']) ? (string)$latestScriptRec['login_time'] : '';
-        $rec['login_datetime'] = (string)$latestScriptRec['login_datetime'];
-        if (!empty($latestScriptRec['validity'])) {
-            $rec['validity'] = (string)$latestScriptRec['validity'];
+    if (!$isPendingReset) {
+        if ($scriptRecForUsage && !empty($scriptRecForUsage['login_datetime'])) {
+            $rec['login_date'] = isset($scriptRecForUsage['login_date']) ? (string)$scriptRecForUsage['login_date'] : '';
+            $rec['login_time'] = isset($scriptRecForUsage['login_time']) ? (string)$scriptRecForUsage['login_time'] : '';
+            $rec['login_datetime'] = (string)$scriptRecForUsage['login_datetime'];
+            if (!empty($scriptRecForUsage['validity'])) {
+                $rec['validity'] = (string)$scriptRecForUsage['validity'];
+            }
+        } elseif (!isset($rec['login_datetime'])) {
+            $rec['login_date'] = '';
+            $rec['login_time'] = '';
+            $rec['login_datetime'] = '';
+            $rec['validity'] = isset($rec['validity']) ? $rec['validity'] : '';
         }
-    } elseif (!isset($rec['login_datetime'])) {
-        $rec['login_date'] = '';
-        $rec['login_time'] = '';
-        $rec['login_datetime'] = '';
-        $rec['validity'] = isset($rec['validity']) ? $rec['validity'] : '';
     }
 
     if (empty($rec['first_seen_ts'])) {
@@ -305,22 +347,31 @@ function ngwBuildOrUpdateHistoryRecord($existingRec, $u, $activeRow, $nowTs, $la
     $rec['removed_reason'] = '';
 
     // Track Online / Offline transition for Last Disconnect
-    $isOnlineNow = ($activeRow !== null);
-    if ($isOnlineNow) {
-        $rec['was_online'] = true;
-        $rec['last_online_ts'] = $nowTs;
-    } else {
-        $wasOnline = !empty($rec['was_online']);
+    if ($isPendingReset) {
         $rec['was_online'] = false;
-        if ($wasOnline) {
-            $prevDisc = isset($rec['last_disconnect_ts']) ? (int)$rec['last_disconnect_ts'] : 0;
-            $lastOn = isset($rec['last_online_ts']) ? (int)$rec['last_online_ts'] : 0;
-            if ($prevDisc < $lastOn || $prevDisc === 0) {
-                $rec['last_disconnect_ts'] = $nowTs;
-                $rec['last_disconnect_at'] = date('Y-m-d H:i:s', $nowTs);
-                $rec['last_disconnect_source'] = 'snapshot';
-                if (empty($rec['last_disconnect_reason'])) {
-                    $rec['last_disconnect_reason'] = '';
+        $rec['last_online_ts'] = 0;
+        $rec['last_disconnect_ts'] = 0;
+        $rec['last_disconnect_at'] = '';
+        $rec['last_disconnect_source'] = '';
+        $rec['last_disconnect_reason'] = '';
+    } else {
+        $isOnlineNow = ($activeRow !== null);
+        if ($isOnlineNow) {
+            $rec['was_online'] = true;
+            $rec['last_online_ts'] = $nowTs;
+        } else {
+            $wasOnline = !empty($rec['was_online']);
+            $rec['was_online'] = false;
+            if ($wasOnline) {
+                $prevDisc = isset($rec['last_disconnect_ts']) ? (int)$rec['last_disconnect_ts'] : 0;
+                $lastOn = isset($rec['last_online_ts']) ? (int)$rec['last_online_ts'] : 0;
+                if ($prevDisc < $lastOn || $prevDisc === 0) {
+                    $rec['last_disconnect_ts'] = $nowTs;
+                    $rec['last_disconnect_at'] = date('Y-m-d H:i:s', $nowTs);
+                    $rec['last_disconnect_source'] = 'snapshot';
+                    if (empty($rec['last_disconnect_reason'])) {
+                        $rec['last_disconnect_reason'] = '';
+                    }
                 }
             }
         }
@@ -591,6 +642,53 @@ function ngwMarkVouchersRemoved($session, $usersList, $reason = 'manual_delete',
 }
 
 /**
+ * Clear device model, uptime, data usage, IP, MAC, and disconnect history when resetting a voucher
+ * while preserving ONLY its comment / activation expiry date and metadata.
+ */
+function ngwResetVoucherHistoryState($session, $username, $routerNowTs = null) {
+    $uname = trim((string)$username);
+    if ((string)$session === '' || $uname === '' || $uname === 'default-trial') {
+        return false;
+    }
+    $now = ($routerNowTs !== null && (int)$routerNowTs > 0) ? (int)$routerNowTs : time();
+    $store = ngwLoadVoucherHistory($session, $now);
+    $key = strtolower($uname);
+    $rec = isset($store['records'][$key]) && is_array($store['records'][$key])
+        ? $store['records'][$key]
+        : array('voucher' => $uname, 'first_seen_ts' => $now);
+
+    $rec['voucher'] = $uname;
+    $rec['mac'] = '';
+    $rec['ip'] = '';
+    $rec['uptime'] = '0s';
+    $rec['bytes_in'] = 0;
+    $rec['bytes_out'] = 0;
+    $rec['device_vendor'] = '';
+    $rec['device_model'] = '';
+    $rec['device_type'] = '';
+    $rec['device_hostname'] = '';
+    $rec['device_class_id'] = '';
+    $rec['login_date'] = '';
+    $rec['login_time'] = '';
+    $rec['login_datetime'] = '';
+    $rec['was_online'] = false;
+    $rec['last_online_ts'] = 0;
+    $rec['last_disconnect_ts'] = 0;
+    $rec['last_disconnect_at'] = '';
+    $rec['last_disconnect_source'] = '';
+    $rec['last_disconnect_reason'] = '';
+    $rec['removed'] = false;
+    $rec['removed_at_ts'] = 0;
+    $rec['removed_at'] = '';
+    $rec['removed_reason'] = '';
+    $rec['reset_at_ts'] = $now;
+    $rec['last_seen_ts'] = $now;
+
+    $store['records'][$key] = $rec;
+    return ngwSaveVoucherHistory($session, $store, $now);
+}
+
+/**
  * Record explicit disconnect timestamp when user is kicked/disabled/reset.
  */
 function ngwMarkVoucherDisconnected($session, $username, $routerNowTs = null, $source = 'manual_disconnect', $reason = '') {
@@ -840,12 +938,22 @@ function ngwResolveVoucherDisconnectInfo($API, $session, $username, $mac = '', $
         );
     }
 
+    $resetCutoffTs = ($historyRec && !empty($historyRec['reset_at_ts'])) ? (int)$historyRec['reset_at_ts'] : 0;
+
     $histTs = ($historyRec && !empty($historyRec['last_disconnect_ts'])) ? (int)$historyRec['last_disconnect_ts'] : 0;
     $histReason = ($historyRec && !empty($historyRec['last_disconnect_reason'])) ? (string)$historyRec['last_disconnect_reason'] : '';
+    if ($resetCutoffTs > 0 && $histTs <= $resetCutoffTs) {
+        $histTs = 0;
+        $histReason = '';
+    }
 
     $logHit = ngwFindLastDisconnectFromRouterLog($API, $username, $mac, $now);
     $logTs = ($logHit && !empty($logHit['ts']) && $logHit['ts'] <= ($now + 300)) ? (int)$logHit['ts'] : 0;
     $logReason = ($logHit && !empty($logHit['reason'])) ? (string)$logHit['reason'] : '';
+    if ($resetCutoffTs > 0 && $logTs <= $resetCutoffTs) {
+        $logTs = 0;
+        $logReason = '';
+    }
 
     $bestTs = 0;
     $bestReason = '';
@@ -862,14 +970,18 @@ function ngwResolveVoucherDisconnectInfo($API, $session, $username, $mac = '', $
     }
 
     $neverLoggedIn = false;
-    if ($bestTs <= 0 && is_array($liveUserRow)) {
-        $rawUp = isset($liveUserRow['uptime']) ? trim((string)$liveUserRow['uptime']) : '';
-        $bIn = isset($liveUserRow['bytes-in']) ? (int)$liveUserRow['bytes-in'] : 0;
-        $bOut = isset($liveUserRow['bytes-out']) ? (int)$liveUserRow['bytes-out'] : 0;
-        $cStr = isset($liveUserRow['comment']) ? trim((string)$liveUserRow['comment']) : '';
-        $isAct = function_exists('isUsedActivatedVoucherComment') ? isUsedActivatedVoucherComment($cStr) : false;
-        if (($rawUp === '' || $rawUp === '0s' || $rawUp === '00:00:00') && $bIn === 0 && $bOut === 0 && !$isAct) {
+    if ($bestTs <= 0) {
+        if ($resetCutoffTs > 0) {
             $neverLoggedIn = true;
+        } elseif (is_array($liveUserRow)) {
+            $rawUp = isset($liveUserRow['uptime']) ? trim((string)$liveUserRow['uptime']) : '';
+            $bIn = isset($liveUserRow['bytes-in']) ? (int)$liveUserRow['bytes-in'] : 0;
+            $bOut = isset($liveUserRow['bytes-out']) ? (int)$liveUserRow['bytes-out'] : 0;
+            $cStr = isset($liveUserRow['comment']) ? trim((string)$liveUserRow['comment']) : '';
+            $isAct = function_exists('isUsedActivatedVoucherComment') ? isUsedActivatedVoucherComment($cStr) : false;
+            if (($rawUp === '' || $rawUp === '0s' || $rawUp === '00:00:00') && $bIn === 0 && $bOut === 0 && !$isAct) {
+                $neverLoggedIn = true;
+            }
         }
     }
 

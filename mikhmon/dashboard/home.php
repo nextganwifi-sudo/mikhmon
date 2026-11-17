@@ -25,10 +25,12 @@ if (!isset($_SESSION["mikhmon"])) {
 
 // get MikroTik system clock
   $getclock = $API->comm("/system/clock/print");
-  $clock = $getclock[0];
-  $timezone = $getclock[0]['time-zone-name'];
+  $clock = (is_array($getclock) && isset($getclock[0]) && is_array($getclock[0])) ? $getclock[0] : array();
+  $timezone = isset($clock['time-zone-name']) ? trim((string)$clock['time-zone-name']) : '';
   $_SESSION['timezone'] = $timezone;
-  date_default_timezone_set($timezone);
+  if ($timezone !== '') {
+    @date_default_timezone_set($timezone);
+  }
 
 // get system resource MikroTik
   $getresource = $API->comm("/system/resource/print");
@@ -260,7 +262,7 @@ if (!isset($_SESSION["mikhmon"])) {
               <div class="card-body">
   
                   <?php $getinterface = $API->comm("/interface/print");
-                  $interface = $getinterface[$iface - 1]['name']; 
+                  $interface = (is_array($getinterface) && isset($iface) && isset($getinterface[$iface - 1]['name'])) ? $getinterface[$iface - 1]['name'] : ''; 
                   /*$TotalReg = count($getinterface);
                   for ($i = 0; $i < $TotalReg; $i++) {
                     echo $getinterface[$i]['name'].'<br>';

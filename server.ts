@@ -11,7 +11,6 @@ const PHP_PORT = 9009;
 const MIKHMON_ROOT = path.resolve(process.cwd(), 'mikhmon');
 const UPSTREAM_MIRROR_ROOT = path.resolve(process.cwd(), 'mikhmonv3-upstream');
 const BUNDLED_PHP = path.resolve(process.cwd(), '.php-runtime', 'php-wrapper.sh');
-let fallbackPhpSessionId: string | null = null;
 
 function syncUpstreamMirror(): void {
   try {
@@ -99,21 +98,41 @@ function startPhpServer(): Promise<void> {
   });
 }
 
-function extractPhpSessionId(cookieStr: string | undefined): string | null {
-  if (!cookieStr) return null;
-  const match = cookieStr.match(/PHPSESSID=([a-zA-Z0-9,-]+)/);
-  return match ? match[1] : null;
+function isBlockedPrivatePath(rawUrlPath: string): boolean {
+  const pathOnly = rawUrlPath.split('?')[0];
+  let decoded = pathOnly;
+  try {
+    decoded = decodeURIComponent(pathOnly);
+  } catch {
+    return true;
+  }
+  const normalized = decoded.replace(/\/+/g, '/');
+  if (normalized.includes('..')) {
+    return true;
+  }
+  if (/^\/(include|data|backups|deploy|\.git|\.aistudio|\.env)(\/|$)/i.test(normalized)) {
+    return true;
+  }
+  if (/^\/uploads\/reseller-templates(\/|$)/i.test(normalized)) {
+    return true;
+  }
+  if (/^\/(uploads|voucher)\/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$/i.test(normalized)) {
+    return true;
+  }
+  if (/\/\.(?!well-known\/)/i.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
+function isStaticAssetPath(rawUrlPath: string): boolean {
+  const pathOnly = rawUrlPath.split('?')[0].toLowerCase();
+  return /\.(css|js|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot|otf|map)$/.test(pathOnly);
 }
 
 function rewriteSetCookieForIframe(cookieHeader: string | string[] | undefined, isIframeHttps: boolean): string[] | undefined {
   if (!cookieHeader) return undefined;
   const cookies = Array.isArray(cookieHeader) ? cookieHeader : [cookieHeader];
-  for (const c of cookies) {
-    const sid = extractPhpSessionId(c);
-    if (sid) {
-      fallbackPhpSessionId = sid;
-    }
-  }
   if (!isIframeHttps) {
     return cookies;
   }
@@ -149,14 +168,9 @@ async function main() {
       targetPath = targetPath.slice('/mikhmon'.length);
     }
 
-    let cookieHeader = req.headers.cookie || '';
-    const clientSid = extractPhpSessionId(cookieHeader);
-    if (clientSid) {
-      fallbackPhpSessionId = clientSid;
-    } else if (fallbackPhpSessionId) {
-      cookieHeader = cookieHeader
-        ? `${cookieHeader}; PHPSESSID=${fallbackPhpSessionId}`
-        : `PHPSESSID=${fallbackPhpSessionId}`;
+    if (isBlockedPrivatePath(targetPath)) {
+      res.status(404).send('Not Found');
+      return;
     }
 
     const forwardHeaders: http.OutgoingHttpHeaders = {
@@ -166,9 +180,6 @@ async function main() {
       'x-forwarded-proto': isIframeHttps ? 'https' : 'http',
       'x-forwarded-for': (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1',
     };
-    if (cookieHeader) {
-      forwardHeaders.cookie = cookieHeader;
-    }
     // Request uncompressed response from local PHP server so headers/cookies & streaming work cleanly
     delete forwardHeaders['accept-encoding'];
 
@@ -185,6 +196,12 @@ async function main() {
 
       if (headers['set-cookie']) {
         headers['set-cookie'] = rewriteSetCookieForIframe(headers['set-cookie'], isIframeHttps);
+      }
+
+      if (!isStaticAssetPath(targetPath)) {
+        headers['cache-control'] = 'no-store, no-cache, must-revalidate, max-age=0, private';
+        headers['pragma'] = 'no-cache';
+        headers['vary'] = 'Cookie';
       }
 
       // Remove hop-by-hop headers and frame restrictions so Node http.ServerResponse frames cleanly

@@ -25,7 +25,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
   if ($prof == "all") {
     $getuser = $API->comm("/ip/hotspot/user/print");
-    $TotalReg = count($getuser);
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
 
     $counttuser = $API->comm("/ip/hotspot/user/print", array(
       "count-only" => ""
@@ -34,7 +34,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $getuser = $API->comm("/ip/hotspot/user/print", array(
       "?profile" => "$prof",
     ));
-    $TotalReg = count($getuser);
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
 
     $counttuser = $API->comm("/ip/hotspot/user/print", array(
       "count-only" => "",
@@ -47,7 +47,7 @@ if (!isset($_SESSION["mikhmon"])) {
       "?comment" => "$comm",
     //"?uptime" => "00:00:00"
     ));
-    $TotalReg = count($getuser);
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
 
     $counttuser = $API->comm("/ip/hotspot/user/print", array(
       "count-only" => "",

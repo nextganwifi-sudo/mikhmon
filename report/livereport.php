@@ -15,6 +15,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 // hide all error
 error_reporting(0);
@@ -22,13 +25,23 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
 } else {
 // load session MikroTik
-  $session = $_GET['session'];
+  $session = isset($_GET['session']) ? (string)$_GET['session'] : '';
   include_once('../include/reseller_acl.php');
+  if ((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) ||
+      (isset($_SESSION['mikhmon_last_activity']) && (time() - (int)$_SESSION['mikhmon_last_activity']) > 300)) {
+    $_SESSION = array();
+    @session_unset();
+    @session_destroy();
+    ngwClearSessionCookie();
+    exit;
+  }
   if (!canAccessRouterSession($session) || !hasResellerPermission('view_report')) {
     exit;
   }
 // set  timezone
-date_default_timezone_set($_SESSION['timezone']);
+if (!empty($_SESSION['timezone'])) {
+  @date_default_timezone_set((string)$_SESSION['timezone']);
+}
 
 // lang
 include('../include/lang.php');

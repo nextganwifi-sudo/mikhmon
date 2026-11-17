@@ -17,6 +17,7 @@
  */
 require_once __DIR__ . '/include/security.php';
 ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 // hide all error
 error_reporting(0);
@@ -72,7 +73,9 @@ if (!isset($_SESSION["mikhmon"])) {
   $_SESSION["connect"] = "";
 
 // time zone
-  date_default_timezone_set($_SESSION['timezone']);
+  if (!empty($_SESSION['timezone'])) {
+    @date_default_timezone_set((string)$_SESSION['timezone']);
+  }
 
 // lang
   include('./lang/isocodelang.php');
@@ -265,6 +268,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $_SESSION = array();
     @session_unset();
     @session_destroy();
+    ngwClearSessionCookie();
     echo "<script>try{sessionStorage.clear();}catch(e){}</script>";
     echo "<script>window.location='./admin.php?id=login'</script>";
   }
@@ -809,7 +813,7 @@ if ($needsHighcharts) {
 <script src="./js/highcharts/themes/hc.<?= $theme; ?>.js"></script>
 <?php } ?>
 <script src="./js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="./js/mikhmon.js?v=ngw2.2"></script>
+<script src="./js/mikhmon.js?v=ngw2.3"></script>
 <script>
 (function(){
   try {

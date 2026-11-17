@@ -5,6 +5,8 @@
  * - Upload Avatar: Upload or remove profile avatar.
  * - Change Password: Change own password with Show/Hide toggle.
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
 if (session_status() !== PHP_SESSION_ACTIVE) {
     @session_start();
 }

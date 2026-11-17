@@ -1,7 +1,10 @@
 <?php
-session_start();
-error_reporting(0);
 require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+error_reporting(0);
 require_once __DIR__ . '/../include/reseller_acl.php';
 
 if (empty($_SESSION['mikhmon'])) {

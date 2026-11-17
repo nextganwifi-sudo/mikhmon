@@ -19,6 +19,7 @@ if (ngwIsCurrentSessionRevoked()) {
     $_SESSION = array();
     @session_unset();
     @session_destroy();
+    ngwClearSessionCookie();
     echo json_encode(array('ok' => false, 'revoked' => true));
     exit;
 }

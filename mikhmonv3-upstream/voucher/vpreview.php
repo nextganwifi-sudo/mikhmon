@@ -15,6 +15,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 
 error_reporting(0);
@@ -23,11 +26,13 @@ ob_start("ob_gzhandler");
 
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
+  exit;
 } else {
 
 // load session MikroTik
   $session = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
   include_once('../include/reseller_acl.php');
+  enforceMikhmonSessionSecurity(false);
   $isAdminPreview = isMikhmonAdmin();
   if (!$isAdminPreview && $session !== '' && !canAccessRouterSession($session)) {
     $session = '';
@@ -47,9 +52,11 @@ if (!isset($_SESSION["mikhmon"])) {
     }
   }
   if ($session === '' || (!$isAdminPreview && (!canAccessRouterSession($session) || (!hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template'))))) {
+    session_write_close();
     echo "Access Denied: You do not have permission to preview voucher templates for this router session.";
     exit;
   }
+  session_write_close();
 
 // load config
   include('../include/config.php');
@@ -57,12 +64,12 @@ if (!isset($_SESSION["mikhmon"])) {
 
   include('../lib/formatbytesbites.php');
 
-  $id = $_GET['id'];
-  $qr = $_GET['qr'];
-  $usermode = $_GET['usermode'];
-  $small = $_GET['small'];
-  $userp = $_GET['user'];
-  $overrideResId = isset($_GET['reseller_id']) ? $_GET['reseller_id'] : null;
+  $id = isset($_GET['id']) ? (string)$_GET['id'] : '';
+  $qr = isset($_GET['qr']) ? (string)$_GET['qr'] : '';
+  $usermode = isset($_GET['usermode']) ? (string)$_GET['usermode'] : '';
+  $small = isset($_GET['small']) ? (string)$_GET['small'] : '';
+  $userp = isset($_GET['user']) ? (string)$_GET['user'] : '';
+  $overrideResId = ($isAdminPreview && isset($_GET['reseller_id'])) ? (string)$_GET['reseller_id'] : null;
 
   $logo = resolveActiveVoucherLogo($session, '../', true, $overrideResId);
 
@@ -108,7 +115,7 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
       (function() {
         var qr = new QRious({
           element: document.getElementById('qr'),
-          value: '".$urilogin."',
+          value: ".json_encode($urilogin, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT).",
           size:'256'
         });
 
@@ -123,7 +130,7 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Voucher-<?= $hotspotname . "-" . $getuprofile . "-" . $id; ?></title>
+		<title>Voucher-<?= htmlspecialchars((string)$hotspotname . "-" . (isset($getuprofile) ? $getuprofile : '') . "-" . $id, ENT_QUOTES, 'UTF-8'); ?></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<meta http-equiv="pragma" content="no-cache" />
     <link rel="icon" type="image/png" href="../img/favicon.png?v=nextgan" />

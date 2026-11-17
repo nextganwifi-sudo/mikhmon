@@ -34,7 +34,8 @@ if (!isset($_SESSION["mikhmon"])) {
               <div class="card-body">
                 <div class="row">
                   <?php $getinterface = $API->comm("/interface/print");
-                  $interface = $getinterface[$iface - 1]['name'];
+                  $getinterface = is_array($getinterface) ? $getinterface : array();
+                  $interface = (isset($iface) && isset($getinterface[$iface - 1]['name'])) ? $getinterface[$iface - 1]['name'] : '';
                   $TotalReg = count($getinterface);
 
                   ?>

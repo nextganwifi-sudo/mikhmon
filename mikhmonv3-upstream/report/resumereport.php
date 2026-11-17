@@ -35,6 +35,10 @@ $thisY = substr($idbl,-4);
 
 $ms = array(1 => "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec");
 $mn = array_search($thisM, $ms);
+if ($mn === false) {
+  $mn = (int)date("n");
+}
+$thisYInt = is_numeric($thisY) ? (int)$thisY : (int)date("Y");
 
 // https://secure.php.net/manual/en/function.cal-days-in-month.php#38666
 function days_in_month($month, $year) 
@@ -47,20 +51,25 @@ return $month == 2 ? ($year % 4 ? 28 : ($year % 100 ? 29 : ($year % 400 ? 28 : 2
 if ($mn == date("n")){
   $totD =  (date('d') +1);
 }else{
-  $totD = (days_in_month($mn, $thisY)+ 1);
+  $totD = (days_in_month($mn, $thisYInt)+ 1);
 }
 
 function resume_per_day($date){
-$evalue =  explode($date,$_SESSION['dataresume']);
-$x = count($evalue);
-			for ($i = 0; $i < $x; $i++) {
-				$result += (int) $evalue[$i];
-			}
-			return ($x-1).'/'.$result;
+  if ($date === '' || empty($_SESSION['dataresume'])) {
+    return '0/0';
+  }
+  $evalue = explode($date, (string)$_SESSION['dataresume']);
+  $x = count($evalue);
+  $result = 0;
+  for ($i = 0; $i < $x; $i++) {
+    $result += (int) $evalue[$i];
+  }
+  return ($x - 1) . '/' . $result;
 }
 
-$totalvrc =  explode("/",$_SESSION['totalresume'])[0];
-$totalincome = explode("/",$_SESSION['totalresume'])[1];
+$totalResumeParts = explode("/", isset($_SESSION['totalresume']) ? (string)$_SESSION['totalresume'] : '0/0');
+$totalvrc = isset($totalResumeParts[0]) ? $totalResumeParts[0] : '0';
+$totalincome = isset($totalResumeParts[1]) ? $totalResumeParts[1] : '0';
 
 
 $totLbl = ($langid === 'bn') ? 'মোট ' : 'Total ';

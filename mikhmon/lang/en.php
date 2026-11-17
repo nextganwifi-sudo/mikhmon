@@ -330,3 +330,5 @@ $_offline_users = "Offline Users";
 $_expired_disabled = "Expired / Disabled";
 $_total_users = "Total Users";
 $_live_traffic = "Live Traffic";
+$_main_menu_label = "Main Menu";
+$_back_btn_label = "Back";

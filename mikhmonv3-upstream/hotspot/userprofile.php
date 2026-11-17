@@ -56,6 +56,25 @@ if (!isset($_SESSION["mikhmon"])) {
 	$TotalReg = is_array($getprofile) ? count($getprofile) : 0;
 // count user profile
 	$countprofile = $TotalReg;
+// count hotspot users per profile in a single pass
+	$profileUserCounts = array();
+	$allProfileUsers = $API->comm("/ip/hotspot/user/print");
+	if (is_array($allProfileUsers)) {
+		foreach ($allProfileUsers as $pUserRow) {
+			if (!is_array($pUserRow)) {
+				continue;
+			}
+			$uNameChk = isset($pUserRow['name']) ? (string)$pUserRow['name'] : '';
+			if ($uNameChk === 'default-trial') {
+				continue;
+			}
+			$uProfKey = (isset($pUserRow['profile']) && $pUserRow['profile'] !== '') ? (string)$pUserRow['profile'] : 'default';
+			if (!isset($profileUserCounts[$uProfKey])) {
+				$profileUserCounts[$uProfKey] = 0;
+			}
+			$profileUserCounts[$uProfKey]++;
+		}
+	}
 }
 ?>
 <div class="row">
@@ -91,7 +110,8 @@ if (!isset($_SESSION["mikhmon"])) {
 		<th class="align-middle"><?= $_expired_mode ?></th>
 		<th class="align-middle"><?= $_validity ?></th>
 		<th class="text-right align-middle" > <?= $_price." ".$currency; ?></th>
-		<th class="text-right align-middle" > <?= $_selling_price." ".$currency; ?></th>
+		<th class="text-right align-middle" style="width:74px; max-width:86px; white-space:normal; line-height:1.15; font-size:11px;"> <?= $_selling_price." ".$currency; ?></th>
+		<th class="text-center align-middle" style="width:70px; max-width:82px; white-space:normal; line-height:1.15; font-size:11px;"><?= ($langid === 'bn') ? 'ইউজার' : 'Users'; ?></th>
 		<th class="align-middle"><?= $_lock_user ?></th>
     </tr>
   </thead>
@@ -101,47 +121,54 @@ if (!isset($_SESSION["mikhmon"])) {
 for ($i = 0; $i < $TotalReg; $i++) {
 
 	$profiledetalis = $getprofile[$i];
-	$pid = $profiledetalis['.id'];
-	$pname = $profiledetalis['name'];
-	$psharedu = $profiledetalis['shared-users'];
-	$pratelimit = $profiledetalis['rate-limit'];
-	$ponlogin = $profiledetalis['on-login'];
+	$pid = isset($profiledetalis['.id']) ? $profiledetalis['.id'] : '';
+	$pname = isset($profiledetalis['name']) ? (string)$profiledetalis['name'] : '';
+	$psharedu = isset($profiledetalis['shared-users']) ? $profiledetalis['shared-users'] : '';
+	$pratelimit = isset($profiledetalis['rate-limit']) ? $profiledetalis['rate-limit'] : '';
+	$ponlogin = isset($profiledetalis['on-login']) ? (string)$profiledetalis['on-login'] : '';
+	$profUserCount = isset($profileUserCounts[$pname]) ? (int)$profileUserCounts[$pname] : 0;
 	$getmonexpired = $API->comm("/system/scheduler/print", array(
     "?name" => "$pname",
   ));
-  $monexpired = $getmonexpired[0];
-  $monid = $monexpired['.id'];
-	$pmon = $monexpired['name'];
-	$chkpmon = $monexpired['disabled'];
+  $monexpired = (is_array($getmonexpired) && isset($getmonexpired[0]) && is_array($getmonexpired[0])) ? $getmonexpired[0] : array();
+  $monid = isset($monexpired['.id']) ? $monexpired['.id'] : '';
+	$pmon = isset($monexpired['name']) ? $monexpired['name'] : '';
+	$chkpmon = isset($monexpired['disabled']) ? $monexpired['disabled'] : '';
 	if(empty($pmon) || $chkpmon == "true"){$moncolor = "text-orange";}else{$moncolor = "text-green";}
 	echo "<tr>";
 	?>
   <td style='text-align:center;'>
   <?php if (hasResellerPermission('delete_profile')) { 
-    $delProfMsg = ($langid === 'bn' ? 'আপনি কি প্রোফাইলটি ডিলিট করতে নিশ্চিত' : 'Are you sure to delete profile') . ' (' . $pname . ')?';
+    if ($profUserCount > 0) {
+      $delProfMsg = ($langid === 'bn')
+        ? ('আপনি কি প্রোফাইলটি ডিলিট করতে নিশ্চিত (' . $pname . ')? সতর্কতা: এই প্রোফাইলে বর্তমানে ' . $profUserCount . ' জন ইউজার রয়েছে!')
+        : ('Are you sure to delete profile (' . $pname . ')? Warning: ' . $profUserCount . ' user(s) currently belong to this profile!');
+    } else {
+      $delProfMsg = ($langid === 'bn' ? 'আপনি কি প্রোফাইলটি ডিলিট করতে নিশ্চিত' : 'Are you sure to delete profile') . ' (' . $pname . ')?';
+    }
   ?>
   <i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delProfMsg); ?>)){loadpage("./?remove-user-profile=<?= urlencode($pid); ?>&pname=<?= urlencode($pname); ?>&session=<?= urlencode($session); ?>")}else{}' title='<?= htmlspecialchars($_remove . ' ' . $pname, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
 	if (hasResellerPermission('view_users')) {
-		echo "<a title='" . ($langid === 'bn' ? 'প্রোফাইল অনুযায়ী ইউজার খুলুন ' : 'Open User by profile ') . $pname . "'  href='./?hotspot=users&profile=" . $pname . "&session=" . $session . "'><i class='fa fa-users'></i></a>";
+		echo "<a title='" . ($langid === 'bn' ? 'প্রোফাইল অনুযায়ী ইউজার খুলুন ' : 'Open User by profile ') . htmlspecialchars($pname, ENT_QUOTES, 'UTF-8') . "'  href='./?hotspot=users&profile=" . rawurlencode($pname) . "&session=" . rawurlencode((string)$session) . "'><i class='fa fa-users'></i></a>";
 	}
 	echo "</td>";
 	if (hasResellerPermission('edit_profile')) {
-		echo "<td><a title='" . ($langid === 'bn' ? 'ইউজার প্রোফাইল খুলুন ' : 'Open User Profile ') . $pname . "' href='./?user-profile=" . $pid . "&session=" . $session . "'><i class='fa fa-edit'></i> <i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname</a></td>";
+		echo "<td><a title='" . ($langid === 'bn' ? 'ইউজার প্রোফাইল খুলুন ' : 'Open User Profile ') . htmlspecialchars($pname, ENT_QUOTES, 'UTF-8') . "' href='./?user-profile=" . rawurlencode((string)$pid) . "&session=" . rawurlencode((string)$session) . "'><i class='fa fa-edit'></i> <i class='fa fa-ci fa-circle ".$moncolor."'></i> " . htmlspecialchars($pname, ENT_QUOTES, 'UTF-8') . "</a></td>";
 	} else {
-		echo "<td><i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname</td>";
+		echo "<td><i class='fa fa-ci fa-circle ".$moncolor."'></i> " . htmlspecialchars($pname, ENT_QUOTES, 'UTF-8') . "</td>";
 	}
 //$profiledetalis = $ARRAY[$i];echo "<td>" . $profiledetalis['name'];echo "</td>";
-	echo "<td>" . $psharedu;
+	echo "<td>" . htmlspecialchars((string)$psharedu, ENT_QUOTES, 'UTF-8');
 	echo "</td>";
-	echo "<td>" . $pratelimit;
+	echo "<td>" . htmlspecialchars((string)$pratelimit, ENT_QUOTES, 'UTF-8');
 	echo "</td>";
 
 	echo "<td>";
 	$getexpmode = explode(",", $ponlogin);
 // get expired mode
-	$expmode = $getexpmode[1];
+	$expmode = isset($getexpmode[1]) ? $getexpmode[1] : '';
 	if ($expmode == "rem") {
 		echo ($langid === 'bn') ? "রিমুভ (Remove)" : "Remove";
 	} elseif ($expmode == "ntf") {
@@ -157,14 +184,14 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	echo "<td>";
 // get validity
 	$getvalid = explode(",", $ponlogin);
-	echo $getvalid[3];
+	echo isset($getvalid[3]) ? htmlspecialchars((string)$getvalid[3], ENT_QUOTES, 'UTF-8') : '';
 
 	echo "</td>";
 
 	echo "<td style='text-align:right;'>";
 // get price
 	$getprice = explode(",", $ponlogin);
-	$price = trim($getprice[2]);
+	$price = isset($getprice[2]) ? trim((string)$getprice[2]) : '';
 	if ($price == "" || $price == "0") {
 		echo "";
 	} else {
@@ -176,29 +203,37 @@ for ($i = 0; $i < $TotalReg; $i++) {
 	}
 
 	echo "</td>";
-	echo "<td style='text-align:right;'>";
-// get price
+	echo "<td style='text-align:right; width:74px; max-width:86px; font-variant-numeric:tabular-nums; padding-left:4px; padding-right:6px;'>";
+// get selling price (compact column)
 	$getsprice = explode(",", $ponlogin);
-	$price = trim($getsprice[4]);
-	if ($price == "" || $price == "0") {
+	$sprice = isset($getsprice[4]) ? trim((string)$getsprice[4]) : '';
+	if ($sprice == "" || $sprice == "0") {
 		echo "";
 	} else {
 		if ($currency == in_array($currency, $cekindo['indo'])) {
-			echo number_format((float)$price, 0, ",", ".");
+			echo number_format((float)$sprice, 0, ",", ".");
 		} else {
-			echo number_format((float)$price, 2);
+			echo number_format((float)$sprice, 2);
 		}
 	}
 
+	echo "</td>";
+	$userBadgeClass = $profUserCount > 0 ? 'bg-primary' : 'bg-grey';
+	echo "<td style='text-align:center; width:70px; max-width:82px; font-variant-numeric:tabular-nums; padding-left:4px; padding-right:4px;'>";
+	if (hasResellerPermission('view_users')) {
+		echo "<a href='./?hotspot=users&profile=" . rawurlencode($pname) . "&session=" . rawurlencode((string)$session) . "' class='" . $userBadgeClass . "' title='" . htmlspecialchars(($langid === 'bn' ? 'প্রোফাইল অনুযায়ী ইউজার দেখুন: ' : 'View users in profile: ') . $pname, ENT_QUOTES, 'UTF-8') . "' style='display:inline-block; min-width:34px; padding:2px 7px; border-radius:4px; font-weight:700; font-size:12px; color:#fff; text-decoration:none;'>" . $profUserCount . "</a>";
+	} else {
+		echo "<span class='" . $userBadgeClass . "' style='display:inline-block; min-width:34px; padding:2px 7px; border-radius:4px; font-weight:700; font-size:12px; color:#fff;'>" . $profUserCount . "</span>";
+	}
 	echo "</td>";
 	echo "<td>";
 
 	$getgracep = explode(",", $ponlogin);
-	$lockVal = trim($getgracep[6]);
+	$lockVal = isset($getgracep[6]) ? trim((string)$getgracep[6]) : '';
 	if ($langid === 'bn') {
-		echo ($lockVal === 'Enable') ? 'চালু (Enable)' : (($lockVal === 'Disable') ? 'বন্ধ (Disable)' : $lockVal);
+		echo ($lockVal === 'Enable') ? 'চালু (Enable)' : (($lockVal === 'Disable') ? 'বন্ধ (Disable)' : htmlspecialchars($lockVal, ENT_QUOTES, 'UTF-8'));
 	} else {
-		echo $lockVal;
+		echo htmlspecialchars($lockVal, ENT_QUOTES, 'UTF-8');
 	}
 	echo "</td>";
 	echo "</tr>";

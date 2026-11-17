@@ -223,7 +223,7 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
     <select class="form-control " name="ppool">
       <option><?= $ppool; ?></option>
       <option>none</option>
-        <?php $TotalReg = count($getpool);
+        <?php $TotalReg = is_array($getpool) ? count($getpool) : 0;
         for ($i = 0; $i < $TotalReg; $i++) {
 
           echo "<option>" . $getpool[$i]['name'] . "</option>";
@@ -274,7 +274,7 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
     <select class="form-control " name="parent">
       <option><?= $sparent; ?></option>
       <option>none</option>
-        <?php $TotalReg = count($getallqueue);
+        <?php $TotalReg = is_array($getallqueue) ? count($getallqueue) : 0;
         for ($i = 0; $i < $TotalReg; $i++) {
 
           echo "<option>" . $getallqueue[$i]['name'] . "</option>";

@@ -5,7 +5,11 @@
  *  and maintains at most 10 rollback snapshots (auto-deleting older ones to keep VPS storage clean)
  *  while strictly preserving all live routers, resellers, templates, and logos.
  */
-session_start();
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 error_reporting(0);
 
 if (!isset($_SESSION["mikhmon"])) {
@@ -20,6 +24,8 @@ if (!isMikhmonAdmin()) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
 }
+
+$sysUpdateCsrf = ngwCsrfToken('ngw_sysupdate_csrf');
 
 $appRoot = realpath(__DIR__ . '/..');
 $gitRepoConfigFile = $appRoot . '/include/github_repo.txt';
@@ -372,6 +378,14 @@ $updateInfo = '';
 $updateChangedFiles = array();
 $recoveryReport = null;
 $isBnUi = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
+
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_sysupdate_csrf')) {
+    $updateError = $isBnUi
+        ? 'সিকিউরিটি টোকেন মেয়াদোত্তীর্ণ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
+        : 'Security token expired or invalid. Reload this page and try again.';
+    $_POST = array();
+}
 
 // Always run an automatic non-destructive recovery & vault sync pass
 if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
@@ -771,6 +785,7 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
         <?php } ?>
 
         <form method="post" action="" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($sysUpdateCsrf, ENT_QUOTES, 'UTF-8'); ?>">
           <table class="table table-sm" style="margin-bottom: 12px;">
             <tr>
               <td class="align-middle" style="width: 30%;"><?= htmlspecialchars(isset($_github_repo_url_label) ? $_github_repo_url_label : 'GitHub URL'); ?></td>
@@ -824,6 +839,7 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
                     <td class="align-middle"><small><?= htmlspecialchars($hItem['saved_at']); ?></small></td>
                     <td class="align-middle text-right">
                       <form method="post" action="" style="margin:0; display:inline;" onsubmit="return confirm('<?= htmlspecialchars(isset($_rollback_confirm) ? $_rollback_confirm : 'Are you sure you want to switch back to version', ENT_QUOTES); ?> v<?= htmlspecialchars($hItem['version'], ENT_QUOTES); ?>?');">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($sysUpdateCsrf, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="rollback_version_id" value="<?= htmlspecialchars($hItem['id']); ?>">
                         <button type="submit" class="btn bg-warning pd-5" style="cursor:pointer; font-size:12px; font-weight:bold;">
                           <i class="fa fa-undo"></i> <?= htmlspecialchars(isset($_btn_rollback_version) ? $_btn_rollback_version : 'Switch to this Version'); ?> (v<?= htmlspecialchars($hItem['version']); ?>)
@@ -874,12 +890,14 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
 
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
           <form method="post" action="" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($sysUpdateCsrf, ENT_QUOTES, 'UTF-8'); ?>">
             <button type="submit" name="run_vps_data_recovery" class="btn bg-green pd-10" style="cursor:pointer; font-weight:bold;">
               <i class="fa fa-magic"></i> <?= $isBnUi ? 'ভিপিএস থেকে পূর্বের ডাটা স্ক্যান ও রিকভার করুন' : 'Scan & Recover Previous VPS Data'; ?>
             </button>
           </form>
 
           <form method="post" action="" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($sysUpdateCsrf, ENT_QUOTES, 'UTF-8'); ?>">
             <button type="submit" name="download_data_backup" class="btn bg-primary pd-10" style="cursor:pointer; font-weight:bold;">
               <i class="fa fa-download"></i> <?= $isBnUi ? 'ডাটা ব্যাকআপ ডাউনলোড (.json)' : 'Download Data Backup (.json)'; ?>
             </button>
@@ -891,6 +909,7 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
             <i class="fa fa-upload"></i> <?= $isBnUi ? 'ব্যাকআপ ফাইল (.json / config.php / resellers.json) আপলোড ও মার্জ করুন:' : 'Upload & Merge Backup File (.json / config.php / resellers.json):'; ?>
           </b>
           <form method="post" action="" enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($sysUpdateCsrf, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="file" name="backup_data_file" class="form-control" style="flex:1; min-width:180px; font-size:12px;" required="1">
             <button type="submit" name="upload_data_backup" class="btn bg-warning pd-5" style="cursor:pointer; font-weight:bold; font-size:12px;">
               <i class="fa fa-check-circle"></i> <?= $isBnUi ? 'আপলোড ও মার্জ করুন' : 'Upload & Merge'; ?>

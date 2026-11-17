@@ -15,6 +15,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 // hide all error
 error_reporting(0);
@@ -22,11 +25,21 @@ if (!isset($_SESSION["mikhmon"])) {
     session_write_close();
     header("Location:../admin.php?id=login");
   } else {
+$session = isset($_GET['session']) ? (string)$_GET['session'] : '';
+$ping = isset($_GET['ping']) ? $_GET['ping'] : null;
+include_once('../include/reseller_acl.php');
+if ($session === '' || !canAccessRouterSession($session) || (function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked())) {
+    session_write_close();
+    http_response_code(403);
+    exit('Access denied.');
+}
 session_write_close();
-$session = $_GET['session'];
-$ping = $_GET['ping'];
 if(isset($ping) && !empty($session)){
     include_once('../include/config.php');
+    if (!isset($data[$session])) {
+        http_response_code(404);
+        exit('Session not found.');
+    }
     $iphost = explode('!', $data[$session][1])[1];
     $isSsh = (strpos($iphost, 'ssh://') === 0);
     $cleanTarget = $isSsh ? substr($iphost, 6) : $iphost;
@@ -40,17 +53,22 @@ function ping($host, $port, $isSsh = false){
 		$fsock = @fsockopen($host, 8728, $errno, $errstr, 3);
 	}
 	$protoBadge = $isSsh ? 'SSH' : 'API';
+	$safeProto = htmlspecialchars((string)$protoBadge, ENT_QUOTES, 'UTF-8');
+	$safeHost = htmlspecialchars((string)$host, ENT_QUOTES, 'UTF-8');
+	$safePort = htmlspecialchars((string)$port, ENT_QUOTES, 'UTF-8');
 	if (! $fsock ){
+		$safeErrno = htmlspecialchars((string)$errno, ENT_QUOTES, 'UTF-8');
+		$safeErrstr = htmlspecialchars((string)$errstr, ENT_QUOTES, 'UTF-8');
 		return (
             '<div id="pingX" class="col-12">
 			<div class="card">
         	<div class="card-header">
-            <h3 class="card-title">Ping Test ['.$protoBadge.' '.$host.':'.$port.'] </h3>
+            <h3 class="card-title">Ping Test ['.$safeProto.' '.$safeHost.':'.$safePort.'] </h3>
         	</div>
         	<div class="card-body">'.
-            "Mode : <b>".$protoBadge."</b> &nbsp; Host : ".$host."&nbsp;Port : ".$port."<br>".
-			"Error Code : ".$errno."<br>".
-            "Error Message : ".$errstr.
+            "Mode : <b>".$safeProto."</b> &nbsp; Host : ".$safeHost."&nbsp;Port : ".$safePort."<br>".
+			"Error Code : ".$safeErrno."<br>".
+            "Error Message : ".$safeErrstr.
             "<br><b class='text-warning'>Ping Timeout </b><br>".
             '<span class="pointer btn bg-grey" onclick="closeX()"><i class="fa fa-close text-red "></i> Close</span>'.
 			'</div>
@@ -62,10 +80,10 @@ function ping($host, $port, $isSsh = false){
             '<div id="pingX" class="col-12">
 			<div class="card">
         	<div class="card-header">
-            <h3 class="card-title">Ping Test ['.$protoBadge.' '.$host.':'.$port.']</h3>
+            <h3 class="card-title">Ping Test ['.$safeProto.' '.$safeHost.':'.$safePort.']</h3>
         	</div>
         	<div class="card-body">'.
-            "Mode : <b>".$protoBadge."</b> &nbsp; Host : ".$host."&nbsp;Port : ".$port."<br>".
+            "Mode : <b>".$safeProto."</b> &nbsp; Host : ".$safeHost."&nbsp;Port : ".$safePort."<br>".
             "<b class='text-green'>Ping OK</b><br>".
             '<span class="pointer btn bg-grey" onclick="closeX()"><i class="fa fa-close text-red "></i> Close</span>'.
 			'</div>

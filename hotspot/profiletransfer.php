@@ -6,6 +6,9 @@
  *  2. Specific Batch Comment -> Destination Profile
  *  3. Selected Individual Users -> Destination Profile
  */
+require_once dirname(__DIR__) . '/include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
@@ -30,9 +33,32 @@ if (!isset($_SESSION['mikhmon']) || $session === '' || !canAccessRouterSession($
   exit(transferText('Access denied'));
 }
 
+if ((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) ||
+    (isset($_SESSION['mikhmon_last_activity']) && (time() - (int)$_SESSION['mikhmon_last_activity']) > 300)) {
+  $_SESSION = array();
+  @session_unset();
+  @session_destroy();
+  ngwClearSessionCookie();
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    http_response_code(401);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array('error' => transferText('Session expired. Sign in again.')));
+    exit;
+  }
+  http_response_code(401);
+  exit(transferText('Session expired. Sign in again.'));
+}
+
 if (!hasResellerPermission('same_router_profile_transfer') && !hasResellerPermission('transfer_users_access') && !hasResellerPermission('edit_user') && !hasResellerPermission('generate_voucher') && !hasResellerPermission('add_user') && !hasResellerPermission('export_users')) {
   http_response_code(403);
   exit(transferText('Access denied'));
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  $_SESSION['mikhmon_last_activity'] = time();
+  if (function_exists('ngwRegisterOrTouchActiveSession')) {
+    ngwRegisterOrTouchActiveSession();
+  }
 }
 
 if (empty($_SESSION['transfer_csrf'])) {

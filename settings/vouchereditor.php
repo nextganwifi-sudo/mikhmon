@@ -8,12 +8,17 @@
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
  */
-session_start();
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+	@session_start();
+}
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
 	header("Location:../admin.php?id=login");
 	exit;
 }
+$editorCsrfToken = ngwCsrfToken('ngw_editor_csrf');
 
 // Load router configuration and access control before resolving a preview session.
 $session = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
@@ -89,6 +94,11 @@ if ($telplate == "thermal") {
 
 $editorMsg = '';
 $editorErr = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_editor_csrf')) {
+	$editorErr = 'Security token expired or invalid. Reload this page and try again.';
+	unset($_POST['reset_to_default'], $_POST['upload_logo'], $_POST['remove_logo'], $_POST['save']);
+}
 
 // ============================================================================
 // 1. ACTION HANDLER: RESET TO SYSTEM DEFAULT (TEMPLATE & LOGO)
@@ -202,8 +212,9 @@ elseif (isset($_POST['remove_logo'])) {
 		$targetReseller = findResellerByIdOrUsername($targetResId);
 		$editorMsg = 'Custom logo removed. Reverted to default system logo.';
 	} else {
-		if (!empty($session) && is_file('./img/logo-' . $session . '.png')) {
-			@unlink('./img/logo-' . $session . '.png');
+		$safeSess = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
+		if ($safeSess !== '' && is_file('./img/logo-' . $safeSess . '.png')) {
+			@unlink('./img/logo-' . $safeSess . '.png');
 			$editorMsg = 'Session logo removed. Reverted to global default logo.';
 		} else {
 			$editorMsg = 'Using global default logo.';
@@ -275,8 +286,11 @@ if ($targetResId !== '') {
 	} elseif (is_file('./uploads/reseller-templates/' . $targetResId . '/logo.png')) {
 		$hasCustomLogo = true;
 	}
-} elseif (!empty($session) && is_file('./img/logo-' . $session . '.png')) {
-	$hasCustomLogo = true;
+} elseif (!empty($session)) {
+	$safeSessCheck = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
+	if ($safeSessCheck !== '' && is_file('./img/logo-' . $safeSessCheck . '.png')) {
+		$hasCustomLogo = true;
+	}
 }
 ?>
 
@@ -340,6 +354,7 @@ textarea {
 
 				<!-- Top Action Toolbar -->
 				<form autocomplete="off" method="post" action="" enctype="multipart/form-data">
+					<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($editorCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 					<table class="table" style="margin-bottom:10px;">
 						<tr>
 							<td style="padding:4px 0;">
@@ -426,6 +441,7 @@ textarea {
 				</div>
 
 				<form autocomplete="off" method="post" action="" enctype="multipart/form-data">
+					<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($editorCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 					<div style="margin-bottom:8px;">
 						<input type="file" name="voucher_logo" accept="image/png,image/jpeg,image/webp" style="font-size:11px; width:100%; padding:4px;" required>
 						<span style="font-size:10px; color:#888;"><?= $isBn ? 'PNG, JPG, বা WebP (সর্বোচ্চ ২ MB)' : 'PNG, JPG, or WebP (Max 2MB)'; ?></span>

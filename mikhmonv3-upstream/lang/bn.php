@@ -400,4 +400,6 @@ $_remote_address_pool = "রিমোট অ্যাড্রেস / আইপ
 $_speed_limit_rx_tx = "স্পিড লিমিট (Rx/Tx)";
 $_auto_create_pool = "অটো প্রাইভেট আইপি পুল তৈরি করুন";
 $_disconnect_session = "ডিসকানেক্ট";
+$_main_menu_label = "মেইন মেনু";
+$_back_btn_label = "ফিরুন";
 ?>

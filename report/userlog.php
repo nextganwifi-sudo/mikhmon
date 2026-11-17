@@ -208,7 +208,7 @@ if (!isset($_SESSION["mikhmon"])) {
 				</thead>
 				<tbody>
 				<?php
-			$TotalReg = count($ARRAY);
+			$TotalReg = (isset($ARRAY) && is_array($ARRAY)) ? count($ARRAY) : 0;
 
 			for ($i = 0; $i < $TotalReg; $i++) {
 				$regtable = $ARRAY[$i];

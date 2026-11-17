@@ -8,7 +8,11 @@
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
  */
-session_start();
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    @session_start();
+}
 error_reporting(0);
 
 if (!isset($_SESSION["mikhmon"])) {
@@ -17,6 +21,7 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 
 include_once('./include/reseller_acl.php');
+$resellerCsrf = ngwCsrfToken('ngw_resellers_csrf');
 
 if (!isMikhmonAdmin()) {
     $thm = isset($_SESSION['theme']) && $_SESSION['theme'] !== '' ? $_SESSION['theme'] : 'dark';
@@ -36,78 +41,103 @@ $activeView = isset($_GET['view']) && $_GET['view'] === 'groups' ? 'groups' : 'r
 
 // 1-Click Login as Reseller (Admin Impersonation)
 if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
-    $targetResellerId = trim((string)$_GET['login-as-reseller']);
-    $targetReseller = findResellerByIdOrUsername($targetResellerId);
-    if ($targetReseller) {
-        @session_start();
-        $adminUsername = isset($_SESSION['mikhmon']) ? $_SESSION['mikhmon'] : $useradm;
-        $_SESSION['mikhmon_impersonator_admin'] = $adminUsername;
-        $effectivePerms = resolveEffectiveResellerPermissions($targetReseller);
-        $_SESSION["mikhmon"] = $targetReseller['username'];
-        $_SESSION["mikhmon_role"] = 'reseller';
-        $_SESSION["mikhmon_reseller_id"] = (string)$targetReseller['id'];
-        $_SESSION["mikhmon_permission_mode"] = isset($targetReseller['permission_mode']) ? $targetReseller['permission_mode'] : 'Custom';
-        $_SESSION["mikhmon_template_code"] = isset($targetReseller['template_code']) ? $targetReseller['template_code'] : 'NGW-001';
-        $_SESSION["mikhmon_assigned_template"] = isset($targetReseller['assigned_template']) ? $targetReseller['assigned_template'] : 'default';
-        $_SESSION["mikhmon_logo_filename"] = isset($targetReseller['logo_filename']) ? $targetReseller['logo_filename'] : '';
-        $_SESSION["mikhmon_routers"] = isset($targetReseller['allowed_routers']) && is_array($targetReseller['allowed_routers']) ? $targetReseller['allowed_routers'] : array();
-        $_SESSION["mikhmon_permissions"] = $effectivePerms;
-        $_SESSION["mikhmon_last_activity"] = time();
-        $_SESSION["mikhmon_login_handshake"] = 1;
-        unset($_SESSION['lang']);
-        if (function_exists('ngwResolveCurrentUserLang')) {
-            $GLOBALS['langid'] = ngwResolveCurrentUserLang();
+    if (!ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload and try again.') . "</div>";
+    } else {
+        $targetResellerId = trim((string)$_GET['login-as-reseller']);
+        $targetReseller = findResellerByIdOrUsername($targetResellerId);
+        if ($targetReseller) {
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                @session_start();
+            }
+            $adminUsername = isset($_SESSION['mikhmon']) ? $_SESSION['mikhmon'] : $useradm;
+            $oldTok = isset($_SESSION['ngw_session_token']) ? (string)$_SESSION['ngw_session_token'] : '';
+            ngwRegenerateAuthenticatedSession($oldTok);
+            $_SESSION['mikhmon_impersonator_admin'] = $adminUsername;
+            $effectivePerms = resolveEffectiveResellerPermissions($targetReseller);
+            $_SESSION["mikhmon"] = $targetReseller['username'];
+            $_SESSION["mikhmon_role"] = 'reseller';
+            $_SESSION["mikhmon_reseller_id"] = (string)$targetReseller['id'];
+            $_SESSION["mikhmon_permission_mode"] = isset($targetReseller['permission_mode']) ? $targetReseller['permission_mode'] : 'Custom';
+            $_SESSION["mikhmon_template_code"] = isset($targetReseller['template_code']) ? $targetReseller['template_code'] : 'NGW-001';
+            $_SESSION["mikhmon_assigned_template"] = isset($targetReseller['assigned_template']) ? $targetReseller['assigned_template'] : 'default';
+            $_SESSION["mikhmon_logo_filename"] = isset($targetReseller['logo_filename']) ? $targetReseller['logo_filename'] : '';
+            $_SESSION["mikhmon_routers"] = isset($targetReseller['allowed_routers']) && is_array($targetReseller['allowed_routers']) ? $targetReseller['allowed_routers'] : array();
+            $_SESSION["mikhmon_permissions"] = $effectivePerms;
+            $_SESSION["mikhmon_last_activity"] = time();
+            $_SESSION["mikhmon_login_handshake"] = 1;
+            unset($_SESSION['lang']);
+            if (function_exists('ngwResolveCurrentUserLang')) {
+                $GLOBALS['langid'] = ngwResolveCurrentUserLang();
+            }
+            if (function_exists('ngwResolveCurrentUserTheme')) {
+                ngwResolveCurrentUserTheme();
+            }
+            ngwRegisterOrTouchActiveSession(array(
+                'is_new_login' => true,
+                'page_label' => 'Reseller Session',
+            ));
+            ngwRecordActivity('reseller_impersonation', array('target' => $targetReseller['username']));
+            $isResetOnly = isResetOnlyReseller();
+            $allowedR = $_SESSION["mikhmon_routers"];
+            session_write_close();
+            if ($isResetOnly) {
+                $firstR = !empty($allowedR) ? $allowedR[0] : '';
+                $redir = $firstR !== '' ? './admin.php?id=reset-voucher&session=' . urlencode($firstR) : './admin.php?id=reset-voucher';
+            } elseif (!empty($session) && in_array($session, $allowedR, true)) {
+                $redir = getResellerDefaultFallbackUrl($session);
+            } else {
+                $redir = './admin.php?id=sessions';
+            }
+            echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location=" . json_encode($redir, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ";</script>";
+            exit;
         }
-        if (function_exists('ngwResolveCurrentUserTheme')) {
-            ngwResolveCurrentUserTheme();
-        }
-        ngwRecordActivity('reseller_impersonation', array('target' => $targetReseller['username']));
-        $isResetOnly = isResetOnlyReseller();
-        $allowedR = $_SESSION["mikhmon_routers"];
-        session_write_close();
-        if ($isResetOnly) {
-            $firstR = !empty($allowedR) ? $allowedR[0] : '';
-            $redir = $firstR !== '' ? './admin.php?id=reset-voucher&session=' . urlencode($firstR) : './admin.php?id=reset-voucher';
-        } elseif (!empty($session) && in_array($session, $allowedR, true)) {
-            $redir = getResellerDefaultFallbackUrl($session);
-        } else {
-            $redir = './admin.php?id=sessions';
-        }
-        echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='" . $redir . "';</script>";
-        exit;
     }
 }
 
 // Toggle active / disabled
 if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
-    $tid = $_GET['toggle-reseller'];
-    $statusChanged = '';
-    foreach ($resellers as $idx => $r) {
-        if ((string)$r['id'] === (string)$tid) {
-            $resellers[$idx]['status'] = ($r['status'] === 'active') ? 'disabled' : 'active';
-            $statusChanged = $resellers[$idx]['status'];
-            break;
+    if (!ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload and try again.') . "</div>";
+    } else {
+        $tid = $_GET['toggle-reseller'];
+        $statusChanged = '';
+        foreach ($resellers as $idx => $r) {
+            if ((string)$r['id'] === (string)$tid) {
+                $resellers[$idx]['status'] = ($r['status'] === 'active') ? 'disabled' : 'active';
+                $statusChanged = $resellers[$idx]['status'];
+                break;
+            }
         }
+        saveResellers($resellers);
+        if ($statusChanged !== '') ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $statusChanged));
+        echo "<script>window.location=" . json_encode($baseResellerUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
+        exit;
     }
-    saveResellers($resellers);
-    if ($statusChanged !== '') ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $statusChanged));
-    echo "<script>window.location='" . $baseResellerUrl . "'</script>";
-    exit;
 }
 
 // Delete reseller
 if (isset($_GET['remove-reseller']) && $_GET['remove-reseller'] !== '') {
-    $rid = $_GET['remove-reseller'];
-    $filtered = array();
-    foreach ($resellers as $r) {
-        if ((string)$r['id'] !== (string)$rid) {
-            $filtered[] = $r;
+    if (!ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload and try again.') . "</div>";
+    } else {
+        $rid = $_GET['remove-reseller'];
+        $filtered = array();
+        foreach ($resellers as $r) {
+            if ((string)$r['id'] !== (string)$rid) {
+                $filtered[] = $r;
+            }
         }
+        saveResellers($filtered);
+        ngwRecordActivity('reseller_deleted', array('target' => $rid));
+        echo "<script>window.location=" . json_encode($baseResellerUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
+        exit;
     }
-    saveResellers($filtered);
-    ngwRecordActivity('reseller_deleted', array('target' => $rid));
-    echo "<script>window.location='" . $baseResellerUrl . "'</script>";
-    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_resellers_csrf')) {
+    $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেনের মেয়াদ শেষ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload this page and try again.') . "</div>";
+    unset($_POST['save_permission_groups'], $_POST['reset_permission_groups'], $_POST['save_reseller']);
 }
 
 // Save Permission Groups (Read / Write / Full / Reset Voucher)
@@ -1196,6 +1226,7 @@ function closeResellerDetailsModal() {
           </div>
           <div class="card-body">
             <form method="post" action="<?= $baseResellerUrl ?>&view=groups">
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($resellerCsrf, ENT_QUOTES, 'UTF-8'); ?>">
               <div class="ngw-pg-toolbar">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                   <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
@@ -1371,11 +1402,11 @@ function closeResellerDetailsModal() {
                                 <a href="javascript:void(0)" onclick="openEditResellerModal('<?= htmlspecialchars($rId, ENT_QUOTES); ?>')">
                                   <i class="fa fa-edit text-primary"></i> <?= htmlspecialchars($_edit); ?>
                                 </a>
-                                <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($rId); ?>">
+                                <a href="<?= $baseResellerUrl ?>&toggle-reseller=<?= urlencode($rId); ?>&csrf=<?= urlencode($resellerCsrf); ?>">
                                   <i class="fa <?= $r['status'] === 'active' ? 'fa-lock text-warning' : 'fa-unlock text-green'; ?>"></i> <?= $r['status'] === 'active' ? ($isBn ? 'নিষ্ক্রিয় করুন' : 'Deactivate') : ($isBn ? 'সক্রিয় করুন' : 'Activate'); ?>
                                 </a>
                                 <?php $delResMsg = ($isBn ? 'আপনি কি নিশ্চিতভাবে এই রিসেলার মুছে ফেলতে চান: ' : 'Are you sure you want to delete reseller ') . $r['username'] . '?'; ?>
-                                <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delResMsg); ?>)){window.location="<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>";}'>
+                                <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delResMsg); ?>)){window.location="<?= $baseResellerUrl ?>&remove-reseller=<?= urlencode($rId); ?>&csrf=<?= urlencode($resellerCsrf); ?>";}'>
                                   <i class="fa fa-trash text-danger"></i> <?= htmlspecialchars($_delete); ?>
                                 </a>
                               </div>
@@ -1385,7 +1416,7 @@ function closeResellerDetailsModal() {
                           <td><?= htmlspecialchars($r['name']); ?></td>
                           <td><span class="ngw-mode-chip"><?= htmlspecialchars($rModeBadge); ?></span></td>
                           <td class="text-center">
-                            <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>" class="btn bg-green pd-2p5 radius-3 ngw-login-btn" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
+                            <a href="<?= $baseResellerUrl ?>&login-as-reseller=<?= urlencode($rId); ?>&csrf=<?= urlencode($resellerCsrf); ?>" class="btn bg-green pd-2p5 radius-3 ngw-login-btn" title="<?= htmlspecialchars((isset($_login_as_reseller_tip) ? $_login_as_reseller_tip : 'Login as Reseller') . ': ' . $r['username']); ?>">
                               <i class="fa fa-sign-in"></i> <?= htmlspecialchars(isset($_login_btn_short) ? $_login_btn_short : 'Login'); ?>
                             </a>
                           </td>
@@ -1414,6 +1445,7 @@ function closeResellerDetailsModal() {
     </div>
     <div class="card-body">
       <form autocomplete="off" method="post" action="<?= $baseResellerUrl ?>">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($resellerCsrf, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="reseller_id" id="f_reseller_id" value="">
         <table class="table table-sm">
           <tr>

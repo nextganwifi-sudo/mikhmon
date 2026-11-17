@@ -15,6 +15,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 
 error_reporting(0);
@@ -23,17 +26,21 @@ ob_start("ob_gzhandler");
 
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
+  exit;
 } else {
   
   date_default_timezone_set($_SESSION['timezone']);
   
 // load session MikroTik
-  $session = $_GET['session'];
+  $session = isset($_GET['session']) ? (string)$_GET['session'] : '';
   include_once('../include/reseller_acl.php');
+  enforceMikhmonSessionSecurity(false);
   if (!canAccessRouterSession($session) || !hasResellerPermission('print_voucher')) {
+    session_write_close();
     echo "Access Denied: You do not have permission to print vouchers for this router session.";
     exit;
   }
+  session_write_close();
 
 // load config
   include('../include/config.php');
@@ -126,7 +133,7 @@ if (!isset($_SESSION["mikhmon"])) {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Voucher-<?= $hotspotname . "-" . $getuprofile . "-" . $id; ?></title>
+		<title>Voucher-<?= htmlspecialchars((string)$hotspotname . "-" . $getuprofile . "-" . $id, ENT_QUOTES, 'UTF-8'); ?></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<meta http-equiv="pragma" content="no-cache" />
 		<link rel="icon" type="image/png" href="../img/favicon.png?v=nextgan" />
@@ -194,15 +201,19 @@ table.voucher {
   }
   
   $urilogin = "http://$dnsname/login?username=$username&password=$password";
+  $safeUid = preg_replace('/[^a-zA-Z0-9_]/', '_', $uid);
   $qrcode = "
-	<canvas class='qrcode' id='".$uid."'></canvas>
+	<canvas class='qrcode' id='".$safeUid."'></canvas>
     <script>
       (function() {
-        var ".$uid." = new QRious({
-          element: document.getElementById('".$uid."'),
-          value: '".$urilogin."',
-          size:'256'
-        });
+        var qrEl = document.getElementById(".json_encode($safeUid).");
+        if (qrEl) {
+          new QRious({
+            element: qrEl,
+            value: ".json_encode($urilogin, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT).",
+            size:'256'
+          });
+        }
 
       })();
     </script>

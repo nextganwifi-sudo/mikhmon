@@ -86,16 +86,17 @@ if (!isset($_SESSION["mikhmon"])) {
       $allResellersList = $isAdminUser ? loadResellers() : array();
       $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> ' . ($isBnEarly ? 'রিসেলারের কাস্টম লোগো মুছে ফেলা হয়েছে। ডিফল্ট সেশন/গ্লোবাল লোগো ব্যবহৃত হচ্ছে।' : 'Reseller custom logo removed. Reverting to default session/global logo.') . '</div>';
     }
-  } else {
+  } elseif ($isAdminUser) {
     // Administrator session/global logo upload handler (img/logo-{session}.png)
     if (isset($_POST["submit"]) && isset($_FILES["UploadLogo"])) {
       $logo_dir = "./img/";
+      $cleanSession = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
       $uploadedName = basename($_FILES["UploadLogo"]["name"]);
       // Automatically normalize filename to logo-{session}.png if another image name was selected
-      if (substr($uploadedName, 0, 5) === "logo-" && strtolower(substr($uploadedName, -4)) === ".png") {
+      if (preg_match('/^logo-[a-zA-Z0-9_\-]+\.png$/i', $uploadedName)) {
         $finalLogoName = $uploadedName;
       } else {
-        $finalLogoName = "logo-" . $session . ".png";
+        $finalLogoName = "logo-" . ($cleanSession !== '' ? $cleanSession : 'default') . ".png";
       }
       $logo_file = $logo_dir . $finalLogoName;
       $uploadOk = 1;
@@ -151,7 +152,7 @@ if (!isset($_SESSION["mikhmon"])) {
             <span style="font-size:12px; margin-left:8px; padding:2px 8px; border-radius:3px; background:#1f6feb; color:#fff;">
               <?= $isBn ? 'রিসেলার' : 'Reseller'; ?> #<?= htmlspecialchars($targetReseller['id']); ?> | <?= htmlspecialchars($targetReseller['name']); ?> (<?= htmlspecialchars($targetReseller['template_code']); ?>)
             </span>
-          <?php } else { ?>
+          <?php } elseif ($isAdminUser) { ?>
             <span style="font-size:12px; margin-left:8px; padding:2px 8px; border-radius:3px; background:#2ea043; color:#fff;">
               <?= $isBn ? 'গ্লোবাল / রাউটার সেশন' : 'Global / Router Session'; ?> (logo-<?= htmlspecialchars($session); ?>.png)
             </span>
@@ -260,7 +261,7 @@ if (!isset($_SESSION["mikhmon"])) {
           </tr>
         </tbody>
       </table>
-      <?php } else { ?>
+      <?php } elseif ($isAdminUser) { ?>
       <table class="table table-bordered table-hover">
         <thead>
         <tr>
@@ -282,10 +283,11 @@ if (!isset($_SESSION["mikhmon"])) {
                   substr($file, -4) == ".bak") {
                 } else { ?>
               <tr>
-                <td><a href="javascript:window.open('./img/<?= $file; ?>','_blank','width=300,height=300')"><img height="30px" src="./img/<?= $file; ?>?t=<?= time(); ?>" title="Open <?= $file; ?>"></a><br><span><?= $file; ?></span></td>
+                <?php $safeLogoFile = htmlspecialchars($file, ENT_QUOTES, 'UTF-8'); $logoDelCsrf = ngwCsrfToken('ngw_admin_csrf'); ?>
+                <td><a href="javascript:window.open('./img/<?= rawurlencode($file); ?>','_blank','width=300,height=300')"><img height="30px" src="./img/<?= rawurlencode($file); ?>?t=<?= time(); ?>" title="Open <?= $safeLogoFile; ?>"></a><br><span><?= $safeLogoFile; ?></span></td>
                 <td>
                   <?php $delLogoMsg = $isBn ? ($file . ' মুছে ফেলতে নিশ্চিত?') : ('Sure to delete ' . $file . ' ?'); ?>
-                  <a class="btn bg-danger" href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delLogoMsg); ?>)){window.location="./admin.php?id=remove-logo&logo=<?= urlencode($file); ?>&session=<?= urlencode($session); ?>"}else{}'><i class="fa fa-trash"></i> <?= $_delete ?></a>
+                  <a class="btn bg-danger" href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delLogoMsg); ?>)){window.location="./admin.php?id=remove-logo&logo=<?= urlencode($file); ?>&session=<?= urlencode($session); ?>&csrf=<?= urlencode($logoDelCsrf); ?>"}else{}'><i class="fa fa-trash"></i> <?= $_delete ?></a>
                 </td>
               </tr>
           <?php 

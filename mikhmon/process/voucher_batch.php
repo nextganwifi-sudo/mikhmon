@@ -1,9 +1,10 @@
 <?php
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 error_reporting(0);
 header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store');
-require_once __DIR__ . '/../include/security.php';
 require_once __DIR__ . '/../include/reseller_acl.php';
 require_once __DIR__ . '/../include/voucher_batch.php';
 
@@ -15,8 +16,13 @@ function voucherBatchReply($data, $status = 200) {
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { voucherBatchReply(array('error'=>'POST required'), 405); }
 if (!isset($_SESSION['mikhmon'])) { voucherBatchReply(array('error'=>'Please sign in again.', 'retryable'=>false), 401); }
-// Background steps count as activity, but cannot revive an already expired login.
-if (isset($_SESSION['mikhmon_last_activity']) && time() - (int)$_SESSION['mikhmon_last_activity'] > 300) {
+// Background steps count as activity, but cannot revive an already expired or revoked login.
+if ((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) ||
+    (isset($_SESSION['mikhmon_last_activity']) && time() - (int)$_SESSION['mikhmon_last_activity'] > 300)) {
+    $_SESSION = array();
+    @session_unset();
+    @session_destroy();
+    ngwClearSessionCookie();
     voucherBatchReply(array('error'=>'Your session expired. Please sign in again.', 'retryable'=>false), 401);
 }
 $router = isset($_POST['router']) && is_string($_POST['router']) ? $_POST['router'] : '';

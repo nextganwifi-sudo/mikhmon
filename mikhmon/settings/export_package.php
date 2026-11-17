@@ -4,6 +4,9 @@
  * Bundles the standalone server + portable php/ runtime + live web files
  * so the user can simply Extract -> launch server -> Click Open!
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 error_reporting(0);
 @ini_set('memory_limit', '512M');
@@ -11,11 +14,13 @@ error_reporting(0);
 
 include_once('../include/reseller_acl.php');
 
-if (!isset($_SESSION["mikhmon"]) || !isMikhmonAdmin()) {
+if (!isset($_SESSION["mikhmon"]) || (function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) || !isMikhmonAdmin()) {
+    session_write_close();
     header("HTTP/1.1 403 Forbidden");
     echo "Access Denied: Only Super Administrator can export the NextGen WiFi Solution Server package.";
     exit;
 }
+session_write_close();
 
 /**
  * Pure-PHP ZIP Archive Builder (works on PHP 5.4, 7.x, and 8.x without requiring php_zip.dll)

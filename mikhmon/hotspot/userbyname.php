@@ -89,10 +89,17 @@ if (!isset($_SESSION["mikhmon"])) {
   $liveActiveRow = (is_array($liveActiveCheck) && !empty($liveActiveCheck[0]['.id'])) ? $liveActiveCheck[0] : null;
   $isOnlineUser = ($liveActiveRow !== null);
   $historyRec = ngwRecordSingleVoucherSnapshot($session, $userdetails, $liveActiveRow, $routerNowTs);
-  $uDeviceIp = ($liveActiveRow && !empty($liveActiveRow['address'])) ? $liveActiveRow['address'] : (!empty($historyRec['ip']) ? $historyRec['ip'] : '');
-  $uDeviceMac = ($umac !== '' && $umac !== '00:00:00:00:00:00') ? $umac : (!empty($historyRec['mac']) ? $historyRec['mac'] : '');
-  $uDeviceInfo = ngwResolveVoucherDeviceInfo($API, $session, $uname, $uDeviceMac, $uDeviceIp, $historyRec);
-  $uHasAnyConn = ((int)$ubytesin > 0 || (int)$ubytesout > 0 || ($uDeviceMac !== '' && $uDeviceMac !== '00:00:00:00:00:00') || $isOnlineUser);
+  $hasLiveUserMac = ($umac !== '' && $umac !== '00:00:00:00:00:00');
+  $isPendingResetUser = (!empty($historyRec['reset_at_ts']) && !$isOnlineUser && !$hasLiveUserMac && (int)$ubytesin === 0 && (int)$ubytesout === 0);
+  if ($isPendingResetUser) {
+    $uDeviceInfo = array('vendor' => '', 'model' => '', 'device_type' => '', 'hostname' => '', 'class_id' => '', 'is_random_mac' => false, 'source' => '');
+    $uHasAnyConn = false;
+  } else {
+    $uDeviceIp = ($liveActiveRow && !empty($liveActiveRow['address'])) ? $liveActiveRow['address'] : (!empty($historyRec['ip']) ? $historyRec['ip'] : '');
+    $uDeviceMac = $hasLiveUserMac ? $umac : (!empty($historyRec['mac']) ? $historyRec['mac'] : '');
+    $uDeviceInfo = ngwResolveVoucherDeviceInfo($API, $session, $uname, $uDeviceMac, $uDeviceIp, $historyRec);
+    $uHasAnyConn = ((int)$ubytesin > 0 || (int)$ubytesout > 0 || ($uDeviceMac !== '' && $uDeviceMac !== '00:00:00:00:00:00') || $isOnlineUser);
+  }
   $uDeviceVendorHtml = ngwRenderDeviceVendorHtml($uDeviceInfo, $langid, $uHasAnyConn);
 
   $parsedComment = parseExpiryFromComment($ucomment);
@@ -414,7 +421,7 @@ include('./voucher/printbt.php');
   echo $userver;
 } ?></option>
 				<option>all</option>
-				<?php $TotalReg = count($srvlist);
+				<?php $TotalReg = is_array($srvlist) ? count($srvlist) : 0;
     for ($i = 0; $i < $TotalReg; $i++) {
       echo "<option>" . $srvlist[$i]['name'] . "</option>";
     }
@@ -443,7 +450,7 @@ include('./voucher/printbt.php');
     <td class="align-middle"><?= $_profile ?></td><td>
 			<select class="form-control" name="profile" required="1">
 				<option><?= $uprofile; ?></option>
-				<?php $TotalReg = count($getprofile);
+				<?php $TotalReg = is_array($getprofile) ? count($getprofile) : 0;
     for ($i = 0; $i < $TotalReg; $i++) {
       echo "<option>" . $getprofile[$i]['name'] . "</option>";
     }

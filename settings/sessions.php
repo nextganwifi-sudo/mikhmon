@@ -93,9 +93,10 @@ if (!isset($_SESSION["mikhmon"])) {
                         <span class="connect pointer" id="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
                         <?php if (hasResellerPermission('manage_router_settings')) { 
                           $delSessionMsg = ($langid === 'bn' ? 'আপনি কি নিশ্চিত যে এই রাউটার সেশন ডিলিট করতে চান: ' : 'Are you sure to delete data ') . $value . ' (' . $hsName . ')?';
+                          $adminDelCsrf = function_exists('ngwCsrfToken') ? ngwCsrfToken('ngw_admin_csrf') : '';
                         ?>
                         <a href="./admin.php?id=settings&session=<?= rawurlencode($value); ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
-                        <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delSessionMsg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)){window.location.href="./admin.php?id=remove-session&session=<?= rawurlencode($value); ?>";}else{}'><i class="fa fa-remove"></i> <?= $_delete ?></a>
+                        <a href="javascript:void(0)" onclick='if(confirm(<?= json_encode($delSessionMsg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)){window.location.href="./admin.php?id=remove-session&session=<?= rawurlencode($value); ?>&csrf=<?= rawurlencode($adminDelCsrf); ?>";}else{}'><i class="fa fa-remove"></i> <?= $_delete ?></a>
                         <?php } ?>
                       </span>
                     </div>

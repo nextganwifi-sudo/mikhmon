@@ -1,4 +1,7 @@
 <?php
+require_once dirname(__DIR__) . '/include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start(); error_reporting(0);
 chdir(dirname(__DIR__));
 require_once './include/reseller_acl.php';
@@ -13,8 +16,25 @@ $canTransferAccess = hasResellerPermission('transfer_users_access') || hasResell
 if(!isset($_SESSION['mikhmon'])||!canAccessRouterSession($session)||!$canTransferAccess) { http_response_code(403);exit(transferText('Access denied')); }
 if(empty($_SESSION['transfer_csrf']))$_SESSION['transfer_csrf']=bin2hex(random_bytes(32));
 $csrf=$_SESSION['transfer_csrf'];
-if(isset($_SESSION['mikhmon_last_activity'])&&time()-(int)$_SESSION['mikhmon_last_activity']>600){http_response_code(401);exit(transferText('Session expired. Sign in again.'));}
-function transferReply($value,$status=200){http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');session_write_close();if(isset($value['error']))$value['error']=transferText($value['error']);if(isset($value['message']))$value['message']=transferText($value['message']);echo json_encode($value);exit;}
+if((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) || (isset($_SESSION['mikhmon_last_activity'])&&time()-(int)$_SESSION['mikhmon_last_activity']>300)){
+    $_SESSION = array();
+    @session_unset();
+    @session_destroy();
+    ngwClearSessionCookie();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(array('error' => transferText('Session expired. Sign in again.')));
+        exit;
+    }
+    http_response_code(401);
+    exit(transferText('Session expired. Sign in again.'));
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $_SESSION['mikhmon_last_activity'] = time();
+    if (function_exists('ngwRegisterOrTouchActiveSession')) { ngwRegisterOrTouchActiveSession(); }
+}
+function transferReply($value,$status=200){http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');session_write_close();if(isset($value['error']))$value['error']=transferText($value['error']);if(isset($value['message']))$value['message']=transferText($value['message']);echo json_encode($value);exit;}
 
 if($_SERVER['REQUEST_METHOD']==='POST') {
  try {

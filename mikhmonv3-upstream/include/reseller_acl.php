@@ -967,6 +967,9 @@ function enforceMikhmonSessionSecurity($isLoginOrLogout = false) {
         $_SESSION = array();
         @session_unset();
         @session_destroy();
+        if (function_exists('ngwClearSessionCookie')) {
+            ngwClearSessionCookie();
+        }
         echo "<script>try{sessionStorage.removeItem('ngw_tab_auth');sessionStorage.removeItem('ngw_last_act');}catch(e){} window.location='./admin.php?id=login&reason=force_logout';</script>";
         exit;
     }
@@ -985,6 +988,9 @@ function enforceMikhmonSessionSecurity($isLoginOrLogout = false) {
             $_SESSION = array();
             @session_unset();
             @session_destroy();
+            if (function_exists('ngwClearSessionCookie')) {
+                ngwClearSessionCookie();
+            }
             echo "<script>try{sessionStorage.removeItem('ngw_tab_auth');sessionStorage.removeItem('ngw_last_act');}catch(e){} window.location='./admin.php?id=login';</script>";
             exit;
         }
@@ -1381,7 +1387,12 @@ function syncActiveResellerSession() {
         $matchByUser = ($resId === '' && $uname !== '' && isset($r['username']) && $r['username'] === $uname);
         if ($matchById || $matchByLegacy || $matchByUser) {
             if (!isset($r['status']) || $r['status'] !== 'active') {
-                session_destroy();
+                $_SESSION = array();
+                @session_unset();
+                @session_destroy();
+                if (function_exists('ngwClearSessionCookie')) {
+                    ngwClearSessionCookie();
+                }
                 $GLOBALS['NGW_RESELLER_SYNCED'] = true;
                 $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = false;
                 return false;
@@ -1400,7 +1411,12 @@ function syncActiveResellerSession() {
             return true;
         }
     }
-    session_destroy();
+    $_SESSION = array();
+    @session_unset();
+    @session_destroy();
+    if (function_exists('ngwClearSessionCookie')) {
+        ngwClearSessionCookie();
+    }
     $GLOBALS['NGW_RESELLER_SYNCED'] = true;
     $GLOBALS['NGW_RESELLER_SYNC_RESULT'] = false;
     return false;

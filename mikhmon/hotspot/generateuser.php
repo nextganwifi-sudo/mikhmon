@@ -207,7 +207,7 @@ date_default_timezone_set($_SESSION['timezone']);
     <td>
 		<select class="form-control " name="server" required="1">
 			<option>all</option>
-				<?php $TotalReg = count($srvlist);
+				<?php $TotalReg = is_array($srvlist) ? count($srvlist) : 0;
 			for ($i = 0; $i < $TotalReg; $i++) {
 				echo "<option>" . $srvlist[$i]['name'] . "</option>";
 			}
@@ -262,7 +262,7 @@ date_default_timezone_set($_SESSION['timezone']);
 				echo "<option>" . $genprof . "</option>";
 			} else {
 			}
-			$TotalReg = count($getprofile);
+			$TotalReg = is_array($getprofile) ? count($getprofile) : 0;
 			for ($i = 0; $i < $TotalReg; $i++) {
 				echo "<option>" . $getprofile[$i]['name'] . "</option>";
 			}

@@ -15,18 +15,24 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 session_start();
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
 	header("Location:../admin.php?id=login");
+	exit;
 } else {
   
   // load session MikroTik
-  $session = $_GET['session'];
+  $session = isset($_GET['session']) ? (string)$_GET['session'] : '';
   include_once('../include/ros_version.php');
   include_once('../include/reseller_acl.php');
+  enforceMikhmonSessionSecurity(false);
   if (!canAccessRouterSession($session) || !hasResellerPermission('view_report')) {
+    session_write_close();
     echo "<script>alert('Access Denied');window.close();</script>";
     exit;
   }
@@ -73,8 +79,10 @@ if (!isset($_SESSION["mikhmon"])) {
 	}else{$fcomment = $fcomment;}
 
 	$gettimezone = $API->comm("/system/clock/print");
-	$timezone = $gettimezone[0]['time-zone-name'];
-	date_default_timezone_set($timezone);
+	$timezone = (is_array($gettimezone) && isset($gettimezone[0]['time-zone-name'])) ? trim((string)$gettimezone[0]['time-zone-name']) : '';
+	if ($timezone !== '') {
+		@date_default_timezone_set($timezone);
+	}
 
 	if ($pcomment == "!!"){
 		$fprefix = "-comment-[" . $fcomment . "]";
@@ -83,10 +91,11 @@ if (!isset($_SESSION["mikhmon"])) {
 	} else {
 		$fprefix = "";
 	}
+	$TotalReg = 0;
 	if (strlen($idhr) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
 			$getData = queryMikhmonReportScripts($API, $idhr, '');
-			$TotalReg = count($getData);
+			$TotalReg = is_array($getData) ? count($getData) : 0;
 		}
 		$filedownload = $idhr;
 		$shf = "hidden";
@@ -94,7 +103,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	} elseif (strlen($idbl) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
 			$getData = queryMikhmonReportScripts($API, '', $idbl);
-			$TotalReg = count($getData);
+			$TotalReg = is_array($getData) ? count($getData) : 0;
 		}
 		$filedownload = $idbl;
 		$shf = "hidden";
@@ -102,7 +111,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	} else {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
 			$getData = queryMikhmonReportScripts($API, '', '');
-			$TotalReg = count($getData);
+			$TotalReg = is_array($getData) ? count($getData) : 0;
 		}
 		$filedownload = "all";
 		$shf = "text";
@@ -114,10 +123,10 @@ if (!isset($_SESSION["mikhmon"])) {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>.:: NextGan WiFi Solution <?= $hotspotname; ?> ::.</title>
+		<title>.:: NextGan WiFi Solution <?= htmlspecialchars((string)$hotspotname, ENT_QUOTES, 'UTF-8'); ?> ::.</title>
 		<link rel="icon" type="image/png" href="../img/favicon.png?v=nextgan" />
 		<meta charset="utf-8">
-		<meta http-equiv="cache-control" content="private" />
+		<meta http-equiv="cache-control" content="no-store, no-cache, must-revalidate, private" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<!-- Tell the browser to be responsive to screen width -->
 		<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -209,11 +218,14 @@ function number_format(number, decimals, dec_point, thousands_sep) {
           
           var th = document.getElementById('total');
           
-    <?php if ($currency == in_array($currency, $cekindo['indo'])) {
-      echo 'th.innerHTML = "'.$currency.' " + number_format(th.innerHTML + (sum),"","",".") ;';
-		} else {
-			echo 'th.innerHTML = "'.$currency.' " + number_format(th.innerHTML + (sum),2,".",",") ;';
-		} ?>
+    <?php
+      $jsCurrency = json_encode((string)$currency, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+      if ($currency == in_array($currency, $cekindo['indo'])) {
+        echo 'th.innerHTML = '.$jsCurrency.' + " " + number_format(th.innerHTML + (sum),"","",".") ;';
+      } else {
+        echo 'th.innerHTML = '.$jsCurrency.' + " " + number_format(th.innerHTML + (sum),2,".",",") ;';
+      }
+    ?>
 		
 		var tables = document.getElementsByTagName('tbody');
     var table = tables[tables.length -1];
@@ -233,9 +245,9 @@ function number_format(number, decimals, dec_point, thousands_sep) {
 
 		  <div class="overflow box-bordered" style="max-height: 70vh">
 			<table id="dataTable" class="table table-bordered table-hover text-nowrap">
-				<thead><tr><th colspan="7"><?= "<h3>".$_selling_report."</h3>". $hotspotname ?></th></tr></thead>
+				<thead><tr><th colspan="7"><?= "<h3>".htmlspecialchars((string)$_selling_report, ENT_QUOTES, 'UTF-8')."</h3>". htmlspecialchars((string)$hotspotname, ENT_QUOTES, 'UTF-8') ?></th></tr></thead>
 				<tr>
-				  <th style="text-align:left;" colspan=5 ><?= $_selling_report ?> <?= $trange.$filedownload . $fprefix; ?><b style="font-size:0;">,,,</b></th>
+				  <th style="text-align:left;" colspan=5 ><?= htmlspecialchars((string)$_selling_report, ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars((string)($trange.$filedownload . $fprefix), ENT_QUOTES, 'UTF-8'); ?><b style="font-size:0;">,,,</b></th>
 				  <th style="text-align:right;"><?= $_total ?></th>
 				  <th style="text-align:right;" id="total"></th>
 				</tr>

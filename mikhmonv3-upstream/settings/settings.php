@@ -18,10 +18,17 @@
 
 // hide all error
 error_reporting(0);
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  @session_start();
+}
 
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
+  exit;
 } else {
+  $settingsCsrfToken = ngwCsrfToken('ngw_settings_csrf');
   if (is_file('./include/data_recovery.php')) {
     include_once('./include/data_recovery.php');
   }
@@ -63,6 +70,12 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
   if (isset($_POST['save'])) {
+    if (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_settings_csrf')) {
+      $csrfErrMsg = (isset($langid) && $langid === 'bn')
+        ? 'সিকিউরিটি টোকেন অবৈধ বা মেয়াদোত্তীর্ণ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
+        : 'Security token expired or invalid. Reload this page and try again.';
+      echo "<div class='alert alert-danger'>" . htmlspecialchars($csrfErrMsg, ENT_QUOTES, 'UTF-8') . "</div>";
+    } else {
     $raw_ipmik = preg_replace('/\s+/', '', isset($_POST['ipmik']) ? (string)$_POST['ipmik'] : '');
     $siphost = str_replace("'", '', $raw_ipmik);
     if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $siphost, $schemeMatch)) {
@@ -147,6 +160,7 @@ if (!isset($_SESSION["mikhmon"])) {
       echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
       exit;
     }
+    }
   }
   if ($currency == "") {
     $currency = "Tk";
@@ -190,7 +204,8 @@ if (!isset($_SESSION["mikhmon"])) {
 
 </script>
 
-<form autocomplete="off" method="post" action="" name="settings">  
+<form autocomplete="off" method="post" action="" name="settings">
+<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($settingsCsrfToken, ENT_QUOTES, 'UTF-8'); ?>"/>
 <div class="row">
 	<div class="col-12">
   		<div class="card" >
@@ -288,19 +303,19 @@ if (!isset($_SESSION["mikhmon"])) {
     <div class="card-body">    
 	<table class="table table-sm">
 	<tr>
-	<td class="align-middle"><?= $_hotspot_name ?>  </td><td><input class="form-control" type="text" size="15" maxlength="50" name="hotspotname" title="Hotspot Name" value="<?= $hotspotname; ?>" required="1"/></td>
+	<td class="align-middle"><?= $_hotspot_name ?>  </td><td><input class="form-control" type="text" size="15" maxlength="50" name="hotspotname" title="Hotspot Name" value="<?= htmlspecialchars($hotspotname, ENT_QUOTES, 'UTF-8'); ?>" required="1"/></td>
 	</tr>
 	<tr>
-	<td class="align-middle"><?= $_dns_name ?>  </td><td><input class="form-control" type="text" size="15" maxlength="500" name="dnsname" title="DNS Name [IP->Hotspot->Server Profiles->DNS Name]" value="<?= $dnsname; ?>" required="1"/></td>
+	<td class="align-middle"><?= $_dns_name ?>  </td><td><input class="form-control" type="text" size="15" maxlength="500" name="dnsname" title="DNS Name [IP->Hotspot->Server Profiles->DNS Name]" value="<?= htmlspecialchars($dnsname, ENT_QUOTES, 'UTF-8'); ?>" required="1"/></td>
 	</tr>
 	<tr>
-	<td class="align-middle"><?= $_currency ?>  </td><td><input class="form-control" type="text" size="3" maxlength="4" name="currency" title="currency" value="<?= $currency; ?>" required="1"/></td>
+	<td class="align-middle"><?= $_currency ?>  </td><td><input class="form-control" type="text" size="3" maxlength="4" name="currency" title="currency" value="<?= htmlspecialchars($currency, ENT_QUOTES, 'UTF-8'); ?>" required="1"/></td>
 	</tr>
 	<tr> 
 	<td class="align-middle"><?= $_auto_reload ?></td><td>
 	<div class="input-group">
 		<div class="input-group-10">
-        	<input class="group-item group-item-l" type="number" min="10" max="3600" name="areload" title="Auto Reload in sec [min 10]" value="<?= $areload; ?>" required="1"/>
+        	<input class="group-item group-item-l" type="number" min="10" max="3600" name="areload" title="Auto Reload in sec [min 10]" value="<?= htmlspecialchars($areload, ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
     	</div>
             <div class="input-group-2">
                 <span class="group-item group-item-r pd-2p5 text-center align-middle"><?= $_sec ?></span>
@@ -314,7 +329,7 @@ if (!isset($_SESSION["mikhmon"])) {
   <div class="input-group">
   <div class="input-group-9">
       <select class="group-item group-item-l" name="idleto" required="1">
-          <option value="<?= $idleto; ?>"><?= $idleto; ?></option>
+          <option value="<?= htmlspecialchars($idleto, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($idleto, ENT_QUOTES, 'UTF-8'); ?></option>
 				  <option value="5">5</option>
           <option value="10">10</option>
           <option value="30">30</option>
@@ -329,7 +344,7 @@ if (!isset($_SESSION["mikhmon"])) {
     </td>
 	</tr>
 	<tr>
-	<td class="align-middle"><?= $_traffic_interface ?></td><td><input class="form-control" type="number" min="1" max="99" name="iface" title="Traffic Interface" value="<?= $iface; ?>" required="1"/></td>
+	<td class="align-middle"><?= $_traffic_interface ?></td><td><input class="form-control" type="number" min="1" max="99" name="iface" title="Traffic Interface" value="<?= htmlspecialchars($iface, ENT_QUOTES, 'UTF-8'); ?>" required="1"/></td>
 	</tr>
   <?php if (empty($livereport)) {
   } else { ?>
@@ -337,7 +352,7 @@ if (!isset($_SESSION["mikhmon"])) {
     <td><?= $_live_report ?></td>
     <td>
       <select class="form-control" name="livereport" >
-          <option value="<?= $livereport; ?>"><?= ($livereport === 'enable') ? (isset($_enable) ? $_enable : 'Enable') : (isset($_disable) ? $_disable : 'Disable'); ?></option>
+          <option value="<?= htmlspecialchars($livereport, ENT_QUOTES, 'UTF-8'); ?>"><?= ($livereport === 'enable') ? (isset($_enable) ? $_enable : 'Enable') : (isset($_disable) ? $_disable : 'Disable'); ?></option>
 				  <option value="enable"><?= isset($_enable) ? $_enable : 'Enable' ?></option>
 				  <option value="disable"><?= isset($_disable) ? $_disable : 'Disable' ?></option>
 		  </select>

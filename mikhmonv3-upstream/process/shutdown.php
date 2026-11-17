@@ -48,6 +48,7 @@ if (!isset($_SESSION["mikhmon"])) {
       $_SESSION = array();
       @session_unset();
       @session_destroy();
+      ngwClearSessionCookie();
       echo "<script>window.location='./admin.php?id=login'</script>";
       exit;
     }

@@ -8,17 +8,30 @@
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
  */
-session_start();
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 error_reporting(0);
 
 if (!isset($_SESSION["mikhmon"])) {
     header("Location:../admin.php?id=login");
+    exit;
 } else {
-    include_once('../include/ros_version.php');
-    include_once('../include/reseller_acl.php');
+    include_once(__DIR__ . '/../include/ros_version.php');
+    include_once(__DIR__ . '/../include/reseller_acl.php');
 
-    if (!hasResellerPermission('manage_profiles')) {
-        echo "<b>Access Denied: Only Administrators can run existing-router profile migration.</b>";
+    $reqSession = isset($session) ? (string)$session : (isset($_GET['session']) ? (string)$_GET['session'] : '');
+    if (!isset($API) || !is_object($API) || $reqSession === '' || !canAccessRouterSession($reqSession)) {
+        http_response_code(403);
+        echo "<b>Access Denied: Invalid router session or missing access rights.</b>";
+        exit;
+    }
+
+    if (!isMikhmonAdmin() && !hasResellerPermission('edit_profile')) {
+        http_response_code(403);
+        echo "<b>Access Denied: Only authorized users can run existing-router profile migration.</b>";
         exit;
     }
 

@@ -6,7 +6,15 @@
  *  - Specific Profile ($prof != "all" && $prof != "") -> Only resets MACs of users in that profile
  *  - Show All ($prof == "all") -> Resets MACs of all Hotspot users
  */
-session_start();
+if (!isset($API) || !is_object($API)) {
+  http_response_code(403);
+  exit('Access denied.');
+}
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  session_start();
+}
 error_reporting(0);
 ini_set('max_execution_time', 300);
 

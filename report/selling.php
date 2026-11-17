@@ -41,8 +41,10 @@ if (!isset($_SESSION["mikhmon"])) {
 	include_once('./include/reseller_acl.php');
 
 	$gettimezone = $API->comm("/system/clock/print");
-	$timezone = $gettimezone[0]['time-zone-name'];
-	date_default_timezone_set($timezone);
+	$timezone = (is_array($gettimezone) && isset($gettimezone[0]['time-zone-name'])) ? trim((string)$gettimezone[0]['time-zone-name']) : '';
+	if ($timezone !== '') {
+		@date_default_timezone_set($timezone);
+	}
 
 	$apiReady = (!empty($API->connected) || $API->connect($iphost, $userhost, decrypt($passwdhost)));
 
@@ -65,10 +67,11 @@ if (!isset($_SESSION["mikhmon"])) {
 	} else {
 		$fprefix = "";
 	}
+	$TotalReg = 0;
 	if (strlen($idhr) > "0") {
 		if ($apiReady) {
 			$getData = queryMikhmonReportScripts($API, $idhr, '');
-			$TotalReg = count($getData);
+			$TotalReg = is_array($getData) ? count($getData) : 0;
 		}
 		$filedownload = $idhr;
 		$shf = "hidden";
@@ -76,7 +79,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	} elseif (strlen($idbl) > "0") {
 		if ($apiReady) {
 			$getData = queryMikhmonReportScripts($API, '', $idbl);
-			$TotalReg = count($getData);
+			$TotalReg = is_array($getData) ? count($getData) : 0;
 		}
 		$filedownload = $idbl;
 		$shf = "hidden";
@@ -84,7 +87,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	} elseif ($idhr == "" || $idbl == "") {
 		if ($apiReady) {
 			$getData = queryMikhmonReportScripts($API, '', '');
-			$TotalReg = count($getData);
+			$TotalReg = is_array($getData) ? count($getData) : 0;
 		}
 		$filedownload = "all";
 		$shf = "text";

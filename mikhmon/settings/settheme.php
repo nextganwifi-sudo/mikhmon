@@ -3,6 +3,8 @@
  *  Copyright (C) 2018 Laksamadi Guko.
  *  NextGan WiFi Solution — Per-User Theme Switcher
  */
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
@@ -18,16 +20,22 @@ $cleanUrl = rtrim($cleanUrl, '?&');
 
 if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUrl, -9) === 'admin.php' || substr($cleanUrl, -12) === 'settheme.php' || substr($cleanUrl, -1) === '/') {
     if (!empty($_SERVER['HTTP_REFERER'])) {
-        $refClean = preg_replace('/([?&])set-theme=[^&]*(&|$)/', '$1', (string)$_SERVER['HTTP_REFERER']);
-        $refClean = str_replace('?&', '?', $refClean);
-        $refClean = preg_replace('/&&+/', '&', $refClean);
-        $refClean = rtrim($refClean, '?&');
-        if ($refClean !== '') {
-            $cleanUrl = $refClean;
+        $refParts = @parse_url((string)$_SERVER['HTTP_REFERER']);
+        $reqHost = isset($_SERVER['HTTP_HOST']) ? strtolower(explode(':', (string)$_SERVER['HTTP_HOST'])[0]) : '';
+        $refHost = isset($refParts['host']) ? strtolower((string)$refParts['host']) : '';
+        if ($refHost === '' || ($reqHost !== '' && $refHost === $reqHost)) {
+            $refClean = (isset($refParts['path']) ? $refParts['path'] : '/') . (isset($refParts['query']) && $refParts['query'] !== '' ? ('?' . $refParts['query']) : '');
+            $refClean = preg_replace('/([?&])set-theme=[^&]*(&|$)/', '$1', $refClean);
+            $refClean = str_replace('?&', '?', $refClean);
+            $refClean = preg_replace('/&&+/', '&', $refClean);
+            $refClean = rtrim($refClean, '?&');
+            if ($refClean !== '') {
+                $cleanUrl = $refClean;
+            }
         }
     }
 }
-if (empty($cleanUrl)) {
+if (empty($cleanUrl) || preg_match('#^(?:https?:)?//#i', $cleanUrl)) {
     $cleanUrl = './admin.php?id=sessions';
 }
 $url2 = $cleanUrl;

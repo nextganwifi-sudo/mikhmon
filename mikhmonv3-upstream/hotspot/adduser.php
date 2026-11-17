@@ -154,7 +154,7 @@ if (!isset($_SESSION["mikhmon"])) {
     <td>
 			<select class="form-control" name="server" required="1">
 				<option>all</option>
-				<?php $TotalReg = count($srvlist);
+				<?php $TotalReg = is_array($srvlist) ? count($srvlist) : 0;
     for ($i = 0; $i < $TotalReg; $i++) {
       echo "<option>" . $srvlist[$i]['name'] . "</option>";
     }
@@ -182,7 +182,7 @@ if (!isset($_SESSION["mikhmon"])) {
   <tr>
     <td class="align-middle"><?= $_profile ?></td><td>
 			<select class="form-control" onchange="GetVP();"  id="uprof" name="profile" required="1">
-				<?php $TotalReg = count($getprofile);
+				<?php $TotalReg = is_array($getprofile) ? count($getprofile) : 0;
     for ($i = 0; $i < $TotalReg; $i++) {
       echo "<option>" . $getprofile[$i]['name'] . "</option>";
     }

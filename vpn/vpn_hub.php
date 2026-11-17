@@ -8,7 +8,11 @@
  *  - Manual WhatsApp Voice Call routing script generator and local service-device registry (ROS6 & ROS7)
  *  - Real-time Active VPN connections monitor
  */
-session_start();
+require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 error_reporting(0);
 
 if (!isset($_SESSION["mikhmon"])) {

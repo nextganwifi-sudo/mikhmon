@@ -4,16 +4,20 @@
  * Keep this file independent of RouterOS voucher/profile generation.
  */
 
+function ngwIsHttpsRequest() {
+    return (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ||
+        (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+}
+
 function ngwConfigureSecureSession() {
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
     }
-    ini_set('session.use_strict_mode', '0');
+    ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
     ini_set('session.cookie_httponly', '1');
 
-    $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ||
-        (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+    $isHttps = ngwIsHttpsRequest();
     $samesite = $isHttps ? 'None' : 'Lax';
     ini_set('session.cookie_samesite', $samesite);
 
@@ -38,6 +42,80 @@ function ngwConfigureSecureSession() {
     }
 }
 
+function ngwSendNoCacheHeaders() {
+    if (!headers_sent()) {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+        header('Pragma: no-cache');
+        header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+        header('Vary: Cookie');
+    }
+}
+
+function ngwClearSessionCookie() {
+    if (headers_sent()) {
+        return;
+    }
+    $isHttps = ngwIsHttpsRequest();
+    $samesite = $isHttps ? 'None' : 'Lax';
+    $params = session_get_cookie_params();
+    $path = (isset($params['path']) && $params['path'] !== '') ? $params['path'] : '/';
+    $domain = isset($params['domain']) ? $params['domain'] : '';
+    $sName = session_name();
+    if ($sName === '') {
+        $sName = 'PHPSESSID';
+    }
+    if (PHP_VERSION_ID >= 70300) {
+        @setcookie($sName, '', array(
+            'expires' => time() - 3600,
+            'path' => $path,
+            'domain' => $domain,
+            'secure' => $isHttps,
+            'httponly' => true,
+            'samesite' => $samesite,
+        ));
+    } else {
+        @setcookie($sName, '', time() - 3600, $path . '; samesite=' . $samesite, $domain, $isHttps, true);
+    }
+}
+
+function ngwRegenerateAuthenticatedSession($oldSessionToken = '') {
+    $oldToken = trim((string)$oldSessionToken);
+    if ($oldToken === '' && !empty($_SESSION['ngw_session_token']) && is_string($_SESSION['ngw_session_token'])) {
+        $oldToken = (string)$_SESSION['ngw_session_token'];
+    }
+    if ($oldToken !== '' && function_exists('ngwLoadActiveSessions') && function_exists('ngwSaveActiveSessions')) {
+        $all = ngwLoadActiveSessions(true);
+        if (isset($all[$oldToken])) {
+            unset($all[$oldToken]);
+            ngwSaveActiveSessions($all);
+        }
+    }
+    unset(
+        $_SESSION['ubn'],
+        $_SESSION['ubp'],
+        $_SESSION['ubc'],
+        $_SESSION['hua'],
+        $_SESSION['vcr'],
+        $_SESSION['connect'],
+        $_SESSION['login_lang'],
+        $_SESSION['login_theme'],
+        $_SESSION['lang_owner'],
+        $_SESSION['theme_owner'],
+        $_SESSION['ngw_csrf_token'],
+        $_SESSION['ngw_login_csrf'],
+        $_SESSION['ngw_resellers_csrf'],
+        $_SESSION['ngw_admin_csrf'],
+        $_SESSION['ngw_rv_csrf'],
+        $_SESSION['ngw_logo_csrf'],
+        $_SESSION['ngw_settings_csrf'],
+        $_SESSION['ngw_editor_csrf']
+    );
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        @session_regenerate_id(true);
+    }
+    $_SESSION['ngw_session_token'] = bin2hex(random_bytes(16));
+}
+
 function ngwCsrfToken($sessionKey = 'ngw_csrf_token') {
     if (empty($_SESSION[$sessionKey]) || !is_string($_SESSION[$sessionKey])) {
         $_SESSION[$sessionKey] = bin2hex(random_bytes(32));
@@ -50,10 +128,6 @@ function ngwValidateCsrf($postedToken, $sessionKey = 'ngw_csrf_token') {
         return false;
     }
     if (isset($_SESSION[$sessionKey]) && is_string($_SESSION[$sessionKey]) && hash_equals($_SESSION[$sessionKey], $postedToken)) {
-        return true;
-    }
-    if ($sessionKey === 'ngw_login_csrf' && preg_match('/^[a-f0-9]{64}$/i', $postedToken)) {
-        $_SESSION[$sessionKey] = $postedToken;
         return true;
     }
     return false;

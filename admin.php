@@ -18,6 +18,7 @@
 error_reporting(0);
 require_once __DIR__ . '/include/security.php';
 ngwConfigureSecureSession();
+ngwSendNoCacheHeaders();
 @session_start();
 
 ob_start("ob_gzhandler");
@@ -133,6 +134,7 @@ if ($id == "login" || substr($url, -1) == "p") {
     }
     if (!empty($auth['authenticated'])) {
       ngwClearLoginFailures($user);
+      ngwRegenerateAuthenticatedSession();
       $_SESSION["mikhmon"] = $user;
       $_SESSION["mikhmon_role"] = $auth['role'];
       $_SESSION["mikhmon_admin_id"] = ($auth['role'] === 'admin' && !empty($auth['id'])) ? (string)$auth['id'] : '';
@@ -145,7 +147,6 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon_permissions"] = $auth['permissions'];
       $_SESSION["mikhmon_last_activity"] = time();
       $_SESSION["mikhmon_login_handshake"] = 1;
-      $_SESSION["ngw_session_token"] = bin2hex(random_bytes(16));
       unset($_SESSION['login_lang'], $_SESSION['login_theme'], $_SESSION['lang_owner'], $_SESSION['theme_owner']);
       if (function_exists('ngwResolveCurrentUserLang')) {
         ngwResolveCurrentUserLang(true);
@@ -197,12 +198,15 @@ if ($id == "login" || substr($url, -1) == "p") {
   echo "<script>window.location='./admin.php?id=admin-settings'</script>";
   exit;
 } elseif ($id == "return-to-admin" && !empty($_SESSION['mikhmon_impersonator_admin'])) {
-  // Rotate the session ID when returning from reseller impersonation to admin.
-  if (session_status() === PHP_SESSION_ACTIVE) {
-    session_regenerate_id(true);
+  if (!ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_admin_csrf')) {
+    session_write_close();
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
+    exit;
   }
   $admUser = $_SESSION['mikhmon_impersonator_admin'];
+  $oldTok = isset($_SESSION['ngw_session_token']) ? (string)$_SESSION['ngw_session_token'] : '';
   unset($_SESSION['mikhmon_impersonator_admin']);
+  ngwRegenerateAuthenticatedSession($oldTok);
   $_SESSION["mikhmon"] = $admUser;
   $_SESSION["mikhmon_role"] = 'admin';
   $_SESSION["mikhmon_reseller_id"] = 'admin';
@@ -221,6 +225,10 @@ if ($id == "login" || substr($url, -1) == "p") {
   if (function_exists('ngwResolveCurrentUserTheme')) {
     ngwResolveCurrentUserTheme(true);
   }
+  ngwRegisterOrTouchActiveSession(array(
+    'is_new_login' => true,
+    'page_label' => 'Reseller Management',
+  ));
   session_write_close();
   echo "<script>try{sessionStorage.setItem('ngw_tab_auth','1');sessionStorage.setItem('ngw_last_act',String(Date.now()));}catch(e){} window.location='./admin.php?id=resellers'</script>";
   exit;
@@ -356,7 +364,7 @@ if ($id == "login" || substr($url, -1) == "p") {
       echo "<script>alert('NextGan WiFi Solution not connected!".$nl."Please check the IP, Username, Password and ensure MikroTik ".$portHint." is enabled.')</script>";
     }
     if($c == "settings"){
-      echo "<script>window.location='./admin.php?id=settings&session=" . $session . "'</script>";
+      echo "<script>window.location=" . json_encode('./admin.php?id=settings&session=' . rawurlencode((string)$session), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
     }else{
       echo "<script>window.location='./admin.php?id=sessions'</script>";
     }
@@ -378,6 +386,11 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./process/shutdown.php');
 } elseif ($id == "remove-session" && $session != "") {
   requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
+  if (!ngwValidateCsrf(isset($_REQUEST['csrf']) ? (string)$_REQUEST['csrf'] : '', 'ngw_admin_csrf')) {
+    session_write_close();
+    echo "<script>window.location.replace('./admin.php?id=sessions')</script>";
+    exit;
+  }
   if (is_file('./include/data_recovery.php')) {
     include_once('./include/data_recovery.php');
   }
@@ -414,21 +427,32 @@ if ($id == "login" || substr($url, -1) == "p") {
   $_SESSION = array();
   @session_unset();
   @session_destroy();
+  ngwClearSessionCookie();
   echo "<script>try{sessionStorage.clear();}catch(e){} window.location='./admin.php?id=login'</script>";
 } elseif ($id == "remove-logo" && $logo != ""  && !empty($session)) {
-  requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
+  if (!isMikhmonAdmin()) {
+    requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
+  }
+  if (!ngwValidateCsrf(isset($_REQUEST['csrf']) ? (string)$_REQUEST['csrf'] : '', 'ngw_admin_csrf')) {
+    session_write_close();
+    echo "<script>window.location=" . json_encode('./admin.php?id=uplogo&session=' . rawurlencode((string)$session), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
+    exit;
+  }
   include_once('./include/menu.php');
   session_write_close();
-  $logopath = "./img/";
-  $remlogo = $logopath . basename($logo);
-  if (is_file($remlogo)) {
-    @unlink($remlogo);
+  $logoBase = basename((string)$logo);
+  if (preg_match('/^logo-[a-zA-Z0-9_\-]+\.(png|jpg|jpeg|webp)$/i', $logoBase)) {
+    $logopath = "./img/";
+    $remlogo = $logopath . $logoBase;
+    if (is_file($remlogo)) {
+      @unlink($remlogo);
+    }
+    $imagesLogo = "./images/" . $logoBase;
+    if (is_file($imagesLogo)) {
+      @unlink($imagesLogo);
+    }
   }
-  $imagesLogo = "./images/" . basename($logo);
-  if (is_file($imagesLogo)) {
-    @unlink($imagesLogo);
-  }
-  echo "<script>window.location='./admin.php?id=uplogo&session=" . $session . "'</script>";
+  echo "<script>window.location=" . json_encode('./admin.php?id=uplogo&session=' . rawurlencode((string)$session), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
 } elseif ($id == "editor") {
   if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher')) {
     requireResellerPermission('preview_assigned_template', './admin.php?id=sessions');
@@ -445,6 +469,6 @@ if ($id == "login" || substr($url, -1) == "p") {
 }
 ?>
 <script src="js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="js/mikhmon.js?v=ngw2.2"></script>
+<script src="js/mikhmon.js?v=ngw2.3"></script>
 </body>
 </html>

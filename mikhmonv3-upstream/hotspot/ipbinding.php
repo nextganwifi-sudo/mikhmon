@@ -815,7 +815,8 @@ for ($i = 0; $i < $TotalReg; $i++) {
                 <select name="server" id="ngwIpbServer">
                   <option value="all">all</option>
                   <?php
-                  for ($s = 0; $s < count($srvlist); $s++) {
+                  $srvTotal = (isset($srvlist) && is_array($srvlist)) ? count($srvlist) : 0;
+                  for ($s = 0; $s < $srvTotal; $s++) {
                     $sName = isset($srvlist[$s]['name']) ? $srvlist[$s]['name'] : '';
                     if ($sName !== '') {
                       echo "<option value='" . htmlspecialchars($sName, ENT_QUOTES) . "'>" . htmlspecialchars($sName) . "</option>";

@@ -15,7 +15,11 @@
  *		You should have received a copy of the GNU General Public License
  *		along with this program.		If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once __DIR__ . '/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+	@session_start();
+}
  // hide all error
 error_reporting(0);
 ?>
@@ -24,7 +28,8 @@ error_reporting(0);
 	<head>
 		<title>NextGen WiFi Solution <?= $hotspotname; ?></title>
 		<meta charset="utf-8">
-		<meta http-equiv="cache-control" content="private" />
+		<meta http-equiv="cache-control" content="no-store, no-cache, must-revalidate, private" />
+		<meta http-equiv="pragma" content="no-cache" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<!-- Tell the browser to be responsive to screen width -->
 		<meta name="viewport" content="width=device-width, initial-scale=1">
