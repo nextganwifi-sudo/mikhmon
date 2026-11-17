@@ -493,7 +493,26 @@ if ($id == "login" || substr($url, -1) == "p") {
 	echo "<script>window.location='./admin.php?id=sessions'</script>";
 }
 ?>
+</div>
+</div>
 <script src="js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="js/mikhmon.js?v=ngw2.3"></script>
+<script src="js/mikhmon.js?v=ngw2.4"></script>
+<script>
+(function(){
+  try {
+    if (window.jQuery) {
+      $(".main-container").show();
+      $("#loading").hide();
+    }
+  } catch(e) {}
+  var l = document.getElementById("loading");
+  if (l) l.style.display = "none";
+  var c = document.querySelectorAll(".main-container");
+  for (var i = 0; i < c.length; i++) {
+    c[i].style.display = "block";
+  }
+})();
+</script>
 </body>
 </html>
+

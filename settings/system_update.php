@@ -11,6 +11,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 error_reporting(0);
+@set_time_limit(300);
+@ini_set('max_execution_time', '300');
 
 if (!isset($_SESSION["mikhmon"])) {
     header("Location:../admin.php?id=login");
@@ -107,7 +109,9 @@ function saveAndPruneVersionState($stateFile, $snapDir, $state) {
 
     $state['history'] = $history;
     @file_put_contents($stateFile, json_encode($state, JSON_PRETTY_PRINT));
-    $_SESSION["v"] = $state['current_version'];
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION["v"] = $state['current_version'];
+    }
     return $state;
 }
 
@@ -243,6 +247,33 @@ function isProtectedDataRelPath($relPath) {
 }
 
 /**
+ * Check if a relative path should be skipped during code snapshots & Git file diffs
+ */
+function ngwShouldSkipSnapshotRelPath($relPath) {
+    $norm = ltrim(str_replace('\\', '/', (string)$relPath), '/');
+    if ($norm === '' || isProtectedDataRelPath($norm)) {
+        return true;
+    }
+    $skipPrefixes = array(
+        '.git/',
+        '.aistudio/',
+        'backups/',
+        'node_modules/',
+        'dist/',
+        'mikhmon/',
+        'mikhmonv3-upstream/',
+        'uploads/',
+        'data/',
+    );
+    foreach ($skipPrefixes as $pfx) {
+        if ($norm === rtrim($pfx, '/') || strpos($norm, $pfx) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Create a lightweight code snapshot archive of current software before updating
  */
 function createVersionSnapshotArchive($rootDir, $snapDir, $versionLabel) {
@@ -254,15 +285,27 @@ function createVersionSnapshotArchive($rootDir, $snapDir, $versionLabel) {
         $fullPath = $snapDir . '/' . $fileName;
         $zip = new ZipArchive();
         if ($zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-            $it = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($rootDir, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST
-            );
+            $dirIt = new RecursiveDirectoryIterator($rootDir, RecursiveDirectoryIterator::SKIP_DOTS);
+            $filterIt = new RecursiveCallbackFilterIterator($dirIt, function ($current) use ($rootDir) {
+                $full = $current->getPathname();
+                if ($current->isLink()) {
+                    return false;
+                }
+                $rel = ltrim(str_replace('\\', '/', substr($full, strlen($rootDir))), '/');
+                if ($current->isDir()) {
+                    return !ngwShouldSkipSnapshotRelPath($rel . '/');
+                }
+                return !ngwShouldSkipSnapshotRelPath($rel);
+            });
+            $it = new RecursiveIteratorIterator($filterIt, RecursiveIteratorIterator::LEAVES_ONLY);
             foreach ($it as $item) {
                 if ($item->isFile()) {
                     $full = $item->getRealPath();
-                    $rel = str_replace('\\', '/', substr($full, strlen($rootDir) + 1));
-                    if (strpos($rel, '.git/') === 0 || strpos($rel, 'backups/') === 0 || isProtectedDataRelPath($rel)) {
+                    if (!$full || strpos($full, $rootDir) !== 0) {
+                        continue;
+                    }
+                    $rel = ltrim(str_replace('\\', '/', substr($full, strlen($rootDir))), '/');
+                    if (ngwShouldSkipSnapshotRelPath($rel)) {
                         continue;
                     }
                     $zip->addFile($full, $rel);
@@ -284,7 +327,8 @@ function createVersionSnapshotArchive($rootDir, $snapDir, $versionLabel) {
         $fileName = 'snap_v' . $safeVer . '_' . $snapId . '.tar.gz';
         $fullPath = $snapDir . '/' . $fileName;
         $cmd = 'tar -czf ' . escapeshellarg($fullPath)
-            . ' --exclude=.git --exclude=backups --exclude=uploads/reseller-templates --exclude=uploads/reseller-logos'
+            . ' --exclude=.git --exclude=.aistudio --exclude=backups --exclude=node_modules --exclude=dist'
+            . ' --exclude=mikhmon --exclude=mikhmonv3-upstream --exclude=uploads --exclude=data'
             . ' -C ' . escapeshellarg($rootDir) . ' . 2>/dev/null';
         @shell_exec($cmd);
         if (is_file($fullPath)) {
@@ -534,20 +578,21 @@ $updateChangedFiles = array();
 $recoveryReport = null;
 $isBnUi = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 
-if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_sysupdate_csrf')) {
+if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    // Release session lock immediately on GET so page load and concurrent status pings never block
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        @session_write_close();
+    }
+} elseif (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_sysupdate_csrf')) {
     $updateError = $isBnUi
         ? 'সিকিউরিটি টোকেন মেয়াদোত্তীর্ণ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
         : 'Security token expired or invalid. Reload this page and try again.';
     $_POST = array();
 }
 
-// Always run an automatic non-destructive recovery & vault sync pass
-if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
-    $autoRec = ngwPerformDeepDataRecoveryAndMerge($appRoot);
-    if (!empty($autoRec['routers_recovered']) || !empty($autoRec['resellers_recovered']) || !empty($autoRec['admins_recovered'])) {
-        $recoveryReport = $autoRec;
-    }
+// Fast (<1ms) vault check only if live config.php has 0 routers (never run heavy archive/git scans on GET)
+if (function_exists('ngwQuickRestoreFromVaultIfEmpty')) {
+    ngwQuickRestoreFromVaultIfEmpty($appRoot);
 }
 
 // Handle Download Full Data Backup (.json)
@@ -756,15 +801,27 @@ if (isset($_POST['apply_git_safe_update'])) {
             // Compare remote source files with the live installation first.
             // Do not snapshot, bump the version, or show success when nothing changed.
             $changedFiles = array();
-            $it = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($srcRoot, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST
-            );
+            $srcDirIt = new RecursiveDirectoryIterator($srcRoot, RecursiveDirectoryIterator::SKIP_DOTS);
+            $srcFilterIt = new RecursiveCallbackFilterIterator($srcDirIt, function ($current) use ($srcRoot) {
+                if ($current->isLink()) {
+                    return false;
+                }
+                $full = $current->getPathname();
+                $rel = ltrim(str_replace('\\', '/', substr($full, strlen($srcRoot))), '/');
+                if ($current->isDir()) {
+                    return !ngwShouldSkipSnapshotRelPath($rel . '/');
+                }
+                return !ngwShouldSkipSnapshotRelPath($rel);
+            });
+            $it = new RecursiveIteratorIterator($srcFilterIt, RecursiveIteratorIterator::LEAVES_ONLY);
             foreach ($it as $item) {
                 if ($item->isFile()) {
                     $full = $item->getRealPath();
-                    $rel = str_replace('\\', '/', substr($full, strlen($srcRoot) + 1));
-                    if (strpos($rel, '.git/') === 0 || isProtectedDataRelPath($rel)) {
+                    if (!$full || strpos($full, $srcRoot) !== 0) {
+                        continue;
+                    }
+                    $rel = ltrim(str_replace('\\', '/', substr($full, strlen($srcRoot))), '/');
+                    if (ngwShouldSkipSnapshotRelPath($rel)) {
                         continue;
                     }
                     $dest = $appRoot . '/' . $rel;
@@ -807,6 +864,17 @@ if (isset($_POST['apply_git_safe_update'])) {
                     if (@copy($change['source'], $dest)) {
                         if (substr($dest, -4) === '.php' && function_exists('ngwInvalidatePhpFileCache')) {
                             ngwInvalidatePhpFileCache($dest);
+                        }
+                        // Also mirror into $appRoot/mikhmon/ if it is a separate real directory
+                        $mikhSub = $appRoot . '/mikhmon/' . $change['path'];
+                        if (is_dir($appRoot . '/mikhmon') && !is_link($appRoot . '/mikhmon')) {
+                            if (!is_dir(dirname($mikhSub))) {
+                                @mkdir(dirname($mikhSub), 0755, true);
+                            }
+                            @copy($change['source'], $mikhSub);
+                            if (substr($mikhSub, -4) === '.php' && function_exists('ngwInvalidatePhpFileCache')) {
+                                ngwInvalidatePhpFileCache($mikhSub);
+                            }
                         }
                         $updatedCount++;
                         if ($change['status'] === 'new') {
@@ -967,7 +1035,18 @@ $currentVersionDetailsEntry = isset($versionState['latest_details']) && is_array
 $prevVerForCurrent = !empty($versionState['history'][0]['version']) ? $versionState['history'][0]['version'] : $versionState['current_version'];
 $currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntry, $prevVerForCurrent, $versionState['current_version'], $isBnUi);
 ?>
-
+<style>
+#loading { display: none !important; }
+#main .main-container, .main-container { display: block !important; }
+</style>
+<script>
+(function(){
+  var ld = document.getElementById('loading');
+  if (ld) ld.style.display = 'none';
+  var mc = document.querySelectorAll('.main-container');
+  for (var i = 0; i < mc.length; i++) mc[i].style.display = 'block';
+})();
+</script>
 <div class="row">
   <div class="col-6">
     <div class="card">

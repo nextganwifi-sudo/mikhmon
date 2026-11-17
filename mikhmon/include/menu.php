@@ -1653,10 +1653,11 @@ $(document).ready(function(){
 })();
 </script>
 <div id="main">  
+<?php if($hotspot == 'template-editor' || $hotspot == 'system-update' || $id != ''){ ?>
+<div id="loading" class="lds-dual-ring" style="display:none"></div>
+<div class="main-container">
+<?php }else{ ?>
 <div id="loading" class="lds-dual-ring"></div>
-<?php if($hotspot == 'template-editor' || $id == 'editor'){
-echo '<div class="main-container">';
-}else{
-  echo '<div class="main-container" style="display:none">';
-}
-?>
+<div class="main-container" style="display:none">
+<?php } ?>
+
