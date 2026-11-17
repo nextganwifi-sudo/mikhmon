@@ -457,6 +457,7 @@ if (!function_exists('ngwExtractDataFromArchivesOnVps')) {
 
         $targetRelFiles = array(
             'include/config.php',
+            'include/router_meta.json',
             'include/resellers.json',
             'include/admin_users.json',
             'include/backup_admin.json',
@@ -520,7 +521,7 @@ if (!function_exists('ngwExtractDataFromArchivesOnVps')) {
                 foreach ($hashes as $h) {
                     if (!preg_match('/^[a-f0-9]{7,40}$/i', $h)) continue;
                     $entryMap = array();
-                    foreach (array('include/config.php', 'include/resellers.json', 'include/admin_users.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
+                    foreach (array('include/config.php', 'include/router_meta.json', 'include/resellers.json', 'include/admin_users.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
                         foreach (array($rel, 'mikhmon/' . $rel) as $gitRel) {
                             $out = @shell_exec('git -C ' . escapeshellarg($gitBase) . ' show ' . escapeshellarg($h . ':' . $gitRel) . ' 2>/dev/null');
                             if (is_string($out) && trim($out) !== '') {
@@ -622,6 +623,7 @@ if (!function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
         // 2. Filesystem candidate directories
         $relFiles = array(
             'include/config.php',
+            'include/router_meta.json',
             'include/resellers.json',
             'include/admin_users.json',
             'include/backup_admin.json',
@@ -681,6 +683,28 @@ if (!function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
             ngwInvalidatePhpFileCache($configFile);
         }
         $report['total_routers_now'] = count($mergedRouters);
+
+        // --- A2. Merge include/router_meta.json (Router Ownership Metadata) ---
+        $metaFile = $appRoot . '/include/router_meta.json';
+        $currentMeta = is_file($metaFile) ? @json_decode((string)@file_get_contents($metaFile), true) : array();
+        if (!is_array($currentMeta)) {
+            $currentMeta = array();
+        }
+        $metaModified = false;
+        foreach ($sources as $srcLabel => $blobMap) {
+            if (empty($blobMap['include/router_meta.json'])) continue;
+            $mMap = @json_decode($blobMap['include/router_meta.json'], true);
+            if (!is_array($mMap)) continue;
+            foreach ($mMap as $sName => $mEntry) {
+                if (!isset($currentMeta[$sName]) && isset($mergedRouters[$sName]) && is_array($mEntry)) {
+                    $currentMeta[$sName] = $mEntry;
+                    $metaModified = true;
+                }
+            }
+        }
+        if ($metaModified) {
+            @file_put_contents($metaFile, json_encode($currentMeta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+        }
 
         // --- B. Merge include/resellers.json ---
         $resFile = $appRoot . '/include/resellers.json';

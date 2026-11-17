@@ -20,7 +20,7 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/reseller_acl.php');
 include_once('./include/data_recovery.php');
 
-if (!isMikhmonAdmin()) {
+if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
 }
@@ -119,12 +119,14 @@ function collectProtectedDataFiles($rootDir) {
     $protectedFiles = array();
     $fixedRelPaths = array(
         'include/config.php',
+        'include/router_meta.json',
         'include/admin_users.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
         'include/permission_groups.json',
         'include/active_sessions.php',
+        'include/active_sessions.json',
         'include/activity_log.php',
         'include/vpn_routers.json',
         'include/pppoe_areas.json',
@@ -206,12 +208,14 @@ function isProtectedDataRelPath($relPath) {
     $norm = ltrim(str_replace('\\', '/', $relPath), '/');
     $exactLocked = array(
         'include/config.php',
+        'include/router_meta.json',
         'include/admin_users.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
         'include/permission_groups.json',
         'include/active_sessions.php',
+        'include/active_sessions.json',
         'include/activity_log.php',
         'include/vpn_routers.json',
         'include/pppoe_areas.json',
@@ -405,10 +409,12 @@ if (isset($_POST['download_data_backup'])) {
     );
     $exportRelPaths = array(
         'include/config.php',
+        'include/router_meta.json',
         'include/resellers.json',
         'include/admin_users.json',
         'include/backup_admin.json',
         'include/permission_groups.json',
+        'include/activity_log.php',
         'include/vpn_routers.json',
         'include/pppoe_areas.json',
         'include/voice_call_services.json',
@@ -495,7 +501,7 @@ if (isset($_POST['upload_data_backup']) && isset($_FILES['backup_data_file']) &&
         // Copy into live-data-vault and run deep merge
         $vaultDir = $appRoot . '/backups/pre-update-manual-' . date('Ymd-His');
         @mkdir($vaultDir . '/include', 0755, true);
-        foreach (array('include/config.php', 'include/resellers.json', 'include/admin_users.json', 'include/permission_groups.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
+        foreach (array('include/config.php', 'include/router_meta.json', 'include/resellers.json', 'include/admin_users.json', 'include/permission_groups.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
             if (is_file($tempRestoreDir . '/' . $rel)) {
                 @copy($tempRestoreDir . '/' . $rel, $vaultDir . '/' . $rel);
             }

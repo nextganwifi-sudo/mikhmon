@@ -17,7 +17,7 @@ STAGE_BACKUP="${BACKUP_DIR}/pre-update-${TIMESTAMP}"
 mkdir -p "${BACKUP_DIR}" "${STAGE_BACKUP}/include" "${STAGE_BACKUP}/uploads" "${STAGE_BACKUP}/voucher" "${STAGE_BACKUP}/img" "${STAGE_BACKUP}/images" "${STAGE_BACKUP}/data"
 
 echo "[1/4] Creating Zero-Data-Loss snapshot in ${STAGE_BACKUP}..."
-for runtime_file in config.php resellers.json admin_users.json permission_groups.json backup_admin.json vpn_routers.json pppoe_areas.json voice_call_services.json user_prefs.json active_sessions.php activity_log.php quickbt.php github_repo.txt version_state.json; do
+for runtime_file in config.php router_meta.json resellers.json admin_users.json permission_groups.json backup_admin.json vpn_routers.json pppoe_areas.json voice_call_services.json user_prefs.json active_sessions.php active_sessions.json activity_log.php quickbt.php github_repo.txt version_state.json; do
   cp -a "${APP_DIR}/include/${runtime_file}" "${STAGE_BACKUP}/include/" 2>/dev/null || true
 done
 cp -a "${APP_DIR}/uploads/." "${STAGE_BACKUP}/uploads/" 2>/dev/null || true
@@ -76,6 +76,7 @@ find "${APP_DIR}" -type f -exec chmod 644 {} + 2>/dev/null || true
 chmod 1770 "${APP_DIR}/include" 2>/dev/null || true
 mkdir -p "${APP_DIR}/include" "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" "${APP_DIR}/data"
 [[ -f "${APP_DIR}/include/resellers.json" ]] || printf '[]\n' > "${APP_DIR}/include/resellers.json"
+[[ -f "${APP_DIR}/include/router_meta.json" ]] || printf '{}\n' > "${APP_DIR}/include/router_meta.json"
 [[ -f "${APP_DIR}/include/backup_admin.json" ]] || printf '{"username":"","password_enc":""}\n' > "${APP_DIR}/include/backup_admin.json"
 [[ -f "${APP_DIR}/include/vpn_routers.json" ]] || printf '[]\n' > "${APP_DIR}/include/vpn_routers.json"
 chown -R www-data:www-data "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/backups" "${APP_DIR}/data" 2>/dev/null || true
@@ -83,7 +84,7 @@ find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/imag
 find "${APP_DIR}/uploads" "${APP_DIR}/voucher" "${APP_DIR}/img" "${APP_DIR}/images" "${APP_DIR}/data" -type f -exec chmod 640 {} + 2>/dev/null || true
 chown root:www-data "${APP_DIR}/include" 2>/dev/null || true
 chmod 750 "${APP_DIR}/backups" 2>/dev/null || true
-for runtime_file in config.php resellers.json admin_users.json permission_groups.json backup_admin.json vpn_routers.json pppoe_areas.json voice_call_services.json user_prefs.json active_sessions.php activity_log.php quickbt.php github_repo.txt version_state.json; do
+for runtime_file in config.php router_meta.json resellers.json admin_users.json permission_groups.json backup_admin.json vpn_routers.json pppoe_areas.json voice_call_services.json user_prefs.json active_sessions.php active_sessions.json activity_log.php quickbt.php github_repo.txt version_state.json; do
   if [[ -f "${APP_DIR}/include/${runtime_file}" ]]; then
     chown www-data:www-data "${APP_DIR}/include/${runtime_file}" 2>/dev/null || true
     chmod 640 "${APP_DIR}/include/${runtime_file}" 2>/dev/null || true
