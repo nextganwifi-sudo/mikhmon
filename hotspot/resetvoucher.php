@@ -212,10 +212,17 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                 $rvLabel = (!empty($srvCfg['hotspotname']) && $srvCfg['hotspotname'] !== $selectedServer)
                     ? ($srvCfg['hotspotname'] . ' (' . $selectedServer . ')')
                     : $selectedServer;
+                $rvErr = !empty($rvAPI->last_error) ? (string)$rvAPI->last_error : ('Reset Voucher could not connect to ' . $srvCfg['iphost']);
+                $diag = function_exists('ngwDiagnoseRouterConnectFailure')
+                    ? ngwDiagnoseRouterConnectFailure($selectedServer, $srvCfg['iphost'], $srvCfg['userhost'], decrypt($srvCfg['passwdhost']), $rvErr, '')
+                    : array('fault' => 'Router Connection Failed', 'error' => $rvErr, 'host' => (string)$srvCfg['iphost'], 'user' => (string)$srvCfg['userhost']);
                 ngwRecordActivity('router_connect_failed', array(
                     'router' => $rvLabel,
-                    'host' => (string)$srvCfg['iphost'],
-                    'error' => !empty($rvAPI->last_error) ? (string)$rvAPI->last_error : ('Reset Voucher could not connect to ' . $srvCfg['iphost']),
+                    'host' => $diag['host'],
+                    'port' => isset($diag['port']) ? $diag['port'] : '',
+                    'user' => $diag['user'],
+                    'fault' => $diag['fault'],
+                    'error' => $diag['error'],
                 ));
             }
             $actionAlertHtml = "<div class='bg-danger pd-10 radius-3 mr-b-10'><i class='fa fa-plug'></i> " . htmlspecialchars($_rv_err_conn_failed) . " <b>" . htmlspecialchars($srvCfg['hotspotname']) . "</b></div>";
@@ -318,6 +325,13 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
 
                     // 6. Reset 30-day backend history device/usage/uptime/disconnect fields while keeping comment & expiry date intact
                     ngwResetVoucherHistoryState($selectedServer, $uname, $routerNowTs);
+                    if (function_exists('ngwRecordActivity')) {
+                        ngwRecordActivity('hotspot_voucher_reset', array(
+                            'router' => $selectedServer,
+                            'target' => $uname,
+                            'profile' => isset($foundLiveUser['profile']) ? (string)$foundLiveUser['profile'] : '',
+                        ));
+                    }
 
                     $actionAlertHtml = "<div class='bg-green pd-10 radius-3 mr-b-10'><i class='fa fa-check-circle'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($uname) . "</b> " . htmlspecialchars($_rv_msg_reset_ok) . "</div>";
                 } elseif ($rvAction === 'enable') {
@@ -325,6 +339,13 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                         ".id" => $uid,
                         "disabled" => "no",
                     ));
+                    if (function_exists('ngwRecordActivity')) {
+                        ngwRecordActivity('hotspot_user_enabled', array(
+                            'router' => $selectedServer,
+                            'target' => $uname,
+                            'profile' => isset($foundLiveUser['profile']) ? (string)$foundLiveUser['profile'] : '',
+                        ));
+                    }
                     $actionAlertHtml = "<div class='bg-green pd-10 radius-3 mr-b-10'><i class='fa fa-unlock'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($uname) . "</b> " . htmlspecialchars($_rv_msg_enable_ok) . "</div>";
                 } elseif ($rvAction === 'disable') {
                     $rvAPI->comm("/ip/hotspot/user/set", array(
@@ -347,6 +368,13 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && $rvAction !== '') || ($getVoucherP
                     }
                     if ($hadDisabledActive) {
                         ngwMarkVoucherDisconnected($selectedServer, $uname, $routerNowTs, 'disabled', 'admin disabled');
+                    }
+                    if (function_exists('ngwRecordActivity')) {
+                        ngwRecordActivity('hotspot_user_disabled', array(
+                            'router' => $selectedServer,
+                            'target' => $uname,
+                            'profile' => isset($foundLiveUser['profile']) ? (string)$foundLiveUser['profile'] : '',
+                        ));
                     }
                     $actionAlertHtml = "<div class='bg-warning pd-10 radius-3 mr-b-10'><i class='fa fa-lock'></i> " . htmlspecialchars($_rv_voucher_prefix) . " <b>" . htmlspecialchars($uname) . "</b> " . htmlspecialchars($_rv_msg_disable_ok) . "</div>";
                 } elseif ($rvAction === 'verify') {

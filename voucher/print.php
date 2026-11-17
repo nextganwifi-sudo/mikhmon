@@ -79,6 +79,14 @@ if (!isset($_SESSION["mikhmon"])) {
     $TotalReg = count($getuser);
   }
   $getuprofile = $getuser[0]['profile'];
+  if ($TotalReg > 0 && function_exists('ngwRecordActivity')) {
+    ngwRecordActivity('hotspot_voucher_printed', array(
+      'router' => (string)$session,
+      'target' => ($id !== '' ? (string)$id : (string)$user),
+      'profile' => (string)$getuprofile,
+      'quantity' => (string)$TotalReg,
+    ));
+  }
 
 
   $getprofile = $API->comm("/ip/hotspot/user/profile/print", array("?name" => "$getuprofile"));

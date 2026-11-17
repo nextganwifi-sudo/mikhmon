@@ -1,14 +1,17 @@
 <?php
-session_start();
-error_reporting(0);
 require_once __DIR__ . '/../include/security.php';
+ngwConfigureSecureSession();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+error_reporting(0);
 require_once __DIR__ . '/../include/reseller_acl.php';
 
 if (empty($_SESSION['mikhmon'])) {
     header('Location:../admin.php?id=login');
     exit;
 }
-if (!isMikhmonAdmin()) {
+if (!isMikhmonAdmin() || !hasResellerPermission('view_active')) {
     http_response_code(403);
     echo '<div class="card"><div class="card-body">Access denied. Administrator only.</div></div>';
     exit;
@@ -20,6 +23,20 @@ $csrfToken = ngwCsrfToken('ngw_active_sessions_csrf');
 $alertMsg = '';
 $alertType = 'success';
 
+$isStoreAdmin = isMikhmonAdminStore();
+$allowedSessionUsers = array();
+if (!$isStoreAdmin) {
+    $selfAdminUser = isset($_SESSION['mikhmon']) ? strtolower(trim((string)$_SESSION['mikhmon'])) : '';
+    if ($selfAdminUser !== '') {
+        $allowedSessionUsers[$selfAdminUser] = true;
+    }
+    foreach (getAccessibleResellers() as $rOwn) {
+        if (!empty($rOwn['username'])) {
+            $allowedSessionUsers[strtolower((string)$rOwn['username'])] = true;
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedCsrf = isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '';
     if (!ngwValidateCsrf($postedCsrf, 'ngw_active_sessions_csrf')) {
@@ -27,7 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $alertType = 'danger';
     } elseif (!empty($_POST['force_logout_token'])) {
         $targetToken = trim((string)$_POST['force_logout_token']);
-        $revoked = ngwRevokeActiveSession($targetToken, (string)$_SESSION['mikhmon']);
+        $allActive = ngwLoadActiveSessions(false);
+        $canRevokeTarget = true;
+        if (!$isStoreAdmin && isset($allActive[$targetToken])) {
+            $tUserLower = isset($allActive[$targetToken]['username']) ? strtolower((string)$allActive[$targetToken]['username']) : '';
+            if (!isset($allowedSessionUsers[$tUserLower])) {
+                $canRevokeTarget = false;
+            }
+        }
+        $revoked = $canRevokeTarget ? ngwRevokeActiveSession($targetToken, (string)$_SESSION['mikhmon']) : null;
         if (is_array($revoked)) {
             ngwRecordActivity('session_force_logout', array(
                 'target' => $revoked['username'] . ' (' . ucfirst($revoked['role']) . ')',
@@ -40,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION = array();
                 @session_unset();
                 @session_destroy();
+                ngwClearSessionCookie();
                 echo "<script>try{sessionStorage.clear();}catch(e){} window.location='./admin.php?id=login&reason=force_logout';</script>";
                 exit;
             }
@@ -54,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $countRevoked = 0;
         foreach ($allActive as $tk => $sessRow) {
             if ($tk === $currentToken) continue;
+            if (!$isStoreAdmin) {
+                $sUserLower = isset($sessRow['username']) ? strtolower((string)$sessRow['username']) : '';
+                if (!isset($allowedSessionUsers[$sUserLower])) continue;
+            }
             $rev = ngwRevokeActiveSession($tk, (string)$_SESSION['mikhmon']);
             if (is_array($rev)) {
                 $countRevoked++;
@@ -73,7 +103,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$activeSessions = ngwLoadActiveSessions(false);
+$rawActiveSessions = ngwLoadActiveSessions(false);
+$activeSessions = array();
+foreach ($rawActiveSessions as $tk => $sess) {
+    if (!$isStoreAdmin) {
+        $sUserLower = isset($sess['username']) ? strtolower((string)$sess['username']) : '';
+        if (!isset($allowedSessionUsers[$sUserLower])) {
+            continue;
+        }
+    }
+    $activeSessions[$tk] = $sess;
+}
 uasort($activeSessions, function ($a, $b) use ($currentToken) {
     if ($a['token'] === $currentToken) return -1;
     if ($b['token'] === $currentToken) return 1;

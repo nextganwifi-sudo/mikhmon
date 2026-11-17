@@ -58,6 +58,13 @@ for ($i = 0; $i < $TotalReg; $i++) {
     ".id" => "$uid",
   ));
 }
+if ($TotalReg > 0 && function_exists('ngwRecordActivity')) {
+  ngwRecordActivity('hotspot_expired_deleted', array(
+    'router' => (string)$session,
+    'quantity' => (string)$TotalReg,
+    'profile' => ($_SESSION['ubp'] !== '' ? (string)$_SESSION['ubp'] : ''),
+  ));
+}
 if ($_SESSION['ubp'] != "") {
   echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
 } else {

@@ -337,6 +337,14 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
       "limit-bytes-total" => "$datalimit",
       "comment" => "$comment",
     ));
+    if (function_exists('ngwRecordActivity')) {
+      ngwRecordActivity('hotspot_user_updated', array(
+        'router' => (string)$session,
+        'target' => (string)$name,
+        'profile' => (string)$profile,
+        'status' => ($disabled === 'yes' ? 'Disabled' : 'Enabled'),
+      ));
+    }
     echo "<script>window.location='./?hotspot-user=" . $uid . "&session=" . $session . "'</script>";
   }
 }

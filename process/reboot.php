@@ -44,6 +44,9 @@ if (!isset($_SESSION["mikhmon"])) {
       if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
         $API->write('/system/reboot');
         $API->read();
+        if (function_exists('ngwRecordActivity')) {
+          ngwRecordActivity('router_reboot', array('router' => (string)$session, 'host' => (string)$iphost));
+        }
       }
       $_SESSION = array();
       @session_unset();

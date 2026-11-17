@@ -47,6 +47,9 @@ if (!isset($_SESSION["mikhmon"])) {
         fwrite($f, "\n" . $placeholderLine . "\n");
         fclose($f);
       }
+      if (function_exists('recordRouterOwnerOnCreateOrRename')) {
+        recordRouterOwnerOnCreateOrRename($router, $router);
+      }
     }
     if (!isMikhmonAdmin() && isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers']) && !in_array('*', $_SESSION['mikhmon_routers'], true)) {
       if (!in_array($router, $_SESSION['mikhmon_routers'], true)) {
@@ -141,6 +144,9 @@ if (!isset($_SESSION["mikhmon"])) {
           $outLines[] = $newRouterLine;
         }
         $savedOk = (@file_put_contents($configPath, implode("\n", $outLines) . "\n", LOCK_EX) !== false);
+        if ($savedOk && function_exists('recordRouterOwnerOnCreateOrRename')) {
+          recordRouterOwnerOnCreateOrRename($session, $sesname);
+        }
       }
     }
 
@@ -151,6 +157,13 @@ if (!isset($_SESSION["mikhmon"])) {
         : 'Could not save router settings: config.php is not writable.';
       echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
     } else {
+      if (function_exists('ngwRecordActivity')) {
+        ngwRecordActivity('router_settings_saved', array(
+          'router' => (string)$sesname,
+          'host' => (string)$siphost,
+          'user' => (string)$suserhost,
+        ));
+      }
       @session_start();
       $_SESSION['connect'] = '';
       $_SESSION['router_settings_notice'] = (isset($langid) && $langid === 'bn')

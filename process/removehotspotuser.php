@@ -81,6 +81,18 @@ if ($removehotspotusers != "") {
 
 	if (!empty($removedUsersList)) {
 		ngwMarkVouchersRemoved($session, $removedUsersList, 'manual_delete', $routerNowTs);
+		if (function_exists('ngwRecordActivity')) {
+			$delNames = array();
+			foreach ($removedUsersList as $ru) {
+				if (!empty($ru['name'])) $delNames[] = (string)$ru['name'];
+			}
+			$delPreview = implode(', ', array_slice($delNames, 0, 5)) . (count($delNames) > 5 ? (' +' . (count($delNames) - 5) . ' more') : '');
+			ngwRecordActivity('hotspot_user_deleted', array(
+				'router' => (string)$session,
+				'quantity' => (string)count($removedUsersList),
+				'target' => $delPreview,
+			));
+		}
 	}
 
 	if ($_SESSION['ubp'] != "") {
@@ -126,6 +138,15 @@ if ($removehotspotusers != "") {
 	$API->comm("/ip/hotspot/user/remove", array(
 		".id" => "$removehotspotuser",
 	));
+
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_user_deleted', array(
+			'router' => (string)$session,
+			'quantity' => '1',
+			'target' => ($name !== '' ? (string)$name : (string)$removehotspotuser),
+			'profile' => (is_array($getuname) && !empty($getuname[0]['profile'])) ? (string)$getuname[0]['profile'] : '',
+		));
+	}
 
 
 	if ($_SESSION['ubp'] != "") {

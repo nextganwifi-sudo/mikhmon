@@ -76,6 +76,13 @@ if ($removeipbinding != "") {
 		".id" => "$slease",
 	));			
 		
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_ipbinding_changed', array(
+			'router' => isset($session) ? (string)$session : '',
+			'target' => !empty($macbinding) ? (string)$macbinding : (string)$removeipbinding,
+			'status' => 'Removed',
+		));
+	}
 //redirect to ipbinding
 	echo "<script>window.location='./?hotspot=ipbinding&session=" . $session . "'</script>";
 }
@@ -86,6 +93,13 @@ elseif ($enableipbinding != "") {
 		".id" => "$enableipbinding",
 		"disabled" => "no",
 	));
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_ipbinding_changed', array(
+			'router' => isset($session) ? (string)$session : '',
+			'target' => (string)$enableipbinding,
+			'status' => 'Enabled',
+		));
+	}
 
 	echo "<script>window.location='./?hotspot=ipbinding&session=" . $session . "'</script>";
 }
@@ -96,6 +110,13 @@ elseif ($disableipbinding != "") {
 		".id" => "$disableipbinding",
 		"disabled" => "yes",
 	));
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_ipbinding_changed', array(
+			'router' => isset($session) ? (string)$session : '',
+			'target' => (string)$disableipbinding,
+			'status' => 'Disabled',
+		));
+	}
 
 	echo "<script>window.location='./?hotspot=ipbinding&session=" . $session . "'</script>";
 }

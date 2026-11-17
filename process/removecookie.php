@@ -35,6 +35,12 @@ if (!isset($_SESSION["mikhmon"])) {
 $API->comm("/ip/hotspot/cookie/remove", array(
     ".id" => "$removecookie",
 ));
+if (function_exists('ngwRecordActivity')) {
+    ngwRecordActivity('hotspot_cookie_removed', array(
+        'router' => isset($session) ? (string)$session : '',
+        'target' => (string)$removecookie,
+    ));
+}
 // redirect to host
 echo "<script>window.location='./?hotspot=cookies&session=" . $session . "'</script>";
 ?>

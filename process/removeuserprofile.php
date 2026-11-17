@@ -45,5 +45,11 @@ $API->comm("/ip/hotspot/user/profile/remove", array(
 $API->comm("/system/scheduler/remove", array(
     ".id" => "$monid",
 ));
+if (function_exists('ngwRecordActivity')) {
+    ngwRecordActivity('hotspot_profile_deleted', array(
+        'router' => isset($session) ? (string)$session : '',
+        'profile' => ($pname !== '' ? (string)$pname : (string)$pid),
+    ));
+}
 echo "<script>window.location='./?hotspot=user-profiles&session=" . $session . "'</script>";
 ?>

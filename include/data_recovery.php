@@ -115,6 +115,7 @@ if (!function_exists('ngwSyncToLiveDataVault')) {
         }
         $filesToMirror = array(
             'include/config.php',
+            'include/router_meta.json',
             'include/resellers.json',
             'include/admin_users.json',
             'include/backup_admin.json',
@@ -277,6 +278,9 @@ if (!function_exists('ngwSaveRouterSessionToConfig')) {
             }
         }
 
+        if (function_exists('recordRouterOwnerOnCreateOrRename')) {
+            recordRouterOwnerOnCreateOrRename($oldSession, $newSession);
+        }
         if ($appRoot && is_dir($appRoot . '/include')) {
             ngwSyncToLiveDataVault($appRoot, true);
         }
@@ -337,6 +341,9 @@ if (!function_exists('ngwDeleteRouterSessionFromConfig')) {
             }
         }
 
+        if (function_exists('removeRouterOwnerMeta')) {
+            removeRouterOwnerMeta($targetSession);
+        }
         // Overwrite Live Data Vault copies immediately so the deleted router cannot be resurrected
         if ($appRoot && is_dir($appRoot . '/include')) {
             ngwSyncToLiveDataVault($appRoot, true);

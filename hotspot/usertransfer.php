@@ -141,7 +141,11 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             }
             $users[]=transferUser($row,$row['profile']??'default','all',$context);
         }
-        if($action==='export-rsc')transferReply(['rsc'=>transferRsc($users,$target),'target_os'=>$target,'count'=>count($users)]);
+        if($action==='export-rsc'){
+            if(function_exists('ngwRecordActivity')) ngwRecordActivity('hotspot_users_transferred', ['router'=>$session,'quantity'=>(string)count($users),'detail'=>'Exported .rsc script']);
+            transferReply(['rsc'=>transferRsc($users,$target),'target_os'=>$target,'count'=>count($users)]);
+        }
+        if(function_exists('ngwRecordActivity')) ngwRecordActivity('hotspot_users_transferred', ['router'=>$session,'quantity'=>(string)count($users),'detail'=>'Exported transfer JSON']);
         transferReply(['format'=>'ngw-hotspot-users','version'=>1,'target_os'=>$target,'exported_at'=>gmdate('c'),'users'=>$users]);
     }
 
@@ -279,6 +283,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             }
 
             $job['done']++;
+        }
+        if ($job['done'] >= count($job['users']) && function_exists('ngwRecordActivity')) {
+            ngwRecordActivity('hotspot_users_transferred', [
+                'router' => $session,
+                'quantity' => (string)$job['added'],
+                'detail' => 'Imported to router (Skipped: ' . (int)$job['skipped'] . ', Auto-active: ' . (int)$job['auto_activated'] . ')',
+            ]);
         }
         transferReply([
             'done'=>$job['done'],

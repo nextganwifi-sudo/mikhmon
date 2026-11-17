@@ -28,7 +28,7 @@ $isAdminUser = isMikhmonAdmin();
 
 // Template previews need a real, accessible RouterOS session for router-specific
 // variables. Preserve the selected session; otherwise pick the first accessible one.
-if (!$isAdminUser && $session !== '' && !canAccessRouterSession($session)) {
+if ($session !== '' && !canAccessRouterSession($session)) {
     $session = '';
 }
 if ($session === '' && isset($data) && is_array($data)) {
@@ -36,7 +36,7 @@ if ($session === '' && isset($data) && is_array($data)) {
         if ($candidateSession === 'mikhmon' || !isset($data[$candidateSession]) || !is_array($data[$candidateSession])) {
             continue;
         }
-        if ($isAdminUser || canAccessRouterSession((string)$candidateSession)) {
+        if (canAccessRouterSession((string)$candidateSession)) {
             $session = (string)$candidateSession;
             break;
         }
@@ -48,7 +48,7 @@ $url = $_SERVER['REQUEST_URI'];
 $telplate = isset($_GET['template']) && $_GET['template'] !== '' ? $_GET['template'] : 'default';
 
 $isAdminUser = isMikhmonAdmin();
-$canEditTemplate = $isAdminUser || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template');
+$canEditTemplate = hasResellerPermission('manage_global_templates') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template');
 $currentReseller = getCurrentResellerRecord();
 $targetReseller = null;
 
@@ -58,7 +58,10 @@ if (!$isAdminUser) {
 	}
 	$targetReseller = $currentReseller;
 } elseif (!empty($_GET['reseller_id']) && $_GET['reseller_id'] !== 'global') {
-	$targetReseller = findResellerByIdOrUsername($_GET['reseller_id']);
+	$candidateRes = findResellerByIdOrUsername($_GET['reseller_id']);
+	if ($candidateRes && canCurrentAdminAccessReseller($candidateRes)) {
+		$targetReseller = $candidateRes;
+	}
 }
 
 $targetResId = ($targetReseller !== null && isset($targetReseller['id']))
@@ -131,6 +134,9 @@ if (isset($_POST['reset_to_default'])) {
 			}
 			$targetReseller = findResellerByIdOrUsername($targetResId);
 			$editorMsg = 'Reseller template and logo successfully reset to default!';
+			if (function_exists('ngwRecordActivity')) {
+				ngwRecordActivity('template_reset', array('target' => isset($targetReseller['username']) ? $targetReseller['username'] : $targetResId));
+			}
 		}
 	} else {
 		// Global scope reset (Admin only)
@@ -141,6 +147,9 @@ if (isset($_POST['reset_to_default'])) {
 			@copy('./voucher/default-thermal.php', './voucher/template-thermal.php');
 			@copy('./voucher/default-small.php', './voucher/template-small.php');
 			$editorMsg = 'Global template files reset to system default!';
+			if (function_exists('ngwRecordActivity')) {
+				ngwRecordActivity('template_reset', array('target' => 'Global Templates'));
+			}
 		}
 	}
 }
@@ -168,6 +177,9 @@ elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 				}
 				$targetReseller = findResellerByIdOrUsername($targetResId);
 				$editorMsg = 'Logo (' . htmlspecialchars($upRes['filename']) . ') successfully uploaded for reseller ' . htmlspecialchars($targetReseller['name']) . '!';
+				if (function_exists('ngwRecordActivity')) {
+					ngwRecordActivity('logo_uploaded', array('target' => isset($targetReseller['username']) ? $targetReseller['username'] : $targetResId, 'detail' => $upRes['filename']));
+				}
 			} else {
 				$editorErr = $upRes['error'];
 			}
@@ -189,6 +201,9 @@ elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 						@copy($dest, './images/' . basename($dest));
 					}
 					$editorMsg = 'Global/Session logo successfully updated!';
+					if (function_exists('ngwRecordActivity')) {
+						ngwRecordActivity('logo_uploaded', array('router' => (string)$session, 'target' => basename($dest)));
+					}
 				} else {
 					$editorErr = 'Failed to save uploaded logo on server.';
 				}
@@ -211,11 +226,17 @@ elseif (isset($_POST['remove_logo'])) {
 		}
 		$targetReseller = findResellerByIdOrUsername($targetResId);
 		$editorMsg = 'Custom logo removed. Reverted to default system logo.';
+		if (function_exists('ngwRecordActivity')) {
+			ngwRecordActivity('logo_removed', array('target' => isset($targetReseller['username']) ? $targetReseller['username'] : $targetResId));
+		}
 	} else {
 		$safeSess = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
 		if ($safeSess !== '' && is_file('./img/logo-' . $safeSess . '.png')) {
 			@unlink('./img/logo-' . $safeSess . '.png');
 			$editorMsg = 'Session logo removed. Reverted to global default logo.';
+			if (function_exists('ngwRecordActivity')) {
+				ngwRecordActivity('logo_removed', array('router' => (string)$session, 'target' => 'logo-' . $safeSess . '.png'));
+			}
 		} else {
 			$editorMsg = 'Using global default logo.';
 		}
@@ -239,6 +260,9 @@ elseif (isset($_POST['save'])) {
 			$activePath = $resTplDir . '/' . $telplatet . '.php';
 			if (@file_put_contents($activePath, $data) !== false) {
 				$editorMsg = 'Template saved for reseller ' . htmlspecialchars($targetReseller['name']) . ' (' . htmlspecialchars($targetReseller['template_code']) . ').';
+				if (function_exists('ngwRecordActivity')) {
+					ngwRecordActivity('template_saved', array('target' => isset($targetReseller['username']) ? $targetReseller['username'] : $targetResId, 'detail' => $telplatet . '.php'));
+				}
 			} else {
 				$editorErr = 'Cannot write template file: ' . htmlspecialchars($activePath);
 			}
@@ -253,6 +277,9 @@ elseif (isset($_POST['save'])) {
 				fwrite($handle, $data);
 				fclose($handle);
 				$editorMsg = 'Global template (' . htmlspecialchars($telplatet) . '.php) saved.';
+				if (function_exists('ngwRecordActivity')) {
+					ngwRecordActivity('template_saved', array('target' => 'Global: ' . $telplatet . '.php'));
+				}
 			} else {
 				$editorErr = 'Cannot open file: ' . htmlspecialchars($template);
 			}
@@ -383,7 +410,7 @@ textarea {
 									<div class="col-6 col-box-12 pd-t-5 pd-b-5">
 										<div class="input-group" style="justify-content:flex-end;">
 											<?php if ($isAdminUser) {
-												$allResList = loadResellers();
+												$allResList = getAccessibleResellers();
 											?>
 												<div class="input-group-4">
 													<select style="padding:5px;" class="group-item group-item-l" onchange="window.location.href=this.value;">

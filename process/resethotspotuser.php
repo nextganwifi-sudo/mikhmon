@@ -52,6 +52,13 @@ $API->comm("/system/scheduler/remove", array(
 	".id" => "$removesch",
 ));
 
+if (function_exists('ngwRecordActivity')) {
+	ngwRecordActivity('hotspot_user_reset', array(
+		'router' => isset($session) ? (string)$session : '',
+		'target' => ($uname !== '' ? (string)$uname : (string)$resethotspotuser),
+	));
+}
+
 echo "<script>window.location='./?hotspot-user=" . $resethotspotuser . "&session=" . $session . "'</script>";
 
 ?>

@@ -31,10 +31,21 @@ if (!isset($_SESSION["mikhmon"])) {
 	exit('Access denied.');
 }
 
+$uRowEn = $API->comm("/ip/hotspot/user/print", array("?.id" => "$enablehotspotuser"));
+$uEnName = (is_array($uRowEn) && !empty($uRowEn[0]['name'])) ? (string)$uRowEn[0]['name'] : (string)$enablehotspotuser;
+$uEnProf = (is_array($uRowEn) && !empty($uRowEn[0]['profile'])) ? (string)$uRowEn[0]['profile'] : '';
+
 $API->comm("/ip/hotspot/user/set", array(
 	".id" => "$enablehotspotuser",
 	"disabled" => "no",
 ));
+if (function_exists('ngwRecordActivity')) {
+	ngwRecordActivity('hotspot_user_enabled', array(
+		'router' => isset($session) ? (string)$session : '',
+		'target' => $uEnName,
+		'profile' => $uEnProf,
+	));
+}
 if ($_SESSION['ubp'] != "") {
 	echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
 } elseif ($_SESSION['ubc'] != "") {

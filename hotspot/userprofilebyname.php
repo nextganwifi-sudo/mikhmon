@@ -197,6 +197,14 @@ if ($routerOsMajor === 7 && $randstartdate !== "") { $schedulerParams["start-dat
         ".id" => "$monid"));
     }
 
+    if (function_exists('ngwRecordActivity')) {
+      ngwRecordActivity('hotspot_profile_updated', array(
+        'router' => (string)$session,
+        'profile' => (string)$name,
+        'detail' => "Validity: {$validity}, Price: {$price}, Selling: {$sprice}",
+      ));
+    }
+
     echo "<script>window.location='./?user-profile=" . $pid . "&session=" . $session . "'</script>";
   }
 }

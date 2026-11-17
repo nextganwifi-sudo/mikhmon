@@ -37,6 +37,38 @@ if (!isset($_SESSION["mikhmon"])) {
 }
 ?>
 
+<style>
+.ngw-router-owner-corner {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  max-width: 56%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: 2;
+}
+@media screen and (max-width: 575px) {
+  .ngw-router-owner-corner {
+    font-size: 9px;
+    padding: 1px 5px;
+    top: 4px;
+    right: 5px;
+    max-width: 52%;
+  }
+}
+</style>
 <div class="row">
   <div class="col-12">
     <div class="card">
@@ -77,9 +109,28 @@ if (!isset($_SESSION["mikhmon"])) {
             if ($hsName === '') {
               $hsName = $value;
             }
+            $ownerBadgeText = '';
+            $ownerBadgeIcon = 'fa-user';
+            if (isMikhmonAdmin() && function_exists('getRouterOwnerInfo')) {
+              $rOwner = getRouterOwnerInfo($value);
+              if (is_array($rOwner) && !empty($rOwner['added_by_username'])) {
+                $isOwnerSubAdmin = (isset($rOwner['added_by_role']) && $rOwner['added_by_role'] === 'admin');
+                $ownerRoleStr = $isOwnerSubAdmin
+                  ? (($langid === 'bn') ? 'অ্যাডমিন' : 'Admin')
+                  : (($langid === 'bn') ? 'অ্যাডমিন স্টোর' : 'Admin Store');
+                $ownerBadgeIcon = $isOwnerSubAdmin ? 'fa-user-circle-o' : 'fa-shield';
+                $ownerBadgeText = $ownerRoleStr . ': ' . $rOwner['added_by_username'];
+              }
+            }
           ?>
               <div class="col-6" data-router-card>
-                <div class="box bmh-75 box-bordered <?= $color[rand(1, 11)]; ?>">
+                <div class="box bmh-75 box-bordered <?= $color[rand(1, 11)]; ?>" style="position:relative;">
+                  <?php if ($ownerBadgeText !== '') { ?>
+                    <span class="ngw-router-owner-corner" title="<?= htmlspecialchars($ownerBadgeText, ENT_QUOTES, 'UTF-8'); ?>">
+                      <i class="fa <?= $ownerBadgeIcon; ?>"></i>
+                      <span><?= htmlspecialchars($ownerBadgeText, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </span>
+                  <?php } ?>
                   <div class="box-group">
                     <div class="box-group-icon">
                       <span class="connect pointer" id="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>">

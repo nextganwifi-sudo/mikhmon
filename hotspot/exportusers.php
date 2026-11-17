@@ -54,6 +54,14 @@ if (!isset($_SESSION["mikhmon"])) {
       "?comment" => "$comm",
     ));
   }
+  if (function_exists('ngwRecordActivity')) {
+    ngwRecordActivity('hotspot_users_exported', array(
+      'router' => (string)$session,
+      'profile' => ($comm !== '' ? (string)$comm : (string)$prof),
+      'quantity' => (string)$TotalReg,
+      'detail' => 'Format: ' . (isset($_GET['export']) ? (string)$_GET['export'] : 'csv'),
+    ));
+  }
 }
 ?>
 <div class="row">

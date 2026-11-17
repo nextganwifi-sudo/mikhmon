@@ -57,6 +57,12 @@ $API->comm("/ip/hotspot/active/remove", array(
 if (!empty($user)) {
     ngwMarkVoucherDisconnected($session, $user, $routerNowTs, 'manual_disconnect', 'admin reset');
 }
+if (function_exists('ngwRecordActivity')) {
+    ngwRecordActivity('hotspot_active_disconnected', array(
+        'router' => isset($session) ? (string)$session : '',
+        'target' => !empty($user) ? (string)$user : (string)$removeuseractive,
+    ));
+}
 // redirect to user active
 echo "<script>window.location='./?hotspot=active&session=" . $session . "'</script>";
 ?>

@@ -36,6 +36,13 @@ if ($removesch != "") {
 	$API->comm("/system/scheduler/remove", array(
 		".id" => "$removesch",
 	));
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_scheduler_changed', array(
+			'router' => isset($session) ? (string)$session : '',
+			'target' => (string)$removesch,
+			'status' => 'Removed',
+		));
+	}
 
 	echo "<script>window.location='./?system=scheduler&session=" . $session . "'</script>";
 }
@@ -45,6 +52,13 @@ elseif ($enablesch != "") {
 		".id" => "$enablesch",
 		"disabled" => "no",
 	));
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_scheduler_changed', array(
+			'router' => isset($session) ? (string)$session : '',
+			'target' => (string)$enablesch,
+			'status' => 'Enabled',
+		));
+	}
 
 	echo "<script>window.location='./?system=scheduler&session=" . $session . "'</script>";
 }
@@ -55,6 +69,13 @@ elseif ($disablesch != "") {
 		".id" => "$disablesch",
 		"disabled" => "yes",
 	));
+	if (function_exists('ngwRecordActivity')) {
+		ngwRecordActivity('hotspot_scheduler_changed', array(
+			'router' => isset($session) ? (string)$session : '',
+			'target' => (string)$disablesch,
+			'status' => 'Disabled',
+		));
+	}
 
 	echo "<script>window.location='./?system=scheduler&session=" . $session . "'</script>";
 }

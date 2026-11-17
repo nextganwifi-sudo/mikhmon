@@ -103,6 +103,9 @@ if (isset($_POST['upload_my_avatar'])) {
                 }
             }
             $profileSavedMsg = 'Your profile avatar has been updated.';
+            if (function_exists('ngwRecordActivity')) {
+                ngwRecordActivity('logo_uploaded', array('target' => $profileUsername, 'detail' => 'Profile Avatar: ' . $newLogoFn));
+            }
         } else {
             $profileError = isset($upRes['error']) ? (string)$upRes['error'] : 'Could not upload avatar image.';
         }
@@ -143,6 +146,9 @@ if (isset($_POST['remove_my_avatar'])) {
             }
         }
         $profileSavedMsg = 'Profile avatar reset to default.';
+        if (function_exists('ngwRecordActivity')) {
+            ngwRecordActivity('logo_removed', array('target' => $profileUsername, 'detail' => 'Profile Avatar Removed'));
+        }
     }
 }
 
@@ -197,6 +203,9 @@ if (!$isResellerProfile && isset($_POST['save_admin_info'])) {
                 $_SESSION['ngw_profile_csrf'] = bin2hex(random_bytes(32));
                 $profileCsrf = (string)$_SESSION['ngw_profile_csrf'];
                 $profileSavedMsg = 'Account information updated successfully.';
+                if (function_exists('ngwRecordActivity')) {
+                    ngwRecordActivity('profile_updated', array('target' => $newUsername, 'detail' => 'Account Info Updated'));
+                }
             } else {
                 $profileError = 'Could not save account information.';
             }
@@ -259,6 +268,9 @@ if (isset($_POST['change_my_password'])) {
 
             if ($saved) {
                 $profileSavedMsg = 'Password changed successfully.';
+                if (function_exists('ngwRecordActivity')) {
+                    ngwRecordActivity('profile_updated', array('target' => $profileUsername, 'detail' => 'Password Changed'));
+                }
                 $_SESSION['ngw_profile_csrf'] = bin2hex(random_bytes(32));
                 $profileCsrf = (string)$_SESSION['ngw_profile_csrf'];
             } else {

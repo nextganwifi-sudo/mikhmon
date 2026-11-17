@@ -80,6 +80,15 @@ for ($i = 0; $i < $TotalReg; $i++) {
   ));
 }
 
+if ($TotalReg > 0 && function_exists('ngwRecordActivity')) {
+  ngwRecordActivity('hotspot_users_batch_deleted', array(
+    'router' => (string)$session,
+    'target' => $targetBatch,
+    'profile' => ($_SESSION['ubp'] !== '' ? (string)$_SESSION['ubp'] : ''),
+    'quantity' => (string)$TotalReg,
+  ));
+}
+
 if ($_SESSION['ubp'] != "") {
   echo "<script>window.location='./?hotspot=users&profile=" . rawurlencode($_SESSION['ubp']) . "&session=" . rawurlencode($session) . "'</script>";
 } else {
