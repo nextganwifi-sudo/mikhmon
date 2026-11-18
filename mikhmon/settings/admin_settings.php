@@ -369,14 +369,11 @@ if (isset($_GET['msg'])) {
   function ngwToggleAdminRolePerms() {
     var sel = document.getElementById('ngw_admin_role_select');
     var permBox = document.getElementById('ngw_admin_perm_box');
-    var storeNote = document.getElementById('ngw_admin_store_note');
-    if (!sel || !permBox || !storeNote) return;
+    if (!sel || !permBox) return;
     if (sel.value === 'admin') {
       permBox.style.display = 'block';
-      storeNote.style.display = 'none';
     } else {
       permBox.style.display = 'none';
-      storeNote.style.display = 'block';
     }
   }
   function ngwSetAllAdminPerms(checked) {
@@ -424,14 +421,14 @@ if (isset($_GET['msg'])) {
           </div>
           <table class="table table-sm" style="margin-bottom:6px;">
             <tr>
-              <td class="align-middle" style="width:34%;"><?= $isBn ? 'রোল (Role)' : 'Role'; ?></td>
+              <td class="align-middle" style="width:34%;"><?= $isBn ? 'রোল' : 'Role'; ?></td>
               <td>
                 <select class="form-control" id="ngw_admin_role_select" name="admin_role" onchange="ngwToggleAdminRolePerms()">
                   <option value="admin" <?= $formRole === 'admin' ? 'selected' : ''; ?>>
-                    <?= $isBn ? 'এডমিন (Admin — আলাদা প্যানেল, রাউটার ও রিসেলার অ্যাড করতে পারবে)' : 'Admin (Separate Workspace — Can add Routers, Resellers & all features)'; ?>
+                    <?= $isBn ? 'এডমিন' : 'Admin'; ?>
                   </option>
                   <option value="super_admin" <?= $formRole !== 'admin' ? 'selected' : ''; ?>>
-                    <?= $isBn ? 'সুপার এডমিন (Super Admin — সম্পূর্ণ সিস্টেম ও সকল এডমিনের রাউটার-রিসেলার নিয়ন্ত্রণ)' : 'Super Admin (Master Control — All Routers, All Resellers, All Admins & Full Access)'; ?>
+                    <?= $isBn ? 'সুপার এডমিন' : 'Super Admin'; ?>
                   </option>
                 </select>
               </td>
@@ -465,14 +462,6 @@ if (isset($_GET['msg'])) {
             </tr>
           </table>
 
-          <!-- Info note when Super Admin is selected -->
-          <div id="ngw_admin_store_note" style="display:<?= $formRole !== 'admin' ? 'block' : 'none'; ?>; font-size:11px; padding:6px 10px; margin-bottom:8px; border-radius:4px; background:rgba(110,64,201,0.16); border:1px solid rgba(110,64,201,0.45);">
-            <i class="fa fa-shield"></i>
-            <?= $isBn
-              ? '<b>সুপার এডমিন (Super Admin):</b> এই রোলের ইউজার এডমিন ইউজার ম্যানেজমেন্টসহ পুরো সফটওয়্যারের সব ফিচার এবং সকল এডমিনের যুক্ত করা রাউটার ও রিসেলার দেখতে এবং নিয়ন্ত্রণ করতে পারবে।'
-              : '<b>Super Admin:</b> Full unrestricted access to Admin user management, all routers and resellers added by any Admin, and all software features.'; ?>
-          </div>
-
           <!-- Shortcut Permission Toggle Box when Admin role is selected -->
           <?php $adminShortcutGroups = function_exists('getAdminShortcutPermissionGroups') ? getAdminShortcutPermissionGroups() : array(); ?>
           <input type="hidden" name="adm_shortcut_submitted" value="1">
@@ -480,7 +469,7 @@ if (isset($_GET['msg'])) {
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
               <div style="font-size:12px; font-weight:bold;">
                 <i class="fa fa-sliders text-primary"></i>
-                <?= $isBn ? 'এডমিন শর্টকাট পারমিশন (যেটি দিবেন সেটির সম্পূর্ণ ফাংশন কাজ করবে):' : 'Admin Shortcut Permissions (Each toggle enables the full module):'; ?>
+                <?= $isBn ? 'এডমিন পারমিশন:' : 'Admin Permissions:'; ?>
               </div>
               <div style="display:flex; gap:4px;">
                 <button type="button" class="btn bg-primary" style="padding:2px 7px; font-size:10px; cursor:pointer;" onclick="ngwSetAllAdminPerms(true)">
@@ -564,13 +553,13 @@ if (isset($_GET['msg'])) {
                 <td class="align-middle">
                   <?php if ($rowRole === 'super_admin') { ?>
                     <span class="ngw-adm-role-badge is-store">
-                      <i class="fa fa-shield"></i> <?= $isBn ? 'সুপার এডমিন (Super Admin)' : 'Super Admin'; ?>
+                      <i class="fa fa-shield"></i> <?= $isBn ? 'সুপার এডমিন' : 'Super Admin'; ?>
                     </span>
                   <?php } else {
                     $rowDisList = isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']) ? $adm['disabled_permissions'] : array();
                   ?>
                     <span class="ngw-adm-role-badge is-admin">
-                      <i class="fa fa-user-circle-o"></i> <?= $isBn ? 'এডমিন (Admin)' : 'Admin'; ?>
+                      <i class="fa fa-user-circle-o"></i> <?= $isBn ? 'এডমিন' : 'Admin'; ?>
                     </span>
                     <div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px;">
                       <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
