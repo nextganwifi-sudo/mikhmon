@@ -11,6 +11,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 error_reporting(0);
+@set_time_limit(300);
+@ini_set('max_execution_time', '300');
 
 if (!isset($_SESSION["mikhmon"])) {
     header("Location:../admin.php?id=login");
@@ -20,7 +22,7 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/reseller_acl.php');
 include_once('./include/data_recovery.php');
 
-if (!isMikhmonAdmin()) {
+if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
 }
@@ -107,7 +109,9 @@ function saveAndPruneVersionState($stateFile, $snapDir, $state) {
 
     $state['history'] = $history;
     @file_put_contents($stateFile, json_encode($state, JSON_PRETTY_PRINT));
-    $_SESSION["v"] = $state['current_version'];
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION["v"] = $state['current_version'];
+    }
     return $state;
 }
 
@@ -119,12 +123,14 @@ function collectProtectedDataFiles($rootDir) {
     $protectedFiles = array();
     $fixedRelPaths = array(
         'include/config.php',
+        'include/router_meta.json',
         'include/admin_users.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
         'include/permission_groups.json',
         'include/active_sessions.php',
+        'include/active_sessions.json',
         'include/activity_log.php',
         'include/vpn_routers.json',
         'include/pppoe_areas.json',
@@ -206,12 +212,14 @@ function isProtectedDataRelPath($relPath) {
     $norm = ltrim(str_replace('\\', '/', $relPath), '/');
     $exactLocked = array(
         'include/config.php',
+        'include/router_meta.json',
         'include/admin_users.json',
         'include/backup_admin.json',
         'include/resellers.json',
         'include/user_prefs.json',
         'include/permission_groups.json',
         'include/active_sessions.php',
+        'include/active_sessions.json',
         'include/activity_log.php',
         'include/vpn_routers.json',
         'include/pppoe_areas.json',
@@ -239,6 +247,33 @@ function isProtectedDataRelPath($relPath) {
 }
 
 /**
+ * Check if a relative path should be skipped during code snapshots & Git file diffs
+ */
+function ngwShouldSkipSnapshotRelPath($relPath) {
+    $norm = ltrim(str_replace('\\', '/', (string)$relPath), '/');
+    if ($norm === '' || isProtectedDataRelPath($norm)) {
+        return true;
+    }
+    $skipPrefixes = array(
+        '.git/',
+        '.aistudio/',
+        'backups/',
+        'node_modules/',
+        'dist/',
+        'mikhmon/',
+        'mikhmonv3-upstream/',
+        'uploads/',
+        'data/',
+    );
+    foreach ($skipPrefixes as $pfx) {
+        if ($norm === rtrim($pfx, '/') || strpos($norm, $pfx) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Create a lightweight code snapshot archive of current software before updating
  */
 function createVersionSnapshotArchive($rootDir, $snapDir, $versionLabel) {
@@ -250,15 +285,27 @@ function createVersionSnapshotArchive($rootDir, $snapDir, $versionLabel) {
         $fullPath = $snapDir . '/' . $fileName;
         $zip = new ZipArchive();
         if ($zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-            $it = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($rootDir, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST
-            );
+            $dirIt = new RecursiveDirectoryIterator($rootDir, RecursiveDirectoryIterator::SKIP_DOTS);
+            $filterIt = new RecursiveCallbackFilterIterator($dirIt, function ($current) use ($rootDir) {
+                $full = $current->getPathname();
+                if ($current->isLink()) {
+                    return false;
+                }
+                $rel = ltrim(str_replace('\\', '/', substr($full, strlen($rootDir))), '/');
+                if ($current->isDir()) {
+                    return !ngwShouldSkipSnapshotRelPath($rel . '/');
+                }
+                return !ngwShouldSkipSnapshotRelPath($rel);
+            });
+            $it = new RecursiveIteratorIterator($filterIt, RecursiveIteratorIterator::LEAVES_ONLY);
             foreach ($it as $item) {
                 if ($item->isFile()) {
                     $full = $item->getRealPath();
-                    $rel = str_replace('\\', '/', substr($full, strlen($rootDir) + 1));
-                    if (strpos($rel, '.git/') === 0 || strpos($rel, 'backups/') === 0 || isProtectedDataRelPath($rel)) {
+                    if (!$full || strpos($full, $rootDir) !== 0) {
+                        continue;
+                    }
+                    $rel = ltrim(str_replace('\\', '/', substr($full, strlen($rootDir))), '/');
+                    if (ngwShouldSkipSnapshotRelPath($rel)) {
                         continue;
                     }
                     $zip->addFile($full, $rel);
@@ -280,7 +327,8 @@ function createVersionSnapshotArchive($rootDir, $snapDir, $versionLabel) {
         $fileName = 'snap_v' . $safeVer . '_' . $snapId . '.tar.gz';
         $fullPath = $snapDir . '/' . $fileName;
         $cmd = 'tar -czf ' . escapeshellarg($fullPath)
-            . ' --exclude=.git --exclude=backups --exclude=uploads/reseller-templates --exclude=uploads/reseller-logos'
+            . ' --exclude=.git --exclude=.aistudio --exclude=backups --exclude=node_modules --exclude=dist'
+            . ' --exclude=mikhmon --exclude=mikhmonv3-upstream --exclude=uploads --exclude=data'
             . ' -C ' . escapeshellarg($rootDir) . ' . 2>/dev/null';
         @shell_exec($cmd);
         if (is_file($fullPath)) {
@@ -371,6 +419,157 @@ function incrementVersionNumber($verStr) {
     return number_format($next, 1, '.', '');
 }
 
+/**
+ * Default shortcut highlights for versions that do not yet have recorded diff metadata
+ */
+function ngwDefaultVersionHighlights() {
+    return array(
+        'bn' => array(
+            'অ্যাডমিন রোল ও ৪টি শর্টকাট পারমিশন (Hotspot, PPP, Reseller ও VPN Permission)',
+            'রাউটার ওপেন করার সময় লাইভ পিং ও ইনস্ট্যান্ট কানেকশন স্ট্যাটাস পপআপ',
+            'রিসেলার ও অ্যাডমিনের A-to-Z অ্যাক্টিভিটি হিস্ট্রি (১ দিনের ডিফল্ট ভিউ ও কাস্টম ডেট ফিল্টার)',
+            'রিসেট ভাউচারে ডেট/কমেন্ট অক্ষুণ্ণ রেখে মোবাইল মডেল, MAC ও আপটাইম ক্লিয়ার সিস্টেম',
+            'মোবাইল ব্রাউজার মিনিমাইজ বা রিলোড করলেও অটো-লগআউট না হওয়ার ৩০ দিনের সেশন সুরক্ষা',
+            'গিট সেফ আপডেটে রাউটার, রিসেলার, অ্যাডমিন ও টেমপ্লেট ডাটা ১০০% অক্ষুণ্ণ রাখার ভল্ট সিস্টেম',
+            'প্রত্যেকটি ভার্সনের সাথে শর্টকাট ভার্সন ডিটেইলস (চেঞ্জলগ) দেখার সুবিধা'
+        ),
+        'en' => array(
+            'Admin Store & Admin roles with 4 shortcut permissions (Hotspot, PPP, Reseller & VPN Permission)',
+            'Interactive Router Connection modal with live ping verification and instant status feedback',
+            'Full A-to-Z Reseller & Admin Activity History (1-day default screen + custom date filter)',
+            'Smart Reset Voucher clearing device model, MAC & uptime while preserving date/comment',
+            'Persistent 30-day mobile browser login session (prevents unexpected logouts on minimize/reload)',
+            'Zero-loss Git Safe Update & Data Vault protecting routers, resellers, admins & templates',
+            'Version Details button on every version showing shortcut release highlights & changed files'
+        )
+    );
+}
+
+/**
+ * Build concise Bengali & English shortcut feature summaries from changed files & commit messages
+ */
+function ngwBuildVersionChangeSummary($changedFilesList, $fromVer, $toVer, $commitSubjects = array()) {
+    $bnBullets = array();
+    $enBullets = array();
+    $paths = array();
+
+    if (is_array($changedFilesList)) {
+        foreach ($changedFilesList as $item) {
+            if (is_array($item) && isset($item['path'])) {
+                $paths[] = strtolower((string)$item['path']);
+            } elseif (is_string($item)) {
+                $clean = preg_replace('/^(new|modified|added|updated):\s*/i', '', trim($item));
+                $paths[] = strtolower($clean);
+            }
+        }
+    }
+
+    $hasMatch = function($needles) use ($paths) {
+        foreach ($paths as $p) {
+            foreach ((array)$needles as $n) {
+                if (strpos($p, strtolower($n)) !== false) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    if ($hasMatch(array('admin_settings.php', 'reseller_acl.php'))) {
+        $bnBullets[] = 'অ্যাডমিন ও রিসেলার পারমিশন সিস্টেম আপডেট (Hotspot, PPP, Reseller, VPN শর্টকাট পারমিশন ও রোল কন্ট্রোল)';
+        $enBullets[] = 'Admin & Reseller role permission control updated (Hotspot, PPP, Reseller & VPN shortcut permissions)';
+    }
+    if ($hasMatch(array('settings/sessions.php', 'status/ping.php', 'process/photspot.php'))) {
+        $bnBullets[] = 'রাউটার লিস্ট, লাইভ পিং চেক এবং স্মার্ট কানেক্টিং স্ট্যাটাস সিস্টেম উন্নত করা হয়েছে';
+        $enBullets[] = 'Router list, live ping verification, and smart connection status modal improved';
+    }
+    if ($hasMatch(array('settings/activity.php', 'activity_logger.php'))) {
+        $bnBullets[] = 'রিসেলার ও অ্যাডমিন অ্যাক্টিভিটি হিস্ট্রি ট্র্যাকিং এবং ডেট ফিল্টারিং সিস্টেম আপডেট';
+        $enBullets[] = 'Reseller & Admin A-to-Z activity history tracking and date filter updated';
+    }
+    if ($hasMatch(array('resetvoucher.php', 'hotspot/users.php', 'hotspot/userprofile.php', 'generateuser.php'))) {
+        $bnBullets[] = 'হটস্পট ইউজার, ভাউচার রিসেট (ডেট/কমেন্ট রেখে ডিভাইস ও আপটাইম ক্লিয়ার) ও প্রোফাইল ম্যানেজমেন্ট আপডেট';
+        $enBullets[] = 'Hotspot users, smart voucher reset (preserving date/comment), and profile management updated';
+    }
+    if ($hasMatch(array('pppoe/', 'ppp/'))) {
+        $bnBullets[] = 'PPPoE সিক্রেট, প্রোফাইল ও অ্যাক্টিভ কানেকশন ম্যানেজমেন্ট ফিচার আপডেট';
+        $enBullets[] = 'PPPoE secrets, profiles, and active connection management updated';
+    }
+    if ($hasMatch(array('vpn/vpn_hub.php', 'vpn/'))) {
+        $bnBullets[] = 'VPN (WireGuard) হাব ও টানেল কনফিগারেশন সিস্টেম আপডেট';
+        $enBullets[] = 'VPN (WireGuard) Hub and tunnel configuration updated';
+    }
+    if ($hasMatch(array('settings/resellers.php', 'reseller'))) {
+        $bnBullets[] = 'রিসেলার ম্যানেজমেন্ট, ক্রেডিট লিমিট ও রাউটার অ্যাক্সেস কন্ট্রোল আপডেট';
+        $enBullets[] = 'Reseller management, balance/limits, and router access control updated';
+    }
+    if ($hasMatch(array('include/security.php', 'index.php', 'admin.php'))) {
+        $bnBullets[] = 'মোবাইল ও ব্রাউজার লগইন সেশন স্থায়িত্ব এবং সিকিউরিটি সিস্টেম উন্নত করা হয়েছে';
+        $enBullets[] = 'Mobile browser login session persistence and core security improved';
+    }
+    if ($hasMatch(array('settings/system_update.php', 'include/data_recovery.php', 'deploy/safe-update.sh'))) {
+        $bnBullets[] = 'গিট সেফ আপডেট, ভার্সন ডিটেইলস চেঞ্জলগ এবং ডাটা ভল্ট রিকভারি সিস্টেম আপডেট';
+        $enBullets[] = 'Git Safe Update, Version Details changelog viewer, and Data Vault recovery updated';
+    }
+    if ($hasMatch(array('include/menu.php', 'css/', 'js/'))) {
+        $bnBullets[] = 'ড্যাশবোর্ড মেনু, নেভিগেশন ও ইউজার ইন্টারফেস (UI) উন্নত করা হয়েছে';
+        $enBullets[] = 'Dashboard menu, navigation, and User Interface (UI) refined';
+    }
+    if ($hasMatch(array('voucher/', 'report/'))) {
+        $bnBullets[] = 'ভাউচার প্রিন্ট টেমপ্লেট এবং সেলস রিপোর্ট সিস্টেম আপডেট';
+        $enBullets[] = 'Voucher print templates and sales reporting updated';
+    }
+
+    if (is_array($commitSubjects)) {
+        foreach ($commitSubjects as $subj) {
+            $subj = trim((string)$subj);
+            if ($subj !== '' && count($enBullets) < 8) {
+                $bnBullets[] = 'গিট আপডেট নোট: ' . $subj;
+                $enBullets[] = 'Git commit: ' . $subj;
+            }
+        }
+    }
+
+    if (empty($bnBullets)) {
+        $cnt = count($paths);
+        $bnBullets[] = 'ভার্সন v' . $fromVer . ' থেকে v' . $toVer . '-এ মোট ' . $cnt . 'টি কোর ফাইল ও পারফরম্যান্স আপডেট করা হয়েছে।';
+        $enBullets[] = 'Updated ' . $cnt . ' core application files with stability and performance improvements from v' . $fromVer . ' to v' . $toVer . '.';
+    }
+
+    return array(
+        'bn' => array_values(array_unique($bnBullets)),
+        'en' => array_values(array_unique($enBullets))
+    );
+}
+
+/**
+ * Prepare normalized modal payload for any version entry (current or history)
+ */
+function ngwFormatVersionDetailsPayload($entry, $fallbackFromVer, $fallbackToVer, $isBnUi) {
+    $defaults = ngwDefaultVersionHighlights();
+    $fromVer = !empty($entry['from_version']) ? (string)$entry['from_version'] : (string)$fallbackFromVer;
+    $toVer = !empty($entry['to_version']) ? (string)$entry['to_version'] : (string)$fallbackToVer;
+    $savedAt = !empty($entry['saved_at']) ? (string)$entry['saved_at'] : (!empty($entry['updated_at']) ? (string)$entry['updated_at'] : date('Y-m-d H:i'));
+    $bullets = $isBnUi
+        ? (!empty($entry['summary_bn']) && is_array($entry['summary_bn']) ? $entry['summary_bn'] : $defaults['bn'])
+        : (!empty($entry['summary_en']) && is_array($entry['summary_en']) ? $entry['summary_en'] : $defaults['en']);
+    $changedFiles = !empty($entry['changed_files']) && is_array($entry['changed_files']) ? $entry['changed_files'] : array();
+    $newCnt = isset($entry['new_count']) ? (int)$entry['new_count'] : 0;
+    $modCnt = isset($entry['modified_count']) ? (int)$entry['modified_count'] : count($changedFiles);
+    $totalCnt = isset($entry['updated_count']) ? (int)$entry['updated_count'] : count($changedFiles);
+
+    return array(
+        'from_version' => $fromVer,
+        'to_version' => $toVer,
+        'saved_at' => $savedAt,
+        'bullets' => array_values($bullets),
+        'changed_files' => array_slice(array_values($changedFiles), 0, 60),
+        'total_files' => $totalCnt,
+        'new_files' => $newCnt,
+        'modified_files' => $modCnt
+    );
+}
+
 $versionState = loadVersionState($versionStateFile);
 $updateNotice = '';
 $updateError = '';
@@ -379,20 +578,21 @@ $updateChangedFiles = array();
 $recoveryReport = null;
 $isBnUi = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 
-if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    !ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_sysupdate_csrf')) {
+if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    // Release session lock immediately on GET so page load and concurrent status pings never block
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        @session_write_close();
+    }
+} elseif (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_sysupdate_csrf')) {
     $updateError = $isBnUi
         ? 'সিকিউরিটি টোকেন মেয়াদোত্তীর্ণ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
         : 'Security token expired or invalid. Reload this page and try again.';
     $_POST = array();
 }
 
-// Always run an automatic non-destructive recovery & vault sync pass
-if (function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
-    $autoRec = ngwPerformDeepDataRecoveryAndMerge($appRoot);
-    if (!empty($autoRec['routers_recovered']) || !empty($autoRec['resellers_recovered']) || !empty($autoRec['admins_recovered'])) {
-        $recoveryReport = $autoRec;
-    }
+// Fast (<1ms) vault check only if live config.php has 0 routers (never run heavy archive/git scans on GET)
+if (function_exists('ngwQuickRestoreFromVaultIfEmpty')) {
+    ngwQuickRestoreFromVaultIfEmpty($appRoot);
 }
 
 // Handle Download Full Data Backup (.json)
@@ -405,10 +605,12 @@ if (isset($_POST['download_data_backup'])) {
     );
     $exportRelPaths = array(
         'include/config.php',
+        'include/router_meta.json',
         'include/resellers.json',
         'include/admin_users.json',
         'include/backup_admin.json',
         'include/permission_groups.json',
+        'include/activity_log.php',
         'include/vpn_routers.json',
         'include/pppoe_areas.json',
         'include/voice_call_services.json',
@@ -495,7 +697,7 @@ if (isset($_POST['upload_data_backup']) && isset($_FILES['backup_data_file']) &&
         // Copy into live-data-vault and run deep merge
         $vaultDir = $appRoot . '/backups/pre-update-manual-' . date('Ymd-His');
         @mkdir($vaultDir . '/include', 0755, true);
-        foreach (array('include/config.php', 'include/resellers.json', 'include/admin_users.json', 'include/permission_groups.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
+        foreach (array('include/config.php', 'include/router_meta.json', 'include/resellers.json', 'include/admin_users.json', 'include/permission_groups.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
             if (is_file($tempRestoreDir . '/' . $rel)) {
                 @copy($tempRestoreDir . '/' . $rel, $vaultDir . '/' . $rel);
             }
@@ -571,7 +773,7 @@ if (isset($_POST['apply_git_safe_update'])) {
 
     if ($gitRepoUrl !== '' && function_exists('shell_exec')) {
         $tmpClone = sys_get_temp_dir() . '/ngw_git_sync_' . uniqid();
-        $cmd = 'git clone --depth 1 ' . escapeshellarg($gitRepoUrl) . ' ' . escapeshellarg($tmpClone) . ' 2>&1';
+        $cmd = 'git clone --depth 5 ' . escapeshellarg($gitRepoUrl) . ' ' . escapeshellarg($tmpClone) . ' 2>&1';
         $out = @shell_exec($cmd);
         if (is_dir($tmpClone . '/mikhmon') && is_file($tmpClone . '/mikhmon/admin.php')) {
             $srcRoot = $tmpClone . '/mikhmon';
@@ -581,6 +783,15 @@ if (isset($_POST['apply_git_safe_update'])) {
             $srcRoot = $tmpClone;
         }
         if (is_file($srcRoot . '/admin.php') && is_file($srcRoot . '/index.php')) {
+            $commitNotes = array();
+            $rawLog = @shell_exec('git -C ' . escapeshellarg($tmpClone) . ' log -n 3 --pretty=format:%s 2>/dev/null');
+            if (!empty($rawLog)) {
+                foreach (preg_split('/\r?\n/', trim((string)$rawLog)) as $ln) {
+                    $ln = trim($ln);
+                    if ($ln !== '') $commitNotes[] = $ln;
+                }
+            }
+
             // Clean up any deprecated license files if they existed on the server
             foreach (array('include/license_manager.php', 'include/store_licenses.json', 'include/router_owners.json') as $deprecatedRel) {
                 if (is_file($appRoot . '/' . $deprecatedRel) && !is_file($srcRoot . '/' . $deprecatedRel)) {
@@ -590,15 +801,27 @@ if (isset($_POST['apply_git_safe_update'])) {
             // Compare remote source files with the live installation first.
             // Do not snapshot, bump the version, or show success when nothing changed.
             $changedFiles = array();
-            $it = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($srcRoot, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST
-            );
+            $srcDirIt = new RecursiveDirectoryIterator($srcRoot, RecursiveDirectoryIterator::SKIP_DOTS);
+            $srcFilterIt = new RecursiveCallbackFilterIterator($srcDirIt, function ($current) use ($srcRoot) {
+                if ($current->isLink()) {
+                    return false;
+                }
+                $full = $current->getPathname();
+                $rel = ltrim(str_replace('\\', '/', substr($full, strlen($srcRoot))), '/');
+                if ($current->isDir()) {
+                    return !ngwShouldSkipSnapshotRelPath($rel . '/');
+                }
+                return !ngwShouldSkipSnapshotRelPath($rel);
+            });
+            $it = new RecursiveIteratorIterator($srcFilterIt, RecursiveIteratorIterator::LEAVES_ONLY);
             foreach ($it as $item) {
                 if ($item->isFile()) {
                     $full = $item->getRealPath();
-                    $rel = str_replace('\\', '/', substr($full, strlen($srcRoot) + 1));
-                    if (strpos($rel, '.git/') === 0 || isProtectedDataRelPath($rel)) {
+                    if (!$full || strpos($full, $srcRoot) !== 0) {
+                        continue;
+                    }
+                    $rel = ltrim(str_replace('\\', '/', substr($full, strlen($srcRoot))), '/');
+                    if (ngwShouldSkipSnapshotRelPath($rel)) {
                         continue;
                     }
                     $dest = $appRoot . '/' . $rel;
@@ -625,7 +848,9 @@ if (isset($_POST['apply_git_safe_update'])) {
                 $updateInfo = 'No new files or changes were found. The installed software is already up to date.';
             } else {
                 // Only create a rollback snapshot when a real code change exists.
-                $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
+                $prevVersionLabel = (string)$versionState['current_version'];
+                $nextVersionLabel = incrementVersionNumber($prevVersionLabel);
+                $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $prevVersionLabel);
                 $updatedCount = 0;
                 $newFileCount = 0;
                 $modifiedFileCount = 0;
@@ -639,6 +864,17 @@ if (isset($_POST['apply_git_safe_update'])) {
                     if (@copy($change['source'], $dest)) {
                         if (substr($dest, -4) === '.php' && function_exists('ngwInvalidatePhpFileCache')) {
                             ngwInvalidatePhpFileCache($dest);
+                        }
+                        // Also mirror into $appRoot/mikhmon/ if it is a separate real directory
+                        $mikhSub = $appRoot . '/mikhmon/' . $change['path'];
+                        if (is_dir($appRoot . '/mikhmon') && !is_link($appRoot . '/mikhmon')) {
+                            if (!is_dir(dirname($mikhSub))) {
+                                @mkdir(dirname($mikhSub), 0755, true);
+                            }
+                            @copy($change['source'], $mikhSub);
+                            if (substr($mikhSub, -4) === '.php' && function_exists('ngwInvalidatePhpFileCache')) {
+                                ngwInvalidatePhpFileCache($mikhSub);
+                            }
                         }
                         $updatedCount++;
                         if ($change['status'] === 'new') {
@@ -665,11 +901,25 @@ if (isset($_POST['apply_git_safe_update'])) {
                 @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
 
                 if ($updatedCount > 0) {
+                    $summaryPair = ngwBuildVersionChangeSummary($changedFiles, $prevVersionLabel, $nextVersionLabel, $commitNotes);
+                    $changeDetailsMeta = array(
+                        'from_version' => $prevVersionLabel,
+                        'to_version' => $nextVersionLabel,
+                        'saved_at' => date('Y-m-d H:i:s'),
+                        'updated_count' => $updatedCount,
+                        'new_count' => $newFileCount,
+                        'modified_count' => $modifiedFileCount,
+                        'summary_bn' => $summaryPair['bn'],
+                        'summary_en' => $summaryPair['en'],
+                        'changed_files' => array_slice($changedFileLabels, 0, 60)
+                    );
                     if ($snapEntry !== null) {
+                        $snapEntry = array_merge($snapEntry, $changeDetailsMeta);
                         array_unshift($versionState['history'], $snapEntry);
                     }
-                    $versionState['current_version'] = incrementVersionNumber($versionState['current_version']);
+                    $versionState['current_version'] = $nextVersionLabel;
                     $versionState['updated_at'] = date('Y-m-d H:i');
+                    $versionState['latest_details'] = $changeDetailsMeta;
                     $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
 
                     $updateNotice = 'Update applied: <b>' . (int)$updatedCount . ' files changed</b> ('
@@ -690,7 +940,9 @@ if (isset($_POST['apply_git_safe_update'])) {
             $updateError = (isset($_git_update_failed) ? $_git_update_failed : 'Could not fetch application files from the provided GitHub URL.') . ' ' . htmlspecialchars((string)$out);
         }
     } elseif ($gitDir !== '' && function_exists('shell_exec')) {
-        $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $versionState['current_version']);
+        $prevVersionLabel = (string)$versionState['current_version'];
+        $nextVersionLabel = incrementVersionNumber($prevVersionLabel);
+        $snapEntry = createVersionSnapshotArchive($appRoot, $versionSnapDir, $prevVersionLabel);
         $out = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' pull --ff-only 2>&1');
         restoreProtectedDataFiles($appRoot, $protectedBefore);
         $chkCfg = function_exists('ngwParseConfigPhpRouters') && is_file($appRoot . '/include/config.php')
@@ -714,20 +966,46 @@ if (isset($_POST['apply_git_safe_update'])) {
             $updateNotice = '';
             $updateInfo = 'No new commits or file changes were found. The installed software is already up to date.';
         } elseif ($pullChanged) {
-            if ($snapEntry !== null) {
-                array_unshift($versionState['history'], $snapEntry);
-            }
-            $versionState['current_version'] = incrementVersionNumber($versionState['current_version']);
-            $versionState['updated_at'] = date('Y-m-d H:i');
-            $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
-
             $changedPathOutput = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' diff --name-status ORIG_HEAD..HEAD 2>&1');
             $updateChangedFiles = array();
+            $newFileCount = 0;
+            $modifiedFileCount = 0;
             foreach (preg_split('/\\r?\\n/', trim((string)$changedPathOutput)) as $line) {
-                if (preg_match('/^[A-Z][0-9]*\\s+(.+)$/', $line, $match)) {
-                    $updateChangedFiles[] = $match[1];
+                if (preg_match('/^([A-Z])[0-9]*\\s+(.+)$/', $line, $match)) {
+                    $st = ($match[1] === 'A') ? 'new' : 'modified';
+                    if ($st === 'new') $newFileCount++; else $modifiedFileCount++;
+                    $updateChangedFiles[] = $st . ': ' . $match[2];
                 }
             }
+            $commitNotes = array();
+            $rawLog = @shell_exec('git -C ' . escapeshellarg($gitDir) . ' log ORIG_HEAD..HEAD --pretty=format:%s 2>/dev/null');
+            if (!empty($rawLog)) {
+                foreach (preg_split('/\r?\n/', trim((string)$rawLog)) as $ln) {
+                    $ln = trim($ln);
+                    if ($ln !== '') $commitNotes[] = $ln;
+                }
+            }
+            $summaryPair = ngwBuildVersionChangeSummary($updateChangedFiles, $prevVersionLabel, $nextVersionLabel, $commitNotes);
+            $changeDetailsMeta = array(
+                'from_version' => $prevVersionLabel,
+                'to_version' => $nextVersionLabel,
+                'saved_at' => date('Y-m-d H:i:s'),
+                'updated_count' => count($updateChangedFiles),
+                'new_count' => $newFileCount,
+                'modified_count' => $modifiedFileCount,
+                'summary_bn' => $summaryPair['bn'],
+                'summary_en' => $summaryPair['en'],
+                'changed_files' => array_slice($updateChangedFiles, 0, 60)
+            );
+            if ($snapEntry !== null) {
+                $snapEntry = array_merge($snapEntry, $changeDetailsMeta);
+                array_unshift($versionState['history'], $snapEntry);
+            }
+            $versionState['current_version'] = $nextVersionLabel;
+            $versionState['updated_at'] = date('Y-m-d H:i');
+            $versionState['latest_details'] = $changeDetailsMeta;
+            $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
+
             $updateNotice = 'Update applied. Changed files: <b>' . count($updateChangedFiles) . '</b>. Software version: <b>v'
                 . htmlspecialchars($versionState['current_version']) . '</b>.';
         } else {
@@ -750,18 +1028,44 @@ $curResList = is_file($appRoot . '/include/resellers.json')
     : array();
 $liveRouterCount = isset($curParsedCfg['routers']) && is_array($curParsedCfg['routers']) ? count($curParsedCfg['routers']) : 0;
 $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
-?>
 
+$currentVersionDetailsEntry = isset($versionState['latest_details']) && is_array($versionState['latest_details'])
+    ? $versionState['latest_details']
+    : (!empty($versionState['history'][0]) ? $versionState['history'][0] : array('saved_at' => $versionState['updated_at']));
+$prevVerForCurrent = !empty($versionState['history'][0]['version']) ? $versionState['history'][0]['version'] : $versionState['current_version'];
+$currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntry, $prevVerForCurrent, $versionState['current_version'], $isBnUi);
+?>
+<style>
+#loading { display: none !important; }
+#main .main-container, .main-container { display: block !important; }
+</style>
+<script>
+(function(){
+  var ld = document.getElementById('loading');
+  if (ld) ld.style.display = 'none';
+  var mc = document.querySelectorAll('.main-container');
+  for (var i = 0; i < mc.length; i++) mc[i].style.display = 'block';
+})();
+</script>
 <div class="row">
   <div class="col-6">
     <div class="card">
-      <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+      <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
         <h3 class="card-title" style="margin:0;">
           <i class="fa fa-github"></i> <?= htmlspecialchars(isset($_system_update) ? $_system_update : 'System Update'); ?>
         </h3>
-        <span style="font-size:12px; padding:3px 10px; border-radius:4px; background:#2ea043; color:#fff; font-weight:bold;">
-          <i class="fa fa-tag"></i> <?= htmlspecialchars(isset($_software_version_label) ? $_software_version_label : 'Software Version'); ?>: v<?= htmlspecialchars($versionState['current_version']); ?>
-        </span>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="font-size:12px; padding:3px 10px; border-radius:4px; background:#2ea043; color:#fff; font-weight:bold;">
+            <i class="fa fa-tag"></i> <?= htmlspecialchars(isset($_software_version_label) ? $_software_version_label : 'Software Version'); ?>: v<?= htmlspecialchars($versionState['current_version']); ?>
+          </span>
+          <button type="button"
+                  class="btn bg-primary pd-5"
+                  style="cursor:pointer; font-size:11px; font-weight:bold; border-radius:4px;"
+                  data-version-payload="<?= htmlspecialchars(json_encode($currentModalPayload), ENT_QUOTES, 'UTF-8'); ?>"
+                  onclick="ngwOpenVersionDetailsModal(this)">
+            <i class="fa fa-list-ul"></i> <?= $isBnUi ? 'ভার্সন ডিটেইলস' : 'Version Details'; ?>
+          </button>
+        </div>
       </div>
       <div class="card-body">
         <?php if ($updateNotice !== '') { ?>
@@ -820,8 +1124,17 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
           </div>
 
           <?php if (empty($versionState['history'])) { ?>
-            <div style="font-size:12px; opacity:0.8; padding:6px 0;">
-              <?= htmlspecialchars(isset($_no_previous_versions) ? $_no_previous_versions : 'No previous version snapshots yet. A snapshot will be saved automatically on your next Git Safe Update.'); ?>
+            <div style="font-size:12px; opacity:0.85; padding:8px 10px; border:1px dashed rgba(150,150,150,0.35); border-radius:6px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <span>
+                <?= htmlspecialchars(isset($_no_previous_versions) ? $_no_previous_versions : 'No previous version snapshots yet. A snapshot will be saved automatically on your next Git Safe Update.'); ?>
+              </span>
+              <button type="button"
+                      class="btn bg-primary pd-5"
+                      style="cursor:pointer; font-size:11px; font-weight:bold;"
+                      data-version-payload="<?= htmlspecialchars(json_encode($currentModalPayload), ENT_QUOTES, 'UTF-8'); ?>"
+                      onclick="ngwOpenVersionDetailsModal(this)">
+                <i class="fa fa-list-ul"></i> <?= $isBnUi ? 'বর্তমান ভার্সন ডিটেইলস (v' . htmlspecialchars($versionState['current_version']) . ')' : 'Current Version Details (v' . htmlspecialchars($versionState['current_version']) . ')'; ?>
+              </button>
             </div>
           <?php } else { ?>
             <table class="table table-bordered table-sm" style="margin-bottom:6px;">
@@ -833,15 +1146,31 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($versionState['history'] as $hItem) { ?>
+                <?php foreach ($versionState['history'] as $hIdx => $hItem) {
+                    $rowFromVer = isset($hItem['version']) ? (string)$hItem['version'] : '1.0';
+                    $rowToVer = !empty($hItem['to_version'])
+                        ? (string)$hItem['to_version']
+                        : ($hIdx === 0 ? (string)$versionState['current_version'] : incrementVersionNumber($rowFromVer));
+                    $rowPayload = ngwFormatVersionDetailsPayload($hItem, $rowFromVer, $rowToVer, $isBnUi);
+                ?>
                   <tr>
-                    <td class="align-middle"><b>v<?= htmlspecialchars($hItem['version']); ?></b></td>
+                    <td class="align-middle">
+                      <b>v<?= htmlspecialchars($rowFromVer); ?></b>
+                      <small style="opacity:0.75; margin-left:4px;">&rarr; v<?= htmlspecialchars($rowToVer); ?></small>
+                    </td>
                     <td class="align-middle"><small><?= htmlspecialchars($hItem['saved_at']); ?></small></td>
-                    <td class="align-middle text-right">
+                    <td class="align-middle text-right" style="white-space:nowrap;">
+                      <button type="button"
+                              class="btn bg-primary pd-5"
+                              style="cursor:pointer; font-size:11px; font-weight:bold; margin-right:4px;"
+                              data-version-payload="<?= htmlspecialchars(json_encode($rowPayload), ENT_QUOTES, 'UTF-8'); ?>"
+                              onclick="ngwOpenVersionDetailsModal(this)">
+                        <i class="fa fa-list-ul"></i> <?= $isBnUi ? 'ভার্সন ডিটেইলস' : 'Version Details'; ?>
+                      </button>
                       <form method="post" action="" style="margin:0; display:inline;" onsubmit="return confirm('<?= htmlspecialchars(isset($_rollback_confirm) ? $_rollback_confirm : 'Are you sure you want to switch back to version', ENT_QUOTES); ?> v<?= htmlspecialchars($hItem['version'], ENT_QUOTES); ?>?');">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($sysUpdateCsrf, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="rollback_version_id" value="<?= htmlspecialchars($hItem['id']); ?>">
-                        <button type="submit" class="btn bg-warning pd-5" style="cursor:pointer; font-size:12px; font-weight:bold;">
+                        <button type="submit" class="btn bg-warning pd-5" style="cursor:pointer; font-size:11px; font-weight:bold;">
                           <i class="fa fa-undo"></i> <?= htmlspecialchars(isset($_btn_rollback_version) ? $_btn_rollback_version : 'Switch to this Version'); ?> (v<?= htmlspecialchars($hItem['version']); ?>)
                         </button>
                       </form>
@@ -920,4 +1249,119 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
     </div>
   </div>
 </div>
+
+<!-- Version Details Modal -->
+<div id="ngw-version-details-modal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.65); align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this) ngwCloseVersionDetailsModal();">
+  <div style="background:#1e2430; color:#e6edf3; width:100%; max-width:560px; border-radius:10px; border:1px solid rgba(255,255,255,0.14); box-shadow:0 16px 40px rgba(0,0,0,0.5); overflow:hidden;">
+    <div style="padding:13px 16px; background:#161b22; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:space-between;">
+      <div style="font-weight:bold; font-size:14px; display:flex; align-items:center; gap:8px;">
+        <i class="fa fa-code-fork" style="color:#2ea043; font-size:16px;"></i>
+        <span id="ngw-vd-title"><?= $isBnUi ? 'ভার্সন ডিটেইলস ও নতুন ফিচারসমূহ' : 'Version Details & Release Highlights'; ?></span>
+      </div>
+      <button type="button" onclick="ngwCloseVersionDetailsModal()" style="background:transparent; border:none; color:#adbac7; font-size:18px; cursor:pointer; line-height:1;">&times;</button>
+    </div>
+
+    <div style="padding:16px; max-height:75vh; overflow-y:auto;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; background:rgba(46,160,67,0.12); border:1px solid rgba(46,160,67,0.35); padding:10px 12px; border-radius:7px; margin-bottom:14px;">
+        <div>
+          <div style="font-size:11px; opacity:0.8;"><?= $isBnUi ? 'ভার্সন পরিবর্তন (Version Transition):' : 'Version Transition:'; ?></div>
+          <div id="ngw-vd-badge" style="font-size:15px; font-weight:bold; color:#3fb950; margin-top:2px;">v1.0 &rarr; v1.1</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px; opacity:0.8;"><?= $isBnUi ? 'আপডেটের সময়:' : 'Updated At:'; ?></div>
+          <div id="ngw-vd-date" style="font-size:12px; font-weight:bold; margin-top:2px;">-</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13px; font-weight:bold; margin-bottom:8px; color:#58a6ff;">
+          <i class="fa fa-star"></i> <?= $isBnUi ? 'এই ভার্সনে নতুন যা যা যুক্ত ও পরিবর্তন করা হয়েছে (শর্টকাট):' : 'What Changed / New Features Added (Shortcut Summary):'; ?>
+        </div>
+        <ul id="ngw-vd-bullets" style="margin:0; padding-left:20px; font-size:13px; line-height:1.65;"></ul>
+      </div>
+
+      <div id="ngw-vd-files-wrap" style="display:none; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px; margin-top:10px;">
+        <div style="font-size:12px; font-weight:bold; margin-bottom:6px; opacity:0.9;">
+          <i class="fa fa-file-code-o"></i> <span id="ngw-vd-files-summary"></span>
+        </div>
+        <div id="ngw-vd-files-list" style="max-height:150px; overflow-y:auto; background:rgba(0,0,0,0.28); padding:8px 10px; border-radius:6px; font-family:monospace; font-size:11px; line-height:1.5;"></div>
+      </div>
+    </div>
+
+    <div style="padding:10px 16px; background:#161b22; border-top:1px solid rgba(255,255,255,0.1); text-align:right;">
+      <button type="button" class="btn bg-secondary pd-5" style="cursor:pointer; font-weight:bold; padding:6px 16px;" onclick="ngwCloseVersionDetailsModal()">
+        <i class="fa fa-times"></i> <?= $isBnUi ? 'বন্ধ করুন' : 'Close'; ?>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function ngwOpenVersionDetailsModal(btnEl) {
+  var raw = btnEl ? btnEl.getAttribute('data-version-payload') : '';
+  if (!raw) return;
+  var data = null;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    return;
+  }
+  var modal = document.getElementById('ngw-version-details-modal');
+  if (!modal) return;
+
+  var fromV = data.from_version || '1.0';
+  var toV = data.to_version || fromV;
+  var badgeEl = document.getElementById('ngw-vd-badge');
+  if (badgeEl) {
+    badgeEl.innerHTML = (fromV === toV)
+      ? ('v' + fromV + ' (<?= $isBnUi ? 'বর্তমান ভার্সন' : 'Current Version'; ?>)')
+      : ('v' + fromV + ' &rarr; v' + toV);
+  }
+
+  var dateEl = document.getElementById('ngw-vd-date');
+  if (dateEl) {
+    dateEl.textContent = data.saved_at || '-';
+  }
+
+  var bulletsEl = document.getElementById('ngw-vd-bullets');
+  if (bulletsEl) {
+    bulletsEl.innerHTML = '';
+    var list = Array.isArray(data.bullets) ? data.bullets : [];
+    for (var i = 0; i < list.length; i++) {
+      var li = document.createElement('li');
+      li.style.marginBottom = '5px';
+      li.textContent = list[i];
+      bulletsEl.appendChild(li);
+    }
+  }
+
+  var filesWrap = document.getElementById('ngw-vd-files-wrap');
+  var filesSummary = document.getElementById('ngw-vd-files-summary');
+  var filesList = document.getElementById('ngw-vd-files-list');
+  var cFiles = Array.isArray(data.changed_files) ? data.changed_files : [];
+  if (filesWrap && filesSummary && filesList) {
+    if (cFiles.length > 0) {
+      filesWrap.style.display = 'block';
+      filesSummary.textContent = '<?= $isBnUi ? 'পরিবর্তিত ফাইল তালিকা' : 'Changed Files'; ?> (' + cFiles.length + ')';
+      filesList.innerHTML = '';
+      for (var j = 0; j < cFiles.length; j++) {
+        var row = document.createElement('div');
+        row.textContent = cFiles[j];
+        filesList.appendChild(row);
+      }
+    } else {
+      filesWrap.style.display = 'none';
+    }
+  }
+
+  modal.style.display = 'flex';
+}
+
+function ngwCloseVersionDetailsModal() {
+  var modal = document.getElementById('ngw-version-details-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+</script>
 

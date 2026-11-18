@@ -115,6 +115,7 @@ if (!function_exists('ngwSyncToLiveDataVault')) {
         }
         $filesToMirror = array(
             'include/config.php',
+            'include/router_meta.json',
             'include/resellers.json',
             'include/admin_users.json',
             'include/backup_admin.json',
@@ -277,6 +278,9 @@ if (!function_exists('ngwSaveRouterSessionToConfig')) {
             }
         }
 
+        if (function_exists('recordRouterOwnerOnCreateOrRename')) {
+            recordRouterOwnerOnCreateOrRename($oldSession, $newSession);
+        }
         if ($appRoot && is_dir($appRoot . '/include')) {
             ngwSyncToLiveDataVault($appRoot, true);
         }
@@ -337,6 +341,9 @@ if (!function_exists('ngwDeleteRouterSessionFromConfig')) {
             }
         }
 
+        if (function_exists('removeRouterOwnerMeta')) {
+            removeRouterOwnerMeta($targetSession);
+        }
         // Overwrite Live Data Vault copies immediately so the deleted router cannot be resurrected
         if ($appRoot && is_dir($appRoot . '/include')) {
             ngwSyncToLiveDataVault($appRoot, true);
@@ -421,9 +428,58 @@ if (!function_exists('ngwDiscoverCandidateRootsOnVps')) {
     }
 }
 
+if (!function_exists('ngwQuickRestoreFromVaultIfEmpty')) {
+    /**
+     * Ultra-fast (<1ms) local check: if live include/config.php has 0 routers,
+     * immediately restore protected files from the local Live Data Vault without
+     * running any shell commands, archive extractions, or git reflog scans.
+     */
+    function ngwQuickRestoreFromVaultIfEmpty($appRoot) {
+        $appRoot = rtrim((string)$appRoot, '/\\');
+        if ($appRoot === '') return false;
+        $cfgPath = $appRoot . '/include/config.php';
+        $curParsed = is_file($cfgPath)
+            ? ngwParseConfigPhpRouters((string)@file_get_contents($cfgPath))
+            : array('routers' => array());
+        if (!empty($curParsed['routers'])) {
+            return false;
+        }
+        $filesToRestore = array(
+            'include/config.php',
+            'include/router_meta.json',
+            'include/resellers.json',
+            'include/admin_users.json',
+            'include/backup_admin.json',
+            'include/permission_groups.json',
+            'include/vpn_routers.json',
+            'include/pppoe_areas.json',
+            'include/voice_call_services.json',
+            'include/user_prefs.json',
+        );
+        foreach (ngwGetLiveVaultDirs($appRoot) as $vDir) {
+            $vCfg = $vDir . '/include/config.php';
+            if (!is_file($vCfg)) continue;
+            $vParsed = ngwParseConfigPhpRouters((string)@file_get_contents($vCfg));
+            if (empty($vParsed['routers'])) continue;
+            foreach ($filesToRestore as $rel) {
+                $src = $vDir . '/' . $rel;
+                $dst = $appRoot . '/' . $rel;
+                if (is_file($src)) {
+                    @copy($src, $dst);
+                    if ($rel === 'include/config.php') {
+                        ngwInvalidatePhpFileCache($dst);
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+}
+
 if (!function_exists('ngwExtractDataFromArchivesOnVps')) {
     /**
-     * Inspect .tar.gz and .zip archives in backups/ and version-history/ for config.php & json files
+     * Inspect up to 3 recent backup .zip/.tar.gz archives in backups/ (excluding version-history code snapshots)
      */
     function ngwExtractDataFromArchivesOnVps($appRoot) {
         $appRoot = rtrim((string)$appRoot, '/\\');
@@ -432,24 +488,24 @@ if (!function_exists('ngwExtractDataFromArchivesOnVps')) {
 
         $searchDirs = array(
             $appRoot . '/backups',
-            $appRoot . '/backups/version-history',
             '/var/www/nextgan-wifi/backups',
-            '/var/www/nextgan-wifi/backups/version-history',
             '/var/www/html/backups',
-            '/var/www/html/backups/version-history',
         );
         foreach (array_unique($searchDirs) as $sDir) {
             if (!is_dir($sDir)) continue;
             foreach ((array)@glob($sDir . '/*.{zip,tar.gz,tgz}', GLOB_BRACE) as $arch) {
-                if (is_file($arch)) {
+                if (is_file($arch) && (@filesize($arch) ?: 0) <= 20 * 1024 * 1024) {
                     $archivePaths[$arch] = @filemtime($arch) ?: 0;
                 }
             }
         }
-        asort($archivePaths); // oldest to newest
+        arsort($archivePaths); // newest first
+        $archivePaths = array_slice($archivePaths, 0, 3, true);
+        asort($archivePaths); // oldest to newest among top 3
 
         $targetRelFiles = array(
             'include/config.php',
+            'include/router_meta.json',
             'include/resellers.json',
             'include/admin_users.json',
             'include/backup_admin.json',
@@ -504,16 +560,16 @@ if (!function_exists('ngwExtractDataFromArchivesOnVps')) {
             }
         }
 
-        // Also check git reflog / dangling blobs if .git exists
+        // Check at most the 3 most recent git reflog commits if .git exists
         $gitBase = is_dir($appRoot . '/.git') ? $appRoot : (is_dir(dirname($appRoot) . '/.git') ? dirname($appRoot) : '');
         if ($gitBase !== '' && function_exists('shell_exec')) {
-            $reflogHashes = @shell_exec('git -C ' . escapeshellarg($gitBase) . ' log -g --pretty=format:%H -n 30 2>/dev/null');
+            $reflogHashes = @shell_exec('git -C ' . escapeshellarg($gitBase) . ' log -g --pretty=format:%H -n 3 2>/dev/null');
             if (is_string($reflogHashes) && trim($reflogHashes) !== '') {
                 $hashes = array_reverse(array_unique(array_filter(preg_split('/\r?\n/', trim($reflogHashes)))));
                 foreach ($hashes as $h) {
                     if (!preg_match('/^[a-f0-9]{7,40}$/i', $h)) continue;
                     $entryMap = array();
-                    foreach (array('include/config.php', 'include/resellers.json', 'include/admin_users.json', 'include/vpn_routers.json', 'include/pppoe_areas.json') as $rel) {
+                    foreach (array('include/config.php', 'include/router_meta.json', 'include/resellers.json', 'include/admin_users.json') as $rel) {
                         foreach (array($rel, 'mikhmon/' . $rel) as $gitRel) {
                             $out = @shell_exec('git -C ' . escapeshellarg($gitBase) . ' show ' . escapeshellarg($h . ':' . $gitRel) . ' 2>/dev/null');
                             if (is_string($out) && trim($out) !== '') {
@@ -615,6 +671,7 @@ if (!function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
         // 2. Filesystem candidate directories
         $relFiles = array(
             'include/config.php',
+            'include/router_meta.json',
             'include/resellers.json',
             'include/admin_users.json',
             'include/backup_admin.json',
@@ -674,6 +731,28 @@ if (!function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
             ngwInvalidatePhpFileCache($configFile);
         }
         $report['total_routers_now'] = count($mergedRouters);
+
+        // --- A2. Merge include/router_meta.json (Router Ownership Metadata) ---
+        $metaFile = $appRoot . '/include/router_meta.json';
+        $currentMeta = is_file($metaFile) ? @json_decode((string)@file_get_contents($metaFile), true) : array();
+        if (!is_array($currentMeta)) {
+            $currentMeta = array();
+        }
+        $metaModified = false;
+        foreach ($sources as $srcLabel => $blobMap) {
+            if (empty($blobMap['include/router_meta.json'])) continue;
+            $mMap = @json_decode($blobMap['include/router_meta.json'], true);
+            if (!is_array($mMap)) continue;
+            foreach ($mMap as $sName => $mEntry) {
+                if (!isset($currentMeta[$sName]) && isset($mergedRouters[$sName]) && is_array($mEntry)) {
+                    $currentMeta[$sName] = $mEntry;
+                    $metaModified = true;
+                }
+            }
+        }
+        if ($metaModified) {
+            @file_put_contents($metaFile, json_encode($currentMeta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+        }
 
         // --- B. Merge include/resellers.json ---
         $resFile = $appRoot . '/include/resellers.json';

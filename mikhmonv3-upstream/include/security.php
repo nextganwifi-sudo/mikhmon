@@ -655,14 +655,61 @@ function ngwRecordActivity($action, $details = array(), $overrideActor = null, $
         'session_force_logout',
         'router_connect_failed',
         'router_connected',
+        'router_settings_saved',
+        'router_deleted',
+        'router_reboot',
+        'router_shutdown',
         'voucher_batch_created',
         'hotspot_user_created',
+        'hotspot_user_updated',
+        'hotspot_user_deleted',
+        'hotspot_users_batch_deleted',
+        'hotspot_expired_deleted',
+        'hotspot_voucher_reset',
+        'hotspot_user_reset',
+        'hotspot_bulk_reset_mac',
+        'hotspot_user_enabled',
+        'hotspot_user_disabled',
+        'hotspot_voucher_printed',
+        'hotspot_users_exported',
+        'hotspot_users_transferred',
+        'hotspot_active_disconnected',
+        'hotspot_host_removed',
+        'hotspot_cookie_removed',
+        'hotspot_ipbinding_changed',
+        'hotspot_scheduler_changed',
+        'hotspot_profile_created',
+        'hotspot_profile_updated',
+        'hotspot_profile_deleted',
+        'hotspot_profile_transfer',
+        'pppoe_user_created',
+        'pppoe_user_updated',
+        'pppoe_user_deleted',
+        'pppoe_user_enabled',
+        'pppoe_user_disabled',
+        'pppoe_status_changed',
+        'pppoe_user_expired',
+        'pppoe_profile_created',
+        'pppoe_profile_updated',
+        'pppoe_profile_deleted',
+        'pppoe_active_disconnected',
+        'pppoe_caller_id_cleared',
+        'pppoe_renewed',
+        'pppoe_full_reset',
+        'template_saved',
+        'template_reset',
+        'logo_uploaded',
+        'logo_removed',
         'reseller_created',
         'reseller_updated',
         'reseller_deleted',
         'reseller_status_changed',
         'permission_groups_updated',
         'reseller_impersonation',
+        'admin_user_created',
+        'admin_user_updated',
+        'admin_user_deleted',
+        'profile_updated',
     );
     if (!in_array($action, $allowed, true)) return false;
 
@@ -684,9 +731,9 @@ function ngwRecordActivity($action, $details = array(), $overrideActor = null, $
         'details' => array(),
     );
     if (is_array($details)) {
-        foreach (array('router', 'host', 'profile', 'quantity', 'target', 'status', 'error', 'ip', 'device', 'area') as $key) {
+        foreach (array('router', 'host', 'port', 'user', 'profile', 'quantity', 'target', 'status', 'fault', 'error', 'ip', 'device', 'area', 'detail') as $key) {
             if (isset($details[$key]) && is_scalar($details[$key]) && trim((string)$details[$key]) !== '') {
-                $maxLen = ($key === 'error') ? 260 : 140;
+                $maxLen = ($key === 'error') ? 360 : (($key === 'detail') ? 240 : 140);
                 $safe['details'][$key] = substr(trim((string)$details[$key]), 0, $maxLen);
             }
         }
@@ -708,21 +755,39 @@ function ngwRecordActivity($action, $details = array(), $overrideActor = null, $
         fwrite($fp, "<?php http_response_code(404); exit; ?>\n");
     }
     fseek($fp, 0, SEEK_END);
-    $ok = fwrite($fp, json_encode($safe, JSON_UNESCAPED_SLASHES) . "\n") !== false;
+    $ok = fwrite($fp, json_encode($safe, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n") !== false;
     fflush($fp);
+
+    // Prevent unbounded growth while retaining plenty of backend multi-day history
+    if ($size && (int)$size['size'] > 4 * 1024 * 1024) {
+        rewind($fp);
+        $rawAll = stream_get_contents($fp);
+        if (is_string($rawAll) && $rawAll !== '') {
+            $allLines = preg_split('/\r?\n/', $rawAll, -1, PREG_SPLIT_NO_EMPTY);
+            if (is_array($allLines) && count($allLines) > 15000) {
+                $guard = "<?php http_response_code(404); exit; ?>";
+                $tail = array_slice($allLines, -12000);
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, $guard . "\n" . implode("\n", $tail) . "\n");
+                fflush($fp);
+            }
+        }
+    }
+
     flock($fp, LOCK_UN);
     fclose($fp);
     return $ok;
 }
 
-function ngwReadActivityLog($limit = 2000) {
+function ngwReadActivityLog($limit = 8000) {
     $path = ngwActivityLogPath();
     if (!is_file($path) || !is_readable($path)) return array();
     $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     if (!is_array($lines)) return array();
     array_shift($lines); // PHP access guard
     $events = array();
-    foreach (array_slice(array_reverse($lines), 0, max(1, min(5000, (int)$limit))) as $line) {
+    foreach (array_slice(array_reverse($lines), 0, max(1, min(15000, (int)$limit))) as $line) {
         $event = json_decode($line, true);
         if (is_array($event) && isset($event['time'], $event['actor'], $event['action'])) {
             $events[] = $event;
@@ -735,4 +800,148 @@ function ngwClearActivityLog() {
     $path = ngwActivityLogPath();
     return @file_put_contents($path, "<?php http_response_code(404); exit; ?>\n", LOCK_EX) !== false;
 }
+
+/**
+ * Produce an exact, human-readable diagnostic fault + error reason when opening/connecting to a router fails.
+ */
+function ngwDiagnoseRouterConnectFailure($session, $iphost, $userhost, $passwdDecrypted, $rawErr = '', $stage = '') {
+    $iphost = trim((string)$iphost);
+    $userhost = trim((string)$userhost);
+    $passwdDecrypted = (string)$passwdDecrypted;
+    $rawErr = trim((string)$rawErr);
+
+    $cleanTarget = $iphost;
+    if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $cleanTarget, $schemeMatch)) {
+        $cleanTarget = substr($cleanTarget, strlen($schemeMatch[0]));
+        if (preg_match('/:\d+$/', $cleanTarget, $portMatch) && (int)substr($portMatch[0], 1) === 22) {
+            $cleanTarget = substr($cleanTarget, 0, -strlen($portMatch[0]));
+        }
+    }
+    $probeHost = $cleanTarget;
+    $probePort = 8728;
+    if (strpos($cleanTarget, ':') !== false) {
+        $hp = explode(':', $cleanTarget, 2);
+        $probeHost = trim($hp[0]);
+        if ($hp[1] !== '' && is_numeric($hp[1])) {
+            $probePort = (int)$hp[1];
+        }
+    }
+
+    if ($stage === 'access_denied') {
+        return array(
+            'fault' => 'Router Access Denied',
+            'error' => "User attempted to open router '{$session}' without assigned router permission.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if ($stage === 'not_found') {
+        return array(
+            'fault' => 'Router Config Missing',
+            'error' => "Router configuration for '{$session}' was not found in config.php.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if ($iphost === '' || $probeHost === '') {
+        return array(
+            'fault' => 'Missing Host/IP',
+            'error' => "Host/IP is empty in Router Settings for '{$session}'.",
+            'host' => '',
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if (stripos($rawErr, 'getaddrinfo') !== false || stripos($rawErr, 'Name or service not known') !== false || stripos($rawErr, 'DNS') !== false) {
+        return array(
+            'fault' => 'Wrong Host / DNS Failed',
+            'error' => "DNS / Hostname '{$probeHost}' failed to resolve — check Router IP / Hostname / DDNS.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if (stripos($rawErr, 'refused') !== false) {
+        return array(
+            'fault' => 'Port Closed / Wrong API Port',
+            'error' => "Connection refused at {$probeHost}:{$probePort} — MikroTik API service (port {$probePort}) is disabled or wrong port configured.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if (stripos($rawErr, 'timed out') !== false) {
+        return array(
+            'fault' => 'Host/IP Offline or Firewall',
+            'error' => "Ping/TCP timed out to {$probeHost}:{$probePort} — Router offline, wrong Host/IP, VPN tunnel down, or port {$probePort} firewalled.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if (stripos($rawErr, 'unreachable') !== false || stripos($rawErr, 'No route') !== false) {
+        return array(
+            'fault' => 'Network / VPN Unreachable',
+            'error' => "Network unreachable to {$probeHost}:{$probePort} — Router or VPN route is down.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if ($userhost === '') {
+        return array(
+            'fault' => 'Missing Router API Username',
+            'error' => "Host {$probeHost}:{$probePort} reachable, but API Username is empty in Router Settings.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => '',
+        );
+    }
+    if (stripos($rawErr, 'allowed') !== false || stripos($rawErr, 'permission') !== false || stripos($rawErr, 'policy') !== false) {
+        return array(
+            'fault' => 'API Permission / IP Restriction',
+            'error' => "MikroTik user '{$userhost}' on {$probeHost}:{$probePort} lacks API permission/policy or server IP is blocked in Allowed Address.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if (stripos($rawErr, 'invalid user name or password') !== false || stripos($rawErr, 'cannot log in') !== false || stripos($rawErr, 'rejected') !== false || stripos($rawErr, 'login failed') !== false || stripos($rawErr, 'login') !== false) {
+        if ($passwdDecrypted === '') {
+            return array(
+                'fault' => 'Router API Password Empty/Wrong',
+                'error' => "Host {$probeHost}:{$probePort} reachable (Ping OK), but MikroTik rejected login for user '{$userhost}' — API Password in Router Settings is empty or wrong.",
+                'host' => $iphost,
+                'port' => (string)$probePort,
+                'user' => $userhost,
+            );
+        }
+        return array(
+            'fault' => 'Wrong Router Username or Password',
+            'error' => "Host {$probeHost}:{$probePort} reachable (Ping OK), but MikroTik rejected login — configured API Username ('{$userhost}') or Password (or both) is wrong.",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    if ($stage === 'auth') {
+        return array(
+            'fault' => 'API Handshake / Port Mismatch',
+            'error' => "TCP port {$probePort} on {$probeHost} opened, but RouterOS API handshake failed (wrong port like Winbox/HTTP instead of API, or api-ssl enabled).",
+            'host' => $iphost,
+            'port' => (string)$probePort,
+            'user' => $userhost,
+        );
+    }
+    return array(
+        'fault' => 'Router Connection Failed',
+        'error' => $rawErr !== '' ? $rawErr : "Cannot connect to RouterOS API at {$probeHost}:{$probePort} for user '{$userhost}'.",
+        'host' => $iphost,
+        'port' => (string)$probePort,
+        'user' => $userhost,
+    );
+}
+
 

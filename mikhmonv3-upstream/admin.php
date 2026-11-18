@@ -106,6 +106,11 @@ if ($id == "login" || substr($url, -1) == "p") {
     $pass = isset($_POST['pass']) ? (string)$_POST['pass'] : '';
     if (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_login_csrf')) {
       $auth = array('authenticated' => false);
+      ngwRecordActivity('login_failed', array(
+        'fault' => 'CSRF Token Expired',
+        'target' => $user !== '' ? $user : 'unknown',
+        'error' => 'Login CSRF security token expired or invalid (page not reloaded or cookies blocked)',
+      ), $user !== '' ? $user : 'unknown', 'unknown');
       $errText = $isBnLogin
         ? 'সিকিউরিটি টোকেনের মেয়াদ শেষ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
         : 'Security token expired or invalid. Reload the login page and try again.';
@@ -117,7 +122,9 @@ if ($id == "login" || substr($url, -1) == "p") {
         ? 'অতিরিক্ত ভুল লগইন চেষ্টার কারণে ১৫ মিনিট অপেক্ষা করে আবার চেষ্টা করুন।'
         : 'Too many failed login attempts. Wait 15 minutes before trying again.';
       ngwRecordActivity('login_failed', array(
-        'error' => 'Login throttled (too many failed attempts)',
+        'fault' => '15m Login Lockout',
+        'target' => $user !== '' ? $user : 'unknown',
+        'error' => 'Login throttled after repeated failed attempts (Wait 15 minutes)',
       ), $user !== '' ? $user : 'unknown', 'unknown');
       $alertTitle = $isBnLogin ? 'সতর্কবার্তা!' : 'Alert!';
       $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> ' . $alertTitle . '<br>' . htmlspecialchars($errText) . '</div>';
@@ -126,8 +133,11 @@ if ($id == "login" || substr($url, -1) == "p") {
       if (!$auth['authenticated']) {
         ngwRecordLoginFailure($user);
         $failReason = !empty($auth['error_reason']) ? (string)$auth['error_reason'] : ('Invalid username or password for "' . $user . '"');
+        $failFault = !empty($auth['fault']) ? (string)$auth['fault'] : 'Login Failed';
         $attemptedRole = !empty($auth['attempted_role']) ? (string)$auth['attempted_role'] : 'unknown';
         ngwRecordActivity('login_failed', array(
+          'fault' => $failFault,
+          'target' => $user !== '' ? $user : '(empty)',
           'error' => $failReason,
         ), $user !== '' ? $user : 'unknown', $attemptedRole);
       }
@@ -138,6 +148,9 @@ if ($id == "login" || substr($url, -1) == "p") {
       $_SESSION["mikhmon"] = $user;
       $_SESSION["mikhmon_role"] = $auth['role'];
       $_SESSION["mikhmon_admin_id"] = ($auth['role'] === 'admin' && !empty($auth['id'])) ? (string)$auth['id'] : '';
+      $_SESSION["mikhmon_admin_role"] = ($auth['role'] === 'admin')
+        ? (isset($auth['admin_role']) && $auth['admin_role'] === 'admin' ? 'admin' : 'admin_store')
+        : '';
       $_SESSION["mikhmon_reseller_id"] = isset($auth['id']) ? $auth['id'] : '';
       $_SESSION["mikhmon_permission_mode"] = isset($auth['permission_mode']) ? $auth['permission_mode'] : '';
       $_SESSION["mikhmon_template_code"] = isset($auth['template_code']) ? $auth['template_code'] : '';
@@ -204,18 +217,21 @@ if ($id == "login" || substr($url, -1) == "p") {
     exit;
   }
   $admUser = $_SESSION['mikhmon_impersonator_admin'];
+  $admRec = findAdminUserByIdOrUsername($admUser);
   $oldTok = isset($_SESSION['ngw_session_token']) ? (string)$_SESSION['ngw_session_token'] : '';
   unset($_SESSION['mikhmon_impersonator_admin']);
   ngwRegenerateAuthenticatedSession($oldTok);
   $_SESSION["mikhmon"] = $admUser;
   $_SESSION["mikhmon_role"] = 'admin';
-  $_SESSION["mikhmon_reseller_id"] = 'admin';
-  $_SESSION["mikhmon_permission_mode"] = 'Admin';
+  $_SESSION["mikhmon_admin_id"] = ($admRec !== null && !empty($admRec['id'])) ? (string)$admRec['id'] : 'admin';
+  $_SESSION["mikhmon_admin_role"] = ($admRec !== null && isset($admRec['admin_role']) && $admRec['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+  $_SESSION["mikhmon_reseller_id"] = $_SESSION["mikhmon_admin_id"];
+  $_SESSION["mikhmon_permission_mode"] = ($_SESSION["mikhmon_admin_role"] === 'admin_store') ? 'Admin Store' : 'Admin';
   $_SESSION["mikhmon_template_code"] = 'GLOBAL';
   $_SESSION["mikhmon_assigned_template"] = 'default';
   $_SESSION["mikhmon_logo_filename"] = '';
   $_SESSION["mikhmon_routers"] = array('*');
-  $_SESSION["mikhmon_permissions"] = getDefaultPermissionMap(true);
+  $_SESSION["mikhmon_permissions"] = resolveEffectiveAdminPermissions($admRec);
   $_SESSION["mikhmon_last_activity"] = time();
   $_SESSION["mikhmon_login_handshake"] = 1;
   unset($_SESSION['lang_owner'], $_SESSION['theme_owner']);
@@ -255,7 +271,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   include_once('./settings/sessions.php');
 } elseif ($id == "resellers") {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdmin() || (!hasResellerPermission('view_resellers') && !hasResellerPermission('manage_resellers'))) {
     session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
@@ -264,7 +280,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   include_once('./settings/resellers.php');
 } elseif ($id == "activity") {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdmin() || !hasResellerPermission('view_logs')) {
     session_write_close();
     http_response_code(403);
     exit('Access denied.');
@@ -273,7 +289,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./settings/activity.php');
   session_write_close();
 } elseif ($id == "active-sessions") {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdmin() || !hasResellerPermission('view_active')) {
     session_write_close();
     http_response_code(403);
     exit('Access denied.');
@@ -286,7 +302,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./settings/my_profile.php');
   session_write_close();
 } elseif ($id == "admin-settings") {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdminStore()) {
     session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
@@ -295,7 +311,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./settings/admin_settings.php');
   session_write_close();
 } elseif ($id == "vpn") {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_vpn'))) {
     session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
@@ -304,7 +320,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   include_once('./vpn/vpn_hub.php');
 } elseif ($id == "system-update") {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
     session_write_close();
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
@@ -348,10 +364,15 @@ if ($id == "login" || substr($url, -1) == "p") {
     $connErrReason = !empty($API->last_error)
       ? (string)$API->last_error
       : ('RouterOS API connection failed for ' . $iphost);
+    $diagInfo = function_exists('ngwDiagnoseRouterConnectFailure')
+      ? ngwDiagnoseRouterConnectFailure($session, $iphost, $userhost, decrypt($passwdhost), $connErrReason, 'connect')
+      : array('fault' => 'Router Connection Failed', 'error' => $connErrReason, 'host' => (string)$iphost, 'user' => (string)$userhost);
     ngwRecordActivity('router_connect_failed', array(
       'router' => $routerDisplayLabel,
-      'host' => (string)$iphost,
-      'error' => $connErrReason,
+      'host' => $diagInfo['host'],
+      'user' => isset($diagInfo['user']) ? $diagInfo['user'] : (string)$userhost,
+      'fault' => $diagInfo['fault'],
+      'error' => $diagInfo['error'],
     ));
     session_write_close();
     $nl = '\n';
@@ -386,7 +407,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./process/shutdown.php');
 } elseif ($id == "remove-session" && $session != "") {
   requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
-  if (!ngwValidateCsrf(isset($_REQUEST['csrf']) ? (string)$_REQUEST['csrf'] : '', 'ngw_admin_csrf')) {
+  if (!canAccessRouterSession($session) || !ngwValidateCsrf(isset($_REQUEST['csrf']) ? (string)$_REQUEST['csrf'] : '', 'ngw_admin_csrf')) {
     session_write_close();
     echo "<script>window.location.replace('./admin.php?id=sessions')</script>";
     exit;
@@ -408,7 +429,11 @@ if ($id == "login" || substr($url, -1) == "p") {
       }
       fclose($f);
     }
+    if (function_exists('removeRouterOwnerMeta')) {
+      removeRouterOwnerMeta($session);
+    }
   }
+  ngwRecordActivity('router_deleted', array('router' => (string)$session));
   $_SESSION['router_settings_notice'] = (isset($langid) && $langid === 'bn')
     ? ('রাউটার সেশন (' . $session . ') সফলভাবে ডিলিট করা হয়েছে।')
     : ('Router session (' . $session . ') has been deleted successfully.');
@@ -468,7 +493,26 @@ if ($id == "login" || substr($url, -1) == "p") {
 	echo "<script>window.location='./admin.php?id=sessions'</script>";
 }
 ?>
+</div>
+</div>
 <script src="js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="js/mikhmon.js?v=ngw2.3"></script>
+<script src="js/mikhmon.js?v=ngw2.4"></script>
+<script>
+(function(){
+  try {
+    if (window.jQuery) {
+      $(".main-container").show();
+      $("#loading").hide();
+    }
+  } catch(e) {}
+  var l = document.getElementById("loading");
+  if (l) l.style.display = "none";
+  var c = document.querySelectorAll(".main-container");
+  for (var i = 0; i < c.length; i++) {
+    c[i].style.display = "block";
+  }
+})();
+</script>
 </body>
 </html>
+

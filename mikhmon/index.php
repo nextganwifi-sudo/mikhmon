@@ -222,10 +222,15 @@ if (!isset($_SESSION["mikhmon"])) {
     if (!$isRouterConnected) {
       $routerDisplayLabel = (!empty($hotspotname) && $hotspotname !== $session) ? ($hotspotname . ' (' . $session . ')') : $session;
       $connErrReason = !empty($API->last_error) ? (string)$API->last_error : ('RouterOS API connection failed for ' . $iphost);
+      $diagInfo = function_exists('ngwDiagnoseRouterConnectFailure')
+        ? ngwDiagnoseRouterConnectFailure($session, $iphost, $userhost, decrypt($passwdhost), $connErrReason, 'connect')
+        : array('fault' => 'Router Connection Failed', 'error' => $connErrReason, 'host' => (string)$iphost, 'user' => (string)$userhost);
       ngwRecordActivity('router_connect_failed', array(
         'router' => $routerDisplayLabel,
-        'host' => (string)$iphost,
-        'error' => $connErrReason,
+        'host' => $diagInfo['host'],
+        'user' => isset($diagInfo['user']) ? $diagInfo['user'] : (string)$userhost,
+        'fault' => $diagInfo['fault'],
+        'error' => $diagInfo['error'],
       ));
     }
     if (!empty($_SESSION[$session . '_identity'])) {
@@ -279,7 +284,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // resellers management
   elseif ($hotspot == "resellers") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdmin() || (!hasResellerPermission('view_resellers') && !hasResellerPermission('manage_resellers'))) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
@@ -291,7 +296,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // activity history
   elseif ($hotspot == "activity") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdmin() || !hasResellerPermission('view_logs')) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
@@ -299,7 +304,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // active sessions
   elseif ($hotspot == "active-sessions") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdmin() || !hasResellerPermission('view_active')) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
@@ -307,7 +312,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // vpn hub
   elseif ($hotspot == "vpn") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
@@ -315,7 +320,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // system update & vps center
   elseif ($hotspot == "system-update") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
@@ -323,7 +328,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // admin settings
   elseif ($hotspot == "admin-settings") {
-    if (!isMikhmonAdmin()) {
+    if (!isMikhmonAdminStore()) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }
@@ -693,7 +698,7 @@ elseif ($report == "export") {
   elseif ($enable_pppoe_user != "") {
     requireResellerPermission('enable_disable_pppoe_user', $defRedirect);
     $API->comm("/ppp/secret/set", array(".id" => $enable_pppoe_user, "disabled" => "no"));
-    ngwRecordActivity('pppoe_user_enabled', array('router' => $session, 'id' => $enable_pppoe_user));
+    ngwRecordActivity('pppoe_user_enabled', array('router' => $session, 'target' => $enable_pppoe_user));
     echo "<script>window.location='./?pppoe=users&session=" . $session . "&msg=enabled';</script>";
     exit;
   }
@@ -711,7 +716,7 @@ elseif ($report == "export") {
         }
       }
     }
-    ngwRecordActivity('pppoe_user_disabled', array('router' => $session, 'id' => $disable_pppoe_user));
+    ngwRecordActivity('pppoe_user_disabled', array('router' => $session, 'target' => isset($sec[0]['name']) ? $sec[0]['name'] : $disable_pppoe_user));
     echo "<script>window.location='./?pppoe=users&session=" . $session . "&msg=disabled';</script>";
     exit;
   }
@@ -729,7 +734,7 @@ elseif ($report == "export") {
       }
     }
     $API->comm("/ppp/secret/remove", array(".id" => $remove_pppoe_user));
-    ngwRecordActivity('pppoe_user_deleted', array('router' => $session, 'id' => $remove_pppoe_user));
+    ngwRecordActivity('pppoe_user_deleted', array('router' => $session, 'target' => isset($sec[0]['name']) ? $sec[0]['name'] : $remove_pppoe_user));
     echo "<script>window.location='./?pppoe=users&session=" . $session . "&msg=deleted';</script>";
     exit;
   }
@@ -759,7 +764,7 @@ elseif ($report == "export") {
   elseif ($remove_pppoe_profile != "") {
     requireResellerPermission('manage_pppoe_profiles', $defRedirect);
     $API->comm("/ppp/profile/remove", array(".id" => $remove_pppoe_profile));
-    ngwRecordActivity('pppoe_profile_deleted', array('router' => $session, 'id' => $remove_pppoe_profile));
+    ngwRecordActivity('pppoe_profile_deleted', array('router' => $session, 'target' => $remove_pppoe_profile));
     echo "<script>window.location='./?pppoe=profiles&session=" . $session . "&msg=deleted';</script>";
     exit;
   }
@@ -775,7 +780,7 @@ elseif ($report == "export") {
   elseif ($disconnect_pppoe_active != "") {
     requireResellerPermission('disconnect_pppoe_active', $defRedirect);
     $API->comm("/ppp/active/remove", array(".id" => $disconnect_pppoe_active));
-    ngwRecordActivity('pppoe_active_disconnected', array('router' => $session, 'id' => $disconnect_pppoe_active));
+    ngwRecordActivity('pppoe_active_disconnected', array('router' => $session, 'target' => $disconnect_pppoe_active));
     echo "<script>window.location='./?pppoe=active&session=" . $session . "&msg=disconnected';</script>";
     exit;
   }
