@@ -23,19 +23,26 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/reseller_acl.php');
 $resellerCsrf = ngwCsrfToken('ngw_resellers_csrf');
 
-if (!isMikhmonAdmin()) {
+if (!isMikhmonAdmin() || (!hasResellerPermission('view_resellers') && !hasResellerPermission('manage_resellers'))) {
     $thm = isset($_SESSION['theme']) && $_SESSION['theme'] !== '' ? $_SESSION['theme'] : 'dark';
-    echo '<div class="row"><div class="col-6"><div class="card"><div class="card-header"><h3><i class="fa fa-ban text-danger"></i> Access Denied</h3></div><div class="card-body"><p>Only Administrator can manage Reseller accounts and Permission Groups.</p><a class="btn bg-primary" href="./admin.php?id=sessions"><i class="fa fa-arrow-left"></i> Back</a></div></div></div></div></div></div><script src="./js/mikhmon-ui.' . htmlspecialchars($thm, ENT_QUOTES) . '.min.js"></script><script src="./js/mikhmon.js"></script></body></html>';
+    echo '<div class="row"><div class="col-6"><div class="card"><div class="card-header"><h3><i class="fa fa-ban text-danger"></i> Access Denied</h3></div><div class="card-body"><p>You do not have permission to manage Reseller accounts.</p><a class="btn bg-primary" href="./admin.php?id=sessions"><i class="fa fa-arrow-left"></i> Back</a></div></div></div></div></div></div><script src="./js/mikhmon-ui.' . htmlspecialchars($thm, ENT_QUOTES) . '.min.js"></script><script src="./js/mikhmon.js"></script></body></html>';
     exit;
 }
 
+$canManageResellers = hasResellerPermission('manage_resellers');
 $baseResellerUrl = !empty($session) ? "./?hotspot=resellers&session=" . urlencode($session) : "./admin.php?id=resellers";
-$allRouters = getConfiguredRouterSessions();
+$allRouters = array();
+foreach (getConfiguredRouterSessions() as $cfgRouterSess) {
+    if (canAccessRouterSession($cfgRouterSess)) {
+        $allRouters[] = $cfgRouterSess;
+    }
+}
 $permCatalog = getAllMikhmonPermissionCategories();
 $permSectionsMeta = function_exists('getMikhmonPermissionSectionsMeta') ? getMikhmonPermissionSectionsMeta() : array();
 $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 $permGroups = loadPermissionGroups();
-$resellers = loadResellers();
+$allResellers = loadResellers();
+$resellers = getAccessibleResellers();
 $msg = "";
 $activeView = isset($_GET['view']) && $_GET['view'] === 'groups' ? 'groups' : 'resellers';
 
@@ -46,7 +53,7 @@ if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
     } else {
         $targetResellerId = trim((string)$_GET['login-as-reseller']);
         $targetReseller = findResellerByIdOrUsername($targetResellerId);
-        if ($targetReseller) {
+        if ($targetReseller && canCurrentAdminAccessReseller($targetReseller)) {
             if (session_status() !== PHP_SESSION_ACTIVE) {
                 @session_start();
             }
@@ -97,20 +104,22 @@ if (isset($_GET['login-as-reseller']) && $_GET['login-as-reseller'] !== '') {
 
 // Toggle active / disabled
 if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
-    if (!ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
-        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload and try again.') . "</div>";
+    if (!$canManageResellers || !ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ বা পারমিশন নেই।' : 'Security token expired or permission denied.') . "</div>";
     } else {
         $tid = $_GET['toggle-reseller'];
         $statusChanged = '';
-        foreach ($resellers as $idx => $r) {
-            if ((string)$r['id'] === (string)$tid) {
-                $resellers[$idx]['status'] = ($r['status'] === 'active') ? 'disabled' : 'active';
-                $statusChanged = $resellers[$idx]['status'];
+        foreach ($allResellers as $idx => $r) {
+            if ((string)$r['id'] === (string)$tid && canCurrentAdminAccessReseller($r)) {
+                $allResellers[$idx]['status'] = ($r['status'] === 'active') ? 'disabled' : 'active';
+                $statusChanged = $allResellers[$idx]['status'];
                 break;
             }
         }
-        saveResellers($resellers);
-        if ($statusChanged !== '') ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $statusChanged));
+        if ($statusChanged !== '') {
+            saveResellers($allResellers);
+            ngwRecordActivity('reseller_status_changed', array('target' => $tid, 'status' => $statusChanged));
+        }
         echo "<script>window.location=" . json_encode($baseResellerUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
         exit;
     }
@@ -118,18 +127,23 @@ if (isset($_GET['toggle-reseller']) && $_GET['toggle-reseller'] !== '') {
 
 // Delete reseller
 if (isset($_GET['remove-reseller']) && $_GET['remove-reseller'] !== '') {
-    if (!ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
-        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload and try again.') . "</div>";
+    if (!$canManageResellers || !ngwValidateCsrf(isset($_GET['csrf']) ? (string)$_GET['csrf'] : '', 'ngw_resellers_csrf')) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'সিকিউরিটি টোকেন অবৈধ বা পারমিশন নেই।' : 'Security token expired or permission denied.') . "</div>";
     } else {
         $rid = $_GET['remove-reseller'];
         $filtered = array();
-        foreach ($resellers as $r) {
-            if ((string)$r['id'] !== (string)$rid) {
-                $filtered[] = $r;
+        $deletedAny = false;
+        foreach ($allResellers as $r) {
+            if ((string)$r['id'] === (string)$rid && canCurrentAdminAccessReseller($r)) {
+                $deletedAny = true;
+                continue;
             }
+            $filtered[] = $r;
         }
-        saveResellers($filtered);
-        ngwRecordActivity('reseller_deleted', array('target' => $rid));
+        if ($deletedAny) {
+            saveResellers($filtered);
+            ngwRecordActivity('reseller_deleted', array('target' => $rid));
+        }
         echo "<script>window.location=" . json_encode($baseResellerUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
         exit;
     }
@@ -141,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !ngwValidateCsrf(isset($_POST['csrf
 }
 
 // Save Permission Groups (Read / Write / Full / Reset Voucher)
-if (isset($_POST['save_permission_groups'])) {
+if (isset($_POST['save_permission_groups']) && $canManageResellers) {
     $activeView = 'groups';
     $updatedGroups = array();
     foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $gMode) {
@@ -154,37 +168,39 @@ if (isset($_POST['save_permission_groups'])) {
     }
     if (savePermissionGroups($updatedGroups)) {
         $permGroups = loadPermissionGroups(true);
-        foreach ($resellers as $rIdx => $rRow) {
+        foreach ($allResellers as $rIdx => $rRow) {
+            if (!canCurrentAdminAccessReseller($rRow)) continue;
             $rMode = isset($rRow['permission_mode']) ? $rRow['permission_mode'] : 'Custom';
             if (isset($permGroups[$rMode])) {
-                $resellers[$rIdx]['permissions'] = $permGroups[$rMode];
+                $allResellers[$rIdx]['permissions'] = $permGroups[$rMode];
             }
         }
-        saveResellers($resellers);
+        saveResellers($allResellers);
         ngwRecordActivity('permission_groups_updated');
         $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? 'পারমিশন গ্রুপ সফলভাবে আপডেট হয়েছে।' : 'Permission Groups updated successfully.') . "</div>";
     }
 }
 
 // Reset Permission Groups to Defaults
-if (isset($_POST['reset_permission_groups'])) {
+if (isset($_POST['reset_permission_groups']) && $canManageResellers) {
     $activeView = 'groups';
     $defs = getDefaultPermissionGroupDefinitions();
     savePermissionGroups($defs);
     $permGroups = loadPermissionGroups(true);
-    foreach ($resellers as $rIdx => $rRow) {
+    foreach ($allResellers as $rIdx => $rRow) {
+        if (!canCurrentAdminAccessReseller($rRow)) continue;
         $rMode = isset($rRow['permission_mode']) ? $rRow['permission_mode'] : 'Custom';
         if (isset($permGroups[$rMode])) {
-            $resellers[$rIdx]['permissions'] = $permGroups[$rMode];
+            $allResellers[$rIdx]['permissions'] = $permGroups[$rMode];
         }
     }
-    saveResellers($resellers);
+    saveResellers($allResellers);
     $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-refresh'></i> " . ($isBn ? 'পারমিশন গ্রুপ ডিফল্ট সেটিংসে রিস্টোর হয়েছে।' : 'Permission Groups restored to default settings.') . "</div>";
 }
 
 // Save (Create or Update) reseller
 $openModalOnLoad = false;
-if (isset($_POST['save_reseller'])) {
+if (isset($_POST['save_reseller']) && $canManageResellers) {
     $editId = isset($_POST['reseller_id']) ? trim($_POST['reseller_id']) : '';
     $rUser = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', trim($_POST['r_username']));
     $rName = trim($_POST['r_name']);
@@ -193,7 +209,14 @@ if (isset($_POST['save_reseller'])) {
     $rMode = isset($_POST['r_permission_mode']) && in_array($_POST['r_permission_mode'], array('Read', 'Write', 'Full', 'Reset Voucher', 'Custom'), true)
         ? $_POST['r_permission_mode']
         : 'Write';
-    $assignedRouters = isset($_POST['r_routers']) && is_array($_POST['r_routers']) ? array_values($_POST['r_routers']) : array();
+    $rawRouters = isset($_POST['r_routers']) && is_array($_POST['r_routers']) ? array_values($_POST['r_routers']) : array();
+    $assignedRouters = array();
+    foreach ($rawRouters as $rtCandidate) {
+        $rtCandidate = trim((string)$rtCandidate);
+        if ($rtCandidate !== '' && canAccessRouterSession($rtCandidate)) {
+            $assignedRouters[] = $rtCandidate;
+        }
+    }
     $postedPerms = isset($_POST['r_perms']) && is_array($_POST['r_perms']) ? $_POST['r_perms'] : array();
 
     $customPerms = getDefaultPermissionMap(false);
@@ -202,12 +225,13 @@ if (isset($_POST['save_reseller'])) {
     }
     $customPerms = sanitizeResellerPermissions($customPerms);
 
-    if ($rUser === '' || strtolower($rUser) === strtolower($useradm)) {
-        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'অবৈধ রিসেলার ইউজারনেম (খালি বা অ্যাডমিন ইউজারনেমের সমান হতে পারবে না)।' : 'Invalid Reseller Username (cannot be empty or equal to Admin username).') . "</div>";
+    $collidesWithAdmin = (strtolower($rUser) === strtolower($useradm)) || (findAdminUserByIdOrUsername($rUser) !== null);
+    if ($rUser === '' || $collidesWithAdmin) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'অবৈধ রিসেলার ইউজারনেম (খালি বা অ্যাডমিন ইউজারনেমের সমান হতে পারবে না)।' : 'Invalid Reseller Username (cannot be empty or equal to an Admin username).') . "</div>";
         $openModalOnLoad = true;
     } else {
         $duplicate = false;
-        foreach ($resellers as $r) {
+        foreach ($allResellers as $r) {
             if (strtolower($r['username']) === strtolower($rUser) && (string)$r['id'] !== (string)$editId) {
                 $duplicate = true;
                 break;
@@ -218,36 +242,51 @@ if (isset($_POST['save_reseller'])) {
             $openModalOnLoad = true;
         } else {
             if ($editId !== '') {
-                foreach ($resellers as $idx => $r) {
-                    if ((string)$r['id'] === (string)$editId) {
-                        $resellers[$idx]['username'] = $rUser;
-                        $resellers[$idx]['name'] = $rName !== '' ? $rName : $rUser;
-                        $resellers[$idx]['status'] = $rStatus;
-                        $resellers[$idx]['permission_mode'] = $rMode;
-                        $resellers[$idx]['allowed_routers'] = $assignedRouters;
+                $updatedExisting = false;
+                foreach ($allResellers as $idx => $r) {
+                    if ((string)$r['id'] === (string)$editId && canCurrentAdminAccessReseller($r)) {
+                        $allResellers[$idx]['username'] = $rUser;
+                        $allResellers[$idx]['name'] = $rName !== '' ? $rName : $rUser;
+                        $allResellers[$idx]['status'] = $rStatus;
+                        $allResellers[$idx]['permission_mode'] = $rMode;
+                        $allResellers[$idx]['allowed_routers'] = $assignedRouters;
                         if ($rMode === 'Custom') {
-                            $resellers[$idx]['permissions'] = $customPerms;
+                            $allResellers[$idx]['permissions'] = $customPerms;
                         } else {
-                            $resellers[$idx]['permissions'] = $permGroups[$rMode];
+                            $allResellers[$idx]['permissions'] = $permGroups[$rMode];
                         }
                         if ($rPass !== '') {
-                            $resellers[$idx]['password_hash'] = password_hash($rPass, PASSWORD_DEFAULT);
-                            $resellers[$idx]['password_enc'] = encrypt($rPass);
+                            $allResellers[$idx]['password_hash'] = password_hash($rPass, PASSWORD_DEFAULT);
+                            $allResellers[$idx]['password_enc'] = encrypt($rPass);
                         }
+                        $updatedExisting = true;
                         break;
                     }
                 }
-                saveResellers($resellers);
-                ngwRecordActivity('reseller_updated', array('target' => $rUser, 'status' => $rStatus));
-                ensureResellerTemplateFiles($editId);
-                $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? ('রিসেলার <b>' . htmlspecialchars($rUser) . '</b> সফলভাবে আপডেট হয়েছে।') : ('Reseller <b>' . htmlspecialchars($rUser) . '</b> updated successfully.')) . "</div>";
+                if ($updatedExisting) {
+                    saveResellers($allResellers);
+                    ngwRecordActivity('reseller_updated', array('target' => $rUser, 'status' => $rStatus));
+                    ensureResellerTemplateFiles($editId);
+                    $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? ('রিসেলার <b>' . htmlspecialchars($rUser) . '</b> সফলভাবে আপডেট হয়েছে।') : ('Reseller <b>' . htmlspecialchars($rUser) . '</b> updated successfully.')) . "</div>";
+                }
             } else {
                 if ($rPass === '') {
                     $rPass = '123456';
                 }
-                $newId = getNextResellerId($resellers);
+                $newId = getNextResellerId($allResellers);
                 $rTemplateCode = sprintf('NGW-%03d', max(1, (int)$newId - 100));
-                $resellers[] = array(
+                $creatorAdm = getCurrentAdminRecord();
+                $creatorAdmId = (is_array($creatorAdm) && !empty($creatorAdm['id']))
+                    ? (string)$creatorAdm['id']
+                    : (isset($_SESSION['mikhmon_admin_id']) ? (string)$_SESSION['mikhmon_admin_id'] : '');
+                $creatorAdmUsername = (is_array($creatorAdm) && !empty($creatorAdm['username']))
+                    ? (string)$creatorAdm['username']
+                    : (isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : '');
+                $creatorAdmName = (is_array($creatorAdm) && !empty($creatorAdm['name']))
+                    ? (string)$creatorAdm['name']
+                    : $creatorAdmUsername;
+                $creatorAdmRole = isMikhmonAdminStore() ? 'super_admin' : 'admin';
+                $allResellers[] = array(
                     'id' => $newId,
                     'legacy_ids' => array(),
                     'username' => $rUser,
@@ -263,8 +302,12 @@ if (isset($_POST['save_reseller'])) {
                     'allowed_routers' => $assignedRouters,
                     'permissions' => ($rMode === 'Custom') ? $customPerms : $permGroups[$rMode],
                     'created_at' => date('Y-m-d H:i:s'),
+                    'created_by_admin_id' => $creatorAdmId,
+                    'created_by_admin_username' => $creatorAdmUsername,
+                    'created_by_admin_name' => $creatorAdmName,
+                    'created_by_admin_role' => $creatorAdmRole,
                 );
-                saveResellers($resellers);
+                saveResellers($allResellers);
                 ngwRecordActivity('reseller_created', array('target' => $rUser, 'status' => $rStatus));
                 ensureResellerTemplateFiles($newId);
                 $msg .= "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? ('রিসেলার <b>' . htmlspecialchars($rUser) . '</b> সফলভাবে তৈরি হয়েছে।') : ('Reseller <b>' . htmlspecialchars($rUser) . '</b> created successfully.')) . "</div>";
@@ -273,7 +316,8 @@ if (isset($_POST['save_reseller'])) {
     }
 }
 
-$resellers = loadResellers();
+$allResellers = loadResellers();
+$resellers = getAccessibleResellers();
 $defaultLinkSession = !empty($session) ? $session : (!empty($allRouters) ? $allRouters[0] : 'MikroTik-v6');
 $tplEditorBaseUrl = !empty($session) ? './?hotspot=template-editor' : './admin.php?id=editor';
 $upLogoBaseUrl = !empty($session) ? './?hotspot=uplogo' : './admin.php?id=uplogo';
@@ -1412,7 +1456,23 @@ function closeResellerDetailsModal() {
                               </div>
                             </div>
                           </td>
-                          <td><b><?= htmlspecialchars($r['username']); ?></b></td>
+                          <td>
+                            <b><?= htmlspecialchars($r['username']); ?></b>
+                            <?php
+                            $rOwnerInfo = function_exists('getResellerOwnerInfo') ? getResellerOwnerInfo($r) : null;
+                            if (is_array($rOwnerInfo) && isset($rOwnerInfo['added_by_role']) && $rOwnerInfo['added_by_role'] === 'admin') {
+                                $rAdminDispName = !empty($rOwnerInfo['added_by_name'])
+                                    ? (string)$rOwnerInfo['added_by_name']
+                                    : (!empty($rOwnerInfo['added_by_username']) ? (string)$rOwnerInfo['added_by_username'] : 'Admin');
+                                $rAdminBadgeLbl = $isBn
+                                    ? ('এডমিন অ্যাড করেছে: ' . $rAdminDispName)
+                                    : ('Added by Admin: ' . $rAdminDispName);
+                            ?>
+                              <span style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; background:rgba(56,189,248,0.18); color:#38bdf8;">
+                                <i class="fa fa-user-o"></i> <?= htmlspecialchars($rAdminBadgeLbl); ?>
+                              </span>
+                            <?php } ?>
+                          </td>
                           <td><?= htmlspecialchars($r['name']); ?></td>
                           <td><span class="ngw-mode-chip"><?= htmlspecialchars($rModeBadge); ?></span></td>
                           <td class="text-center">

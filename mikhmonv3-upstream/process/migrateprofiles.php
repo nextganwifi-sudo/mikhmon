@@ -45,7 +45,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $schedulers = $API->comm("/system/scheduler/print");
 
     $migrationReport = array();
-    $backupExport = "# Mikhmon v3 Existing-Router Backup (" . date("Y-m-d H:i:s") . ")\n";
+    $backupExport = "# NextGan WiFi Solution Existing-Router Backup (" . date("Y-m-d H:i:s") . ")\n";
 
     if (isset($_POST['run_migration'])) {
         foreach ($profiles as $prof) {

@@ -26,7 +26,7 @@ error_reporting(0);
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>NextGen WiFi Solution <?= $hotspotname; ?></title>
+		<title>NextGan WiFi Solution <?= $hotspotname; ?></title>
 		<meta charset="utf-8">
 		<meta http-equiv="cache-control" content="no-store, no-cache, must-revalidate, private" />
 		<meta http-equiv="pragma" content="no-cache" />

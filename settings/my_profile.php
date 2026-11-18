@@ -20,7 +20,8 @@ require_once __DIR__ . '/../include/reseller_acl.php';
 $isResellerProfile = isset($_SESSION['mikhmon_role']) && $_SESSION['mikhmon_role'] === 'reseller';
 $isImpersonating = !empty($_SESSION['mikhmon_impersonator_admin']);
 $profileUsername = (string)$_SESSION['mikhmon'];
-$profileRole = $isResellerProfile ? 'Reseller' : 'Administrator';
+$isSuperAdminProfile = !$isResellerProfile && isMikhmonAdminStore();
+$profileRole = $isResellerProfile ? 'Reseller' : ($isSuperAdminProfile ? 'Super Admin' : 'Admin');
 $profileName = $profileUsername;
 $profileId = 'adm_1';
 $uploadKey = 'admin';
@@ -466,9 +467,9 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
             </div>
           </div>
           <div>
-            <span class="ngw-profile-role-pill" style="background:<?= $isResellerProfile ? '#2ea043' : '#1f6feb'; ?>;">
+            <span class="ngw-profile-role-pill" style="background:<?= $isResellerProfile ? '#2ea043' : ($isSuperAdminProfile ? '#6e40c9' : '#1f6feb'); ?>;">
               <i class="fa <?= $isResellerProfile ? 'fa-id-badge' : 'fa-shield'; ?>"></i>
-              <?= htmlspecialchars($isBn ? ($isResellerProfile ? 'রিসেলার' : 'অ্যাডমিনিস্ট্রেটর') : $profileRole, ENT_QUOTES, 'UTF-8'); ?>
+              <?= htmlspecialchars($isBn ? ($isResellerProfile ? 'রিসেলার' : ($isSuperAdminProfile ? 'সুপার এডমিন' : 'এডমিন')) : $profileRole, ENT_QUOTES, 'UTF-8'); ?>
             </span>
           </div>
         </div>
@@ -487,7 +488,7 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
                 </div>
                 <div class="ngw-profile-field">
                   <small><i class="fa fa-id-card-o"></i> <?= $isBn ? 'অ্যাকাউন্টের ধরন' : 'Account Type'; ?></small>
-                  <strong style="display:block;padding-top:6px;"><?= htmlspecialchars($isBn ? 'অ্যাডমিনিস্ট্রেটর' : $profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
+                  <strong style="display:block;padding-top:6px;"><?= htmlspecialchars($isBn ? ($isSuperAdminProfile ? 'সুপার এডমিন (Super Admin)' : 'এডমিন (Admin)') : $profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
                 </div>
               </div>
               <div style="margin-top:10px;text-align:right;">

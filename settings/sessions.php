@@ -110,16 +110,16 @@ if (!isset($_SESSION["mikhmon"])) {
               $hsName = $value;
             }
             $ownerBadgeText = '';
-            $ownerBadgeIcon = 'fa-user';
+            $ownerBadgeIcon = 'fa-user-circle-o';
             if (isMikhmonAdmin() && function_exists('getRouterOwnerInfo')) {
               $rOwner = getRouterOwnerInfo($value);
-              if (is_array($rOwner) && !empty($rOwner['added_by_username'])) {
-                $isOwnerSubAdmin = (isset($rOwner['added_by_role']) && $rOwner['added_by_role'] === 'admin');
-                $ownerRoleStr = $isOwnerSubAdmin
-                  ? (($langid === 'bn') ? 'অ্যাডমিন' : 'Admin')
-                  : (($langid === 'bn') ? 'অ্যাডমিন স্টোর' : 'Admin Store');
-                $ownerBadgeIcon = $isOwnerSubAdmin ? 'fa-user-circle-o' : 'fa-shield';
-                $ownerBadgeText = $ownerRoleStr . ': ' . $rOwner['added_by_username'];
+              if (is_array($rOwner) && isset($rOwner['added_by_role']) && $rOwner['added_by_role'] === 'admin') {
+                $ownerDispName = !empty($rOwner['added_by_name'])
+                  ? (string)$rOwner['added_by_name']
+                  : (!empty($rOwner['added_by_username']) ? (string)$rOwner['added_by_username'] : 'Admin');
+                $ownerBadgeText = ($langid === 'bn')
+                  ? ('এডমিন অ্যাড করেছে: ' . $ownerDispName)
+                  : ('Added by Admin: ' . $ownerDispName);
               }
             }
           ?>

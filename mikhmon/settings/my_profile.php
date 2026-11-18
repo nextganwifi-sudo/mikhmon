@@ -20,7 +20,8 @@ require_once __DIR__ . '/../include/reseller_acl.php';
 $isResellerProfile = isset($_SESSION['mikhmon_role']) && $_SESSION['mikhmon_role'] === 'reseller';
 $isImpersonating = !empty($_SESSION['mikhmon_impersonator_admin']);
 $profileUsername = (string)$_SESSION['mikhmon'];
-$profileRole = $isResellerProfile ? 'Reseller' : 'Administrator';
+$isSuperAdminProfile = !$isResellerProfile && isMikhmonAdminStore();
+$profileRole = $isResellerProfile ? 'Reseller' : ($isSuperAdminProfile ? 'Super Admin' : 'Admin');
 $profileName = $profileUsername;
 $profileId = 'adm_1';
 $uploadKey = 'admin';
@@ -103,6 +104,9 @@ if (isset($_POST['upload_my_avatar'])) {
                 }
             }
             $profileSavedMsg = 'Your profile avatar has been updated.';
+            if (function_exists('ngwRecordActivity')) {
+                ngwRecordActivity('logo_uploaded', array('target' => $profileUsername, 'detail' => 'Profile Avatar: ' . $newLogoFn));
+            }
         } else {
             $profileError = isset($upRes['error']) ? (string)$upRes['error'] : 'Could not upload avatar image.';
         }
@@ -143,6 +147,9 @@ if (isset($_POST['remove_my_avatar'])) {
             }
         }
         $profileSavedMsg = 'Profile avatar reset to default.';
+        if (function_exists('ngwRecordActivity')) {
+            ngwRecordActivity('logo_removed', array('target' => $profileUsername, 'detail' => 'Profile Avatar Removed'));
+        }
     }
 }
 
@@ -197,6 +204,9 @@ if (!$isResellerProfile && isset($_POST['save_admin_info'])) {
                 $_SESSION['ngw_profile_csrf'] = bin2hex(random_bytes(32));
                 $profileCsrf = (string)$_SESSION['ngw_profile_csrf'];
                 $profileSavedMsg = 'Account information updated successfully.';
+                if (function_exists('ngwRecordActivity')) {
+                    ngwRecordActivity('profile_updated', array('target' => $newUsername, 'detail' => 'Account Info Updated'));
+                }
             } else {
                 $profileError = 'Could not save account information.';
             }
@@ -259,6 +269,9 @@ if (isset($_POST['change_my_password'])) {
 
             if ($saved) {
                 $profileSavedMsg = 'Password changed successfully.';
+                if (function_exists('ngwRecordActivity')) {
+                    ngwRecordActivity('profile_updated', array('target' => $profileUsername, 'detail' => 'Password Changed'));
+                }
                 $_SESSION['ngw_profile_csrf'] = bin2hex(random_bytes(32));
                 $profileCsrf = (string)$_SESSION['ngw_profile_csrf'];
             } else {
@@ -454,9 +467,9 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
             </div>
           </div>
           <div>
-            <span class="ngw-profile-role-pill" style="background:<?= $isResellerProfile ? '#2ea043' : '#1f6feb'; ?>;">
+            <span class="ngw-profile-role-pill" style="background:<?= $isResellerProfile ? '#2ea043' : ($isSuperAdminProfile ? '#6e40c9' : '#1f6feb'); ?>;">
               <i class="fa <?= $isResellerProfile ? 'fa-id-badge' : 'fa-shield'; ?>"></i>
-              <?= htmlspecialchars($isBn ? ($isResellerProfile ? 'রিসেলার' : 'অ্যাডমিনিস্ট্রেটর') : $profileRole, ENT_QUOTES, 'UTF-8'); ?>
+              <?= htmlspecialchars($isBn ? ($isResellerProfile ? 'রিসেলার' : ($isSuperAdminProfile ? 'সুপার এডমিন' : 'এডমিন')) : $profileRole, ENT_QUOTES, 'UTF-8'); ?>
             </span>
           </div>
         </div>
@@ -475,7 +488,7 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
                 </div>
                 <div class="ngw-profile-field">
                   <small><i class="fa fa-id-card-o"></i> <?= $isBn ? 'অ্যাকাউন্টের ধরন' : 'Account Type'; ?></small>
-                  <strong style="display:block;padding-top:6px;"><?= htmlspecialchars($isBn ? 'অ্যাডমিনিস্ট্রেটর' : $profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
+                  <strong style="display:block;padding-top:6px;"><?= htmlspecialchars($isBn ? ($isSuperAdminProfile ? 'সুপার এডমিন (Super Admin)' : 'এডমিন (Admin)') : $profileRole, ENT_QUOTES, 'UTF-8'); ?></strong>
                 </div>
               </div>
               <div style="margin-top:10px;text-align:right;">

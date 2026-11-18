@@ -43,11 +43,11 @@ $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_S
 $permCategories = getAllMikhmonPermissionCategories();
 $permMeta = function_exists('getMikhmonPermissionSectionsMeta') ? getMikhmonPermissionSectionsMeta() : array();
 
-// Count how many Admin Store accounts currently exist
-$adminStoreCount = 0;
+// Count how many Super Admin accounts currently exist
+$superAdminCount = 0;
 foreach ($adminUsers as $auRow) {
-  if (!isset($auRow['admin_role']) || $auRow['admin_role'] === 'admin_store') {
-    $adminStoreCount++;
+  if (!isset($auRow['admin_role']) || $auRow['admin_role'] !== 'admin') {
+    $superAdminCount++;
   }
 }
 
@@ -61,7 +61,7 @@ if (isset($_POST['save_admin_user'])) {
     $admName = isset($_POST['admin_name']) ? trim((string)$_POST['admin_name']) : '';
     $admUser = isset($_POST['admin_username']) ? trim((string)$_POST['admin_username']) : '';
     $admPass = isset($_POST['admin_password']) ? (string)$_POST['admin_password'] : '';
-    $admRole = (isset($_POST['admin_role']) && $_POST['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+    $admRole = (isset($_POST['admin_role']) && $_POST['admin_role'] === 'admin') ? 'admin' : 'super_admin';
 
     $shortcutGroups = function_exists('getAdminShortcutPermissionGroups') ? getAdminShortcutPermissionGroups() : array();
     $disabledPerms = array();
@@ -93,24 +93,24 @@ if (isset($_POST['save_admin_user'])) {
       $admName = $admUser;
     }
 
-    // Check if demoting the last remaining Admin Store user
-    $demotingLastStore = false;
+    // Check if demoting the last remaining Super Admin user
+    $demotingLastSuper = false;
     if ($editId !== '' && $admRole === 'admin') {
       foreach ($adminUsers as $existing) {
-        $exRole = (!isset($existing['admin_role']) || $existing['admin_role'] === 'admin_store') ? 'admin_store' : 'admin';
-        if ((string)$existing['id'] === $editId && $exRole === 'admin_store' && $adminStoreCount <= 1) {
-          $demotingLastStore = true;
+        $exRole = (isset($existing['admin_role']) && $existing['admin_role'] === 'admin') ? 'admin' : 'super_admin';
+        if ((string)$existing['id'] === $editId && $exRole === 'super_admin' && $superAdminCount <= 1) {
+          $demotingLastSuper = true;
           break;
         }
       }
     }
 
     if (!preg_match('/^[A-Za-z0-9_.@-]{3,64}$/', $admUser)) {
-      $settingsError = $isBn ? 'অ্যাডমিন ইউজারনেম ৩ থেকে ৬৪ অক্ষরের হতে হবে (অক্ষর, সংখ্যা, ডট, আন্ডারস্কোর, @ বা হাইফেন)।' : 'Admin username must be 3–64 characters and use only letters, numbers, dot, underscore, @ or hyphen.';
-    } elseif ($demotingLastStore) {
-      $settingsError = $isBn ? 'সর্বশেষ Admin Store ইউজারকে সাধারণ Admin রোলে পরিবর্তন করা যাবে না। অন্তত একজন Admin Store থাকতে হবে।' : 'Cannot change the last remaining Admin Store account to Admin. At least one Admin Store must remain.';
+      $settingsError = $isBn ? 'এডমিন ইউজারনেম ৩ থেকে ৬৪ অক্ষরের হতে হবে (অক্ষর, সংখ্যা, ডট, আন্ডারস্কোর, @ বা হাইফেন)।' : 'Admin username must be 3–64 characters and use only letters, numbers, dot, underscore, @ or hyphen.';
+    } elseif ($demotingLastSuper) {
+      $settingsError = $isBn ? 'সর্বশেষ সুপার এডমিন (Super Admin) ইউজারকে সাধারণ এডমিন রোলে পরিবর্তন করা যাবে না। অন্তত একজন সুপার এডমিন থাকতে হবে।' : 'Cannot change the last remaining Super Admin account to Admin. At least one Super Admin must remain.';
     } elseif ($editId === '' && (strlen($admPass) < 4 || strlen($admPass) > 256 || preg_match('/[\r\n]/', $admPass))) {
-      $settingsError = $isBn ? 'নতুন অ্যাডমিন ইউজার তৈরির জন্য পাসওয়ার্ড (৪-২৫৬ অক্ষর) আবশ্যক।' : 'Password is required (4–256 characters) when adding a new Admin user.';
+      $settingsError = $isBn ? 'নতুন এডমিন ইউজার তৈরির জন্য পাসওয়ার্ড (৪-২৫৬ অক্ষর) আবশ্যক।' : 'Password is required (4–256 characters) when adding a new Admin user.';
     } elseif ($editId !== '' && $admPass !== '' && (strlen($admPass) < 4 || strlen($admPass) > 256 || preg_match('/[\r\n]/', $admPass))) {
       $settingsError = $isBn ? 'পাসওয়ার্ড ৪ থেকে ২৫৬ অক্ষরের মধ্যে হতে হবে।' : 'Password must be between 4 and 256 characters.';
     } else {
@@ -132,7 +132,7 @@ if (isset($_POST['save_admin_user'])) {
 
       if ($duplicate) {
         $settingsError = $isBn
-          ? ('ইউজারনেম "' . $admUser . '" ইতিমধ্যেই অন্য অ্যাডমিন বা রিসেলার অ্যাকাউন্টে ব্যবহৃত হচ্ছে।')
+          ? ('ইউজারনেম "' . $admUser . '" ইতিমধ্যেই অন্য এডমিন বা রিসেলার অ্যাকাউন্টে ব্যবহৃত হচ্ছে।')
           : ('Username "' . $admUser . '" is already in use by another Admin or Reseller account.');
       } else {
         if ($editId !== '') {
@@ -153,9 +153,9 @@ if (isset($_POST['save_admin_user'])) {
             }
           }
           if (!$found) {
-            $settingsError = $isBn ? 'নির্বাচিত অ্যাডমিন ইউজার পাওয়া যায়নি।' : 'Selected Admin user was not found.';
+            $settingsError = $isBn ? 'নির্বাচিত এডমিন ইউজার পাওয়া যায়নি।' : 'Selected Admin user was not found.';
           } elseif (!saveAdminUsers($adminUsers)) {
-            $settingsError = $isBn ? 'অ্যাডমিন ইউজার তালিকা সেভ করা যায়নি।' : 'Could not save Admin users list. Check file permissions.';
+            $settingsError = $isBn ? 'এডমিন ইউজার তালিকা সেভ করা যায়নি।' : 'Could not save Admin users list. Check file permissions.';
           } else {
             if ($editId === $currentLoggedAdminId) {
               $_SESSION['mikhmon'] = $admUser;
@@ -165,7 +165,7 @@ if (isset($_POST['save_admin_user'])) {
             if (function_exists('ngwRecordActivity')) {
               ngwRecordActivity('admin_user_updated', array(
                 'target' => $admUser,
-                'status' => ($admRole === 'admin_store' ? 'Admin Store' : 'Admin'),
+                'status' => ($admRole === 'super_admin' ? 'Super Admin' : 'Admin'),
               ));
             }
             unset($_SESSION['mikhmon_force_password_change']);
@@ -187,12 +187,12 @@ if (isset($_POST['save_admin_user'])) {
             'updated_at' => date('Y-m-d H:i:s'),
           );
           if (!saveAdminUsers($adminUsers)) {
-            $settingsError = $isBn ? 'নতুন অ্যাডমিন ইউজার সেভ করা যায়নি।' : 'Could not save new Admin user. Check file permissions.';
+            $settingsError = $isBn ? 'নতুন এডমিন ইউজার সেভ করা যায়নি।' : 'Could not save new Admin user. Check file permissions.';
           } else {
             if (function_exists('ngwRecordActivity')) {
               ngwRecordActivity('admin_user_created', array(
                 'target' => $admUser,
-                'status' => ($admRole === 'admin_store' ? 'Admin Store' : 'Admin'),
+                'status' => ($admRole === 'super_admin' ? 'Super Admin' : 'Admin'),
               ));
             }
             echo "<script>window.location='./admin.php?id=admin-settings&msg=added'</script>";
@@ -211,22 +211,22 @@ if (isset($_POST['delete_admin_user'])) {
   if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
     $settingsError = $isBn ? 'সিকিউরিটি টোকেন মেয়াদোত্তীর্ণ বা অবৈধ। পেজটি রিলোড করে আবার চেষ্টা করুন।' : 'Security token expired or invalid. Reload this page and try again.';
   } elseif (count($adminUsers) <= 1) {
-    $settingsError = $isBn ? 'সর্বশেষ অ্যাডমিন ইউজার ডিলিট করা যাবে না।' : 'Cannot delete the last remaining Admin user. At least one Admin account must remain active.';
+    $settingsError = $isBn ? 'সর্বশেষ এডমিন ইউজার ডিলিট করা যাবে না।' : 'Cannot delete the last remaining Admin user. At least one Admin account must remain active.';
   } else {
-    $deletingLastStore = false;
+    $deletingLastSuper = false;
     $deletedUsername = $delId;
     foreach ($adminUsers as $adm) {
       if ((string)$adm['id'] === $delId) {
         $deletedUsername = (string)$adm['username'];
-        $rRole = (!isset($adm['admin_role']) || $adm['admin_role'] === 'admin_store') ? 'admin_store' : 'admin';
-        if ($rRole === 'admin_store' && $adminStoreCount <= 1) {
-          $deletingLastStore = true;
+        $rRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
+        if ($rRole === 'super_admin' && $superAdminCount <= 1) {
+          $deletingLastSuper = true;
         }
         break;
       }
     }
-    if ($deletingLastStore) {
-      $settingsError = $isBn ? 'সর্বশেষ Admin Store ইউজার ডিলিট করা যাবে না। অন্তত একজন Admin Store থাকতে হবে।' : 'Cannot delete the last remaining Admin Store user. At least one Admin Store account must remain.';
+    if ($deletingLastSuper) {
+      $settingsError = $isBn ? 'সর্বশেষ সুপার এডমিন (Super Admin) ইউজার ডিলিট করা যাবে না। অন্তত একজন সুপার এডমিন থাকতে হবে।' : 'Cannot delete the last remaining Super Admin user. At least one Super Admin account must remain.';
     } else {
       $newList = array();
       $deletedAny = false;
@@ -238,9 +238,9 @@ if (isset($_POST['delete_admin_user'])) {
         $newList[] = $adm;
       }
       if (!$deletedAny) {
-        $settingsError = $isBn ? 'অ্যাডমিন ইউজার পাওয়া যায়নি।' : 'Admin user not found.';
+        $settingsError = $isBn ? 'এডমিন ইউজার পাওয়া যায়নি।' : 'Admin user not found.';
       } elseif (!saveAdminUsers($newList)) {
-        $settingsError = $isBn ? 'অ্যাডমিন ইউজার ফাইল আপডেট করা যায়নি।' : 'Could not update Admin users file.';
+        $settingsError = $isBn ? 'এডমিন ইউজার ফাইল আপডেট করা যায়নি।' : 'Could not update Admin users file.';
       } else {
         $adminUsers = $newList;
         if ($delId === $currentLoggedAdminId && !empty($adminUsers[0])) {
@@ -271,19 +271,19 @@ if (isset($_GET['edit_admin']) && $_GET['edit_admin'] !== '') {
 $formRole = 'admin';
 $formDisabledPerms = array();
 if ($editingAdmin) {
-  $formRole = (isset($editingAdmin['admin_role']) && $editingAdmin['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+  $formRole = (isset($editingAdmin['admin_role']) && $editingAdmin['admin_role'] === 'admin') ? 'admin' : 'super_admin';
   $formDisabledPerms = isset($editingAdmin['disabled_permissions']) && is_array($editingAdmin['disabled_permissions'])
     ? $editingAdmin['disabled_permissions']
     : array();
 }
 
 if (isset($_GET['msg'])) {
-  if ($_GET['msg'] === 'added') $settingsSuccess = $isBn ? 'নতুন অ্যাডমিন ইউজার সফলভাবে যুক্ত হয়েছে!' : 'New Admin user added successfully!';
-  elseif ($_GET['msg'] === 'updated') $settingsSuccess = $isBn ? 'অ্যাডমিন ইউজার সফলভাবে আপডেট হয়েছে!' : 'Admin user updated successfully!';
-  elseif ($_GET['msg'] === 'deleted') $settingsSuccess = $isBn ? 'অ্যাডমিন ইউজার সফলভাবে মুছে ফেলা হয়েছে!' : 'Admin user removed successfully!';
+  if ($_GET['msg'] === 'added') $settingsSuccess = $isBn ? 'নতুন এডমিন ইউজার সফলভাবে যুক্ত হয়েছে!' : 'New Admin user added successfully!';
+  elseif ($_GET['msg'] === 'updated') $settingsSuccess = $isBn ? 'এডমিন ইউজার সফলভাবে আপডেট হয়েছে!' : 'Admin user updated successfully!';
+  elseif ($_GET['msg'] === 'deleted') $settingsSuccess = $isBn ? 'এডমিন ইউজার সফলভাবে মুছে ফেলা হয়েছে!' : 'Admin user removed successfully!';
   elseif ($_GET['msg'] === 'qrsaved') $settingsSuccess = $isBn ? 'কুইক প্রিন্ট QR সেটিং সংরক্ষিত হয়েছে!' : 'Quick Print QR setting saved successfully!';
 } elseif (isset($_GET['saved']) && $_GET['saved'] == '1') {
-  $settingsSuccess = $isBn ? 'অ্যাডমিন সেটিংস সফলভাবে সংরক্ষিত হয়েছে!' : 'Admin settings saved successfully!';
+  $settingsSuccess = $isBn ? 'এডমিন সেটিংস সফলভাবে সংরক্ষিত হয়েছে!' : 'Admin settings saved successfully!';
 }
 ?>
 <style>
@@ -391,7 +391,7 @@ if (isset($_GET['msg'])) {
   <div class="col-6">
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <h3 class="card-title" style="margin:0;"><i class="fa fa-user-secret"></i> <?= $isBn ? 'অ্যাডমিন স্টোর ও অ্যাডমিন ইউজার' : 'Admin Store &amp; Admin Users'; ?></h3>
+        <h3 class="card-title" style="margin:0;"><i class="fa fa-user-secret"></i> <?= $isBn ? 'সুপার এডমিন ও এডমিন ইউজার' : 'Super Admin &amp; Admin Users'; ?></h3>
         <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(31,111,235,0.25);color:#fff;font-weight:bold;">
           <?= count($adminUsers); ?> <?= $isBn ? 'জন ইউজার' : ('Admin ' . (count($adminUsers) === 1 ? 'User' : 'Users')); ?>
         </span>
@@ -399,7 +399,7 @@ if (isset($_GET['msg'])) {
       <div class="card-body">
         <?php if ($forcePasswordChange) { ?>
         <div role="alert" style="padding:8px 12px; margin-bottom:10px; border-radius:4px; background:rgba(220,53,69,0.12); border:1px solid #dc3545; color:#dc3545; font-weight:bold;">
-          <?= $isBn ? 'প্রথমবার লগইন নিরাপত্তা: সফটওয়্যার ব্যবহারের আগে ডিফল্ট অ্যাডমিন পাসওয়ার্ড পরিবর্তন করুন।' : 'First login security: change the default administrator password before using the software.'; ?>
+          <?= $isBn ? 'প্রথমবার লগইন নিরাপত্তা: সফটওয়্যার ব্যবহারের আগে ডিফল্ট এডমিন পাসওয়ার্ড পরিবর্তন করুন।' : 'First login security: change the default administrator password before using the software.'; ?>
         </div>
         <?php } ?>
         <?php if (!empty($settingsError)) { ?>
@@ -420,7 +420,7 @@ if (isset($_GET['msg'])) {
           <input type="hidden" name="admin_perm_form_submitted" value="1">
           <div style="font-weight:bold; color:<?= $editingAdmin ? '#f0ad4e' : '#2ea043'; ?>; margin-bottom:8px; font-size:13px;">
             <i class="fa <?= $editingAdmin ? 'fa-pencil-square-o' : 'fa-user-plus'; ?>"></i>
-            <?= $editingAdmin ? (($isBn ? 'অ্যাডমিন ইউজার সম্পাদনা: ' : 'Edit Admin User: ') . htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8')) : ($isBn ? 'নতুন অ্যাডমিন / অ্যাডমিন স্টোর যুক্ত করুন' : 'Add New Admin / Admin Store User'); ?>
+            <?= $editingAdmin ? (($isBn ? 'এডমিন ইউজার সম্পাদনা: ' : 'Edit Admin User: ') . htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8')) : ($isBn ? 'নতুন সুপার এডমিন / এডমিন যুক্ত করুন' : 'Add New Super Admin / Admin User'); ?>
           </div>
           <table class="table table-sm" style="margin-bottom:6px;">
             <tr>
@@ -428,10 +428,10 @@ if (isset($_GET['msg'])) {
               <td>
                 <select class="form-control" id="ngw_admin_role_select" name="admin_role" onchange="ngwToggleAdminRolePerms()">
                   <option value="admin" <?= $formRole === 'admin' ? 'selected' : ''; ?>>
-                    <?= $isBn ? 'Admin (অ্যাডমিন — নতুন আলাদা প্যানেল, রিসেলার ও রাউটার অ্যাড করতে পারবে)' : 'Admin (Separate Workspace — Can add Routers, Resellers & all features)'; ?>
+                    <?= $isBn ? 'এডমিন (Admin — আলাদা প্যানেল, রাউটার ও রিসেলার অ্যাড করতে পারবে)' : 'Admin (Separate Workspace — Can add Routers, Resellers & all features)'; ?>
                   </option>
-                  <option value="admin_store" <?= $formRole === 'admin_store' ? 'selected' : ''; ?>>
-                    <?= $isBn ? 'Admin Store (অ্যাডমিন স্টোর — সম্পূর্ণ সিস্টেম ও সকল অ্যাডমিনের রাউটার নিয়ন্ত্রণ)' : 'Admin Store (Master Control — All Routers, All Admins & Full Access)'; ?>
+                  <option value="super_admin" <?= $formRole !== 'admin' ? 'selected' : ''; ?>>
+                    <?= $isBn ? 'সুপার এডমিন (Super Admin — সম্পূর্ণ সিস্টেম ও সকল এডমিনের রাউটার-রিসেলার নিয়ন্ত্রণ)' : 'Super Admin (Master Control — All Routers, All Resellers, All Admins & Full Access)'; ?>
                   </option>
                 </select>
               </td>
@@ -439,13 +439,13 @@ if (isset($_GET['msg'])) {
             <tr>
               <td class="align-middle"><?= $isBn ? 'পূর্ণ নাম' : 'Full Name'; ?></td>
               <td>
-                <input class="form-control" type="text" name="admin_name" maxlength="80" placeholder="<?= $isBn ? 'যেমন: Admin Name / Store Manager' : 'e.g. Admin Name / Store Manager'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+                <input class="form-control" type="text" name="admin_name" maxlength="80" placeholder="<?= $isBn ? 'যেমন: Admin Name / Super Admin' : 'e.g. Admin Name / Super Admin'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
               </td>
             </tr>
             <tr>
               <td class="align-middle"><?= $_user_name ?></td>
               <td>
-                <input class="form-control" type="text" name="admin_username" maxlength="64" placeholder="<?= $isBn ? 'অ্যাডমিন ইউজারনেম লিখুন' : 'Enter Admin Username'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+                <input class="form-control" type="text" name="admin_username" maxlength="64" placeholder="<?= $isBn ? 'এডমিন ইউজারনেম লিখুন' : 'Enter Admin Username'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
               </td>
             </tr>
             <tr>
@@ -453,7 +453,7 @@ if (isset($_GET['msg'])) {
               <td>
                 <div class="input-group">
                   <div class="input-group-11 col-box-10">
-                    <input class="group-item group-item-l" id="adm_user_pass" type="password" name="admin_password" placeholder="<?= $editingAdmin ? ($isBn ? 'বর্তমান পাসওয়ার্ড রাখতে খালি রাখুন' : 'Leave blank to keep current password') : ($isBn ? 'অ্যাডমিন পাসওয়ার্ড লিখুন' : 'Enter Admin Password'); ?>" autocomplete="new-password" <?= $editingAdmin ? '' : 'required'; ?>>
+                    <input class="group-item group-item-l" id="adm_user_pass" type="password" name="admin_password" placeholder="<?= $editingAdmin ? ($isBn ? 'বর্তমান পাসওয়ার্ড রাখতে খালি রাখুন' : 'Leave blank to keep current password') : ($isBn ? 'এডমিন পাসওয়ার্ড লিখুন' : 'Enter Admin Password'); ?>" autocomplete="new-password" <?= $editingAdmin ? '' : 'required'; ?>>
                   </div>
                   <div class="input-group-1 col-box-2">
                     <div class="group-item group-item-r pd-2p5 text-center align-middle">
@@ -465,12 +465,12 @@ if (isset($_GET['msg'])) {
             </tr>
           </table>
 
-          <!-- Info note when Admin Store is selected -->
-          <div id="ngw_admin_store_note" style="display:<?= $formRole === 'admin_store' ? 'block' : 'none'; ?>; font-size:11px; padding:6px 10px; margin-bottom:8px; border-radius:4px; background:rgba(110,64,201,0.16); border:1px solid rgba(110,64,201,0.45);">
+          <!-- Info note when Super Admin is selected -->
+          <div id="ngw_admin_store_note" style="display:<?= $formRole !== 'admin' ? 'block' : 'none'; ?>; font-size:11px; padding:6px 10px; margin-bottom:8px; border-radius:4px; background:rgba(110,64,201,0.16); border:1px solid rgba(110,64,201,0.45);">
             <i class="fa fa-shield"></i>
             <?= $isBn
-              ? '<b>Admin Store:</b> এই রোলের ইউজার অ্যাডমিন স্টোর ইউজার ম্যানেজমেন্টসহ পুরো সফটওয়্যারের সব ফিচার এবং সকল অ্যাডমিনের যুক্ত করা রাউটার দেখতে ও নিয়ন্ত্রণ করতে পারবে।'
-              : '<b>Admin Store:</b> Full unrestricted access to Admin Store user management, all routers added by any Admin, and all software features.'; ?>
+              ? '<b>সুপার এডমিন (Super Admin):</b> এই রোলের ইউজার এডমিন ইউজার ম্যানেজমেন্টসহ পুরো সফটওয়্যারের সব ফিচার এবং সকল এডমিনের যুক্ত করা রাউটার ও রিসেলার দেখতে এবং নিয়ন্ত্রণ করতে পারবে।'
+              : '<b>Super Admin:</b> Full unrestricted access to Admin user management, all routers and resellers added by any Admin, and all software features.'; ?>
           </div>
 
           <!-- Shortcut Permission Toggle Box when Admin role is selected -->
@@ -480,7 +480,7 @@ if (isset($_GET['msg'])) {
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
               <div style="font-size:12px; font-weight:bold;">
                 <i class="fa fa-sliders text-primary"></i>
-                <?= $isBn ? 'অ্যাডমিন শর্টকাট পারমিশন (যেটি দিবেন সেটির সম্পূর্ণ ফাংশন কাজ করবে):' : 'Admin Shortcut Permissions (Each toggle enables the full module):'; ?>
+                <?= $isBn ? 'এডমিন শর্টকাট পারমিশন (যেটি দিবেন সেটির সম্পূর্ণ ফাংশন কাজ করবে):' : 'Admin Shortcut Permissions (Each toggle enables the full module):'; ?>
               </div>
               <div style="display:flex; gap:4px;">
                 <button type="button" class="btn bg-primary" style="padding:2px 7px; font-size:10px; cursor:pointer;" onclick="ngwSetAllAdminPerms(true)">
@@ -523,7 +523,7 @@ if (isset($_GET['msg'])) {
               </button>
             <?php } else { ?>
               <button class="btn bg-primary" type="submit" name="save_admin_user" style="cursor:pointer;">
-                <i class="fa fa-plus"></i> <?= $isBn ? 'অ্যাডমিন যুক্ত করুন' : 'Add Admin User'; ?>
+                <i class="fa fa-plus"></i> <?= $isBn ? 'এডমিন যুক্ত করুন' : 'Add Admin User'; ?>
               </button>
             <?php } ?>
           </div>
@@ -531,7 +531,7 @@ if (isset($_GET['msg'])) {
 
         <!-- Admin Users List Table -->
         <div style="font-weight:bold; color:#3c8dbc; margin-bottom:6px; font-size:13px;">
-          <i class="fa fa-users"></i> <?= $isBn ? 'কনফিগারকৃত অ্যাডমিন স্টোর ও অ্যাডমিন তালিকা' : 'Configured Admin Store &amp; Admin Users'; ?>
+          <i class="fa fa-users"></i> <?= $isBn ? 'কনফিগারকৃত সুপার এডমিন ও এডমিন তালিকা' : 'Configured Super Admin &amp; Admin Users'; ?>
         </div>
         <div class="overflow" style="margin-bottom:14px;">
           <table class="table table-bordered table-hover table-sm" style="margin-bottom:0;">
@@ -547,7 +547,7 @@ if (isset($_GET['msg'])) {
             <tbody>
               <?php foreach ($adminUsers as $idx => $adm) {
                 $isSelf = ((string)$adm['id'] === $currentLoggedAdminId) || ((string)$adm['username'] === (string)$_SESSION['mikhmon']);
-                $rowRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+                $rowRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
                 $rowDisCount = ($rowRole === 'admin' && isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']))
                   ? count($adm['disabled_permissions'])
                   : 0;
@@ -562,15 +562,15 @@ if (isset($_GET['msg'])) {
                 </td>
                 <td class="align-middle"><code><?= htmlspecialchars($adm['username'], ENT_QUOTES, 'UTF-8'); ?></code></td>
                 <td class="align-middle">
-                  <?php if ($rowRole === 'admin_store') { ?>
+                  <?php if ($rowRole === 'super_admin') { ?>
                     <span class="ngw-adm-role-badge is-store">
-                      <i class="fa fa-shield"></i> <?= $isBn ? 'Admin Store (অ্যাডমিন স্টোর)' : 'Admin Store'; ?>
+                      <i class="fa fa-shield"></i> <?= $isBn ? 'সুপার এডমিন (Super Admin)' : 'Super Admin'; ?>
                     </span>
                   <?php } else {
                     $rowDisList = isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']) ? $adm['disabled_permissions'] : array();
                   ?>
                     <span class="ngw-adm-role-badge is-admin">
-                      <i class="fa fa-user-circle-o"></i> <?= $isBn ? 'Admin (অ্যাডমিন)' : 'Admin'; ?>
+                      <i class="fa fa-user-circle-o"></i> <?= $isBn ? 'এডমিন (Admin)' : 'Admin'; ?>
                     </span>
                     <div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px;">
                       <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
@@ -588,8 +588,8 @@ if (isset($_GET['msg'])) {
                   <a class="btn bg-primary" style="padding:2px 6px; font-size:11px; margin:1px;" href="./admin.php?id=admin-settings&edit_admin=<?= urlencode($adm['id']); ?>" title="<?= $isBn ? 'সম্পাদনা' : 'Edit Admin User'; ?>">
                     <i class="fa fa-edit"></i> <?= $_edit ?>
                   </a>
-                  <?php if (count($adminUsers) > 1 && !($rowRole === 'admin_store' && $adminStoreCount <= 1)) { 
-                    $delAdminMsg = ($isBn ? 'অ্যাডমিন ইউজার মুছে ফেলবেন: ' : 'Delete Admin user ') . $adm['username'] . '?';
+                  <?php if (count($adminUsers) > 1 && !($rowRole === 'super_admin' && $superAdminCount <= 1)) { 
+                    $delAdminMsg = ($isBn ? 'এডমিন ইউজার মুছে ফেলবেন: ' : 'Delete Admin user ') . $adm['username'] . '?';
                   ?>
                   <form method="post" action="./admin.php?id=admin-settings" style="display:inline; margin:0;" onsubmit="return confirm(<?= htmlspecialchars(json_encode($delAdminMsg), ENT_QUOTES, 'UTF-8'); ?>);">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
@@ -615,7 +615,7 @@ if (isset($_GET['msg'])) {
   <div class="col-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-windows"></i> <?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone NextGen WiFi Solution Server'); ?></h3>
+        <h3 class="card-title"><i class="fa fa-windows"></i> <?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone NextGan WiFi Solution Server'); ?></h3>
       </div>
       <div class="card-body">
         <p style="margin-top:0; margin-bottom:10px;">
@@ -623,7 +623,7 @@ if (isset($_GET['msg'])) {
         </p>
         <div style="margin-bottom:12px;">
           <a class="btn bg-green pd-10" href="./settings/export_package.php" style="display:inline-block; font-weight:bold; max-width:100%; white-space:normal;">
-            <i class="fa fa-download"></i> <?= htmlspecialchars(isset($_srv_dl_btn) ? $_srv_dl_btn : 'Download Complete NextGen WiFi Solution Server (.zip)'); ?>
+            <i class="fa fa-download"></i> <?= htmlspecialchars(isset($_srv_dl_btn) ? $_srv_dl_btn : 'Download Complete NextGan WiFi Solution Server (.zip)'); ?>
           </a>
         </div>
         <table class="table table-bordered table-sm" style="margin-bottom:0;">

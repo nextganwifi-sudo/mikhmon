@@ -1136,7 +1136,7 @@ function isAdminShortcutGroupEnabled($shortcutKey, $disabledPerms) {
  * Normalize disabled permissions array for an Admin user record.
  */
 function sanitizeAdminDisabledPermissions($disabledList, $adminRole = 'admin') {
-    if ($adminRole === 'admin_store') {
+    if ($adminRole === 'admin_store' || $adminRole === 'super_admin') {
         return array();
     }
     if (!is_array($disabledList)) {
@@ -1159,18 +1159,18 @@ function sanitizeAdminDisabledPermissions($disabledList, $adminRole = 'admin') {
 }
 
 /**
- * Resolve effective permission map for an Admin Store or Admin account.
+ * Resolve effective permission map for a Super Admin or Admin account.
  */
 function resolveEffectiveAdminPermissions($admRecord) {
     $map = getDefaultPermissionMap(true);
     $map['manage_vpn'] = true;
     $role = (is_array($admRecord) && isset($admRecord['admin_role']) && $admRecord['admin_role'] === 'admin')
         ? 'admin'
-        : 'admin_store';
-    if ($role === 'admin_store') {
+        : 'super_admin';
+    if ($role === 'super_admin' || $role === 'admin_store') {
         return $map;
     }
-    // Regular Admin cannot manage Admin Store / Admin users or global system update
+    // Regular Admin cannot manage Super Admin / Admin users or global system update
     $map['manage_admin_account'] = false;
     $map['manage_global_security'] = false;
     $disabled = isset($admRecord['disabled_permissions']) && is_array($admRecord['disabled_permissions'])
@@ -1209,7 +1209,7 @@ function loadAdminUsers($forceReload = false) {
         if (is_array($decoded)) {
             foreach ($decoded as $row) {
                 if (is_array($row) && !empty($row['username'])) {
-                    $admRole = (isset($row['admin_role']) && $row['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+                    $admRole = (isset($row['admin_role']) && $row['admin_role'] === 'admin') ? 'admin' : 'super_admin';
                     $disPerms = isset($row['disabled_permissions']) ? sanitizeAdminDisabledPermissions($row['disabled_permissions'], $admRole) : array();
                     $admins[] = array(
                         'id' => !empty($row['id']) ? (string)$row['id'] : ('adm_' . (count($admins) + 1)),
@@ -1253,7 +1253,7 @@ function loadAdminUsers($forceReload = false) {
             'id' => 'adm_1',
             'name' => 'Administrator',
             'username' => $cfgUser !== '' ? $cfgUser : 'mikhmon',
-            'admin_role' => 'admin_store',
+            'admin_role' => 'super_admin',
             'disabled_permissions' => array(),
             'password_enc' => $cfgPassEnc,
             'password_hash' => $cfgPassPlain !== '' ? password_hash($cfgPassPlain, PASSWORD_DEFAULT) : '',
@@ -1271,7 +1271,7 @@ function loadAdminUsers($forceReload = false) {
                 'id' => 'adm_2',
                 'name' => 'Admin (' . $backup['username'] . ')',
                 'username' => $backup['username'],
-                'admin_role' => 'admin_store',
+                'admin_role' => 'super_admin',
                 'disabled_permissions' => array(),
                 'password_enc' => $bEnc,
                 'password_hash' => $bHash,
@@ -1283,16 +1283,16 @@ function loadAdminUsers($forceReload = false) {
         @file_put_contents($path, json_encode($admins, JSON_PRETTY_PRINT));
     }
 
-    // Guarantee at least one Admin Store account always exists
-    $hasAdminStore = false;
+    // Guarantee at least one Super Admin account always exists
+    $hasSuperAdmin = false;
     foreach ($admins as $aItem) {
-        if (!isset($aItem['admin_role']) || $aItem['admin_role'] === 'admin_store') {
-            $hasAdminStore = true;
+        if (!isset($aItem['admin_role']) || $aItem['admin_role'] === 'super_admin' || $aItem['admin_role'] === 'admin_store') {
+            $hasSuperAdmin = true;
             break;
         }
     }
-    if (!$hasAdminStore && !empty($admins)) {
-        $admins[0]['admin_role'] = 'admin_store';
+    if (!$hasSuperAdmin && !empty($admins)) {
+        $admins[0]['admin_role'] = 'super_admin';
         $admins[0]['disabled_permissions'] = array();
     }
 
@@ -1309,7 +1309,7 @@ function saveAdminUsers($admins) {
         if (!is_array($row) || empty($row['username'])) {
             continue;
         }
-        $admRole = (isset($row['admin_role']) && $row['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+        $admRole = (isset($row['admin_role']) && $row['admin_role'] === 'admin') ? 'admin' : 'super_admin';
         $disPerms = isset($row['disabled_permissions']) ? sanitizeAdminDisabledPermissions($row['disabled_permissions'], $admRole) : array();
         $clean[] = array(
             'id' => !empty($row['id']) ? (string)$row['id'] : ('adm_' . (count($clean) + 1)),
@@ -1327,16 +1327,16 @@ function saveAdminUsers($admins) {
     if (empty($clean)) {
         return false;
     }
-    // Guarantee at least one Admin Store account remains
-    $hasStore = false;
+    // Guarantee at least one Super Admin account remains
+    $hasSuper = false;
     foreach ($clean as $cRow) {
-        if ($cRow['admin_role'] === 'admin_store') {
-            $hasStore = true;
+        if ($cRow['admin_role'] === 'super_admin' || $cRow['admin_role'] === 'admin_store') {
+            $hasSuper = true;
             break;
         }
     }
-    if (!$hasStore) {
-        $clean[0]['admin_role'] = 'admin_store';
+    if (!$hasSuper) {
+        $clean[0]['admin_role'] = 'super_admin';
         $clean[0]['disabled_permissions'] = array();
     }
     $path = getAdminUsersStoragePath();
@@ -1454,11 +1454,11 @@ function syncActiveAdminSession() {
         $GLOBALS['NGW_ADMIN_SYNC_RESULT'] = false;
         return false;
     }
-    $admRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+    $admRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
     $_SESSION['mikhmon'] = (string)$adm['username'];
     $_SESSION['mikhmon_admin_id'] = (string)$adm['id'];
     $_SESSION['mikhmon_admin_role'] = $admRole;
-    $_SESSION['mikhmon_permission_mode'] = ($admRole === 'admin_store') ? 'Admin Store' : 'Admin';
+    $_SESSION['mikhmon_permission_mode'] = ($admRole === 'super_admin') ? 'Super Admin' : 'Admin';
     $_SESSION['mikhmon_permissions'] = resolveEffectiveAdminPermissions($adm);
     $GLOBALS['NGW_ADMIN_SYNCED'] = true;
     $GLOBALS['NGW_ADMIN_SYNC_RESULT'] = true;
@@ -1466,7 +1466,7 @@ function syncActiveAdminSession() {
 }
 
 /**
- * Authenticate user as Admin Store, Admin, or Reseller
+ * Authenticate user as Super Admin, Admin, or Reseller
  */
 function authenticateMikhmonUser($username, $password, $useradm, $passadm_decrypted) {
     $username = trim((string)$username);
@@ -1487,7 +1487,7 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
             if ($needsSave) {
                 saveAdminUsers($admins);
             }
-            $admRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+            $admRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
             return array(
                 'authenticated' => true,
                 'role' => 'admin',
@@ -1495,7 +1495,7 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
                 'id' => (string)$adm['id'],
                 'username' => (string)$adm['username'],
                 'name' => !empty($adm['name']) ? (string)$adm['name'] : 'Administrator',
-                'permission_mode' => ($admRole === 'admin_store') ? 'Admin Store' : 'Admin',
+                'permission_mode' => ($admRole === 'super_admin') ? 'Super Admin' : 'Admin',
                 'template_code' => 'GLOBAL',
                 'assigned_template' => 'default',
                 'template_status' => 'active',
@@ -1517,11 +1517,11 @@ function authenticateMikhmonUser($username, $password, $useradm, $passadm_decryp
         return array(
             'authenticated' => true,
             'role' => 'admin',
-            'admin_role' => 'admin_store',
+            'admin_role' => 'super_admin',
             'id' => 'adm_1',
             'username' => $username,
             'name' => 'Administrator',
-            'permission_mode' => 'Admin Store',
+            'permission_mode' => 'Super Admin',
             'template_code' => 'GLOBAL',
             'assigned_template' => 'default',
             'template_status' => 'active',
@@ -1711,7 +1711,7 @@ function getCurrentResellerRecord() {
 }
 
 /**
- * Check if current user is Administrator (either Admin Store or Admin)
+ * Check if current user is Administrator (either Super Admin or Admin)
  */
 function isMikhmonAdmin() {
     if (!isset($_SESSION['mikhmon'])) {
@@ -1721,7 +1721,7 @@ function isMikhmonAdmin() {
 }
 
 /**
- * Check if current user has the top-level Admin Store role
+ * Check if current user has the top-level Super Admin role (kept as isMikhmonAdminStore + alias isMikhmonSuperAdmin)
  */
 function isMikhmonAdminStore() {
     if (!isMikhmonAdmin()) {
@@ -1729,14 +1729,18 @@ function isMikhmonAdminStore() {
     }
     syncActiveAdminSession();
     if (isset($_SESSION['mikhmon_admin_role'])) {
-        return $_SESSION['mikhmon_admin_role'] === 'admin_store';
+        return $_SESSION['mikhmon_admin_role'] === 'super_admin' || $_SESSION['mikhmon_admin_role'] === 'admin_store';
     }
     $adm = getCurrentAdminRecord();
-    return !is_array($adm) || !isset($adm['admin_role']) || $adm['admin_role'] === 'admin_store';
+    return !is_array($adm) || !isset($adm['admin_role']) || $adm['admin_role'] !== 'admin';
+}
+
+function isMikhmonSuperAdmin() {
+    return isMikhmonAdminStore();
 }
 
 /**
- * Check if current user is a sub-Admin (role = 'admin', not 'admin_store')
+ * Check if current user is a sub-Admin (role = 'admin', not 'super_admin')
  */
 function isMikhmonSubAdmin() {
     return isMikhmonAdmin() && !isMikhmonAdminStore();
@@ -1822,7 +1826,7 @@ function recordRouterOwnerOnCreateOrRename($oldSession, $newSession) {
     $addedById = 'adm_1';
     $addedByUsername = isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : 'admin';
     $addedByName = $addedByUsername;
-    $addedByRole = 'admin_store';
+    $addedByRole = 'super_admin';
 
     if (isMikhmonAdmin()) {
         $adm = getCurrentAdminRecord();
@@ -1830,7 +1834,7 @@ function recordRouterOwnerOnCreateOrRename($oldSession, $newSession) {
             $addedById = !empty($adm['id']) ? (string)$adm['id'] : 'adm_1';
             $addedByUsername = !empty($adm['username']) ? (string)$adm['username'] : $addedByUsername;
             $addedByName = !empty($adm['name']) ? (string)$adm['name'] : $addedByUsername;
-            $addedByRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+            $addedByRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
         }
     } else {
         $res = getCurrentResellerRecord();
@@ -1840,7 +1844,7 @@ function recordRouterOwnerOnCreateOrRename($oldSession, $newSession) {
                 $addedById = (string)$parentAdm['id'];
                 $addedByUsername = (string)$parentAdm['username'];
                 $addedByName = !empty($parentAdm['name']) ? (string)$parentAdm['name'] : $addedByUsername;
-                $addedByRole = (isset($parentAdm['admin_role']) && $parentAdm['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+                $addedByRole = (isset($parentAdm['admin_role']) && $parentAdm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
             }
         }
     }
@@ -1880,16 +1884,16 @@ function getRouterOwnerInfo($sessionName) {
     $meta = loadRouterMeta();
     $admins = loadAdminUsers();
 
-    // Find primary Admin Store fallback for pre-existing routers
-    $primaryStoreAdmin = !empty($admins[0]) ? $admins[0] : array(
+    // Find primary Super Admin fallback for pre-existing routers
+    $primarySuperAdmin = !empty($admins[0]) ? $admins[0] : array(
         'id' => 'adm_1',
         'username' => 'admin',
         'name' => 'Administrator',
-        'admin_role' => 'admin_store',
+        'admin_role' => 'super_admin',
     );
     foreach ($admins as $aItem) {
-        if (!isset($aItem['admin_role']) || $aItem['admin_role'] === 'admin_store') {
-            $primaryStoreAdmin = $aItem;
+        if (!isset($aItem['admin_role']) || $aItem['admin_role'] !== 'admin') {
+            $primarySuperAdmin = $aItem;
             break;
         }
     }
@@ -1898,38 +1902,75 @@ function getRouterOwnerInfo($sessionName) {
         $entry = $meta[$sessionName];
         $admId = isset($entry['added_by_id']) ? (string)$entry['added_by_id'] : '';
         $admUser = isset($entry['added_by_username']) ? (string)$entry['added_by_username'] : '';
-        // Sync live username/role if admin record still exists
+        // Sync live username/name/role if admin record still exists
         foreach ($admins as $adm) {
             if (($admId !== '' && (string)$adm['id'] === $admId) || ($admUser !== '' && strcasecmp((string)$adm['username'], $admUser) === 0)) {
                 return array(
                     'added_by_id' => (string)$adm['id'],
                     'added_by_username' => (string)$adm['username'],
                     'added_by_name' => !empty($adm['name']) ? (string)$adm['name'] : (string)$adm['username'],
-                    'added_by_role' => (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'admin_store',
+                    'added_by_role' => (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin',
                     'is_explicit' => true,
                 );
             }
         }
         return array(
             'added_by_id' => $admId !== '' ? $admId : 'adm_1',
-            'added_by_username' => $admUser !== '' ? $admUser : (string)$primaryStoreAdmin['username'],
+            'added_by_username' => $admUser !== '' ? $admUser : (string)$primarySuperAdmin['username'],
             'added_by_name' => !empty($entry['added_by_name']) ? (string)$entry['added_by_name'] : $admUser,
-            'added_by_role' => (isset($entry['added_by_role']) && $entry['added_by_role'] === 'admin') ? 'admin' : 'admin_store',
+            'added_by_role' => (isset($entry['added_by_role']) && $entry['added_by_role'] === 'admin') ? 'admin' : 'super_admin',
             'is_explicit' => true,
         );
     }
 
     return array(
-        'added_by_id' => (string)$primaryStoreAdmin['id'],
-        'added_by_username' => (string)$primaryStoreAdmin['username'],
-        'added_by_name' => !empty($primaryStoreAdmin['name']) ? (string)$primaryStoreAdmin['name'] : (string)$primaryStoreAdmin['username'],
-        'added_by_role' => 'admin_store',
+        'added_by_id' => (string)$primarySuperAdmin['id'],
+        'added_by_username' => (string)$primarySuperAdmin['username'],
+        'added_by_name' => !empty($primarySuperAdmin['name']) ? (string)$primarySuperAdmin['name'] : (string)$primarySuperAdmin['username'],
+        'added_by_role' => 'super_admin',
         'is_explicit' => false,
     );
 }
 
 /**
- * Check if the currently logged-in Admin (Admin Store or Admin) can view/manage a reseller record.
+ * Resolve ownership details for a reseller record (who added it and whether an Admin added it).
+ */
+function getResellerOwnerInfo($reseller) {
+    if (!is_array($reseller)) {
+        return array(
+            'added_by_id' => '',
+            'added_by_username' => '',
+            'added_by_name' => '',
+            'added_by_role' => 'super_admin',
+        );
+    }
+    $admId = isset($reseller['created_by_admin_id']) ? trim((string)$reseller['created_by_admin_id']) : '';
+    $admUser = isset($reseller['created_by_admin_username']) ? trim((string)$reseller['created_by_admin_username']) : '';
+    $admName = isset($reseller['created_by_admin_name']) ? trim((string)$reseller['created_by_admin_name']) : '';
+    $admRole = (isset($reseller['created_by_admin_role']) && $reseller['created_by_admin_role'] === 'admin') ? 'admin' : 'super_admin';
+
+    $admins = loadAdminUsers();
+    foreach ($admins as $adm) {
+        if (($admId !== '' && (string)$adm['id'] === $admId) || ($admUser !== '' && strcasecmp((string)$adm['username'], $admUser) === 0)) {
+            return array(
+                'added_by_id' => (string)$adm['id'],
+                'added_by_username' => (string)$adm['username'],
+                'added_by_name' => !empty($adm['name']) ? (string)$adm['name'] : (string)$adm['username'],
+                'added_by_role' => (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin',
+            );
+        }
+    }
+
+    return array(
+        'added_by_id' => $admId,
+        'added_by_username' => $admUser,
+        'added_by_name' => $admName !== '' ? $admName : $admUser,
+        'added_by_role' => $admRole,
+    );
+}
+
+/**
+ * Check if the currently logged-in Admin (Super Admin or Admin) can view/manage a reseller record.
  */
 function canCurrentAdminAccessReseller($reseller) {
     if (!isMikhmonAdmin() || !is_array($reseller)) {
@@ -1956,7 +1997,7 @@ function canCurrentAdminAccessReseller($reseller) {
 }
 
 /**
- * Return resellers accessible to the currently logged-in user (all for Admin Store, own resellers for Admin).
+ * Return resellers accessible to the currently logged-in user (all for Super Admin, own resellers for Admin).
  */
 function getAccessibleResellers($forceReload = false) {
     $all = loadResellers($forceReload);
@@ -2512,16 +2553,16 @@ function getCurrentUserProfileSummary() {
     $admName = (is_array($admRec) && !empty($admRec['name'])) ? (string)$admRec['name'] : 'Administrator';
     $admUsername = (is_array($admRec) && !empty($admRec['username'])) ? (string)$admRec['username'] : $username;
     $admId = (is_array($admRec) && !empty($admRec['id'])) ? (string)$admRec['id'] : 'adm_1';
-    $isStore = isMikhmonAdminStore();
+    $isSuper = isMikhmonAdminStore();
 
     return array(
         'is_reseller' => false,
         'username' => $admUsername,
         'display_name' => $admName,
-        'role_label' => $isStore ? 'Admin Store' : 'Admin',
-        'role_badge' => $isStore ? 'Admin Store' : 'Admin',
-        'permission_mode' => $isStore ? 'Admin Store (Full Control)' : 'Admin',
-        'account_id' => $isStore ? 'Admin Store' : 'Admin',
+        'role_label' => $isSuper ? 'Super Admin' : 'Admin',
+        'role_badge' => $isSuper ? 'Super Admin' : 'Admin',
+        'permission_mode' => $isSuper ? 'Super Admin (Full Control)' : 'Admin',
+        'account_id' => $isSuper ? 'Super Admin' : 'Admin',
         'raw_id' => $admId,
         'template_code' => 'GLOBAL',
         'allowed_routers' => array('*'),

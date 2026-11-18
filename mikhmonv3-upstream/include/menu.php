@@ -213,11 +213,11 @@ if ($langid === 'bn') {
     $ngwProfileInfo['role_badge'] = 'রিসেলার';
     $ngwProfileInfo['role_label'] = 'রিসেলার';
   } elseif (isMikhmonAdminStore()) {
-    $ngwProfileInfo['role_badge'] = 'অ্যাডমিন স্টোর';
-    $ngwProfileInfo['role_label'] = 'অ্যাডমিন স্টোর';
+    $ngwProfileInfo['role_badge'] = 'সুপার এডমিন';
+    $ngwProfileInfo['role_label'] = 'সুপার এডমিন';
   } else {
-    $ngwProfileInfo['role_badge'] = 'অ্যাডমিন';
-    $ngwProfileInfo['role_label'] = 'অ্যাডমিনিস্ট্রেটর';
+    $ngwProfileInfo['role_badge'] = 'এডমিন';
+    $ngwProfileInfo['role_label'] = 'এডমিন';
   }
 }
 $ngwProfileHref = './admin.php?id=my-profile' . (!empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : '');

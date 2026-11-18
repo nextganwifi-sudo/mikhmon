@@ -224,9 +224,9 @@ if ($id == "login" || substr($url, -1) == "p") {
   $_SESSION["mikhmon"] = $admUser;
   $_SESSION["mikhmon_role"] = 'admin';
   $_SESSION["mikhmon_admin_id"] = ($admRec !== null && !empty($admRec['id'])) ? (string)$admRec['id'] : 'admin';
-  $_SESSION["mikhmon_admin_role"] = ($admRec !== null && isset($admRec['admin_role']) && $admRec['admin_role'] === 'admin') ? 'admin' : 'admin_store';
+  $_SESSION["mikhmon_admin_role"] = ($admRec !== null && isset($admRec['admin_role']) && $admRec['admin_role'] === 'admin') ? 'admin' : 'super_admin';
   $_SESSION["mikhmon_reseller_id"] = $_SESSION["mikhmon_admin_id"];
-  $_SESSION["mikhmon_permission_mode"] = ($_SESSION["mikhmon_admin_role"] === 'admin_store') ? 'Admin Store' : 'Admin';
+  $_SESSION["mikhmon_permission_mode"] = ($_SESSION["mikhmon_admin_role"] === 'super_admin') ? 'Super Admin' : 'Admin';
   $_SESSION["mikhmon_template_code"] = 'GLOBAL';
   $_SESSION["mikhmon_assigned_template"] = 'default';
   $_SESSION["mikhmon_logo_filename"] = '';

@@ -425,16 +425,18 @@ function incrementVersionNumber($verStr) {
 function ngwDefaultVersionHighlights() {
     return array(
         'bn' => array(
-            'অ্যাডমিন রোল ও ৪টি শর্টকাট পারমিশন (Hotspot, PPP, Reseller ও VPN Permission)',
+            'সুপার এডমিন (Super Admin) ও এডমিন (Admin) রোল এবং ৪টি শর্টকাট পারমিশন (Hotspot, PPP, Reseller ও VPN)',
+            'এডমিনের যুক্ত করা রাউটার ও রিসেলার স্বয়ংক্রিয়ভাবে সুপার এডমিন প্যানেলে "এডমিন অ্যাড করেছে" ব্যাজসহ প্রদর্শন',
             'রাউটার ওপেন করার সময় লাইভ পিং ও ইনস্ট্যান্ট কানেকশন স্ট্যাটাস পপআপ',
-            'রিসেলার ও অ্যাডমিনের A-to-Z অ্যাক্টিভিটি হিস্ট্রি (১ দিনের ডিফল্ট ভিউ ও কাস্টম ডেট ফিল্টার)',
+            'রিসেলার ও এডমিনের A-to-Z অ্যাক্টিভিটি হিস্ট্রি (১ দিনের ডিফল্ট ভিউ ও কাস্টম ডেট ফিল্টার)',
             'রিসেট ভাউচারে ডেট/কমেন্ট অক্ষুণ্ণ রেখে মোবাইল মডেল, MAC ও আপটাইম ক্লিয়ার সিস্টেম',
             'মোবাইল ব্রাউজার মিনিমাইজ বা রিলোড করলেও অটো-লগআউট না হওয়ার ৩০ দিনের সেশন সুরক্ষা',
-            'গিট সেফ আপডেটে রাউটার, রিসেলার, অ্যাডমিন ও টেমপ্লেট ডাটা ১০০% অক্ষুণ্ণ রাখার ভল্ট সিস্টেম',
+            'গিট সেফ আপডেটে রাউটার, রিসেলার, এডমিন ও টেমপ্লেট ডাটা ১০০% অক্ষুণ্ণ রাখার ভল্ট সিস্টেম',
             'প্রত্যেকটি ভার্সনের সাথে শর্টকাট ভার্সন ডিটেইলস (চেঞ্জলগ) দেখার সুবিধা'
         ),
         'en' => array(
-            'Admin Store & Admin roles with 4 shortcut permissions (Hotspot, PPP, Reseller & VPN Permission)',
+            'Super Admin & Admin roles with 4 shortcut permissions (Hotspot, PPP, Reseller & VPN Permission)',
+            'Automatic visibility of Admin-created Routers & Resellers in Super Admin with "Added by Admin" badge',
             'Interactive Router Connection modal with live ping verification and instant status feedback',
             'Full A-to-Z Reseller & Admin Activity History (1-day default screen + custom date filter)',
             'Smart Reset Voucher clearing device model, MAC & uptime while preserving date/comment',

@@ -270,11 +270,11 @@ $_about_f5 = "Assign dedicated permission groups or custom granular permissions 
 $_about_f6 = "Sidebar menus, dashboard cards, and action buttons automatically hide unauthorized options.";
 $_about_f7 = "Assign custom voucher templates and custom logos for each reseller account.";
 $_about_f8 = "Download and run the ready-made portable Windows Server ZIP directly from the admin panel.";
-$_srv_dl_title = "Download Complete Standalone NextGen WiFi Solution Server";
-$_srv_dl_desc = "Click the button below to download the complete ready-made portable server including <b>NextGen Server + PHP Runtime + NextGen WiFi Solution</b>:";
-$_srv_dl_btn = "Download Complete NextGen WiFi Solution Server (.zip)";
-$_srv_dl_step1 = "Click the green button above to download <code>NextGen-WiFi-Solution-Server.zip</code>.";
-$_srv_dl_step2 = "Right-click the downloaded ZIP file and select <b>Extract All / Extract Here</b> to open the <b><code>NextGen WiFi Server</code></b> folder.";
+$_srv_dl_title = "Download Complete Standalone NextGan WiFi Solution Server";
+$_srv_dl_desc = "Click the button below to download the complete ready-made portable server including <b>NextGan Server + PHP Runtime + NextGan WiFi Solution</b>:";
+$_srv_dl_btn = "Download Complete NextGan WiFi Solution Server (.zip)";
+$_srv_dl_step1 = "Click the green button above to download <code>NextGan-WiFi-Solution-Server.zip</code>.";
+$_srv_dl_step2 = "Right-click the downloaded ZIP file and select <b>Extract All / Extract Here</b> to open the <b><code>NextGan WiFi Server</code></b> folder.";
 $_srv_dl_step3 = "Launch the server inside the folder — the server will start automatically (green indicator), then click <b>Open</b> to launch in your browser.";
 
 $_system_update = "System Update";

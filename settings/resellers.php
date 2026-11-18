@@ -31,7 +31,12 @@ if (!isMikhmonAdmin() || (!hasResellerPermission('view_resellers') && !hasResell
 
 $canManageResellers = hasResellerPermission('manage_resellers');
 $baseResellerUrl = !empty($session) ? "./?hotspot=resellers&session=" . urlencode($session) : "./admin.php?id=resellers";
-$allRouters = getConfiguredRouterSessions();
+$allRouters = array();
+foreach (getConfiguredRouterSessions() as $cfgRouterSess) {
+    if (canAccessRouterSession($cfgRouterSess)) {
+        $allRouters[] = $cfgRouterSess;
+    }
+}
 $permCatalog = getAllMikhmonPermissionCategories();
 $permSectionsMeta = function_exists('getMikhmonPermissionSectionsMeta') ? getMikhmonPermissionSectionsMeta() : array();
 $isBn = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
@@ -270,6 +275,17 @@ if (isset($_POST['save_reseller']) && $canManageResellers) {
                 }
                 $newId = getNextResellerId($allResellers);
                 $rTemplateCode = sprintf('NGW-%03d', max(1, (int)$newId - 100));
+                $creatorAdm = getCurrentAdminRecord();
+                $creatorAdmId = (is_array($creatorAdm) && !empty($creatorAdm['id']))
+                    ? (string)$creatorAdm['id']
+                    : (isset($_SESSION['mikhmon_admin_id']) ? (string)$_SESSION['mikhmon_admin_id'] : '');
+                $creatorAdmUsername = (is_array($creatorAdm) && !empty($creatorAdm['username']))
+                    ? (string)$creatorAdm['username']
+                    : (isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : '');
+                $creatorAdmName = (is_array($creatorAdm) && !empty($creatorAdm['name']))
+                    ? (string)$creatorAdm['name']
+                    : $creatorAdmUsername;
+                $creatorAdmRole = isMikhmonAdminStore() ? 'super_admin' : 'admin';
                 $allResellers[] = array(
                     'id' => $newId,
                     'legacy_ids' => array(),
@@ -286,9 +302,10 @@ if (isset($_POST['save_reseller']) && $canManageResellers) {
                     'allowed_routers' => $assignedRouters,
                     'permissions' => ($rMode === 'Custom') ? $customPerms : $permGroups[$rMode],
                     'created_at' => date('Y-m-d H:i:s'),
-                    'created_by_admin_id' => isset($_SESSION['mikhmon_admin_id']) ? (string)$_SESSION['mikhmon_admin_id'] : '',
-                    'created_by_admin_username' => isset($_SESSION['mikhmon']) ? (string)$_SESSION['mikhmon'] : '',
-                    'created_by_admin_role' => isMikhmonAdminStore() ? 'admin_store' : 'admin',
+                    'created_by_admin_id' => $creatorAdmId,
+                    'created_by_admin_username' => $creatorAdmUsername,
+                    'created_by_admin_name' => $creatorAdmName,
+                    'created_by_admin_role' => $creatorAdmRole,
                 );
                 saveResellers($allResellers);
                 ngwRecordActivity('reseller_created', array('target' => $rUser, 'status' => $rStatus));
@@ -1441,14 +1458,18 @@ function closeResellerDetailsModal() {
                           </td>
                           <td>
                             <b><?= htmlspecialchars($r['username']); ?></b>
-                            <?php if (isMikhmonAdminStore() && !empty($r['created_by_admin_username'])) {
-                              $cRole = (isset($r['created_by_admin_role']) && $r['created_by_admin_role'] === 'admin') ? 'admin' : 'admin_store';
-                              $cPrefix = ($cRole === 'admin_store') ? ($isBn ? 'অ্যাডমিন স্টোর' : 'Admin Store') : ($isBn ? 'অ্যাডমিন' : 'Admin');
-                              $cBg = ($cRole === 'admin_store') ? 'rgba(139,92,246,0.2)' : 'rgba(56,189,248,0.18)';
-                              $cColor = ($cRole === 'admin_store') ? '#c4b5fd' : '#38bdf8';
+                            <?php
+                            $rOwnerInfo = function_exists('getResellerOwnerInfo') ? getResellerOwnerInfo($r) : null;
+                            if (is_array($rOwnerInfo) && isset($rOwnerInfo['added_by_role']) && $rOwnerInfo['added_by_role'] === 'admin') {
+                                $rAdminDispName = !empty($rOwnerInfo['added_by_name'])
+                                    ? (string)$rOwnerInfo['added_by_name']
+                                    : (!empty($rOwnerInfo['added_by_username']) ? (string)$rOwnerInfo['added_by_username'] : 'Admin');
+                                $rAdminBadgeLbl = $isBn
+                                    ? ('এডমিন অ্যাড করেছে: ' . $rAdminDispName)
+                                    : ('Added by Admin: ' . $rAdminDispName);
                             ?>
-                              <span style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; background:<?= $cBg; ?>; color:<?= $cColor; ?>;">
-                                <i class="fa fa-user-o"></i> <?= htmlspecialchars($cPrefix . ': ' . $r['created_by_admin_username']); ?>
+                              <span style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; background:rgba(56,189,248,0.18); color:#38bdf8;">
+                                <i class="fa fa-user-o"></i> <?= htmlspecialchars($rAdminBadgeLbl); ?>
                               </span>
                             <?php } ?>
                           </td>
