@@ -22,7 +22,7 @@ if (!isset($_SESSION["mikhmon"])) {
 include_once('./include/reseller_acl.php');
 include_once('./include/data_recovery.php');
 
-if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
+if (!isMikhmonAdmin() || (function_exists('isMikhmonAdminStore') && !isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
     echo "<script>window.location='./admin.php?id=sessions'</script>";
     exit;
 }
