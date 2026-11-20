@@ -6,6 +6,7 @@ include_once __DIR__ . '/lang.php';
 
 $theme = "dark";
 $themecolor = "#3a4149";
+$mtheme = array('dark', 'light', 'blue', 'green', 'pink');
 
 if (!function_exists('ngwGetThemeColorMap')) {
     function ngwGetThemeColorMap() {

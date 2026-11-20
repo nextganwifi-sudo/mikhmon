@@ -27,25 +27,24 @@ if (!isset($_SESSION["mikhmon"])) {
 	$serveractive = $_GET['server'];
 
 // load config
-	include('../include/config.php');
-	include('../include/readcfg.php');
-	include_once('../include/reseller_acl.php');
-	include_once('./include/reseller_acl.php');
+	include(__DIR__ . '/../include/config.php');
+	include(__DIR__ . '/../include/readcfg.php');
+	include_once(__DIR__ . '/../include/reseller_acl.php');
 	
 // lang
-  include('../include/lang.php');
+  include(__DIR__ . '/../include/lang.php');
   $selected_langid = (isset($langid) && $langid !== '') ? $langid : 'en';
-  include('../lang/en.php');
+  include(__DIR__ . '/../lang/en.php');
   $langid = $selected_langid;
-  if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
-    include('../lang/'.$langid.'.php');
+  if ($langid !== 'en' && is_file(__DIR__ . '/../lang/'.$langid.'.php')) {
+    include(__DIR__ . '/../lang/'.$langid.'.php');
   }
 
 // routeros api
 	session_write_close();
-	include_once('../lib/routeros_api.class.php');
-	include_once('../lib/formatbytesbites.php');
-	include_once('../include/ros_version.php');
+	include_once(__DIR__ . '/../lib/routeros_api.class.php');
+	include_once(__DIR__ . '/../lib/formatbytesbites.php');
+	include_once(__DIR__ . '/../include/ros_version.php');
 	$API = new RouterosAPI();
 	$API->debug = false;
 	$API->connect($iphost, $userhost, decrypt($passwdhost));

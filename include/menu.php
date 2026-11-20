@@ -861,7 +861,7 @@ $(document).ready(function(){
   }
   $(document).ready(function(){
     updateServerMetricsBar();
-    metricsInterval = setInterval(updateServerMetricsBar, 5000);
+    metricsInterval = setInterval(updateServerMetricsBar, 12000);
   });
 })();
 </script>
@@ -1648,7 +1648,7 @@ $(document).ready(function(){
     });
   }
   sendSessionHeartbeat();
-  window.setInterval(sendSessionHeartbeat, 15000);
+  window.setInterval(sendSessionHeartbeat, 30000);
   <?php } ?>
 })();
 </script>

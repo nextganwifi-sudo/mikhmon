@@ -46,8 +46,8 @@ if (isset($all[$token]) && is_array($all[$token])) {
     $prevArea = isset($all[$token]['area']) ? (string)$all[$token]['area'] : '';
     $newArea = ($tz !== '' && $clientArea !== '') ? $clientArea : $prevArea;
 
-    // Only write to disk if page/area changed or >= 12 seconds elapsed since last write
-    if ($newPage !== $prevPage || $newArea !== $prevArea || ($now - $prevTs) >= 12) {
+    // Only write to disk if page/area changed or >= 25 seconds elapsed since last write
+    if ($newPage !== $prevPage || $newArea !== $prevArea || ($now - $prevTs) >= 25) {
         $all[$token]['area'] = $newArea;
         $all[$token]['current_page'] = $newPage;
         $all[$token]['last_active'] = date('Y-m-d H:i:s', $now);

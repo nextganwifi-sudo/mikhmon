@@ -872,18 +872,28 @@ function getResellerPlainPassword($reseller) {
     $enc = isset($reseller['password_enc']) ? (string)$reseller['password_enc'] : '';
     $hash = isset($reseller['password_hash']) ? (string)$reseller['password_hash'] : '';
     if ($enc !== '') {
-        if (function_exists('decrypt')) {
-            $dec = (string)decrypt($enc);
-            if ($hash === '' || password_verify($dec, $hash)) {
-                return $dec;
-            }
-        }
+        $dec = function_exists('decrypt') ? (string)decrypt($enc) : '';
         $b64 = @base64_decode($enc, true);
+        $decPrintable = ($dec !== '' && preg_match('/^[\x20-\x7E]+$/', $dec));
+        $b64Printable = (is_string($b64) && $b64 !== '' && preg_match('/^[\x20-\x7E]+$/', $b64));
+
+        // Fast path: encrypt() shifts ASCII bytes up by +49..+56, so raw base64 bytes
+        // are non-printable while decrypt() is clean printable ASCII (avoids ~90ms bcrypt per row).
+        if ($decPrintable && !$b64Printable) {
+            return $dec;
+        }
+        if ($b64Printable && !$decPrintable) {
+            return $b64;
+        }
+
+        if ($dec !== '' && ($hash === '' || password_verify($dec, $hash))) {
+            return $dec;
+        }
         if (is_string($b64) && $b64 !== '' && ($hash === '' || password_verify($b64, $hash))) {
             return $b64;
         }
-        if (function_exists('decrypt')) {
-            return (string)decrypt($enc);
+        if ($dec !== '') {
+            return $dec;
         }
     }
     if (isset($reseller['password']) && is_string($reseller['password'])) {

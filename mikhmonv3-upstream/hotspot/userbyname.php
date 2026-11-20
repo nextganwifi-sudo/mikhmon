@@ -254,8 +254,7 @@ Login : *http://" . $dnsname . "* %0A
 
 // Print BT
   $chl = urlencode("http://$dnsname/login?username=$uname&password=$upass");
-	$qrcode = 'https://chart.googleapis.com/chart?cht=qr&chs=100x100&chld=L|0&chl=' . $chl . '&choe=utf-8';
-  //$qrcode = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='.$chl;
+  $qrcode = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . $chl;
  
 
 
@@ -337,6 +336,14 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
       "limit-bytes-total" => "$datalimit",
       "comment" => "$comment",
     ));
+    if (function_exists('ngwRecordActivity')) {
+      ngwRecordActivity('hotspot_user_updated', array(
+        'router' => (string)$session,
+        'target' => (string)$name,
+        'profile' => (string)$profile,
+        'status' => ($disabled === 'yes' ? 'Disabled' : 'Enabled'),
+      ));
+    }
     echo "<script>window.location='./?hotspot-user=" . $uid . "&session=" . $session . "'</script>";
   }
 }

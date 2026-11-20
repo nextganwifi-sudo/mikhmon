@@ -14,10 +14,10 @@ error_reporting(0);
 
 include_once('../include/reseller_acl.php');
 
-if (!isset($_SESSION["mikhmon"]) || (function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) || !isMikhmonAdmin()) {
+if (!isset($_SESSION["mikhmon"]) || (function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) || !isMikhmonAdminStore()) {
     session_write_close();
     header("HTTP/1.1 403 Forbidden");
-    echo "Access Denied: Only Super Administrator can export the NextGen WiFi Solution Server package.";
+    echo "Access Denied: Only Super Administrator can export the NextGan WiFi Solution Server package.";
     exit;
 }
 session_write_close();
@@ -153,36 +153,48 @@ if ($bundledServerDir && is_dir($bundledServerDir)) {
     }
 }
 
-// 2. Recursively add all live Mikhmon web files into `Mikhmon Server/mikhmon/`
-$webIterator = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($mikhmonWebRoot, RecursiveDirectoryIterator::SKIP_DOTS),
-    RecursiveIteratorIterator::SELF_FIRST
+$skipPrefixes = array(
+    '.git/', '.aistudio/', '.php-runtime/', 'node_modules/',
+    'backups/', 'mikhmon/', 'mikhmonv3-upstream/', 'public/', 'src/', 'dist/'
 );
+$skipExact = array('.git', '.env', '.env.local', 'bun.lock', 'package-lock.json');
+
+$webDirIt = new RecursiveDirectoryIterator($mikhmonWebRoot, RecursiveDirectoryIterator::SKIP_DOTS);
+$webFilterIt = new RecursiveCallbackFilterIterator($webDirIt, function ($current) use ($mikhmonWebRoot, $skipPrefixes, $skipExact) {
+    if ($current->isLink()) {
+        return false;
+    }
+    $full = $current->getPathname();
+    $rel = ltrim(str_replace('\\', '/', substr($full, strlen($mikhmonWebRoot))), '/');
+    if (in_array($rel, $skipExact, true) || strpos($rel, '.DS_Store') !== false) {
+        return false;
+    }
+    $checkRel = $current->isDir() ? ($rel . '/') : $rel;
+    foreach ($skipPrefixes as $pref) {
+        if (strpos($checkRel, $pref) === 0) {
+            return false;
+        }
+    }
+    return true;
+});
+$webIterator = new RecursiveIteratorIterator($webFilterIt, RecursiveIteratorIterator::LEAVES_ONLY);
 
 foreach ($webIterator as $item) {
     $fullPath = $item->getRealPath();
-    $relPath = substr($fullPath, strlen($mikhmonWebRoot) + 1);
-    $relPathNorm = str_replace('\\', '/', $relPath);
-
-    // Skip git metadata or hidden system files
-    if (
-        strpos($relPathNorm, '.git/') === 0 ||
-        $relPathNorm === '.git' ||
-        strpos($relPathNorm, '.DS_Store') !== false
-    ) {
+    if (!$fullPath || strpos($fullPath, $mikhmonWebRoot) !== 0) {
         continue;
     }
-
+    $relPath = ltrim(str_replace('\\', '/', substr($fullPath, strlen($mikhmonWebRoot))), '/');
     if ($item->isFile()) {
         $content = @file_get_contents($fullPath);
         if ($content !== false) {
-            $zip->addFileContent($content, 'Mikhmon Server/mikhmon/' . $relPathNorm, $item->getMTime());
+            $zip->addFileContent($content, 'Mikhmon Server/mikhmon/' . $relPath, $item->getMTime());
         }
     }
 }
 
 $archiveBytes = $zip->getArchiveBytes();
-$filename = 'NextGen-WiFi-Solution-Server.zip';
+$filename = 'NextGan-WiFi-Solution-Server.zip';
 
 if (ob_get_length()) {
     @ob_end_clean();

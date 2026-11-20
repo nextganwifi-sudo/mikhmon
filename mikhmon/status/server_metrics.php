@@ -23,10 +23,10 @@ if (!isset($_SESSION["mikhmon"])) {
     exit;
 }
 
-include_once('../include/reseller_acl.php');
+$isAdminRole = !isset($_SESSION['mikhmon_role']) || $_SESSION['mikhmon_role'] === '' || $_SESSION['mikhmon_role'] === 'admin';
 if ((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) ||
     (isset($_SESSION['mikhmon_last_activity']) && (time() - (int)$_SESSION['mikhmon_last_activity']) > 300) ||
-    !isMikhmonAdmin()) {
+    !$isAdminRole) {
     session_write_close();
     echo json_encode(array('ok' => false));
     exit;

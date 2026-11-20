@@ -668,13 +668,29 @@ if (isset($_POST['upload_data_backup']) && isset($_FILES['backup_data_file']) &&
     @mkdir($tempRestoreDir . '/uploads', 0700, true);
     $importedAny = false;
 
+    $allowedImportRelPaths = array(
+        'include/config.php' => true,
+        'include/router_meta.json' => true,
+        'include/resellers.json' => true,
+        'include/admin_users.json' => true,
+        'include/permission_groups.json' => true,
+        'include/vpn_routers.json' => true,
+        'include/pppoe_areas.json' => true,
+        'include/voice_call_services.json' => true,
+        'include/user_prefs.json' => true,
+    );
+
     $decodedJson = @json_decode($rawUpload, true);
     if (is_array($decodedJson) && isset($decodedJson['files']) && is_array($decodedJson['files'])) {
-        // Full Backup Bundle JSON
+        // Full Backup Bundle JSON — strictly confine extracted entries to allowlisted data paths
         foreach ($decodedJson['files'] as $rel => $b64) {
+            $relClean = ltrim(str_replace('\\', '/', trim((string)$rel)), '/');
+            if ($relClean === '' || strpos($relClean, '..') !== false || !isset($allowedImportRelPaths[$relClean])) {
+                continue;
+            }
             $decodedContent = @base64_decode((string)$b64, true);
             if ($decodedContent !== false) {
-                $dest = $tempRestoreDir . '/' . $rel;
+                $dest = $tempRestoreDir . '/' . $relClean;
                 if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0700, true);
                 @file_put_contents($dest, $decodedContent);
                 $importedAny = true;
@@ -762,21 +778,41 @@ if (isset($_POST['rollback_version_id'])) {
 // Handle Git Safe Update
 if (isset($_POST['apply_git_safe_update'])) {
     $gitRepoUrl = isset($_POST['git_repo_url']) ? trim((string)$_POST['git_repo_url']) : '';
-    if ($gitRepoUrl !== '') {
+    $gitUrlValid = false;
+    if ($gitRepoUrl !== '' && strlen($gitRepoUrl) <= 300 && $gitRepoUrl[0] !== '-' && !preg_match('/[\s\x00-\x1F]/', $gitRepoUrl)) {
+        $parsedGit = @parse_url($gitRepoUrl);
+        if (is_array($parsedGit) && isset($parsedGit['scheme'], $parsedGit['host']) && strtolower((string)$parsedGit['scheme']) === 'https') {
+            $gHost = strtolower((string)$parsedGit['host']);
+            $isBlockedHost = ($gHost === '' || $gHost === 'localhost' || substr($gHost, -6) === '.local' || substr($gHost, -9) === '.internal');
+            if (!$isBlockedHost && filter_var($gHost, FILTER_VALIDATE_IP)) {
+                if (filter_var($gHost, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                    $isBlockedHost = true;
+                }
+            }
+            if (!$isBlockedHost && preg_match('/^[a-z0-9.-]+$/', $gHost) && strpos($gHost, '.') !== false) {
+                $gitUrlValid = true;
+            }
+        }
+    }
+
+    if (!$gitUrlValid) {
+        $updateError = $isBnUi
+            ? 'অবৈধ GitHub রিপোজিটরি URL। শুধুমাত্র সঠিক https:// GitHub URL দিন।'
+            : 'Invalid Git repository URL. Please provide a valid public https:// repository URL.';
+    } else {
         @file_put_contents($gitRepoConfigFile, $gitRepoUrl);
         $savedGitRepoUrl = $gitRepoUrl;
-    }
 
-    if (function_exists('ngwSyncToLiveDataVault')) {
-        ngwSyncToLiveDataVault($appRoot, true);
-    }
-    $protectedBefore = collectProtectedDataFiles($appRoot);
-    $gitDir = is_dir($appRoot . '/.git') ? $appRoot : (is_dir(dirname($appRoot) . '/.git') ? dirname($appRoot) : '');
+        if (function_exists('ngwSyncToLiveDataVault')) {
+            ngwSyncToLiveDataVault($appRoot, true);
+        }
+        $protectedBefore = collectProtectedDataFiles($appRoot);
+        $gitDir = is_dir($appRoot . '/.git') ? $appRoot : (is_dir(dirname($appRoot) . '/.git') ? dirname($appRoot) : '');
 
-    if ($gitRepoUrl !== '' && function_exists('shell_exec')) {
-        $tmpClone = sys_get_temp_dir() . '/ngw_git_sync_' . uniqid();
-        $cmd = 'git clone --depth 5 ' . escapeshellarg($gitRepoUrl) . ' ' . escapeshellarg($tmpClone) . ' 2>&1';
-        $out = @shell_exec($cmd);
+        if ($gitRepoUrl !== '' && function_exists('shell_exec')) {
+            $tmpClone = sys_get_temp_dir() . '/ngw_git_sync_' . uniqid();
+            $cmd = 'git clone --depth 5 -- ' . escapeshellarg($gitRepoUrl) . ' ' . escapeshellarg($tmpClone) . ' 2>&1';
+            $out = @shell_exec($cmd);
         if (is_dir($tmpClone . '/mikhmon') && is_file($tmpClone . '/mikhmon/admin.php')) {
             $srcRoot = $tmpClone . '/mikhmon';
         } elseif (is_dir($tmpClone . '/mikhmonv3-upstream') && is_file($tmpClone . '/mikhmonv3-upstream/admin.php')) {
@@ -1019,6 +1055,7 @@ if (isset($_POST['apply_git_safe_update'])) {
     } else {
         restoreProtectedDataFiles($appRoot, $protectedBefore);
         $updateError = isset($_git_url_required) ? $_git_url_required : 'Please enter your GitHub Repository URL to pull updates.';
+    }
     }
 }
 

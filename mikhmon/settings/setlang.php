@@ -37,7 +37,8 @@ if ($cleanUrl === '' || substr($cleanUrl, -9) === 'index.php' || substr($cleanUr
         }
     }
 }
-if (empty($cleanUrl) || preg_match('#^(?:https?:)?//#i', $cleanUrl)) {
+$cleanUrl = str_replace(array("\r", "\n", "\0"), '', (string)$cleanUrl);
+if (empty($cleanUrl) || preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $cleanUrl) || ($cleanUrl[0] !== '/' && substr($cleanUrl, 0, 2) !== './')) {
     $cleanUrl = './admin.php?id=sessions';
 }
 $url2 = $cleanUrl;

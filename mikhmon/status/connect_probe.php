@@ -48,6 +48,14 @@ if (function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked(
 }
 
 if ($session === '' || !canAccessRouterSession($session)) {
+    $diagDenied = function_exists('ngwDiagnoseRouterConnectFailure')
+        ? ngwDiagnoseRouterConnectFailure($session, '', '', '', '', 'access_denied')
+        : array('fault' => 'Router Access Denied', 'error' => "Access denied for router '{$session}'.");
+    ngwRecordActivity('router_connect_failed', array(
+        'router' => $session !== '' ? $session : '(empty)',
+        'fault' => $diagDenied['fault'],
+        'error' => $diagDenied['error'],
+    ));
     session_write_close();
     http_response_code(403);
     echo json_encode(array(
@@ -79,6 +87,14 @@ if (is_file(__DIR__ . '/../include/config.php')) {
 }
 
 if (!isset($data[$session]) || !is_array($data[$session])) {
+    $diagMissing = function_exists('ngwDiagnoseRouterConnectFailure')
+        ? ngwDiagnoseRouterConnectFailure($session, '', '', '', '', 'not_found')
+        : array('fault' => 'Router Config Missing', 'error' => "Router configuration '{$session}' not found.");
+    ngwRecordActivity('router_connect_failed', array(
+        'router' => $session,
+        'fault' => $diagMissing['fault'],
+        'error' => $diagMissing['error'],
+    ));
     http_response_code(404);
     echo json_encode(array(
         'ok' => false,
@@ -138,6 +154,16 @@ if (strpos($cleanTarget, ':') !== false) {
 
 if ($step === 'ping') {
     if ($iphost === '' || $probeHost === '') {
+        $diagEmptyIp = function_exists('ngwDiagnoseRouterConnectFailure')
+            ? ngwDiagnoseRouterConnectFailure($session, '', $userhost, '', '', 'ping')
+            : array('fault' => 'Missing Host/IP', 'error' => "Host/IP is empty in Router Settings for '{$session}'.", 'user' => $userhost);
+        ngwRecordActivity('router_connect_failed', array(
+            'router' => $routerDisplayLabel,
+            'host' => '',
+            'user' => $userhost,
+            'fault' => $diagEmptyIp['fault'],
+            'error' => $diagEmptyIp['error'],
+        ));
         echo json_encode(array(
             'ok' => false,
             'step' => 'ping',
@@ -206,10 +232,15 @@ if ($step === 'ping') {
 
         @session_start();
         $_SESSION['connect'] = $isBn ? "<b class='text-red'>সংযুক্ত নয় (Not Connected)</b>" : "<b class='text-red'>Not Connected</b>";
+        $diagPing = function_exists('ngwDiagnoseRouterConnectFailure')
+            ? ngwDiagnoseRouterConnectFailure($session, $iphost, $userhost, '', $errStrClean !== '' ? ($errStrClean . ' ' . $reason) : $reason, 'ping')
+            : array('fault' => 'Router Unreachable', 'error' => $reason, 'host' => $iphost, 'user' => $userhost);
         ngwRecordActivity('router_connect_failed', array(
             'router' => $routerDisplayLabel,
-            'host' => $iphost,
-            'error' => $reason,
+            'host' => $diagPing['host'],
+            'user' => isset($diagPing['user']) ? $diagPing['user'] : $userhost,
+            'fault' => $diagPing['fault'],
+            'error' => $diagPing['error'],
         ));
         session_write_close();
 
@@ -293,14 +324,19 @@ if ($isConnected) {
 
 $_SESSION['connect'] = $isBn ? "<b class='text-red'>সংযুক্ত নয় (Not Connected)</b>" : "<b class='text-red'>Not Connected</b>";
 $rawErr = !empty($API->last_error) ? (string)$API->last_error : ('RouterOS API login failed for ' . $iphost);
+$diagAuth = function_exists('ngwDiagnoseRouterConnectFailure')
+    ? ngwDiagnoseRouterConnectFailure($session, $iphost, $userhost, decrypt($passwdhost), $rawErr, 'auth')
+    : array('fault' => 'Router API Login Failed', 'error' => $rawErr, 'host' => $iphost, 'user' => $userhost);
 $userFacingErr = $rawErr;
-if ($isBn && stripos($rawErr, 'login') !== false) {
-    $userFacingErr = "MikroTik API লগইন ব্যর্থ ({$probeHost}:{$probePort}) — ইউজারনেম বা পাসওয়ার্ড ভুল অথবা ইউজারের API পারমিশন নেই।";
+if ($isBn && (stripos($rawErr, 'login') !== false || stripos($rawErr, 'password') !== false)) {
+    $userFacingErr = "MikroTik API লগইন ব্যর্থ ({$probeHost}:{$probePort}) — ইউজারনেম ('{$userhost}') বা পাসওয়ার্ড ভুল অথবা ইউজারের API পারমিশন নেই।";
 }
 ngwRecordActivity('router_connect_failed', array(
     'router' => $routerDisplayLabel,
-    'host' => $iphost,
-    'error' => $rawErr,
+    'host' => $diagAuth['host'],
+    'user' => isset($diagAuth['user']) ? $diagAuth['user'] : $userhost,
+    'fault' => $diagAuth['fault'],
+    'error' => $diagAuth['error'],
 ));
 session_write_close();
 

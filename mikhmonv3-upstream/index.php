@@ -101,8 +101,6 @@ if (!isset($_SESSION["mikhmon"])) {
 
 // theme  
   include('./include/theme.php');
-  include('./settings/settheme.php');
-  include('./settings/setlang.php');
   if ($_SESSION['theme'] == "") {
     $theme = $theme;
     $themecolor = $themecolor;

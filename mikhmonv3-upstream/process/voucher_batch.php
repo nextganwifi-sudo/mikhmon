@@ -67,7 +67,21 @@ try {
         $api = new RouterosAPI();
         $api->timeout = 5;
         $api->attempts = 1;
-        if (!$api->connect($host[1], $login[1], decrypt($pass[1]))) { throw new RuntimeException('Router connection failed. Resume the same batch when the router is reachable.'); }
+        if (!$api->connect($host[1], $login[1], decrypt($pass[1]))) {
+            $batchErr = !empty($api->last_error) ? (string)$api->last_error : 'Router connection failed during batch generation.';
+            $diag = function_exists('ngwDiagnoseRouterConnectFailure')
+                ? ngwDiagnoseRouterConnectFailure($router, $host[1], $login[1], decrypt($pass[1]), $batchErr, '')
+                : array('fault' => 'Router Connection Failed', 'error' => $batchErr, 'host' => (string)$host[1], 'user' => (string)$login[1]);
+            ngwRecordActivity('router_connect_failed', array(
+                'router' => $router,
+                'host' => $diag['host'],
+                'port' => isset($diag['port']) ? $diag['port'] : '',
+                'user' => $diag['user'],
+                'fault' => $diag['fault'],
+                'error' => $diag['error'],
+            ));
+            throw new RuntimeException('Router connection failed. Resume the same batch when the router is reachable.');
+        }
         // The session lock serializes duplicate step requests for this job.
         voucherBatchStep($job, $api);
         $api->disconnect();

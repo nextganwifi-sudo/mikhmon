@@ -270,6 +270,10 @@ function ngwLookupOfflineMacVendor($mac) {
  * Lookup public (non-randomized) OUI via local JSON cache + optional fast maclookup.app query.
  */
 function ngwLookupCachedRemoteVendor($mac) {
+    static $cache = null;
+    static $cacheFile = null;
+    static $remoteLookupsThisReq = 0;
+
     $norm = ngwNormalizeMac($mac);
     if ($norm === '' || $norm === '00:00:00:00:00:00') {
         return '';
@@ -279,38 +283,55 @@ function ngwLookupCachedRemoteVendor($mac) {
     }
 
     $oui = strtoupper(str_replace(':', '', substr($norm, 0, 8)));
-    $rootDir = realpath(__DIR__ . '/..');
-    if ($rootDir === false) {
-        $rootDir = dirname(__DIR__);
-    }
-    $dataDir = $rootDir . '/data';
-    if (!is_dir($dataDir)) {
-        @mkdir($dataDir, 0750, true);
-    }
-    $cacheFile = $dataDir . '/mac_vendor_cache.json';
-    $cache = array();
-    if (is_file($cacheFile)) {
-        $dec = @json_decode((string)@file_get_contents($cacheFile), true);
-        if (is_array($dec)) {
-            $cache = $dec;
+
+    if ($cache === null) {
+        $rootDir = realpath(__DIR__ . '/..');
+        if ($rootDir === false) {
+            $rootDir = dirname(__DIR__);
+        }
+        $dataDir = $rootDir . '/data';
+        if (!is_dir($dataDir)) {
+            @mkdir($dataDir, 0750, true);
+        }
+        $cacheFile = $dataDir . '/mac_vendor_cache.json';
+        $cache = array();
+        if (is_file($cacheFile)) {
+            $dec = @json_decode((string)@file_get_contents($cacheFile), true);
+            if (is_array($dec)) {
+                $cache = $dec;
+            }
         }
     }
 
     if (array_key_exists($oui, $cache)) {
-        return (string)$cache[$oui];
+        $cachedVal = (string)$cache[$oui];
+        if (strpos($cachedVal, '__miss__:') === 0) {
+            $missTs = (int)substr($cachedVal, 9);
+            if ((time() - $missTs) < 86400) {
+                return '';
+            }
+        } else {
+            return $cachedVal;
+        }
     }
+
+    // Cap blocking remote lookups to at most 2 per page load so large user/host tables stay instant
+    if ($remoteLookupsThisReq >= 2) {
+        return '';
+    }
+    $remoteLookupsThisReq++;
 
     $vendor = '';
     if (ini_get('allow_url_fopen')) {
         $ctx = stream_context_create(array(
             'http' => array(
                 'method'  => 'GET',
-                'timeout' => 1.2,
+                'timeout' => 0.5,
                 'header'  => "User-Agent: NextGanWiFi/1.0\r\n",
             ),
             'ssl' => array(
-                'verify_peer'      => false,
-                'verify_peer_name' => false,
+                'verify_peer'      => true,
+                'verify_peer_name' => true,
             ),
         ));
         $resp = @file_get_contents('https://api.maclookup.app/v2/macs/' . rawurlencode($oui), false, $ctx);
@@ -322,9 +343,8 @@ function ngwLookupCachedRemoteVendor($mac) {
         }
     }
 
-    // Cache non-empty result (and avoid caching failed offline checks so future online checks can resolve it)
-    if ($vendor !== '') {
-        $cache[$oui] = $vendor;
+    $cache[$oui] = ($vendor !== '') ? $vendor : ('__miss__:' . time());
+    if ($cacheFile !== null) {
         @file_put_contents($cacheFile, json_encode($cache, JSON_UNESCAPED_UNICODE), LOCK_EX);
     }
 

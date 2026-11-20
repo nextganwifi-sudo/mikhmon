@@ -285,75 +285,255 @@ if (isset($_GET['msg'])) {
 } elseif (isset($_GET['saved']) && $_GET['saved'] == '1') {
   $settingsSuccess = $isBn ? 'এডমিন সেটিংস সফলভাবে সংরক্ষিত হয়েছে!' : 'Admin settings saved successfully!';
 }
+$showFormByDefault = ($editingAdmin !== null) || !empty($settingsError) || $forcePasswordChange;
 ?>
 <style>
+.ngw-adm-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+}
+.ngw-adm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ngw-adm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ngw-btn-add-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2ea043, #238636);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff !important;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(46, 160, 67, 0.28);
+  transition: all 0.18s ease;
+  text-decoration: none !important;
+}
+.ngw-btn-add-user:hover {
+  background: linear-gradient(135deg, #3fb950, #2ea043);
+  transform: translateY(-1px);
+}
+.ngw-btn-compact-dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(56, 139, 253, 0.14);
+  border: 1px solid rgba(56, 139, 253, 0.4);
+  color: #58a6ff !important;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none !important;
+}
+.ngw-btn-compact-dl:hover {
+  background: rgba(56, 139, 253, 0.25);
+  border-color: #58a6ff;
+  color: #fff !important;
+}
+.ngw-adm-form-drawer {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid rgba(56, 139, 253, 0.35);
+  border-radius: 8px;
+  background: rgba(13, 17, 23, 0.45);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+.ngw-adm-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+.ngw-adm-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ngw-adm-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  opacity: 0.9;
+}
 .ngw-adm-role-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 10px;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
 }
 .ngw-adm-role-badge.is-store {
-  background: #6e40c9;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.35);
 }
 .ngw-adm-role-badge.is-admin {
-  background: #1f6feb;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.35);
 }
 .ngw-adm-perm-panel {
-  margin-top: 8px;
+  margin-top: 6px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.ngw-adm-perm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 10px;
-  padding: 8px 10px;
-  border: 1px solid rgba(56, 139, 253, 0.35);
-  border-radius: 6px;
-  background: rgba(31, 111, 235, 0.06);
 }
 .ngw-adm-perm-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
 }
-.ngw-adm-shortcut-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  border: 1px solid rgba(128, 128, 128, 0.28);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: rgba(0, 0, 0, 0.14);
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-  margin: 0;
-}
-.ngw-adm-shortcut-card:hover {
-  border-color: rgba(56, 139, 253, 0.65);
-  background: rgba(31, 111, 235, 0.08);
-}
-.ngw-adm-shortcut-card input[type="checkbox"] {
-  margin-top: 3px;
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-.ngw-adm-shortcut-title {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.25;
+.ngw-perm-switch-card {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  margin: 0;
+  user-select: none;
 }
-.ngw-adm-shortcut-desc {
+.ngw-perm-switch-card.is-active {
+  border-color: rgba(46, 160, 67, 0.55);
+  background: rgba(46, 160, 67, 0.1);
+}
+.ngw-perm-switch-card:hover {
+  border-color: rgba(88, 166, 255, 0.6);
+}
+.ngw-perm-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.ngw-perm-icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.ngw-perm-card-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.ngw-perm-card-state {
   font-size: 10.5px;
-  opacity: 0.82;
-  line-height: 1.3;
-  font-weight: normal;
+  margin-top: 2px;
+  opacity: 0.78;
+}
+/* Modern Toggle Switch */
+.ngw-toggle-wrap {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.ngw-toggle-wrap input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.ngw-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(128, 128, 128, 0.38);
+  transition: 0.2s;
+  border-radius: 22px;
+}
+.ngw-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+.ngw-toggle-wrap input:checked + .ngw-toggle-slider {
+  background-color: #2ea043;
+}
+.ngw-toggle-wrap input:checked + .ngw-toggle-slider:before {
+  transform: translateX(18px);
+}
+/* Permission Chips in User Table */
+.ngw-table-perm-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ngw-table-perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ngw-table-perm-chip.is-on {
+  background: rgba(46, 160, 67, 0.16);
+  border: 1px solid rgba(46, 160, 67, 0.5);
+  color: #4ade80;
+}
+.ngw-table-perm-chip.is-off {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  color: #ff7b72;
+  opacity: 0.8;
+}
+.ngw-table-perm-chip.is-full {
+  background: rgba(124, 58, 237, 0.16);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  color: #c4b5fd;
 }
 </style>
 <script>
@@ -366,6 +546,24 @@ if (isset($_GET['msg'])) {
       x.type = 'password';
     }
   }
+  function ngwToggleAddUserForm(show) {
+    var panel = document.getElementById('ngw_admin_form_panel');
+    var btn = document.getElementById('ngw_btn_open_add_user');
+    if (!panel) return;
+    if (typeof show === 'undefined') {
+      show = (panel.style.display === 'none' || panel.style.display === '');
+    }
+    panel.style.display = show ? 'block' : 'none';
+    if (btn) {
+      btn.style.display = show ? 'none' : 'inline-flex';
+    }
+    if (show) {
+      var firstInput = document.getElementById('ngw_admin_name_input');
+      if (firstInput) {
+        setTimeout(function(){ firstInput.focus(); }, 60);
+      }
+    }
+  }
   function ngwToggleAdminRolePerms() {
     var sel = document.getElementById('ngw_admin_role_select');
     var permBox = document.getElementById('ngw_admin_perm_box');
@@ -376,23 +574,52 @@ if (isset($_GET['msg'])) {
       permBox.style.display = 'none';
     }
   }
+  function ngwSyncPermCardStyles() {
+    var cards = document.querySelectorAll('.ngw-perm-switch-card');
+    for (var i = 0; i < cards.length; i++) {
+      var cb = cards[i].querySelector('.ngw-adm-perm-cb');
+      var st = cards[i].querySelector('.ngw-perm-card-state');
+      if (!cb) continue;
+      if (cb.checked) {
+        cards[i].classList.add('is-active');
+        if (st) st.innerHTML = st.getAttribute('data-on-text') || 'Active';
+      } else {
+        cards[i].classList.remove('is-active');
+        if (st) st.innerHTML = st.getAttribute('data-off-text') || 'Disabled';
+      }
+    }
+  }
   function ngwSetAllAdminPerms(checked) {
     var boxes = document.querySelectorAll('.ngw-adm-perm-cb');
     for (var i = 0; i < boxes.length; i++) {
       boxes[i].checked = !!checked;
     }
+    ngwSyncPermCardStyles();
   }
 </script>
 
 <div class="row">
-  <div class="col-6">
+  <div class="col-12">
     <div class="card">
-      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <h3 class="card-title" style="margin:0;"><i class="fa fa-user-secret"></i> <?= $isBn ? 'সুপার এডমিন ও এডমিন ইউজার' : 'Super Admin &amp; Admin Users'; ?></h3>
-        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(31,111,235,0.25);color:#fff;font-weight:bold;">
-          <?= count($adminUsers); ?> <?= $isBn ? 'জন ইউজার' : ('Admin ' . (count($adminUsers) === 1 ? 'User' : 'Users')); ?>
-        </span>
+      <div class="card-header ngw-adm-header-bar">
+        <div class="ngw-adm-header-left">
+          <h3 class="card-title" style="margin:0;">
+            <i class="fa fa-user-secret"></i> <?= $isBn ? 'সুপার এডমিন ও এডমিন ইউজার' : 'Super Admin &amp; Admin Users'; ?>
+          </h3>
+          <span style="font-size:11px;padding:2px 9px;border-radius:10px;background:rgba(31,111,235,0.25);color:#fff;font-weight:bold;">
+            <?= count($adminUsers); ?> <?= $isBn ? 'জন ইউজার' : (count($adminUsers) === 1 ? 'User' : 'Users'); ?>
+          </span>
+        </div>
+        <div class="ngw-adm-header-actions">
+          <button type="button" id="ngw_btn_open_add_user" class="ngw-btn-add-user" style="display:<?= $showFormByDefault ? 'none' : 'inline-flex'; ?>;" onclick="ngwToggleAddUserForm(true)">
+            <i class="fa fa-user-plus"></i> <?= $isBn ? 'অ্যাড ইউজার' : 'Add User'; ?>
+          </button>
+          <a class="ngw-btn-compact-dl" href="./settings/export_package.php" title="<?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone NextGan WiFi Solution Server (.zip)', ENT_QUOTES, 'UTF-8'); ?>">
+            <i class="fa fa-download"></i> <?= $isBn ? 'সার্ভার ডাউনলোড (.zip)' : 'Download Server (.zip)'; ?>
+          </a>
+        </div>
       </div>
+
       <div class="card-body">
         <?php if ($forcePasswordChange) { ?>
         <div role="alert" style="padding:8px 12px; margin-bottom:10px; border-radius:4px; background:rgba(220,53,69,0.12); border:1px solid #dc3545; color:#dc3545; font-weight:bold;">
@@ -410,19 +637,34 @@ if (isset($_GET['msg'])) {
         </div>
         <?php } ?>
 
-        <!-- Add / Edit Admin User Form -->
-        <form autocomplete="off" method="post" action="./admin.php?id=admin-settings" style="margin-bottom:14px; padding:10px; border:1px solid rgba(128,128,128,0.25); border-radius:6px; background:rgba(0,0,0,0.08);">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
-          <input type="hidden" name="edit_admin_id" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['id'], ENT_QUOTES, 'UTF-8') : ''; ?>">
-          <input type="hidden" name="admin_perm_form_submitted" value="1">
-          <div style="font-weight:bold; color:<?= $editingAdmin ? '#f0ad4e' : '#2ea043'; ?>; margin-bottom:8px; font-size:13px;">
-            <i class="fa <?= $editingAdmin ? 'fa-pencil-square-o' : 'fa-user-plus'; ?>"></i>
-            <?= $editingAdmin ? (($isBn ? 'এডমিন ইউজার সম্পাদনা: ' : 'Edit Admin User: ') . htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8')) : ($isBn ? 'নতুন সুপার এডমিন / এডমিন যুক্ত করুন' : 'Add New Super Admin / Admin User'); ?>
-          </div>
-          <table class="table table-sm" style="margin-bottom:6px;">
-            <tr>
-              <td class="align-middle" style="width:34%;"><?= $isBn ? 'রোল' : 'Role'; ?></td>
-              <td>
+        <!-- Collapsible Add / Edit Admin User Form (Hidden by default unless Add User or Edit is clicked) -->
+        <?php $adminShortcutGroups = function_exists('getAdminShortcutPermissionGroups') ? getAdminShortcutPermissionGroups() : array(); ?>
+        <div id="ngw_admin_form_panel" class="ngw-adm-form-drawer" style="display:<?= $showFormByDefault ? 'block' : 'none'; ?>;">
+          <form autocomplete="off" method="post" action="./admin.php?id=admin-settings" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="edit_admin_id" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['id'], ENT_QUOTES, 'UTF-8') : ''; ?>">
+            <input type="hidden" name="admin_perm_form_submitted" value="1">
+            <input type="hidden" name="adm_shortcut_submitted" value="1">
+
+            <div class="ngw-adm-form-header">
+              <div style="font-weight:bold; color:<?= $editingAdmin ? '#f0ad4e' : '#4ade80'; ?>; font-size:14px;">
+                <i class="fa <?= $editingAdmin ? 'fa-pencil-square-o' : 'fa-user-plus'; ?>"></i>
+                <?= $editingAdmin ? (($isBn ? 'ইউজার সম্পাদনা: ' : 'Edit User: ') . htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8')) : ($isBn ? 'নতুন ইউজার অ্যাড করুন' : 'Add New User'); ?>
+              </div>
+              <?php if ($editingAdmin) { ?>
+                <a class="btn bg-secondary" style="padding:3px 10px; font-size:11px;" href="./admin.php?id=admin-settings">
+                  <i class="fa fa-times"></i> <?= $isBn ? 'বন্ধ করুন' : 'Close'; ?>
+                </a>
+              <?php } else { ?>
+                <button type="button" class="btn bg-secondary" style="padding:3px 10px; font-size:11px; cursor:pointer;" onclick="ngwToggleAddUserForm(false)">
+                  <i class="fa fa-times"></i> <?= $isBn ? 'বন্ধ করুন' : 'Close'; ?>
+                </button>
+              <?php } ?>
+            </div>
+
+            <div class="ngw-adm-form-grid">
+              <div class="ngw-adm-field">
+                <label><?= $isBn ? 'রোল (Role)' : 'Role'; ?></label>
                 <select class="form-control" id="ngw_admin_role_select" name="admin_role" onchange="ngwToggleAdminRolePerms()">
                   <option value="admin" <?= $formRole === 'admin' ? 'selected' : ''; ?>>
                     <?= $isBn ? 'এডমিন' : 'Admin'; ?>
@@ -431,26 +673,23 @@ if (isset($_GET['msg'])) {
                     <?= $isBn ? 'সুপার এডমিন' : 'Super Admin'; ?>
                   </option>
                 </select>
-              </td>
-            </tr>
-            <tr>
-              <td class="align-middle"><?= $isBn ? 'পূর্ণ নাম' : 'Full Name'; ?></td>
-              <td>
-                <input class="form-control" type="text" name="admin_name" maxlength="80" placeholder="<?= $isBn ? 'যেমন: Admin Name / Super Admin' : 'e.g. Admin Name / Super Admin'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
-              </td>
-            </tr>
-            <tr>
-              <td class="align-middle"><?= $_user_name ?></td>
-              <td>
-                <input class="form-control" type="text" name="admin_username" maxlength="64" placeholder="<?= $isBn ? 'এডমিন ইউজারনেম লিখুন' : 'Enter Admin Username'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
-              </td>
-            </tr>
-            <tr>
-              <td class="align-middle"><?= $_password ?></td>
-              <td>
+              </div>
+
+              <div class="ngw-adm-field">
+                <label><?= $isBn ? 'পূর্ণ নাম' : 'Full Name'; ?></label>
+                <input class="form-control" id="ngw_admin_name_input" type="text" name="admin_name" maxlength="80" placeholder="<?= $isBn ? 'পূর্ণ নাম লিখুন' : 'Enter Full Name'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+              </div>
+
+              <div class="ngw-adm-field">
+                <label><?= $_user_name ?></label>
+                <input class="form-control" type="text" name="admin_username" maxlength="64" placeholder="<?= $isBn ? 'ইউজারনেম লিখুন' : 'Enter Username'; ?>" value="<?= $editingAdmin ? htmlspecialchars($editingAdmin['username'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
+              </div>
+
+              <div class="ngw-adm-field">
+                <label><?= $_password ?></label>
                 <div class="input-group">
                   <div class="input-group-11 col-box-10">
-                    <input class="group-item group-item-l" id="adm_user_pass" type="password" name="admin_password" placeholder="<?= $editingAdmin ? ($isBn ? 'বর্তমান পাসওয়ার্ড রাখতে খালি রাখুন' : 'Leave blank to keep current password') : ($isBn ? 'এডমিন পাসওয়ার্ড লিখুন' : 'Enter Admin Password'); ?>" autocomplete="new-password" <?= $editingAdmin ? '' : 'required'; ?>>
+                    <input class="group-item group-item-l" id="adm_user_pass" type="password" name="admin_password" placeholder="<?= $editingAdmin ? ($isBn ? 'অপরিবর্তিত রাখতে খালি রাখুন' : 'Leave blank to keep current') : ($isBn ? 'পাসওয়ার্ড লিখুন' : 'Enter Password'); ?>" autocomplete="new-password" <?= $editingAdmin ? '' : 'required'; ?>>
                   </div>
                   <div class="input-group-1 col-box-2">
                     <div class="group-item group-item-r pd-2p5 text-center align-middle">
@@ -458,96 +697,110 @@ if (isset($_GET['msg'])) {
                     </div>
                   </div>
                 </div>
-              </td>
-            </tr>
-          </table>
-
-          <!-- Shortcut Permission Toggle Box when Admin role is selected -->
-          <?php $adminShortcutGroups = function_exists('getAdminShortcutPermissionGroups') ? getAdminShortcutPermissionGroups() : array(); ?>
-          <input type="hidden" name="adm_shortcut_submitted" value="1">
-          <div id="ngw_admin_perm_box" class="ngw-adm-perm-panel" style="display:<?= $formRole === 'admin' ? 'block' : 'none'; ?>;">
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-              <div style="font-size:12px; font-weight:bold;">
-                <i class="fa fa-sliders text-primary"></i>
-                <?= $isBn ? 'এডমিন পারমিশন:' : 'Admin Permissions:'; ?>
-              </div>
-              <div style="display:flex; gap:4px;">
-                <button type="button" class="btn bg-primary" style="padding:2px 7px; font-size:10px; cursor:pointer;" onclick="ngwSetAllAdminPerms(true)">
-                  <i class="fa fa-check-square-o"></i> <?= $isBn ? 'সব চালু' : 'Enable All'; ?>
-                </button>
-                <button type="button" class="btn bg-secondary" style="padding:2px 7px; font-size:10px; cursor:pointer;" onclick="ngwSetAllAdminPerms(false)">
-                  <i class="fa fa-square-o"></i> <?= $isBn ? 'সব বন্ধ' : 'Disable All'; ?>
-                </button>
               </div>
             </div>
-            <div class="ngw-adm-perm-grid">
-              <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
-                $isShortcutChecked = function_exists('isAdminShortcutGroupEnabled')
-                  ? isAdminShortcutGroupEnabled($sKey, $formDisabledPerms)
-                  : (!in_array($sKey, $formDisabledPerms, true));
-                $sTitle = $isBn ? $sInfo['title_bn'] : $sInfo['title_en'];
-                $sDesc  = $isBn ? $sInfo['desc_bn'] : $sInfo['desc_en'];
-                $sIcon  = $sInfo['icon'];
-                $sColor = $sInfo['color'];
-              ?>
-                <label class="ngw-adm-shortcut-card">
-                  <input type="checkbox" class="ngw-adm-perm-cb" name="adm_shortcut_perms[<?= htmlspecialchars($sKey, ENT_QUOTES, 'UTF-8'); ?>]" value="1" <?= $isShortcutChecked ? 'checked' : ''; ?>>
-                  <div style="min-width:0; flex:1;">
-                    <div class="ngw-adm-shortcut-title" style="color:<?= htmlspecialchars($sColor, ENT_QUOTES, 'UTF-8'); ?>;">
-                      <i class="fa <?= htmlspecialchars($sIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
-                      <span><?= htmlspecialchars($sTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+
+            <!-- Redesigned Permission Section with Toggle Switches -->
+            <div id="ngw_admin_perm_box" class="ngw-adm-perm-panel" style="display:<?= $formRole === 'admin' ? 'block' : 'none'; ?>;">
+              <div class="ngw-adm-perm-header">
+                <div style="font-size:12.5px; font-weight:700; display:flex; align-items:center; gap:6px;">
+                  <i class="fa fa-sliders" style="color:#58a6ff;"></i>
+                  <span><?= $isBn ? 'এডমিন পারমিশন কন্ট্রোল' : 'Admin Permissions Control'; ?></span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn bg-primary" style="padding:3px 9px; font-size:10.5px; border-radius:4px; cursor:pointer;" onclick="ngwSetAllAdminPerms(true)">
+                    <i class="fa fa-check-circle"></i> <?= $isBn ? 'সব চালু' : 'Enable All'; ?>
+                  </button>
+                  <button type="button" class="btn bg-secondary" style="padding:3px 9px; font-size:10.5px; border-radius:4px; cursor:pointer;" onclick="ngwSetAllAdminPerms(false)">
+                    <i class="fa fa-ban"></i> <?= $isBn ? 'সব বন্ধ' : 'Disable All'; ?>
+                  </button>
+                </div>
+              </div>
+
+              <div class="ngw-adm-perm-grid">
+                <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
+                  $isShortcutChecked = function_exists('isAdminShortcutGroupEnabled')
+                    ? isAdminShortcutGroupEnabled($sKey, $formDisabledPerms)
+                    : (!in_array($sKey, $formDisabledPerms, true));
+                  $sShort = $isBn ? $sInfo['short_bn'] : $sInfo['short_en'];
+                  $sIcon  = $sInfo['icon'];
+                  $sColor = $sInfo['color'];
+                  $onText  = $isBn ? 'পারমিশন চালু আছে' : 'Permission Enabled';
+                  $offText = $isBn ? 'পারমিশন বন্ধ আছে' : 'Permission Disabled';
+                ?>
+                  <label class="ngw-perm-switch-card <?= $isShortcutChecked ? 'is-active' : ''; ?>">
+                    <div class="ngw-perm-card-left">
+                      <div class="ngw-perm-icon-box" style="color:<?= htmlspecialchars($sColor, ENT_QUOTES, 'UTF-8'); ?>;">
+                        <i class="fa <?= htmlspecialchars($sIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
+                      </div>
+                      <div style="min-width:0;">
+                        <div class="ngw-perm-card-title"><?= htmlspecialchars($sShort, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="ngw-perm-card-state" data-on-text="<?= htmlspecialchars($onText, ENT_QUOTES, 'UTF-8'); ?>" data-off-text="<?= htmlspecialchars($offText, ENT_QUOTES, 'UTF-8'); ?>">
+                          <?= htmlspecialchars($isShortcutChecked ? $onText : $offText, ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                      </div>
                     </div>
-                    <div class="ngw-adm-shortcut-desc"><?= htmlspecialchars($sDesc, ENT_QUOTES, 'UTF-8'); ?></div>
-                  </div>
-                </label>
+                    <div class="ngw-toggle-wrap">
+                      <input type="checkbox" class="ngw-adm-perm-cb" name="adm_shortcut_perms[<?= htmlspecialchars($sKey, ENT_QUOTES, 'UTF-8'); ?>]" value="1" <?= $isShortcutChecked ? 'checked' : ''; ?> onchange="ngwSyncPermCardStyles()">
+                      <span class="ngw-toggle-slider"></span>
+                    </div>
+                  </label>
+                <?php } ?>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+              <?php if ($editingAdmin) { ?>
+                <a class="btn bg-secondary" href="./admin.php?id=admin-settings">
+                  <i class="fa fa-times"></i> <?= $isBn ? 'বাতিল' : 'Cancel'; ?>
+                </a>
+                <button class="btn bg-success" type="submit" name="save_admin_user" style="cursor:pointer; font-weight:bold; padding:6px 16px;">
+                  <i class="fa fa-save"></i> <?= $isBn ? 'সেভ করুন' : 'Save'; ?>
+                </button>
+              <?php } else { ?>
+                <button type="button" class="btn bg-secondary" style="cursor:pointer;" onclick="ngwToggleAddUserForm(false)">
+                  <i class="fa fa-times"></i> <?= $isBn ? 'বাতিল' : 'Cancel'; ?>
+                </button>
+                <button class="btn bg-success" type="submit" name="save_admin_user" style="cursor:pointer; font-weight:bold; padding:6px 16px;">
+                  <i class="fa fa-save"></i> <?= $isBn ? 'সেভ করুন' : 'Save'; ?>
+                </button>
               <?php } ?>
             </div>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; gap:6px;">
-            <?php if ($editingAdmin) { ?>
-              <a class="btn bg-secondary" href="./admin.php?id=admin-settings"><i class="fa fa-times"></i> <?= $isBn ? 'বাতিল' : 'Cancel'; ?></a>
-              <button class="btn bg-warning" type="submit" name="save_admin_user" style="cursor:pointer;">
-                <i class="fa fa-check"></i> <?= $isBn ? 'আপডেট করুন' : 'Update Admin User'; ?>
-              </button>
-            <?php } else { ?>
-              <button class="btn bg-primary" type="submit" name="save_admin_user" style="cursor:pointer;">
-                <i class="fa fa-plus"></i> <?= $isBn ? 'এডমিন যুক্ত করুন' : 'Add Admin User'; ?>
-              </button>
-            <?php } ?>
-          </div>
-        </form>
-
-        <!-- Admin Users List Table -->
-        <div style="font-weight:bold; color:#3c8dbc; margin-bottom:6px; font-size:13px;">
-          <i class="fa fa-users"></i> <?= $isBn ? 'কনফিগারকৃত সুপার এডমিন ও এডমিন তালিকা' : 'Configured Super Admin &amp; Admin Users'; ?>
+          </form>
         </div>
-        <div class="overflow" style="margin-bottom:14px;">
-          <table class="table table-bordered table-hover table-sm" style="margin-bottom:0;">
+
+        <!-- Default Full-Width Admin Users List Table -->
+        <div class="overflow" style="margin-bottom:10px;">
+          <table class="table table-bordered table-hover" style="margin-bottom:0;">
             <thead>
               <tr>
-                <th style="width:28px;">#</th>
+                <th style="width:40px;" class="text-center">#</th>
                 <th><?= $isBn ? 'পূর্ণ নাম' : 'Full Name'; ?></th>
                 <th><?= $_user_name ?></th>
-                <th><?= $isBn ? 'রোল ও পারমিশন' : 'Role &amp; Permissions'; ?></th>
-                <th style="width:105px;" class="text-center"><?= $_action ?></th>
+                <th style="width:140px;"><?= $isBn ? 'রোল' : 'Role'; ?></th>
+                <th><?= $isBn ? 'পারমিশন' : 'Permissions'; ?></th>
+                <th style="width:130px;" class="text-center"><?= $_action ?></th>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($adminUsers as $idx => $adm) {
                 $isSelf = ((string)$adm['id'] === $currentLoggedAdminId) || ((string)$adm['username'] === (string)$_SESSION['mikhmon']);
                 $rowRole = (isset($adm['admin_role']) && $adm['admin_role'] === 'admin') ? 'admin' : 'super_admin';
-                $rowDisCount = ($rowRole === 'admin' && isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']))
-                  ? count($adm['disabled_permissions'])
-                  : 0;
               ?>
               <tr>
-                <td class="align-middle"><?= $idx + 1; ?></td>
+                <td class="align-middle text-center"><?= $idx + 1; ?></td>
                 <td class="align-middle">
-                  <b><?= htmlspecialchars($adm['name'], ENT_QUOTES, 'UTF-8'); ?></b>
-                  <?php if ($isSelf) { ?>
-                    <span style="font-size:10px; padding:1px 6px; border-radius:8px; background:#2ea043; color:#fff; margin-left:4px;"><?= $isBn ? 'আপনি' : 'You'; ?></span>
-                  <?php } ?>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="width:28px; height:28px; border-radius:50%; background:<?= $rowRole === 'super_admin' ? 'rgba(124,58,237,0.2)' : 'rgba(37,99,235,0.2)'; ?>; color:<?= $rowRole === 'super_admin' ? '#c4b5fd' : '#93c5fd'; ?>; display:inline-flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;">
+                      <i class="fa <?= $rowRole === 'super_admin' ? 'fa-shield' : 'fa-user'; ?>"></i>
+                    </span>
+                    <div>
+                      <b><?= htmlspecialchars($adm['name'], ENT_QUOTES, 'UTF-8'); ?></b>
+                      <?php if ($isSelf) { ?>
+                        <span style="font-size:10px; padding:1px 6px; border-radius:8px; background:#2ea043; color:#fff; margin-left:4px;"><?= $isBn ? 'আপনি' : 'You'; ?></span>
+                      <?php } ?>
+                    </div>
+                  </div>
                 </td>
                 <td class="align-middle"><code><?= htmlspecialchars($adm['username'], ENT_QUOTES, 'UTF-8'); ?></code></td>
                 <td class="align-middle">
@@ -555,26 +808,37 @@ if (isset($_GET['msg'])) {
                     <span class="ngw-adm-role-badge is-store">
                       <i class="fa fa-shield"></i> <?= $isBn ? 'সুপার এডমিন' : 'Super Admin'; ?>
                     </span>
-                  <?php } else {
-                    $rowDisList = isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']) ? $adm['disabled_permissions'] : array();
-                  ?>
+                  <?php } else { ?>
                     <span class="ngw-adm-role-badge is-admin">
                       <i class="fa fa-user-circle-o"></i> <?= $isBn ? 'এডমিন' : 'Admin'; ?>
                     </span>
-                    <div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px;">
+                  <?php } ?>
+                </td>
+                <td class="align-middle">
+                  <?php if ($rowRole === 'super_admin') { ?>
+                    <span class="ngw-table-perm-chip is-full">
+                      <i class="fa fa-check-circle"></i> <?= $isBn ? 'সব পারমিশন (ফুল অ্যাক্সেস)' : 'All Permissions (Full Access)'; ?>
+                    </span>
+                  <?php } else {
+                    $rowDisList = isset($adm['disabled_permissions']) && is_array($adm['disabled_permissions']) ? $adm['disabled_permissions'] : array();
+                  ?>
+                    <div class="ngw-table-perm-list">
                       <?php foreach ($adminShortcutGroups as $sKey => $sInfo) {
                         $sEnabled = function_exists('isAdminShortcutGroupEnabled') ? isAdminShortcutGroupEnabled($sKey, $rowDisList) : (!in_array($sKey, $rowDisList, true));
                         $sShort = $isBn ? $sInfo['short_bn'] : $sInfo['short_en'];
+                        $sIcon = $sInfo['icon'];
                       ?>
-                        <span style="font-size:10px; padding:1px 5px; border-radius:3px; border:1px solid <?= $sEnabled ? '#2ea043' : 'rgba(248,81,73,0.55)'; ?>; background:<?= $sEnabled ? 'rgba(46,160,67,0.16)' : 'rgba(248,81,73,0.14)'; ?>; color:<?= $sEnabled ? '#4ade80' : '#ff7b72'; ?>;">
-                          <i class="fa <?= $sEnabled ? 'fa-check' : 'fa-times'; ?>"></i> <?= htmlspecialchars($sShort, ENT_QUOTES, 'UTF-8'); ?>
+                        <span class="ngw-table-perm-chip <?= $sEnabled ? 'is-on' : 'is-off'; ?>">
+                          <i class="fa <?= htmlspecialchars($sIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
+                          <?= htmlspecialchars($sShort, ENT_QUOTES, 'UTF-8'); ?>
+                          <i class="fa <?= $sEnabled ? 'fa-check' : 'fa-times'; ?>" style="font-size:9.5px;"></i>
                         </span>
                       <?php } ?>
                     </div>
                   <?php } ?>
                 </td>
                 <td class="align-middle text-center" style="white-space:nowrap;">
-                  <a class="btn bg-primary" style="padding:2px 6px; font-size:11px; margin:1px;" href="./admin.php?id=admin-settings&edit_admin=<?= urlencode($adm['id']); ?>" title="<?= $isBn ? 'সম্পাদনা' : 'Edit Admin User'; ?>">
+                  <a class="btn bg-primary" style="padding:3px 8px; font-size:11px; margin:1px; border-radius:4px;" href="./admin.php?id=admin-settings&edit_admin=<?= urlencode($adm['id']); ?>" title="<?= $isBn ? 'সম্পাদনা' : 'Edit User'; ?>">
                     <i class="fa fa-edit"></i> <?= $_edit ?>
                   </a>
                   <?php if (count($adminUsers) > 1 && !($rowRole === 'super_admin' && $superAdminCount <= 1)) { 
@@ -583,7 +847,7 @@ if (isset($_GET['msg'])) {
                   <form method="post" action="./admin.php?id=admin-settings" style="display:inline; margin:0;" onsubmit="return confirm(<?= htmlspecialchars(json_encode($delAdminMsg), ENT_QUOTES, 'UTF-8'); ?>);">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="delete_admin_id" value="<?= htmlspecialchars($adm['id'], ENT_QUOTES, 'UTF-8'); ?>">
-                    <button type="submit" name="delete_admin_user" class="btn bg-danger" style="padding:2px 6px; font-size:11px; cursor:pointer; margin:1px;" title="<?= $_delete ?>">
+                    <button type="submit" name="delete_admin_user" class="btn bg-danger" style="padding:3px 8px; font-size:11px; cursor:pointer; margin:1px; border-radius:4px;" title="<?= $_delete ?>">
                       <i class="fa fa-trash"></i>
                     </button>
                   </form>
@@ -595,41 +859,12 @@ if (isset($_GET['msg'])) {
           </table>
         </div>
 
-        <div id="loadV">v<?= $_SESSION['v']; ?> </div>
-        <div><b id="newVer" class="text-green"></b></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-windows"></i> <?= htmlspecialchars(isset($_srv_dl_title) ? $_srv_dl_title : 'Download Complete Standalone NextGan WiFi Solution Server'); ?></h3>
-      </div>
-      <div class="card-body">
-        <p style="margin-top:0; margin-bottom:10px;">
-          <?= isset($_srv_dl_desc) ? $_srv_dl_desc : 'Click the button below to download the complete ready-made portable server:'; ?>
-        </p>
-        <div style="margin-bottom:12px;">
-          <a class="btn bg-green pd-10" href="./settings/export_package.php" style="display:inline-block; font-weight:bold; max-width:100%; white-space:normal;">
-            <i class="fa fa-download"></i> <?= htmlspecialchars(isset($_srv_dl_btn) ? $_srv_dl_btn : 'Download Complete NextGan WiFi Solution Server (.zip)'); ?>
-          </a>
+        <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; opacity:0.75; margin-top:8px;">
+          <div id="loadV">v<?= $_SESSION['v']; ?></div>
+          <div><b id="newVer" class="text-green"></b></div>
         </div>
-        <table class="table table-bordered table-sm" style="margin-bottom:0;">
-          <tr>
-            <td style="width:28px;"><b>1.</b></td>
-            <td><?= isset($_srv_dl_step1) ? $_srv_dl_step1 : ''; ?></td>
-          </tr>
-          <tr>
-            <td><b>2.</b></td>
-            <td><?= isset($_srv_dl_step2) ? $_srv_dl_step2 : ''; ?></td>
-          </tr>
-          <tr>
-            <td><b>3.</b></td>
-            <td><?= isset($_srv_dl_step3) ? $_srv_dl_step3 : ''; ?></td>
-          </tr>
-        </table>
       </div>
     </div>
   </div>
 </div>
+
