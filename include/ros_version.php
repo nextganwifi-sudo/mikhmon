@@ -776,5 +776,218 @@ function renderRandomizedMacBadge($mac) {
     }
     return ' <span class="text-warning" style="font-size:10px; font-weight:bold; padding:1px 5px; border-radius:3px; background:rgba(255,193,7,0.18); border:1px solid rgba(255,193,7,0.4); vertical-align:middle; display:inline-block;" title="Locally Administered / Private Randomized MAC"><i class="fa fa-shield"></i> Random MAC</span>';
 }
+
+/**
+ * Parse RouterOS uptime string (e.g. "0s", "00:00:00", "12m30s", "1d02:03:04", "2w3d4h5m6s") into seconds.
+ */
+function ngwParseUptimeSeconds($rawUptime) {
+    $v = strtolower(trim((string)$rawUptime));
+    if ($v === '' || $v === '0' || $v === '0s' || $v === '00:00:00') {
+        return 0;
+    }
+    $v = (string)preg_replace('/\d+\s*ms/', '', $v);
+    $total = 0;
+    if (preg_match('/(\d+)\s*w/', $v, $m)) {
+        $total += ((int)$m[1]) * 7 * 86400;
+    }
+    if (preg_match('/(\d+)\s*d/', $v, $m)) {
+        $total += ((int)$m[1]) * 86400;
+    }
+    if (preg_match('/(\d+)\s*h/', $v, $m)) {
+        $total += ((int)$m[1]) * 3600;
+    }
+    if (preg_match('/(\d+)\s*m/', $v, $m)) {
+        $total += ((int)$m[1]) * 60;
+    }
+    if (preg_match('/(\d+)\s*s/', $v, $m)) {
+        $total += (int)$m[1];
+    }
+    if (preg_match('/(\d{1,2}):(\d{2}):(\d{2})/', $v, $m)) {
+        $total += ((int)$m[1]) * 3600 + ((int)$m[2]) * 60 + ((int)$m[3]);
+    }
+    return $total;
+}
+
+/**
+ * Extract calendar expiry date (and optional time) timestamp from a Hotspot user comment.
+ * Rejects unactivated batch comments (vc-..., up-...) and invalid dates/times.
+ */
+function ngwParseCommentCalendarExpiryTs($comment) {
+    $empty = array(
+        'has_date' => false,
+        'expiry_ts' => 0,
+        'display' => '',
+        'iso_datetime' => '',
+        'has_time' => false,
+    );
+    $raw = trim((string)$comment);
+    if ($raw === '') {
+        return $empty;
+    }
+    $prefix2 = strtolower(substr($raw, 0, 2));
+    if ($prefix2 === 'vc' || $prefix2 === 'up') {
+        if (strlen($raw) === 2 || $raw[2] === '-' || $raw[2] === ' ') {
+            return $empty;
+        }
+    }
+
+    $clean = normalizeActivatedVoucherComment($raw);
+    $parsed = parseExpiryFromComment($clean);
+
+    if (!empty($parsed['is_expiry']) && !empty($parsed['time_str'])) {
+        $tParts = explode(':', $parsed['time_str']);
+        if (count($tParts) < 2 || count($tParts) > 3) {
+            return $empty;
+        }
+        $hh = (int)$tParts[0];
+        $mm = (int)$tParts[1];
+        $ss = isset($tParts[2]) ? (int)$tParts[2] : 0;
+        if ($hh < 0 || $hh > 23 || $mm < 0 || $mm > 59 || $ss < 0 || $ss > 59) {
+            return $empty;
+        }
+        $timeNorm = sprintf('%02d:%02d:%02d', $hh, $mm, $ss);
+
+        $isoDate = '';
+        if ($parsed['format'] === 'ros7' || $parsed['format'] === 'ros6') {
+            $dInfo = parseRouterOSDate($parsed['date_str']);
+            if (!empty($dInfo['valid'])) {
+                $isoDate = $dInfo['iso'];
+            }
+        } elseif ($parsed['format'] === 'numeric') {
+            if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $parsed['date_str'], $nm)) {
+                $p1 = (int)$nm[1];
+                $p2 = (int)$nm[2];
+                $yr = (int)$nm[3];
+                if ($p1 > 12 && checkdate($p2, $p1, $yr)) {
+                    $isoDate = sprintf('%04d-%02d-%02d', $yr, $p2, $p1);
+                } elseif (checkdate($p1, $p2, $yr)) {
+                    $isoDate = sprintf('%04d-%02d-%02d', $yr, $p1, $p2);
+                } elseif (checkdate($p2, $p1, $yr)) {
+                    $isoDate = sprintf('%04d-%02d-%02d', $yr, $p2, $p1);
+                }
+            }
+        }
+
+        if ($isoDate !== '') {
+            $isoDt = $isoDate . ' ' . $timeNorm;
+            $ts = strtotime($isoDt);
+            if ($ts !== false && $ts > 946684800) {
+                return array(
+                    'has_date' => true,
+                    'expiry_ts' => (int)$ts,
+                    'display' => $parsed['datetime'],
+                    'iso_datetime' => $isoDt,
+                    'has_time' => true,
+                );
+            }
+        }
+        return $empty;
+    }
+
+    // Fallback: Date-only comment without time (e.g. "2026-11-20" or "nov/20/2026")
+    if (preg_match('/^(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}|[a-zA-Z]{3}\/\d{1,2}\/\d{4})(?:\s+.*)?$/', $clean, $dm)) {
+        $dInfo = parseRouterOSDate($dm[1]);
+        if (!empty($dInfo['valid'])) {
+            $isoDt = $dInfo['iso'] . ' 23:59:59';
+            $ts = strtotime($isoDt);
+            if ($ts !== false && $ts > 946684800) {
+                return array(
+                    'has_date' => true,
+                    'expiry_ts' => (int)$ts,
+                    'display' => $dm[1],
+                    'iso_datetime' => $isoDt,
+                    'has_time' => false,
+                );
+            }
+        }
+    }
+
+    return $empty;
+}
+
+/**
+ * Format duration in seconds into a compact readable string (e.g. "2d 4h", "35m", "18s").
+ */
+function ngwFormatDurationShort($seconds) {
+    $sec = max(0, (int)$seconds);
+    if ($sec < 60) {
+        return $sec . 's';
+    }
+    $days = (int)floor($sec / 86400);
+    $rem = $sec % 86400;
+    $hours = (int)floor($rem / 3600);
+    $rem = $rem % 3600;
+    $mins = (int)floor($rem / 60);
+    $parts = array();
+    if ($days > 0) $parts[] = $days . 'd';
+    if ($hours > 0) $parts[] = $hours . 'h';
+    if ($mins > 0 && $days === 0) $parts[] = $mins . 'm';
+    return !empty($parts) ? implode(' ', $parts) : '1m';
+}
+
+/**
+ * Evaluate whether a Hotspot user requires an anomaly warning:
+ *  1. expired_not_removed: Comment has a calendar date & time that has already passed (< $nowTs), yet user is still present.
+ *  2. missing_date: User has non-zero uptime (> 0s), but comment has no calendar expiry date.
+ */
+function ngwEvaluateHotspotUserWarning($userdetails, $nowTs = null, $langid = 'en') {
+    $none = array(
+        'has_warning' => false,
+        'type' => '',
+        'short_label' => '',
+        'reason' => '',
+        'uptime_sec' => 0,
+        'expiry_display' => '',
+        'overdue_text' => '',
+    );
+    if (!is_array($userdetails)) {
+        return $none;
+    }
+    $uname = isset($userdetails['name']) ? trim((string)$userdetails['name']) : '';
+    if ($uname === '' || $uname === 'default-trial') {
+        return $none;
+    }
+
+    $now = ($nowTs !== null && (int)$nowTs > 946684800) ? (int)$nowTs : time();
+    $rawUptime = isset($userdetails['uptime']) ? (string)$userdetails['uptime'] : '';
+    $rawComment = isset($userdetails['comment']) ? (string)$userdetails['comment'] : '';
+    $uptimeSec = ngwParseUptimeSeconds($rawUptime);
+    $cal = ngwParseCommentCalendarExpiryTs($rawComment);
+    $isBn = ($langid === 'bn');
+
+    // Condition 1: Calendar date & time exists and has already passed, yet user is not removed
+    if ($cal['has_date'] && $cal['expiry_ts'] > 0 && $cal['expiry_ts'] < $now) {
+        $overdueText = ngwFormatDurationShort($now - $cal['expiry_ts']);
+        return array(
+            'has_warning' => true,
+            'type' => 'expired_not_removed',
+            'short_label' => $isBn ? 'মেয়াদ শেষ' : 'Expired',
+            'reason' => $isBn
+                ? ('ক্যালেন্ডার ডেট ও টাইম পার হয়ে গেছে (' . $cal['display'] . ' — ' . $overdueText . ' আগে), কিন্তু ইউজার রিমুভ হয়নি।')
+                : ('Calendar date & time passed (' . $cal['display'] . ' — ' . $overdueText . ' ago), but user was not removed.'),
+            'uptime_sec' => $uptimeSec,
+            'expiry_display' => $cal['display'],
+            'overdue_text' => $overdueText,
+        );
+    }
+
+    // Condition 2: User has uptime (> 0s) but comment has no calendar expiry date
+    if ($uptimeSec > 0 && !$cal['has_date']) {
+        $upDisp = function_exists('formatDTM') ? formatDTM($rawUptime) : $rawUptime;
+        return array(
+            'has_warning' => true,
+            'type' => 'missing_date',
+            'short_label' => $isBn ? 'ডেট নেই' : 'No Date',
+            'reason' => $isBn
+                ? ('ইউজারের আপটাইম রয়েছে (' . $upDisp . '), কিন্তু কমেন্টে কোনো ক্যালেন্ডার ডেট নেই।')
+                : ('User has uptime (' . $upDisp . '), but comment has no calendar date.'),
+            'uptime_sec' => $uptimeSec,
+            'expiry_display' => '',
+            'overdue_text' => '',
+        );
+    }
+
+    return $none;
+}
 ?>
 

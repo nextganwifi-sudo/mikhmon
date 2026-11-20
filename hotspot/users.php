@@ -78,8 +78,168 @@ if (!isset($_SESSION["mikhmon"])) {
   }
   $getprofile = $API->comm("/ip/hotspot/user/profile/print");
   $TotalReg2 = is_array($getprofile) ? count($getprofile) : 0;
+
+  $nowRouterTs = (isset($tzSync['now_ts']) && (int)$tzSync['now_ts'] > 946684800) ? (int)$tzSync['now_ts'] : time();
+  $nowRouterLabel = date('Y-m-d H:i:s', $nowRouterTs);
+  $userWarnings = array();
+  $warningTotal = 0;
+  $warningExpiredCount = 0;
+  $warningMissingDateCount = 0;
+  for ($wi = 0; $wi < $TotalReg; $wi++) {
+    $wEval = ngwEvaluateHotspotUserWarning(isset($getuser[$wi]) ? $getuser[$wi] : null, $nowRouterTs, $langid);
+    $userWarnings[$wi] = $wEval;
+    if (!empty($wEval['has_warning'])) {
+      $warningTotal++;
+      if ($wEval['type'] === 'expired_not_removed') {
+        $warningExpiredCount++;
+      } elseif ($wEval['type'] === 'missing_date') {
+        $warningMissingDateCount++;
+      }
+    }
+  }
+  $initialWarnFilter = (isset($_GET['warning']) && (string)$_GET['warning'] === '1');
 }
 ?>
+<style>
+.ngw-uwarn-topbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  border-radius: 3px;
+  border: 1px solid rgba(245, 158, 11, 0.58);
+  background: rgba(245, 158, 11, 0.16);
+  color: #f59e0b;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.ngw-uwarn-topbtn:hover {
+  background: rgba(245, 158, 11, 0.30);
+  border-color: #f59e0b;
+}
+.ngw-uwarn-topbtn.is-zero {
+  opacity: 0.55;
+}
+.ngw-uwarn-topbtn.is-active {
+  background: #f59e0b;
+  color: #111827;
+  border-color: #d97706;
+}
+.ngw-uwarn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  margin-left: 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background .14s ease, color .14s ease, border-color .14s ease;
+}
+.ngw-uwarn-btn:hover {
+  background: #f59e0b;
+  color: #111827;
+  border-color: #d97706;
+}
+.ngw-uwarn-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 14px;
+}
+.ngw-uwarn-backdrop.open {
+  display: flex;
+}
+.ngw-uwarn-modal {
+  width: 100%;
+  max-width: 420px;
+  margin: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+}
+.ngw-uwarn-modal .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ngw-uwarn-close {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.75;
+  padding: 0 4px;
+}
+.ngw-uwarn-close:hover { opacity: 1; }
+.ngw-uwarn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+.ngw-uwarn-reason {
+  margin: 10px 0 12px;
+  padding: 9px 11px;
+  border-radius: 4px;
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.10);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.ngw-uwarn-kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.ngw-uwarn-kv td {
+  padding: 5px 4px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  vertical-align: top;
+}
+.ngw-uwarn-kv td:first-child {
+  width: 115px;
+  opacity: 0.75;
+  font-weight: 600;
+}
+.ngw-uwarn-kv tr:last-child td {
+  border-bottom: 0;
+}
+.ngw-uwarn-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
+}
+</style>
 
 <div class="row">
 <div class="col-12">
@@ -100,6 +260,16 @@ if (!isset($_SESSION["mikhmon"])) {
          <?php if (hasResellerPermission('export_users')) { ?>
          &nbsp; | &nbsp; <a href="<?= str_replace("=users", "=export-users", $url); ?>&export=script" title="Download User List as Mikrotik Script"><i class="fa fa-download"></i> Script</a>&nbsp; | &nbsp; <a href="<?= str_replace("=users", "=export-users", $url); ?>&export=csv" title="Download User List as CSV"><i class="fa fa-download"></i> CSV</a>
          <?php } ?>
+         <?php
+         $warnTopTitle = ($warningTotal > 0)
+           ? (($langid === 'bn')
+               ? "ওয়ার্নিং ইউজার: {$warningTotal} (মেয়াদ শেষ: {$warningExpiredCount}, ডেট নেই: {$warningMissingDateCount}) — ক্লিক করে ফিল্টার করুন"
+               : "Warning users: {$warningTotal} (Expired: {$warningExpiredCount}, No Date: {$warningMissingDateCount}) — click to filter")
+           : (($langid === 'bn')
+               ? "কোনো ওয়ার্নিং ইউজার নেই"
+               : "No warning users");
+         ?>
+         &nbsp; | &nbsp; <button type="button" id="ngwWarnFilterBtn" class="ngw-uwarn-topbtn<?= $warningTotal === 0 ? ' is-zero' : ''; ?><?= ($initialWarnFilter && $warningTotal > 0) ? ' is-active' : ''; ?>" title="<?= htmlspecialchars($warnTopTitle, ENT_QUOTES, 'UTF-8'); ?>" onclick="ngwToggleUserWarnFilter()"><i class="fa fa-exclamation-triangle"></i> <span><?= $warningTotal; ?></span></button>
         </span>  &nbsp;
         <small id="loader" style="display: none;" ><i><i class='fa fa-circle-o-notch fa-spin'></i> <?= $_processing ?> </i></small>
     </h3>
@@ -254,7 +424,12 @@ for ($i = 0; $i < $TotalReg; $i++) {
     $udatalimit = ' ' . formatBytes($udatalimit, 2);
   }
 
-  echo "<tr>";
+  $uWarn = isset($userWarnings[$i]) ? $userWarnings[$i] : array('has_warning' => false);
+  $rowWarnAttr = !empty($uWarn['has_warning'])
+    ? (' data-ngw-warn="1" data-ngw-warn-type="' . htmlspecialchars($uWarn['type'], ENT_QUOTES, 'UTF-8') . '"')
+    : ' data-ngw-warn="0"';
+
+  echo "<tr" . $rowWarnAttr . ">";
   ?>
   <td style='text-align:center;'>
   <?php if (hasResellerPermission('delete_user')) { 
@@ -288,6 +463,34 @@ for ($i = 0; $i < $TotalReg; $i++) {
     $usermode = "up";
   }
 
+  $warnBtnHtml = '';
+  if (!empty($uWarn['has_warning'])) {
+    $wDelUrl = hasResellerPermission('delete_user')
+      ? ('./?remove-hotspot-user=' . urlencode($uid) . '&session=' . urlencode($session))
+      : '';
+    $wDelMsg = ($langid === 'bn')
+      ? ('আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?')
+      : ('Are you sure to delete username (' . $uname . ')?');
+    $wOpenUrl = hasResellerPermission('edit_user')
+      ? ('./?hotspot-user=' . rawurlencode($uid) . '&session=' . rawurlencode($session))
+      : '';
+    $wCommentCleanDisp = normalizeActivatedVoucherComment($ucomment);
+    $warnBtnHtml = ' <button type="button" class="ngw-uwarn-btn"'
+      . ' title="' . htmlspecialchars($uWarn['reason'], ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-user="' . htmlspecialchars($uname, ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-label="' . htmlspecialchars($uWarn['short_label'], ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-reason="' . htmlspecialchars($uWarn['reason'], ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-uptime="' . htmlspecialchars($uuptime, ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-comment="' . htmlspecialchars($wCommentCleanDisp !== '' ? $wCommentCleanDisp : '-', ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-expiry="' . htmlspecialchars($uWarn['expiry_display'] !== '' ? $uWarn['expiry_display'] : '-', ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-open-url="' . htmlspecialchars($wOpenUrl, ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-del-url="' . htmlspecialchars($wDelUrl, ENT_QUOTES, 'UTF-8') . '"'
+      . ' data-w-del-msg="' . htmlspecialchars($wDelMsg, ENT_QUOTES, 'UTF-8') . '"'
+      . ' onclick="event.stopPropagation(); ngwOpenUserWarnModal(this);"'
+      . ' aria-label="' . htmlspecialchars($uWarn['short_label'], ENT_QUOTES, 'UTF-8') . '">'
+      . '<i class="fa fa-exclamation-triangle"></i></button>';
+  }
+
   $popup = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=no&session=" . $session . "','_blank','width=320,height=550').print();";
   $popupQR = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=yes&session=" . $session . "','_blank','width=320,height=550').print();";
   if (hasResellerPermission('edit_user')) {
@@ -295,6 +498,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
     if (hasResellerPermission('reset_voucher') && $uname !== 'default-trial') {
       echo " <a title='" . htmlspecialchars($_check_voucher, ENT_QUOTES) . "' href='./?hotspot=reset-voucher&voucher=" . rawurlencode($uname) . "&session=" . rawurlencode($session) . "' style='margin-left:4px; opacity:0.8;'><i class='fa fa-search'></i></a>";
     }
+    echo $warnBtnHtml;
     echo "</td>";
   } else {
     echo "<td>";
@@ -303,6 +507,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
     } else {
       echo htmlspecialchars($uname);
     }
+    echo $warnBtnHtml;
     echo "</td>";
   }
   // Password column
@@ -332,12 +537,10 @@ for ($i = 0; $i < $TotalReg; $i++) {
   }else{
     echo htmlspecialchars($ucommentClean).' ';
   }
-  echo  "</td>";
-
-
+  echo "</td>";
+  echo "</tr>";
 }
 ?>
-  </tr>
   </tbody>
 </table>
 </div>
@@ -345,5 +548,157 @@ for ($i = 0; $i < $TotalReg; $i++) {
 </div>
 </div>
 </div>
+
+<!-- Compact Warning Detail Modal -->
+<div class="ngw-uwarn-backdrop" id="ngwUserWarnModal">
+  <div class="card ngw-uwarn-modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:14px; display:flex; align-items:center; gap:7px;">
+        <i class="fa fa-exclamation-triangle" style="color:#f59e0b;"></i>
+        <span id="ngwUwUser">-</span>
+        <span class="ngw-uwarn-pill" id="ngwUwBadge">-</span>
+      </h3>
+      <button type="button" class="ngw-uwarn-close" onclick="ngwCloseUserWarnModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="ngw-uwarn-reason" id="ngwUwReason"></div>
+      <table class="ngw-uwarn-kv">
+        <tr>
+          <td><?= ($langid === 'bn') ? 'আপটাইম' : 'Uptime'; ?></td>
+          <td id="ngwUwUptime" style="font-family:monospace;">-</td>
+        </tr>
+        <tr>
+          <td><?= ($langid === 'bn') ? 'কমেন্ট' : 'Comment'; ?></td>
+          <td id="ngwUwComment" style="font-family:monospace; word-break:break-word;">-</td>
+        </tr>
+        <tr>
+          <td><?= ($langid === 'bn') ? 'মেয়াদ (ক্যালেন্ডার)' : 'Calendar Expiry'; ?></td>
+          <td id="ngwUwExpiry" style="font-family:monospace;">-</td>
+        </tr>
+        <tr>
+          <td><?= ($langid === 'bn') ? 'রাউটার সময়' : 'Router Time'; ?></td>
+          <td style="font-family:monospace;"><?= htmlspecialchars($nowRouterLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+        </tr>
+      </table>
+      <div class="ngw-uwarn-foot">
+        <a href="#" id="ngwUwOpenBtn" class="btn bg-primary" style="display:none; padding:4px 10px; font-size:12px;"><i class="fa fa-edit"></i> <?= ($langid === 'bn') ? 'খুলুন' : 'Open'; ?></a>
+        <button type="button" id="ngwUwDelBtn" class="btn bg-red" style="display:none; padding:4px 10px; font-size:12px;" onclick="ngwDeleteWarnUser()"><i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'ডিলিট' : 'Remove'; ?></button>
+        <button type="button" class="btn bg-secondary" style="padding:4px 10px; font-size:12px;" onclick="ngwCloseUserWarnModal()"><?= ($langid === 'bn') ? 'বন্ধ' : 'Close'; ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var warnOnly = <?= ($initialWarnFilter && $warningTotal > 0) ? 'true' : 'false'; ?>;
+  var totalUsers = <?= (int)$counttuser; ?>;
+  var activeDelUrl = '';
+  var activeDelMsg = '';
+
+  function applyCombinedUserFilter() {
+    var input = document.getElementById('filterTable');
+    var q = input ? input.value.trim().toLowerCase() : '';
+    var rows = document.querySelectorAll('#dataTable tbody tr');
+    var shown = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var warnOk = !warnOnly || (r.getAttribute('data-ngw-warn') === '1');
+      var txtOk = (q === '') || (r.textContent.toLowerCase().indexOf(q) > -1);
+      var vis = warnOk && txtOk;
+      r.style.display = vis ? '' : 'none';
+      if (vis) shown++;
+    }
+    var cntEl = document.getElementById('cuser');
+    if (cntEl) {
+      cntEl.textContent = (warnOnly || q !== '') ? (shown + '/' + totalUsers) : String(totalUsers);
+    }
+  }
+
+  window.ngwToggleUserWarnFilter = function() {
+    var btn = document.getElementById('ngwWarnFilterBtn');
+    if (!btn) return;
+    warnOnly = !warnOnly;
+    btn.classList.toggle('is-active', warnOnly);
+    applyCombinedUserFilter();
+  };
+
+  window.ngwOpenUserWarnModal = function(btn) {
+    var modal = document.getElementById('ngwUserWarnModal');
+    if (!modal || !btn) return;
+    document.getElementById('ngwUwUser').textContent = btn.getAttribute('data-w-user') || '-';
+    document.getElementById('ngwUwBadge').textContent = btn.getAttribute('data-w-label') || 'Warning';
+    document.getElementById('ngwUwReason').textContent = btn.getAttribute('data-w-reason') || '';
+    document.getElementById('ngwUwUptime').textContent = btn.getAttribute('data-w-uptime') || '-';
+    document.getElementById('ngwUwComment').textContent = btn.getAttribute('data-w-comment') || '-';
+    document.getElementById('ngwUwExpiry').textContent = btn.getAttribute('data-w-expiry') || '-';
+
+    var openUrl = btn.getAttribute('data-w-open-url') || '';
+    var openBtn = document.getElementById('ngwUwOpenBtn');
+    if (openBtn) {
+      if (openUrl) {
+        openBtn.href = openUrl;
+        openBtn.style.display = '';
+      } else {
+        openBtn.style.display = 'none';
+      }
+    }
+
+    activeDelUrl = btn.getAttribute('data-w-del-url') || '';
+    activeDelMsg = btn.getAttribute('data-w-del-msg') || 'Delete user?';
+    var delBtn = document.getElementById('ngwUwDelBtn');
+    if (delBtn) {
+      delBtn.style.display = activeDelUrl ? '' : 'none';
+    }
+
+    modal.classList.add('open');
+  };
+
+  window.ngwCloseUserWarnModal = function() {
+    var modal = document.getElementById('ngwUserWarnModal');
+    if (modal) modal.classList.remove('open');
+  };
+
+  window.ngwDeleteWarnUser = function() {
+    if (!activeDelUrl) return;
+    if (confirm(activeDelMsg)) {
+      ngwCloseUserWarnModal();
+      if (typeof loadpage === 'function') {
+        loadpage(activeDelUrl);
+      } else {
+        window.location = activeDelUrl;
+      }
+    }
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') ngwCloseUserWarnModal();
+  });
+  var backdrop = document.getElementById('ngwUserWarnModal');
+  if (backdrop) {
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) ngwCloseUserWarnModal();
+    });
+  }
+
+  function bindFilterOverride() {
+    if (window.jQuery) {
+      window.jQuery('#filterTable').off('keyup').on('keyup input', applyCombinedUserFilter);
+    } else {
+      var inp = document.getElementById('filterTable');
+      if (inp) inp.addEventListener('input', applyCombinedUserFilter);
+    }
+    if (warnOnly) {
+      applyCombinedUserFilter();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(bindFilterOverride, 0); });
+  } else {
+    setTimeout(bindFilterOverride, 0);
+  }
+})();
+</script>
 	
 	

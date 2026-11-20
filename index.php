@@ -310,7 +310,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 // vpn hub
   elseif ($hotspot == "vpn") {
-    if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_security'))) {
+    if (!isMikhmonAdmin() || (!isMikhmonAdminStore() && !hasResellerPermission('manage_vpn'))) {
       echo "<script>window.location='" . $defRedirect . "'</script>";
       exit;
     }

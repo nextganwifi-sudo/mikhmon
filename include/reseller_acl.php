@@ -2121,6 +2121,10 @@ function hasResellerPermission($permKey) {
         return !array_key_exists($permKey, $admPerms) || !empty($admPerms[$permKey]);
     }
 
+    if ($permKey === 'manage_vpn' && !isMikhmonAdmin()) {
+        return false;
+    }
+
     if (isProtectedAdminPermission($permKey)) {
         return false;
     }

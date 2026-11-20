@@ -420,37 +420,70 @@ function incrementVersionNumber($verStr) {
 }
 
 /**
- * Default shortcut highlights for versions that do not yet have recorded diff metadata
+ * Load structured visual/UI release notes from include/release_notes.json if available
+ */
+function ngwLoadReleaseNotes($rootDir) {
+    $file = rtrim((string)$rootDir, '/\\') . '/include/release_notes.json';
+    if (is_file($file)) {
+        $decoded = @json_decode((string)@file_get_contents($file), true);
+        if (is_array($decoded) && !empty($decoded['bn']) && is_array($decoded['bn']) && !empty($decoded['en']) && is_array($decoded['en'])) {
+            return array(
+                'release_id' => isset($decoded['release_id']) ? trim((string)$decoded['release_id']) : '',
+                'updated_at' => isset($decoded['updated_at']) ? trim((string)$decoded['updated_at']) : '',
+                'bn' => array_values($decoded['bn']),
+                'en' => array_values($decoded['en']),
+            );
+        }
+    }
+    $fallback = ngwDefaultVersionHighlights();
+    return array(
+        'release_id' => '',
+        'updated_at' => '',
+        'bn' => $fallback['bn'],
+        'en' => $fallback['en'],
+    );
+}
+
+/**
+ * Default visual UI highlights for versions that do not yet have recorded diff metadata
  */
 function ngwDefaultVersionHighlights() {
     return array(
         'bn' => array(
-            'সুপার এডমিন (Super Admin) ও এডমিন (Admin) রোল এবং ৪টি শর্টকাট পারমিশন (Hotspot, PPP, Reseller ও VPN)',
-            'এডমিনের যুক্ত করা রাউটার ও রিসেলার স্বয়ংক্রিয়ভাবে সুপার এডমিন প্যানেলে "এডমিন অ্যাড করেছে" ব্যাজসহ প্রদর্শন',
-            'রাউটার ওপেন করার সময় লাইভ পিং ও ইনস্ট্যান্ট কানেকশন স্ট্যাটাস পপআপ',
-            'রিসেলার ও এডমিনের A-to-Z অ্যাক্টিভিটি হিস্ট্রি (১ দিনের ডিফল্ট ভিউ ও কাস্টম ডেট ফিল্টার)',
-            'রিসেট ভাউচারে ডেট/কমেন্ট অক্ষুণ্ণ রেখে মোবাইল মডেল, MAC ও আপটাইম ক্লিয়ার সিস্টেম',
-            'মোবাইল ব্রাউজার মিনিমাইজ বা রিলোড করলেও অটো-লগআউট না হওয়ার ৩০ দিনের সেশন সুরক্ষা',
-            'গিট সেফ আপডেটে রাউটার, রিসেলার, এডমিন ও টেমপ্লেট ডাটা ১০০% অক্ষুণ্ণ রাখার ভল্ট সিস্টেম',
-            'প্রত্যেকটি ভার্সনের সাথে শর্টকাট ভার্সন ডিটেইলস (চেঞ্জলগ) দেখার সুবিধা'
+            'হটস্পট ইউজার লিস্টের উপরের অপশনগুলোর পাশে ছোট ইয়েলো ওয়ার্নিং বাটন ও সমস্যাযুক্ত ইউজারের পাশে কমপ্যাক্ট ইয়েলো ওয়ার্নিং বাটন যুক্ত হয়েছে।',
+            'ভিপিএন (VPN) সেকশনে নতুন রাউটার কার্ড লিস্ট, PPP Secret ইউজার ম্যানেজমেন্ট, থ্রি-ডট মেনু, পোর্ট ফরওয়ার্ড পপআপ/এডিট এবং ভয়েস কল (WhatsApp, imo, Messenger) জেনারেট স্ক্রিপ্ট যুক্ত হয়েছে।',
+            'সুপার এডমিন ও এডমিন রোলসহ শর্টকাট পারমিশন কন্ট্রোল ও অ্যাক্টিভিটি হিস্ট্রি সিস্টেম।',
+            'রাউটার ওপেন করার সময় লাইভ পিং ও ইনস্ট্যান্ট কানেকশন স্ট্যাটাস পপআপ।',
+            'রিসেট ভাউচারে ডেট/কমেন্ট অক্ষুণ্ণ রেখে ডিভাইস, MAC ও আপটাইম ক্লিয়ার সুবিধা।',
+            'সিস্টেম আপডেটের ভার্সন ডিটেইলসে সরাসরি ইউআই ও ফিচারের পরিবর্তন দেখার সুবিধা।'
         ),
         'en' => array(
-            'Super Admin & Admin roles with 4 shortcut permissions (Hotspot, PPP, Reseller & VPN Permission)',
-            'Automatic visibility of Admin-created Routers & Resellers in Super Admin with "Added by Admin" badge',
-            'Interactive Router Connection modal with live ping verification and instant status feedback',
-            'Full A-to-Z Reseller & Admin Activity History (1-day default screen + custom date filter)',
-            'Smart Reset Voucher clearing device model, MAC & uptime while preserving date/comment',
-            'Persistent 30-day mobile browser login session (prevents unexpected logouts on minimize/reload)',
-            'Zero-loss Git Safe Update & Data Vault protecting routers, resellers, admins & templates',
-            'Version Details button on every version showing shortcut release highlights & changed files'
+            'Added compact yellow Warning filter button in Hotspot Users header and tiny yellow warning buttons beside flagged users.',
+            'Redesigned VPN section with Router Cards, PPP Secret management, three-dot action menu, Port Forward popup/Edit, and Voice Call (WhatsApp, imo, Messenger) script generator.',
+            'Super Admin & Admin roles with shortcut permission controls and A-to-Z activity history.',
+            'Live ping and instant connection status popup when opening routers.',
+            'Smart Reset Voucher clearing device, MAC & uptime while preserving calendar date/comment.',
+            'Visual-only Version Details view inside System Update showing UI & feature changes directly.'
         )
     );
 }
 
 /**
- * Build concise Bengali & English shortcut feature summaries from changed files & commit messages
+ * Build concise Bengali & English visual/UI change summaries (strictly no file names or technical counts)
  */
-function ngwBuildVersionChangeSummary($changedFilesList, $fromVer, $toVer, $commitSubjects = array()) {
+function ngwBuildVersionChangeSummary($changedFilesList, $fromVer, $toVer, $commitSubjects = array(), $remoteReleaseNotes = null, $prevReleaseId = '') {
+    // Prefer curated visual release notes bundled with the pulled release when available & updated
+    if (is_array($remoteReleaseNotes) && !empty($remoteReleaseNotes['bn']) && !empty($remoteReleaseNotes['en'])) {
+        $rId = isset($remoteReleaseNotes['release_id']) ? trim((string)$remoteReleaseNotes['release_id']) : '';
+        if ($rId !== '' && $rId !== trim((string)$prevReleaseId)) {
+            return array(
+                'release_id' => $rId,
+                'bn' => array_values(array_unique($remoteReleaseNotes['bn'])),
+                'en' => array_values(array_unique($remoteReleaseNotes['en'])),
+            );
+        }
+    }
+
     $bnBullets = array();
     $enBullets = array();
     $paths = array();
@@ -477,106 +510,95 @@ function ngwBuildVersionChangeSummary($changedFilesList, $fromVer, $toVer, $comm
         return false;
     };
 
-    if ($hasMatch(array('admin_settings.php', 'reseller_acl.php'))) {
-        $bnBullets[] = 'অ্যাডমিন ও রিসেলার পারমিশন সিস্টেম আপডেট (Hotspot, PPP, Reseller, VPN শর্টকাট পারমিশন ও রোল কন্ট্রোল)';
-        $enBullets[] = 'Admin & Reseller role permission control updated (Hotspot, PPP, Reseller & VPN shortcut permissions)';
-    }
-    if ($hasMatch(array('settings/sessions.php', 'status/ping.php', 'process/photspot.php'))) {
-        $bnBullets[] = 'রাউটার লিস্ট, লাইভ পিং চেক এবং স্মার্ট কানেক্টিং স্ট্যাটাস সিস্টেম উন্নত করা হয়েছে';
-        $enBullets[] = 'Router list, live ping verification, and smart connection status modal improved';
-    }
-    if ($hasMatch(array('settings/activity.php', 'activity_logger.php'))) {
-        $bnBullets[] = 'রিসেলার ও অ্যাডমিন অ্যাক্টিভিটি হিস্ট্রি ট্র্যাকিং এবং ডেট ফিল্টারিং সিস্টেম আপডেট';
-        $enBullets[] = 'Reseller & Admin A-to-Z activity history tracking and date filter updated';
-    }
-    if ($hasMatch(array('resetvoucher.php', 'hotspot/users.php', 'hotspot/userprofile.php', 'generateuser.php'))) {
-        $bnBullets[] = 'হটস্পট ইউজার, ভাউচার রিসেট (ডেট/কমেন্ট রেখে ডিভাইস ও আপটাইম ক্লিয়ার) ও প্রোফাইল ম্যানেজমেন্ট আপডেট';
-        $enBullets[] = 'Hotspot users, smart voucher reset (preserving date/comment), and profile management updated';
-    }
-    if ($hasMatch(array('pppoe/', 'ppp/'))) {
-        $bnBullets[] = 'PPPoE সিক্রেট, প্রোফাইল ও অ্যাক্টিভ কানেকশন ম্যানেজমেন্ট ফিচার আপডেট';
-        $enBullets[] = 'PPPoE secrets, profiles, and active connection management updated';
+    if ($hasMatch(array('hotspot/users.php', 'include/ros_version.php'))) {
+        $bnBullets[] = 'হটস্পট ইউজার লিস্টের ইউআই আপডেট — উপরের অপশন ও সমস্যাযুক্ত ইউজারের পাশে ছোট ইয়েলো ওয়ার্নিং বাটন ও ডিটেইল পপআপ যুক্ত হয়েছে।';
+        $enBullets[] = 'Hotspot User List UI updated — compact yellow warning filter button in header and per-user warning indicator popup added.';
     }
     if ($hasMatch(array('vpn/vpn_hub.php', 'vpn/'))) {
-        $bnBullets[] = 'VPN (WireGuard) হাব ও টানেল কনফিগারেশন সিস্টেম আপডেট';
-        $enBullets[] = 'VPN (WireGuard) Hub and tunnel configuration updated';
+        $bnBullets[] = 'ভিপিএন (VPN) ড্যাশবোর্ড আপডেট — রাউটার কার্ড ভিউ, PPP Secret থ্রি-ডট মেনু, পোর্ট ফরওয়ার্ড পপআপ/এডিট এবং ভয়েস কল (WhatsApp, imo, Messenger) পারপাস সিলেক্ট ও Generate স্ক্রিপ্ট যুক্ত হয়েছে।';
+        $enBullets[] = 'VPN dashboard updated — Router Cards, PPP Secret three-dot menu, Port Forward popup/Edit, and Voice Call purpose selection with Generate script flow.';
     }
-    if ($hasMatch(array('settings/resellers.php', 'reseller'))) {
-        $bnBullets[] = 'রিসেলার ম্যানেজমেন্ট, ক্রেডিট লিমিট ও রাউটার অ্যাক্সেস কন্ট্রোল আপডেট';
-        $enBullets[] = 'Reseller management, balance/limits, and router access control updated';
+    if ($hasMatch(array('settings/system_update.php', 'include/release_notes.json'))) {
+        $bnBullets[] = 'সিস্টেম আপডেটের ভার্সন ডিটেইলস পপআপ আপডেট — সরাসরি ইউআই ও ফিচারের ভিজ্যুয়াল পরিবর্তনগুলো দেখানো হচ্ছে।';
+        $enBullets[] = 'System Update Version Details popup updated — directly displays visual UI & feature changes.';
+    }
+    if ($hasMatch(array('admin_settings.php', 'reseller_acl.php'))) {
+        $bnBullets[] = 'অ্যাডমিন ও রিসেলার পারমিশন কন্ট্রোল ও অ্যাক্সেস সিস্টেম আপডেট করা হয়েছে।';
+        $enBullets[] = 'Admin & Reseller permission controls and access restrictions updated.';
+    }
+    if ($hasMatch(array('settings/sessions.php', 'status/ping.php', 'process/photspot.php'))) {
+        $bnBullets[] = 'রাউটার লিস্ট, লাইভ পিং চেক এবং কানেকশন স্ট্যাটাস পপআপ উন্নত করা হয়েছে।';
+        $enBullets[] = 'Router list, live ping check, and connection status modal improved.';
+    }
+    if ($hasMatch(array('settings/activity.php', 'activity_logger.php'))) {
+        $bnBullets[] = 'রিসেলার ও অ্যাডমিন অ্যাক্টিভিটি হিস্ট্রি ভিউ ও ডেট ফিল্টারিং আপডেট করা হয়েছে।';
+        $enBullets[] = 'Reseller & Admin activity history view and date filtering updated.';
+    }
+    if ($hasMatch(array('resetvoucher.php', 'hotspot/userprofile.php', 'generateuser.php'))) {
+        $bnBullets[] = 'ভাউচার রিসেট, জেনারেটর ও হটস্পট প্রোফাইল ম্যানেজমেন্ট ইউআই আপডেট করা হয়েছে।';
+        $enBullets[] = 'Voucher reset, generator, and hotspot profile management UI updated.';
+    }
+    if ($hasMatch(array('pppoe/', 'ppp/'))) {
+        $bnBullets[] = 'PPPoE ইউজার, প্রোফাইল ও অ্যাক্টিভ কানেকশন পেজের ইউআই আপডেট করা হয়েছে।';
+        $enBullets[] = 'PPPoE users, profiles, and active connections UI updated.';
+    }
+    if ($hasMatch(array('settings/resellers.php'))) {
+        $bnBullets[] = 'রিসেলার ম্যানেজমেন্ট ও রাউটার অ্যাক্সেস ইউআই আপডেট করা হয়েছে।';
+        $enBullets[] = 'Reseller management and router access UI updated.';
     }
     if ($hasMatch(array('include/security.php', 'index.php', 'admin.php'))) {
-        $bnBullets[] = 'মোবাইল ও ব্রাউজার লগইন সেশন স্থায়িত্ব এবং সিকিউরিটি সিস্টেম উন্নত করা হয়েছে';
-        $enBullets[] = 'Mobile browser login session persistence and core security improved';
-    }
-    if ($hasMatch(array('settings/system_update.php', 'include/data_recovery.php', 'deploy/safe-update.sh'))) {
-        $bnBullets[] = 'গিট সেফ আপডেট, ভার্সন ডিটেইলস চেঞ্জলগ এবং ডাটা ভল্ট রিকভারি সিস্টেম আপডেট';
-        $enBullets[] = 'Git Safe Update, Version Details changelog viewer, and Data Vault recovery updated';
+        $bnBullets[] = 'লগইন সেশন স্থায়িত্ব ও সিকিউরিটি সুরক্ষা উন্নত করা হয়েছে।';
+        $enBullets[] = 'Login session stability and security protections improved.';
     }
     if ($hasMatch(array('include/menu.php', 'css/', 'js/'))) {
-        $bnBullets[] = 'ড্যাশবোর্ড মেনু, নেভিগেশন ও ইউজার ইন্টারফেস (UI) উন্নত করা হয়েছে';
-        $enBullets[] = 'Dashboard menu, navigation, and User Interface (UI) refined';
+        $bnBullets[] = 'ড্যাশবোর্ড মেনু, নেভিগেশন ও ইউজার ইন্টারফেস (UI) লেআউট উন্নত করা হয়েছে।';
+        $enBullets[] = 'Dashboard menu, navigation, and User Interface (UI) layout refined.';
     }
     if ($hasMatch(array('voucher/', 'report/'))) {
-        $bnBullets[] = 'ভাউচার প্রিন্ট টেমপ্লেট এবং সেলস রিপোর্ট সিস্টেম আপডেট';
-        $enBullets[] = 'Voucher print templates and sales reporting updated';
-    }
-
-    if (is_array($commitSubjects)) {
-        foreach ($commitSubjects as $subj) {
-            $subj = trim((string)$subj);
-            if ($subj !== '' && count($enBullets) < 8) {
-                $bnBullets[] = 'গিট আপডেট নোট: ' . $subj;
-                $enBullets[] = 'Git commit: ' . $subj;
-            }
-        }
+        $bnBullets[] = 'ভাউচার প্রিন্ট টেমপ্লেট ও সেলস রিপোর্ট ভিউ আপডেট করা হয়েছে।';
+        $enBullets[] = 'Voucher print templates and sales report views updated.';
     }
 
     if (empty($bnBullets)) {
-        $cnt = count($paths);
-        $bnBullets[] = 'ভার্সন v' . $fromVer . ' থেকে v' . $toVer . '-এ মোট ' . $cnt . 'টি কোর ফাইল ও পারফরম্যান্স আপডেট করা হয়েছে।';
-        $enBullets[] = 'Updated ' . $cnt . ' core application files with stability and performance improvements from v' . $fromVer . ' to v' . $toVer . '.';
+        $bnBullets[] = 'ভার্সন v' . $fromVer . ' থেকে v' . $toVer . '-এ সফটওয়্যারের ইউজার ইন্টারফেস, স্পিড এবং স্থায়িত্ব উন্নত করা হয়েছে।';
+        $enBullets[] = 'User interface, performance, and overall stability improved from v' . $fromVer . ' to v' . $toVer . '.';
     }
 
     return array(
+        'release_id' => is_array($remoteReleaseNotes) && isset($remoteReleaseNotes['release_id']) ? (string)$remoteReleaseNotes['release_id'] : '',
         'bn' => array_values(array_unique($bnBullets)),
         'en' => array_values(array_unique($enBullets))
     );
 }
 
 /**
- * Prepare normalized modal payload for any version entry (current or history)
+ * Prepare normalized modal payload for any version entry (visual UI changes only — no file lists)
  */
-function ngwFormatVersionDetailsPayload($entry, $fallbackFromVer, $fallbackToVer, $isBnUi) {
-    $defaults = ngwDefaultVersionHighlights();
+function ngwFormatVersionDetailsPayload($entry, $fallbackFromVer, $fallbackToVer, $isBnUi, $liveReleaseNotes = null) {
+    $defaults = is_array($liveReleaseNotes) && !empty($liveReleaseNotes['bn']) && !empty($liveReleaseNotes['en'])
+        ? $liveReleaseNotes
+        : ngwDefaultVersionHighlights();
     $fromVer = !empty($entry['from_version']) ? (string)$entry['from_version'] : (string)$fallbackFromVer;
     $toVer = !empty($entry['to_version']) ? (string)$entry['to_version'] : (string)$fallbackToVer;
     $savedAt = !empty($entry['saved_at']) ? (string)$entry['saved_at'] : (!empty($entry['updated_at']) ? (string)$entry['updated_at'] : date('Y-m-d H:i'));
     $bullets = $isBnUi
         ? (!empty($entry['summary_bn']) && is_array($entry['summary_bn']) ? $entry['summary_bn'] : $defaults['bn'])
         : (!empty($entry['summary_en']) && is_array($entry['summary_en']) ? $entry['summary_en'] : $defaults['en']);
-    $changedFiles = !empty($entry['changed_files']) && is_array($entry['changed_files']) ? $entry['changed_files'] : array();
-    $newCnt = isset($entry['new_count']) ? (int)$entry['new_count'] : 0;
-    $modCnt = isset($entry['modified_count']) ? (int)$entry['modified_count'] : count($changedFiles);
-    $totalCnt = isset($entry['updated_count']) ? (int)$entry['updated_count'] : count($changedFiles);
 
     return array(
         'from_version' => $fromVer,
         'to_version' => $toVer,
         'saved_at' => $savedAt,
-        'bullets' => array_values($bullets),
-        'changed_files' => array_slice(array_values($changedFiles), 0, 60),
-        'total_files' => $totalCnt,
-        'new_files' => $newCnt,
-        'modified_files' => $modCnt
+        'bullets' => array_values($bullets)
     );
 }
 
 $versionState = loadVersionState($versionStateFile);
+$liveReleaseNotes = ngwLoadReleaseNotes($appRoot);
 $updateNotice = '';
 $updateError = '';
 $updateInfo = '';
-$updateChangedFiles = array();
+$updateVisualSummary = array();
 $recoveryReport = null;
 $isBnUi = (isset($langid) && $langid === 'bn') || (isset($_SESSION['lang']) && $_SESSION['lang'] === 'bn');
 
@@ -936,20 +958,19 @@ if (isset($_POST['apply_git_safe_update'])) {
                 } elseif (function_exists('ngwSyncToLiveDataVault')) {
                     ngwSyncToLiveDataVault($appRoot, true);
                 }
+                $remoteReleaseNotes = ngwLoadReleaseNotes($srcRoot);
+                $prevReleaseId = isset($versionState['latest_details']['release_id']) ? (string)$versionState['latest_details']['release_id'] : '';
                 @shell_exec('rm -rf ' . escapeshellarg($tmpClone));
 
                 if ($updatedCount > 0) {
-                    $summaryPair = ngwBuildVersionChangeSummary($changedFiles, $prevVersionLabel, $nextVersionLabel, $commitNotes);
+                    $summaryPair = ngwBuildVersionChangeSummary($changedFiles, $prevVersionLabel, $nextVersionLabel, $commitNotes, $remoteReleaseNotes, $prevReleaseId);
                     $changeDetailsMeta = array(
                         'from_version' => $prevVersionLabel,
                         'to_version' => $nextVersionLabel,
                         'saved_at' => date('Y-m-d H:i:s'),
-                        'updated_count' => $updatedCount,
-                        'new_count' => $newFileCount,
-                        'modified_count' => $modifiedFileCount,
+                        'release_id' => isset($summaryPair['release_id']) ? (string)$summaryPair['release_id'] : '',
                         'summary_bn' => $summaryPair['bn'],
-                        'summary_en' => $summaryPair['en'],
-                        'changed_files' => array_slice($changedFileLabels, 0, 60)
+                        'summary_en' => $summaryPair['en']
                     );
                     if ($snapEntry !== null) {
                         $snapEntry = array_merge($snapEntry, $changeDetailsMeta);
@@ -959,17 +980,20 @@ if (isset($_POST['apply_git_safe_update'])) {
                     $versionState['updated_at'] = date('Y-m-d H:i');
                     $versionState['latest_details'] = $changeDetailsMeta;
                     $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
+                    $liveReleaseNotes = ngwLoadReleaseNotes($appRoot);
 
-                    $updateNotice = 'Update applied: <b>' . (int)$updatedCount . ' files changed</b> ('
-                        . (int)$newFileCount . ' new, ' . (int)$modifiedFileCount . ' modified). '
-                        . 'Software version: <b>v' . htmlspecialchars($versionState['current_version']) . '</b>.';
-                    $updateChangedFiles = $changedFileLabels;
+                    $updateNotice = $isBnUi
+                        ? ('সফটওয়্যার সফলভাবে আপডেট হয়েছে! বর্তমান ভার্সন: <b>v' . htmlspecialchars($versionState['current_version']) . '</b>।')
+                        : ('Software updated successfully! Current version: <b>v' . htmlspecialchars($versionState['current_version']) . '</b>.');
+                    $updateVisualSummary = $isBnUi ? $summaryPair['bn'] : $summaryPair['en'];
                 } else {
                     if ($snapEntry !== null && !empty($snapEntry['file'])) {
                         @unlink($versionSnapDir . '/' . basename($snapEntry['file']));
                     }
                     $updateNotice = '';
-                    $updateInfo = 'No files could be updated; no software version was changed.';
+                    $updateInfo = $isBnUi
+                        ? 'কোনো নতুন পরিবর্তন পাওয়া যায়নি; সফটওয়্যার ভার্সন অপরিবর্তিত রয়েছে।'
+                        : 'No changes could be applied; software version was not changed.';
                 }
             }
         } else {
@@ -1023,17 +1047,16 @@ if (isset($_POST['apply_git_safe_update'])) {
                     if ($ln !== '') $commitNotes[] = $ln;
                 }
             }
-            $summaryPair = ngwBuildVersionChangeSummary($updateChangedFiles, $prevVersionLabel, $nextVersionLabel, $commitNotes);
+            $pulledReleaseNotes = ngwLoadReleaseNotes($appRoot);
+            $prevReleaseId = isset($versionState['latest_details']['release_id']) ? (string)$versionState['latest_details']['release_id'] : '';
+            $summaryPair = ngwBuildVersionChangeSummary($updateChangedFiles, $prevVersionLabel, $nextVersionLabel, $commitNotes, $pulledReleaseNotes, $prevReleaseId);
             $changeDetailsMeta = array(
                 'from_version' => $prevVersionLabel,
                 'to_version' => $nextVersionLabel,
                 'saved_at' => date('Y-m-d H:i:s'),
-                'updated_count' => count($updateChangedFiles),
-                'new_count' => $newFileCount,
-                'modified_count' => $modifiedFileCount,
+                'release_id' => isset($summaryPair['release_id']) ? (string)$summaryPair['release_id'] : '',
                 'summary_bn' => $summaryPair['bn'],
-                'summary_en' => $summaryPair['en'],
-                'changed_files' => array_slice($updateChangedFiles, 0, 60)
+                'summary_en' => $summaryPair['en']
             );
             if ($snapEntry !== null) {
                 $snapEntry = array_merge($snapEntry, $changeDetailsMeta);
@@ -1043,9 +1066,12 @@ if (isset($_POST['apply_git_safe_update'])) {
             $versionState['updated_at'] = date('Y-m-d H:i');
             $versionState['latest_details'] = $changeDetailsMeta;
             $versionState = saveAndPruneVersionState($versionStateFile, $versionSnapDir, $versionState);
+            $liveReleaseNotes = $pulledReleaseNotes;
 
-            $updateNotice = 'Update applied. Changed files: <b>' . count($updateChangedFiles) . '</b>. Software version: <b>v'
-                . htmlspecialchars($versionState['current_version']) . '</b>.';
+            $updateNotice = $isBnUi
+                ? ('সফটওয়্যার সফলভাবে আপডেট হয়েছে! বর্তমান ভার্সন: <b>v' . htmlspecialchars($versionState['current_version']) . '</b>।')
+                : ('Software updated successfully! Current version: <b>v' . htmlspecialchars($versionState['current_version']) . '</b>.');
+            $updateVisualSummary = $isBnUi ? $summaryPair['bn'] : $summaryPair['en'];
         } else {
             if ($snapEntry !== null && !empty($snapEntry['file'])) {
                 @unlink($versionSnapDir . '/' . basename($snapEntry['file']));
@@ -1070,9 +1096,9 @@ $liveResellerCount = is_array($curResList) ? count($curResList) : 0;
 
 $currentVersionDetailsEntry = isset($versionState['latest_details']) && is_array($versionState['latest_details'])
     ? $versionState['latest_details']
-    : (!empty($versionState['history'][0]) ? $versionState['history'][0] : array('saved_at' => $versionState['updated_at']));
+    : (!empty($versionState['history'][0]) ? $versionState['history'][0] : array('saved_at' => !empty($liveReleaseNotes['updated_at']) ? $liveReleaseNotes['updated_at'] : $versionState['updated_at']));
 $prevVerForCurrent = !empty($versionState['history'][0]['version']) ? $versionState['history'][0]['version'] : $versionState['current_version'];
-$currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntry, $prevVerForCurrent, $versionState['current_version'], $isBnUi);
+$currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntry, $prevVerForCurrent, $versionState['current_version'], $isBnUi, $liveReleaseNotes);
 ?>
 <style>
 #loading { display: none !important; }
@@ -1116,12 +1142,12 @@ $currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntr
         <?php if ($updateInfo !== '') { ?>
           <div class="pd-10 radius-3 mr-b-10" style="background:rgba(128,128,128,0.12);"><i class="fa fa-info-circle"></i> <?= htmlspecialchars($updateInfo); ?></div>
         <?php } ?>
-        <?php if (!empty($updateChangedFiles)) { ?>
-          <div class="pd-10 radius-3 mr-b-10" style="background:rgba(46,160,67,0.08);">
-            <b><i class="fa fa-list"></i> Changed files</b>
-            <ul style="margin:6px 0 0 18px; padding:0; font-size:12px;">
-              <?php foreach ($updateChangedFiles as $changedFile) { ?>
-                <li><?= htmlspecialchars($changedFile); ?></li>
+        <?php if (!empty($updateVisualSummary)) { ?>
+          <div class="pd-10 radius-3 mr-b-10" style="background:rgba(46,160,67,0.08); border-left:3px solid #2ea043;">
+            <b><i class="fa fa-sparkles fa-star"></i> <?= $isBnUi ? 'এই আপডেটে ইউআই ও ফিচারে যা যা পরিবর্তন হয়েছে' : 'What Changed in UI & Features'; ?></b>
+            <ul style="margin:6px 0 0 18px; padding:0; font-size:12px; line-height:1.6;">
+              <?php foreach ($updateVisualSummary as $visItem) { ?>
+                <li><?= htmlspecialchars($visItem); ?></li>
               <?php } ?>
             </ul>
           </div>
@@ -1190,7 +1216,7 @@ $currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntr
                     $rowToVer = !empty($hItem['to_version'])
                         ? (string)$hItem['to_version']
                         : ($hIdx === 0 ? (string)$versionState['current_version'] : incrementVersionNumber($rowFromVer));
-                    $rowPayload = ngwFormatVersionDetailsPayload($hItem, $rowFromVer, $rowToVer, $isBnUi);
+                    $rowPayload = ngwFormatVersionDetailsPayload($hItem, $rowFromVer, $rowToVer, $isBnUi, $liveReleaseNotes);
                 ?>
                   <tr>
                     <td class="align-middle">
@@ -1312,18 +1338,11 @@ $currentModalPayload = ngwFormatVersionDetailsPayload($currentVersionDetailsEntr
         </div>
       </div>
 
-      <div style="margin-bottom:12px;">
-        <div style="font-size:13px; font-weight:bold; margin-bottom:8px; color:#58a6ff;">
-          <i class="fa fa-star"></i> <?= $isBnUi ? 'এই ভার্সনে নতুন যা যা যুক্ত ও পরিবর্তন করা হয়েছে (শর্টকাট):' : 'What Changed / New Features Added (Shortcut Summary):'; ?>
+      <div style="margin-bottom:6px;">
+        <div style="font-size:13px; font-weight:bold; margin-bottom:10px; color:#58a6ff;">
+          <i class="fa fa-eye"></i> <?= $isBnUi ? 'ইউআই ও ফিচারে যা যা পরিবর্তন হয়েছে:' : 'Visual & UI Changes in This Version:'; ?>
         </div>
-        <ul id="ngw-vd-bullets" style="margin:0; padding-left:20px; font-size:13px; line-height:1.65;"></ul>
-      </div>
-
-      <div id="ngw-vd-files-wrap" style="display:none; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px; margin-top:10px;">
-        <div style="font-size:12px; font-weight:bold; margin-bottom:6px; opacity:0.9;">
-          <i class="fa fa-file-code-o"></i> <span id="ngw-vd-files-summary"></span>
-        </div>
-        <div id="ngw-vd-files-list" style="max-height:150px; overflow-y:auto; background:rgba(0,0,0,0.28); padding:8px 10px; border-radius:6px; font-family:monospace; font-size:11px; line-height:1.5;"></div>
+        <ul id="ngw-vd-bullets" style="margin:0; padding:0; list-style:none; font-size:13px; line-height:1.6;"></ul>
       </div>
     </div>
 
@@ -1368,28 +1387,15 @@ function ngwOpenVersionDetailsModal(btnEl) {
     var list = Array.isArray(data.bullets) ? data.bullets : [];
     for (var i = 0; i < list.length; i++) {
       var li = document.createElement('li');
-      li.style.marginBottom = '5px';
-      li.textContent = list[i];
+      li.style.cssText = 'display:flex; align-items:flex-start; gap:8px; padding:7px 9px; margin-bottom:6px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);';
+      var icon = document.createElement('i');
+      icon.className = 'fa fa-check-circle';
+      icon.style.cssText = 'color:#3fb950; margin-top:3px; flex-shrink:0; font-size:13px;';
+      var txt = document.createElement('span');
+      txt.textContent = list[i];
+      li.appendChild(icon);
+      li.appendChild(txt);
       bulletsEl.appendChild(li);
-    }
-  }
-
-  var filesWrap = document.getElementById('ngw-vd-files-wrap');
-  var filesSummary = document.getElementById('ngw-vd-files-summary');
-  var filesList = document.getElementById('ngw-vd-files-list');
-  var cFiles = Array.isArray(data.changed_files) ? data.changed_files : [];
-  if (filesWrap && filesSummary && filesList) {
-    if (cFiles.length > 0) {
-      filesWrap.style.display = 'block';
-      filesSummary.textContent = '<?= $isBnUi ? 'পরিবর্তিত ফাইল তালিকা' : 'Changed Files'; ?> (' + cFiles.length + ')';
-      filesList.innerHTML = '';
-      for (var j = 0; j < cFiles.length; j++) {
-        var row = document.createElement('div');
-        row.textContent = cFiles[j];
-        filesList.appendChild(row);
-      }
-    } else {
-      filesWrap.style.display = 'none';
     }
   }
 
