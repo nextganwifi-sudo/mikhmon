@@ -165,6 +165,57 @@ function parseExpiryFromComment($comment) {
 }
 
 /**
+ * Format any RouterOS v6/v7 date/datetime string or UNIX timestamp into a single
+ * clean calendar-month representation (e.g. "December 20, 2026 - 04:36:46 PM").
+ */
+function ngwFormatCalendarDateTime($dateTimeInput) {
+    if (is_int($dateTimeInput) || (is_string($dateTimeInput) && ctype_digit(trim($dateTimeInput)) && (int)$dateTimeInput > 946684800)) {
+        $ts = (int)$dateTimeInput;
+        if ($ts > 946684800) {
+            return date('F d, Y - h:i:s A', $ts);
+        }
+    }
+
+    $raw = trim((string)$dateTimeInput);
+    if ($raw === '' || $raw === '-' || strtolower($raw) === 'n/a') {
+        return '-';
+    }
+
+    $parsedExp = parseExpiryFromComment($raw);
+    if (!empty($parsedExp['is_expiry'])) {
+        $dInfo = parseRouterOSDate(isset($parsedExp['date_str']) ? $parsedExp['date_str'] : '');
+        $tStr = isset($parsedExp['time_str']) ? trim((string)$parsedExp['time_str']) : '';
+        if (!empty($dInfo['valid']) && preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $tStr, $tm)) {
+            $ts = mktime((int)$tm[1], (int)$tm[2], isset($tm[3]) ? (int)$tm[3] : 0, $dInfo['month'], $dInfo['day'], $dInfo['year']);
+            if ($ts !== false && $ts > 946684800) {
+                return date('F d, Y - h:i:s A', $ts);
+            }
+        }
+        $ts = strtotime(isset($parsedExp['iso_datetime']) ? $parsedExp['iso_datetime'] : '');
+        if ($ts !== false && $ts > 946684800) {
+            return date('F d, Y - h:i:s A', $ts);
+        }
+    }
+
+    $dOnly = parseRouterOSDate($raw);
+    if (!empty($dOnly['valid'])) {
+        $ts = mktime(0, 0, 0, $dOnly['month'], $dOnly['day'], $dOnly['year']);
+        if ($ts !== false && $ts > 946684800) {
+            return date('F d, Y', $ts);
+        }
+    }
+
+    $ts = strtotime($raw);
+    if ($ts !== false && $ts > 946684800) {
+        return (strpos($raw, ':') !== false)
+            ? date('F d, Y - h:i:s A', $ts)
+            : date('F d, Y', $ts);
+    }
+
+    return $raw;
+}
+
+/**
  * Normalize an activated voucher comment so ONLY the calendar expiry date/time remains
  * (strips any accidental trailing vc-... / up-... batch serial attached after the date).
  */
@@ -666,7 +717,7 @@ function calculateExpiryFromRecordParts($loginDateStr, $loginTimeStr, $validityS
             'has_expiry' => true,
             'iso_datetime' => $parsedComment['iso_datetime'],
             'legacy_datetime' => $parsedComment['legacy_datetime'],
-            'display_datetime' => $parsedComment['iso_datetime'] . ' (' . $parsedComment['legacy_datetime'] . ')',
+            'display_datetime' => ngwFormatCalendarDateTime($parsedComment['iso_datetime']),
             'source' => 'comment'
         );
     }
@@ -688,7 +739,7 @@ function calculateExpiryFromRecordParts($loginDateStr, $loginTimeStr, $validityS
                 'has_expiry' => true,
                 'iso_datetime' => $isoExp,
                 'legacy_datetime' => $legExp,
-                'display_datetime' => $isoExp . ' (' . $legExp . ')',
+                'display_datetime' => ngwFormatCalendarDateTime($expTs),
                 'source' => 'calculated'
             );
         }
