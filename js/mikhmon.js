@@ -129,20 +129,14 @@ function connect(e) {
   var cfg = window.NGW_UI_CONFIG || {};
   var isBn = cfg.lang === "bn";
   var txt = {
-    title: isBn ? "রাউটার কানেকশন যাচাই" : "Connecting to Router",
-    stepPingTitle: isBn ? "১. পিং ও পোর্ট যাচাই (Ping Check)" : "1. Ping & Port Reachability",
-    stepPingWait: isBn ? "রাউটারের নেটওয়ার্ক রেসপন্স পরীক্ষা করা হচ্ছে..." : "Testing router ping & API port reachability...",
-    stepAuthTitle: isBn ? "২. সার্ভার লগইন ও প্রবেশ" : "2. RouterOS API Authentication",
-    stepAuthWait: isBn ? "অপেক্ষায় রয়েছে..." : "Waiting for ping check...",
-    stepAuthRunning: isBn ? "লগইন ও রাউটার আইডেন্টিটি যাচাই করা হচ্ছে..." : "Authenticating API & loading router identity...",
-    retry: isBn ? "আবার চেষ্টা করুন" : "Retry",
-    settings: isBn ? "রাউটার সেটিংস" : "Router Settings",
-    close: isBn ? "বন্ধ করুন" : "Close",
-    latency: isBn ? "পিং ল্যাটেন্সি" : "Ping Latency",
-    connErrGeneric: isBn ? "নেটওয়ার্ক বা সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে।" : "Network or server connection failed.",
-    statusChecking: isBn ? "যাচাই চলছে..." : "Checking...",
-    statusReady: isBn ? "সব ঠিক আছে, ঢুকছে!" : "All OK, Entering!",
-    statusFailed: isBn ? "সংযোগ ব্যর্থ" : "Failed"
+    connecting: isBn ? "সংযুক্ত হচ্ছে..." : "Connecting...",
+    opening: isBn ? "লগইন হচ্ছে..." : "Signing in...",
+    connected: isBn ? "সংযুক্ত হয়েছে" : "Connected",
+    failed: isBn ? "সংযোগ ব্যর্থ" : "Connection failed",
+    retry: isBn ? "আবার চেষ্টা" : "Retry",
+    settings: isBn ? "সেটিংস" : "Settings",
+    close: isBn ? "বন্ধ" : "Close",
+    connErrGeneric: isBn ? "রাউটারের সাথে সংযোগ স্থাপন করা যায়নি।" : "Could not connect to router."
   };
 
   _ngwActiveConnectAttempt++;
@@ -163,37 +157,20 @@ function connect(e) {
   hud.setAttribute("aria-modal", "true");
   hud.innerHTML =
     '<div class="ngw-connect-hud-card">' +
-      '<div class="ngw-connect-hud-head">' +
-        '<div class="ngw-connect-hud-title">' +
-          '<span class="ngw-connect-hud-icon" id="ngw-hud-main-icon"><i class="fa fa-server"></i></span>' +
-          '<div>' +
-            '<div class="ngw-connect-hud-heading">' + _ngwEscapeHtml(txt.title) + '</div>' +
-            '<div class="ngw-connect-hud-sub">' + _ngwEscapeHtml(sessionName) + '</div>' +
+      '<div class="ngw-connect-hud-top">' +
+        '<span class="ngw-connect-hud-icon is-pending" id="ngw-hud-main-icon"><i class="fa fa-circle-o-notch fa-spin"></i></span>' +
+        '<div class="ngw-connect-hud-meta">' +
+          '<div class="ngw-connect-hud-heading">' + _ngwEscapeHtml(sessionName) + '</div>' +
+          '<div class="ngw-connect-hud-status">' +
+            '<span id="ngw-hud-status-text">' + _ngwEscapeHtml(txt.connecting) + '</span>' +
+            '<span class="ngw-connect-latency" id="ngw-hud-latency"></span>' +
           '</div>' +
         '</div>' +
-        '<span class="ngw-connect-hud-pill is-pending" id="ngw-hud-pill">' + _ngwEscapeHtml(txt.statusChecking) + '</span>' +
+        '<button type="button" class="ngw-connect-hud-x" id="ngw-hud-close" title="' + _ngwEscapeHtml(txt.close) + '" aria-label="' + _ngwEscapeHtml(txt.close) + '">&times;</button>' +
       '</div>' +
-      '<div class="ngw-connect-hud-progress"><div class="ngw-connect-hud-bar" id="ngw-hud-bar" style="width:24%"></div></div>' +
-      '<div class="ngw-connect-hud-steps">' +
-        '<div class="ngw-connect-step is-active" id="ngw-step-ping">' +
-          '<div class="ngw-connect-step-ico"><i class="fa fa-circle-o-notch fa-spin"></i></div>' +
-          '<div class="ngw-connect-step-body">' +
-            '<div class="ngw-connect-step-label">' + _ngwEscapeHtml(txt.stepPingTitle) + ' <span class="ngw-connect-latency" id="ngw-hud-latency"></span></div>' +
-            '<div class="ngw-connect-step-desc" id="ngw-step-ping-desc">' + _ngwEscapeHtml(txt.stepPingWait) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="ngw-connect-step" id="ngw-step-auth">' +
-          '<div class="ngw-connect-step-ico"><i class="fa fa-clock-o"></i></div>' +
-          '<div class="ngw-connect-step-body">' +
-            '<div class="ngw-connect-step-label">' + _ngwEscapeHtml(txt.stepAuthTitle) + '</div>' +
-            '<div class="ngw-connect-step-desc" id="ngw-step-auth-desc">' + _ngwEscapeHtml(txt.stepAuthWait) + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
+      '<div class="ngw-connect-hud-progress"><div class="ngw-connect-hud-bar" id="ngw-hud-bar" style="width:32%"></div></div>' +
       '<div class="ngw-connect-hud-alert" id="ngw-hud-alert" style="display:none;"></div>' +
-      '<div class="ngw-connect-hud-actions" id="ngw-hud-actions">' +
-        '<button type="button" class="btn bg-grey ngw-hud-btn" id="ngw-hud-close">' + _ngwEscapeHtml(txt.close) + '</button>' +
-      '</div>' +
+      '<div class="ngw-connect-hud-actions" id="ngw-hud-actions" style="display:none;"></div>' +
     '</div>';
 
   document.body.appendChild(hud);
@@ -208,35 +185,28 @@ function connect(e) {
     };
   }
 
-  function showFailure(stepKey, errMsg, showSettingsBtn) {
+  function showFailure(errMsg, showSettingsBtn) {
     if (attemptId !== _ngwActiveConnectAttempt) return;
     var bar = document.getElementById("ngw-hud-bar");
-    var pill = document.getElementById("ngw-hud-pill");
-    var stepEl = document.getElementById(stepKey === "ping" ? "ngw-step-ping" : "ngw-step-auth");
-    var descEl = document.getElementById(stepKey === "ping" ? "ngw-step-ping-desc" : "ngw-step-auth-desc");
+    var iconEl = document.getElementById("ngw-hud-main-icon");
+    var statusText = document.getElementById("ngw-hud-status-text");
     var alertBox = document.getElementById("ngw-hud-alert");
     var actions = document.getElementById("ngw-hud-actions");
 
     if (bar) {
-      bar.style.width = stepKey === "ping" ? "45%" : "82%";
+      bar.style.width = "100%";
       bar.classList.add("is-error");
     }
-    if (pill) {
-      pill.className = "ngw-connect-hud-pill is-error";
-      pill.textContent = txt.statusFailed;
+    if (iconEl) {
+      iconEl.className = "ngw-connect-hud-icon is-error";
+      iconEl.innerHTML = '<i class="fa fa-times"></i>';
     }
-    if (stepEl) {
-      stepEl.classList.remove("is-active");
-      stepEl.classList.add("is-error");
-      var ico = stepEl.querySelector(".ngw-connect-step-ico");
-      if (ico) ico.innerHTML = '<i class="fa fa-times-circle"></i>';
-    }
-    if (descEl) {
-      descEl.textContent = errMsg || txt.connErrGeneric;
+    if (statusText) {
+      statusText.textContent = txt.failed;
     }
     if (alertBox) {
       alertBox.style.display = "block";
-      alertBox.innerHTML = '<i class="fa fa-exclamation-triangle"></i> <span>' + _ngwEscapeHtml(errMsg || txt.connErrGeneric) + '</span>';
+      alertBox.textContent = errMsg || txt.connErrGeneric;
     }
     if (actions) {
       var btns =
@@ -248,6 +218,7 @@ function connect(e) {
       btns +=
         '<button type="button" class="btn bg-grey ngw-hud-btn" id="ngw-hud-close-err">' + _ngwEscapeHtml(txt.close) + '</button>';
       actions.innerHTML = btns;
+      actions.style.display = "flex";
       var retryEl = document.getElementById("ngw-hud-retry");
       if (retryEl) {
         retryEl.onclick = function () { connect(raw); };
@@ -271,44 +242,22 @@ function connect(e) {
           window.location.replace(res.redirect);
           return;
         }
-        showFailure("ping", (res && res.error) ? res.error : txt.connErrGeneric, !!(res && res.can_edit_settings));
+        showFailure((res && res.error) ? res.error : txt.connErrGeneric, !!(res && res.can_edit_settings));
         return;
       }
 
-      var pingEl = document.getElementById("ngw-step-ping");
-      var pingDesc = document.getElementById("ngw-step-ping-desc");
       var latEl = document.getElementById("ngw-hud-latency");
       var bar = document.getElementById("ngw-hud-bar");
-      var pill = document.getElementById("ngw-hud-pill");
-      var authEl = document.getElementById("ngw-step-auth");
-      var authDesc = document.getElementById("ngw-step-auth-desc");
+      var statusText = document.getElementById("ngw-hud-status-text");
 
-      if (pingEl) {
-        pingEl.classList.remove("is-active");
-        pingEl.classList.add("is-ok");
-        var pIco = pingEl.querySelector(".ngw-connect-step-ico");
-        if (pIco) pIco.innerHTML = '<i class="fa fa-check-circle"></i>';
-      }
       if (latEl && res.latency_ms) {
-        latEl.textContent = "(" + res.latency_ms + " ms)";
+        latEl.textContent = " · " + res.latency_ms + "ms";
       }
-      if (pingDesc && res.message) {
-        pingDesc.textContent = res.message;
+      if (statusText) {
+        statusText.textContent = txt.opening;
       }
       if (bar) {
-        bar.style.width = "64%";
-      }
-      if (pill) {
-        pill.className = "ngw-connect-hud-pill is-ok";
-        pill.textContent = txt.statusReady;
-      }
-      if (authEl) {
-        authEl.classList.add("is-active");
-        var aIco = authEl.querySelector(".ngw-connect-step-ico");
-        if (aIco) aIco.innerHTML = '<i class="fa fa-circle-o-notch fa-spin"></i>';
-      }
-      if (authDesc) {
-        authDesc.textContent = txt.stepAuthRunning;
+        bar.style.width = "70%";
       }
 
       var authUrl = "./status/connect_probe.php?step=auth&session=" + encodeURIComponent(sessionName) + (cParam ? "&c=" + encodeURIComponent(cParam) : "") + "&_=" + Date.now();
@@ -323,30 +272,29 @@ function connect(e) {
               window.location.replace(ares.redirect);
               return;
             }
-            showFailure("auth", (ares && ares.error) ? ares.error : txt.connErrGeneric, !!(ares && ares.can_edit_settings));
+            showFailure((ares && ares.error) ? ares.error : txt.connErrGeneric, !!(ares && ares.can_edit_settings));
             return;
+          }
+          var iconEl = document.getElementById("ngw-hud-main-icon");
+          if (iconEl) {
+            iconEl.className = "ngw-connect-hud-icon is-ok";
+            iconEl.innerHTML = '<i class="fa fa-check"></i>';
+          }
+          if (statusText) {
+            statusText.textContent = txt.connected;
           }
           if (bar) {
             bar.style.width = "100%";
             bar.classList.add("is-ok");
           }
-          if (authEl) {
-            authEl.classList.remove("is-active");
-            authEl.classList.add("is-ok");
-            var aDone = authEl.querySelector(".ngw-connect-step-ico");
-            if (aDone) aDone.innerHTML = '<i class="fa fa-check-circle"></i>';
-          }
-          if (authDesc && ares.message) {
-            authDesc.textContent = ares.message;
-          }
           setTimeout(function () {
             if (attemptId !== _ngwActiveConnectAttempt) return;
             window.location.href = ares.redirect || ("./?session=" + encodeURIComponent(sessionName));
-          }, 260);
+          }, 140);
         },
         error: function (xhr, status) {
           if (status === "abort") return;
-          showFailure("auth", txt.connErrGeneric, !!(res && res.can_edit_settings));
+          showFailure(txt.connErrGeneric, !!(res && res.can_edit_settings));
         }
       });
     },
@@ -356,7 +304,7 @@ function connect(e) {
       try {
         if (xhr && xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
       } catch (ex) {}
-      showFailure("ping", msg, !!(cfg.canEditRouter));
+      showFailure(msg, !!(cfg.canEditRouter));
     }
   });
 }

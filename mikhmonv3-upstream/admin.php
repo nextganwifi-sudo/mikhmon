@@ -494,7 +494,7 @@ if ($id == "login" || substr($url, -1) == "p") {
 </div>
 </div>
 <script src="js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="js/mikhmon.js?v=ngw2.4"></script>
+<script src="js/mikhmon.js?v=ngw2.5"></script>
 <script>
 (function(){
   try {

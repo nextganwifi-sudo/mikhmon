@@ -1323,7 +1323,7 @@ $(document).ready(function(){
   font-size: 10px;
 }
 
-/* Live Two-Stage Router Connection Probe HUD */
+/* Compact Router Connection Overlay */
 .ngw-connect-hud-backdrop {
   position: fixed;
   inset: 0;
@@ -1332,92 +1332,104 @@ $(document).ready(function(){
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(9, 13, 20, 0.68);
-  backdrop-filter: blur(3px);
+  background: rgba(9, 13, 20, 0.56);
+  backdrop-filter: blur(2px);
   opacity: 0;
-  transition: opacity 0.16s ease;
+  transition: opacity 0.14s ease;
 }
 .ngw-connect-hud-backdrop.is-open {
   opacity: 1;
 }
 .ngw-connect-hud-card {
   width: 100%;
-  max-width: 410px;
+  max-width: 290px;
   border-radius: 10px;
-  padding: 16px;
-  background: <?= $ngwIsLightTheme ? '#ffffff' : '#262c33'; ?>;
+  padding: 14px 15px;
+  background: <?= $ngwIsLightTheme ? '#ffffff' : '#232931'; ?>;
   color: <?= $ngwIsLightTheme ? '#1e293b' : '#f1f5f9'; ?>;
-  border: 1px solid <?= $ngwIsLightTheme ? '#cbd5e1' : 'rgba(255, 255, 255, 0.16)'; ?>;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+  border: 1px solid <?= $ngwIsLightTheme ? '#cbd5e1' : 'rgba(255, 255, 255, 0.14)'; ?>;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38);
 }
-.ngw-connect-hud-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.ngw-connect-hud-title {
+.ngw-connect-hud-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 0;
+  margin-bottom: 10px;
 }
 .ngw-connect-hud-icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.ngw-connect-hud-icon.is-pending {
   background: rgba(14, 165, 233, 0.16);
   color: #0ea5e9;
-  font-size: 15px;
-  flex-shrink: 0;
+}
+.ngw-connect-hud-icon.is-ok {
+  background: rgba(46, 160, 67, 0.18);
+  color: #2ea043;
+}
+.ngw-connect-hud-icon.is-error {
+  background: rgba(248, 81, 73, 0.18);
+  color: #f85149;
+}
+.ngw-connect-hud-meta {
+  min-width: 0;
+  flex: 1;
 }
 .ngw-connect-hud-heading {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   line-height: 1.25;
-}
-.ngw-connect-hud-sub {
-  font-size: 12px;
-  opacity: 0.78;
-  word-break: break-word;
-}
-.ngw-connect-hud-pill {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 5px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ngw-connect-hud-status {
+  font-size: 11.5px;
+  opacity: 0.8;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+.ngw-connect-latency {
+  font-variant-numeric: tabular-nums;
+  color: <?= $ngwIsLightTheme ? '#15803d' : '#4ade80'; ?>;
+  font-weight: 600;
+}
+.ngw-connect-hud-x {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  opacity: 0.55;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 4px;
   flex-shrink: 0;
 }
-.ngw-connect-hud-pill.is-pending {
-  background: rgba(14, 165, 233, 0.18);
-  color: <?= $ngwIsLightTheme ? '#0369a1' : '#38bdf8'; ?>;
-}
-.ngw-connect-hud-pill.is-ok {
-  background: rgba(46, 160, 67, 0.2);
-  color: <?= $ngwIsLightTheme ? '#15803d' : '#4ade80'; ?>;
-}
-.ngw-connect-hud-pill.is-error {
-  background: rgba(248, 81, 73, 0.2);
-  color: <?= $ngwIsLightTheme ? '#b91c1c' : '#ff7b72'; ?>;
+.ngw-connect-hud-x:hover {
+  opacity: 1;
+  background: <?= $ngwIsLightTheme ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.08)'; ?>;
 }
 .ngw-connect-hud-progress {
   width: 100%;
-  height: 5px;
+  height: 3.5px;
   border-radius: 3px;
   background: <?= $ngwIsLightTheme ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)'; ?>;
   overflow: hidden;
-  margin-bottom: 12px;
 }
 .ngw-connect-hud-bar {
   height: 100%;
   background: #0ea5e9;
   border-radius: 3px;
-  transition: width 0.24s ease, background-color 0.2s ease;
+  transition: width 0.22s ease, background-color 0.2s ease;
 }
 .ngw-connect-hud-bar.is-ok {
   background: #2ea043;
@@ -1425,91 +1437,27 @@ $(document).ready(function(){
 .ngw-connect-hud-bar.is-error {
   background: #f85149;
 }
-.ngw-connect-hud-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.ngw-connect-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: 7px;
-  border: 1px solid <?= $ngwIsLightTheme ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'; ?>;
-  background: <?= $ngwIsLightTheme ? '#f8fafc' : 'rgba(0, 0, 0, 0.18)'; ?>;
-  opacity: 0.72;
-}
-.ngw-connect-step.is-active,
-.ngw-connect-step.is-ok,
-.ngw-connect-step.is-error {
-  opacity: 1;
-}
-.ngw-connect-step.is-active {
-  border-color: rgba(14, 165, 233, 0.55);
-}
-.ngw-connect-step.is-ok {
-  border-color: rgba(46, 160, 67, 0.55);
-}
-.ngw-connect-step.is-error {
-  border-color: rgba(248, 81, 73, 0.65);
-}
-.ngw-connect-step-ico {
-  width: 18px;
-  text-align: center;
-  padding-top: 1px;
-  font-size: 14px;
-  color: <?= $ngwIsLightTheme ? '#64748b' : '#94a3b8'; ?>;
-}
-.ngw-connect-step.is-active .ngw-connect-step-ico {
-  color: #0ea5e9;
-}
-.ngw-connect-step.is-ok .ngw-connect-step-ico {
-  color: #2ea043;
-}
-.ngw-connect-step.is-error .ngw-connect-step-ico {
-  color: #f85149;
-}
-.ngw-connect-step-body {
-  min-width: 0;
-  flex: 1;
-}
-.ngw-connect-step-label {
-  font-size: 12px;
-  font-weight: 700;
-}
-.ngw-connect-latency {
-  font-variant-numeric: tabular-nums;
-  color: <?= $ngwIsLightTheme ? '#15803d' : '#4ade80'; ?>;
-  font-weight: 700;
-}
-.ngw-connect-step-desc {
-  font-size: 11px;
-  opacity: 0.85;
-  margin-top: 2px;
-  line-height: 1.35;
-  word-break: break-word;
-}
 .ngw-connect-hud-alert {
   margin-top: 10px;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 6px;
-  background: rgba(248, 81, 73, 0.14);
-  border: 1px solid rgba(248, 81, 73, 0.45);
+  background: rgba(248, 81, 73, 0.13);
+  border: 1px solid rgba(248, 81, 73, 0.38);
   color: <?= $ngwIsLightTheme ? '#991b1b' : '#ffb4ae'; ?>;
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.4;
+  word-break: break-word;
 }
 .ngw-connect-hud-actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .ngw-hud-btn {
-  font-size: 12px !important;
-  padding: 5px 10px !important;
+  font-size: 11.5px !important;
+  padding: 4px 9px !important;
 }
 </style>
 <div id="ngw-profile-dropdown" class="ngw-profile-dropdown-card" role="menu" aria-label="Account Profile Menu">

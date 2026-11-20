@@ -99,21 +99,6 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             }
         }
 
-        $bindingMacs = [];
-        $rawBindings = @$api->comm('/ip/hotspot/ip-binding/print');
-        if(is_array($rawBindings)){
-            foreach($rawBindings as $bd){
-                $bc = trim((string)($bd['comment'] ?? ''));
-                $bm = trim((string)($bd['mac-address'] ?? ''));
-                if($bm !== '' && strpos($bc, 'ngw-auto-active:') === 0){
-                    $rest = substr($bc, 16);
-                    $parts = explode('|', $rest, 2);
-                    $bu = trim($parts[0]);
-                    if($bu !== '') $bindingMacs[$bu] = $bm;
-                }
-            }
-        }
-
         $profileValidities = [];
         foreach($call('/ip/hotspot/user/profile/print') as $pr){
             $pn = trim((string)($pr['name'] ?? ''));
@@ -127,7 +112,6 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             'active_macs' => $activeMacs,
             'cookie_macs' => $cookieMacs,
             'cookie_expires' => $cookieExpires,
-            'binding_macs' => $bindingMacs,
             'profile_validities' => $profileValidities,
             'include_meta' => true
         ];
@@ -192,8 +176,14 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             }
         }
 
+        $deployStats = ['dhcp_hooked' => 0, 'profiles_updated' => 0, 'scheduler_deployed' => false];
         if($autoActivate) {
-            transferDeployAutoActiveMonitor($api);
+            $deployStats = transferDeployAutoActiveMonitor($api);
+        }
+
+        $eligibleCount = 0;
+        foreach($users as $uRow){
+            if(!empty($uRow['auto_active'])) $eligibleCount++;
         }
 
         // Map currently connected Hotspot hosts (MAC => IP) so connected devices can be logged into Active immediately
@@ -220,6 +210,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             'router'=>$session,
             'users'=>$users,
             'auto_activate'=>$autoActivate,
+            'dhcp_hooked'=>(int)($deployStats['dhcp_hooked'] ?? 0),
             'host_ips'=>$hostIps,
             'existing_map'=>$existingUsersMap,
             'done'=>0,
@@ -227,7 +218,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             'auto_activated'=>0,
             'skipped'=>0
         ]];
-        transferReply(['job'=>$job,'total'=>count($users),'message'=>'Validated. Existing usernames will be skipped.']);
+        transferReply([
+            'job'=>$job,
+            'total'=>count($users),
+            'eligible_auto_active'=>$eligibleCount,
+            'dhcp_hooked'=>(int)($deployStats['dhcp_hooked'] ?? 0),
+            'message'=>'Validated. Existing usernames will be skipped.'
+        ]);
     }
 
     if($action==='step') {
@@ -240,9 +237,6 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $isAutoActive = !empty($u['auto_active']) && !empty($job['auto_activate']);
             $userAddPayload = $u;
             unset($userAddPayload['auto_active'], $userAddPayload['uptime_used']);
-            if(!$isAutoActive){
-                unset($userAddPayload['mac-address']);
-            }
 
             $existingId = $job['existing_map'][$u['name']] ?? '';
             if($existingId === ''){
@@ -296,6 +290,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             'total'=>count($job['users']),
             'added'=>$job['added'],
             'auto_activated'=>$job['auto_activated'],
+            'dhcp_hooked'=>(int)($job['dhcp_hooked'] ?? 0),
             'skipped'=>$job['skipped']
         ]);
     }
@@ -346,8 +341,8 @@ header('Cache-Control: no-store');
 </div>
 <div class="transfer-help">
   <?= $transferLanguage === 'bn'
-    ? '• ফাইল ডাউনলোড (.json): ইউজারনেম, পাসওয়ার্ড, প্রোফাইল, কমেন্ট/মেয়াদ, ব্যবহৃত আপটাইম, কুকি ও ম্যাক অ্যাড্রেস সব সংরক্ষিত থাকে (IP বাইন্ডিং ছাড়াই সরাসরি Active হবে)।' . "\n<br>" . '• RSC ডাউনলোড (.rsc): শুধুমাত্র ইউজারনেম, পাসওয়ার্ড, প্রোফাইল এবং কমেন্টসহ স্ক্রিপ্ট ডাউনলোড হবে।'
-    : '• Download file (.json): Preserves username, password, profile, comment/expiry, remaining uptime, cookie & MAC address (auto-logins to Active without IP Binding).' . "\n<br>" . '• Download RSC (.rsc): Exports only username, password, profile, and comment.'; ?>
+    ? '• ফাইল ডাউনলোড (.json): ইউজারনেম, পাসওয়ার্ড, প্রোফাইল, অবিকল কমেন্ট, ম্যাক অ্যাড্রেস ও অবশিষ্ট মেয়াদ/আপটাইম সংরক্ষিত থাকে (কোনো IP বাইন্ডিং বা কমেন্ট পরিবর্তন ছাড়াই ০-সেকেন্ডে সরাসরি Active হবে)।' . "\n<br>" . '• RSC ডাউনলোড (.rsc): শুধুমাত্র ইউজারনেম, পাসওয়ার্ড, প্রোফাইল এবং কমেন্টসহ স্ক্রিপ্ট ডাউনলোড হবে।'
+    : '• Download file (.json): Preserves username, password, profile, verbatim comment, MAC address & remaining uptime (0-second auto-login to Active via DHCP without IP Binding or comment edits).' . "\n<br>" . '• Download RSC (.rsc): Exports only username, password, profile, and comment.'; ?>
 </div>
 </form>
 </div></section>
@@ -358,7 +353,7 @@ header('Cache-Control: no-store');
 <div class="field">
   <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;font-weight:600;font-size:12px;">
     <input type="checkbox" name="auto_activate" value="1" checked style="margin-top:2px;">
-    <span><?= transferHtml('Auto-login used vouchers into Active & Cookie (MAC Lock + Uptime/Expiry preserved, no IP Binding)') ?></span>
+    <span><?= transferHtml('0-Second Auto-Login for MAC + Calendar Date users (DHCP Lease Script + Hotspot Cookie, no IP Binding, original comment intact)') ?></span>
   </label>
 </div>
 
@@ -366,5 +361,5 @@ header('Cache-Control: no-store');
 <div class="transfer-actions"><button class="btn bg-success" id="start" hidden><i class="fa fa-play"></i> <?= transferHtml('Start import') ?></button><button class="btn bg-warning" id="resume" hidden><i class="fa fa-refresh"></i> <?= transferHtml('Resume import') ?></button></div>
 </div></section></div><datalist id="transfer-values"></datalist>
 <div class="transfer-status" role="status" aria-live="polite"><span id="status"><?= transferHtml('Loading router data…') ?></span><progress id="transfer-progress" hidden></progress></div>
-<script>window.transferConfig=<?=json_encode(['csrf'=>$csrf,'text'=>$transferStrings],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="../js/user-transfer.js?v=3"></script>
+<script>window.transferConfig=<?=json_encode(['csrf'=>$csrf,'text'=>$transferStrings],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="../js/user-transfer.js?v=4"></script>
 </main></body></html>

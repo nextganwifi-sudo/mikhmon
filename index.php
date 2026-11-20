@@ -816,7 +816,7 @@ if ($needsHighcharts) {
 <script src="./js/highcharts/themes/hc.<?= $theme; ?>.js"></script>
 <?php } ?>
 <script src="./js/mikhmon-ui.<?= $theme; ?>.min.js"></script>
-<script src="./js/mikhmon.js?v=ngw2.3"></script>
+<script src="./js/mikhmon.js?v=ngw2.5"></script>
 <script>
 (function(){
   try {
