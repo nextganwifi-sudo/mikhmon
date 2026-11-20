@@ -358,10 +358,10 @@ if (!isset($_SESSION["mikhmon"])) {
       win.focus();
     }}
   </script>
-  <?php if (hasResellerPermission('print_voucher')) { ?>
+  <?php
+  $showBatchPrintBtn = ($comm !== '' || ($prof !== '' && $prof !== 'all'));
+  if (hasResellerPermission('print_voucher') && $showBatchPrintBtn) { ?>
   <button class="btn bg-primary" title="Print" onclick="printV('qr','no');"><i class="fa fa-print"></i> <?= isset($_print) ? $_print : 'Print' ?></button>
-  <button class="btn bg-primary" title='Print QR' onclick="printV('qr','yes');"><i class="fa fa-print"></i> <?= $_print_qr ?></button>
-  <button class="btn bg-primary" title='Print Small'onclick="printV('small','yes');"><i class="fa fa-print"></i> <?= $_print_small ?></button>
   <?php } ?>
   </div>
 </div>
@@ -374,7 +374,7 @@ if (!isset($_SESSION["mikhmon"])) {
     <th style="min-width:50px;" class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= isset($_server) ? $_server : 'Server'; ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_name ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_password ?></th>
-    <th><?= isset($_print) ? $_print : 'Print'; ?></th>
+    <th class="text-center"><?= ($langid === 'bn') ? 'ওয়ার্নিং' : 'Warning'; ?></th>
     <th class="pointer" title="Click to sort"><i class="fa fa-sort"></i> <?= $_profile ?></th>
 	  <th class="pointer" title="Click to sort">
       <i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?>
@@ -491,15 +491,8 @@ for ($i = 0; $i < $TotalReg; $i++) {
       . '<i class="fa fa-exclamation-triangle"></i></button>';
   }
 
-  $popup = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=no&session=" . $session . "','_blank','width=320,height=550').print();";
-  $popupQR = "javascript:window.open('./voucher/print.php?user=" . $usermode . "-" . $uname . "&qr=yes&session=" . $session . "','_blank','width=320,height=550').print();";
   if (hasResellerPermission('edit_user')) {
-    echo "<td><a title='Open User " . $uname . "' href=./?hotspot-user=" . $uid . "&session=" . $session . "><i class='fa fa-edit'></i> " . $uname . " </a>";
-    if (hasResellerPermission('reset_voucher') && $uname !== 'default-trial') {
-      echo " <a title='" . htmlspecialchars($_check_voucher, ENT_QUOTES) . "' href='./?hotspot=reset-voucher&voucher=" . rawurlencode($uname) . "&session=" . rawurlencode($session) . "' style='margin-left:4px; opacity:0.8;'><i class='fa fa-search'></i></a>";
-    }
-    echo $warnBtnHtml;
-    echo "</td>";
+    echo "<td><a title='Open User " . $uname . "' href=./?hotspot-user=" . $uid . "&session=" . $session . "><i class='fa fa-edit'></i> " . $uname . " </a></td>";
   } else {
     echo "<td>";
     if (hasResellerPermission('reset_voucher') && $uname !== 'default-trial') {
@@ -507,7 +500,6 @@ for ($i = 0; $i < $TotalReg; $i++) {
     } else {
       echo htmlspecialchars($uname);
     }
-    echo $warnBtnHtml;
     echo "</td>";
   }
   // Password column
@@ -517,10 +509,12 @@ for ($i = 0; $i < $TotalReg; $i++) {
     echo "<td style='font-family:monospace; font-weight:bold;'>" . htmlspecialchars($upass !== '' ? $upass : '-') . "</td>";
   }
 
-  echo '<td class="text-center">';
-  if (hasResellerPermission('print_voucher')) {
-    echo '<a title="Print ' . $uname . '" href="' . $popup . '"><i class="fa fa-print"></i></a> &nbsp <a title="Print ' . $uname . '" href="' . $popupQR . '"><i class="fa fa-qrcode"></i> </a>';
+  // Warning column (Check Voucher + Yellow Warning button)
+  echo '<td class="text-center" style="white-space:nowrap;">';
+  if (hasResellerPermission('reset_voucher') && $uname !== 'default-trial') {
+    echo "<a title='" . htmlspecialchars($_check_voucher, ENT_QUOTES) . "' href='./?hotspot=reset-voucher&voucher=" . rawurlencode($uname) . "&session=" . rawurlencode($session) . "' style='opacity:0.85;'><i class='fa fa-search'></i></a>";
   }
+  echo $warnBtnHtml;
   echo '</td>';
   echo "<td>" . $uprofile . "</td>";
   echo "<td style=' text-align:left'>" . htmlspecialchars($umacadd) . renderRandomizedMacBadge($umacadd) . "</td>";

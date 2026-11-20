@@ -1,22 +1,22 @@
 {
-  "release_id": "2026-11-20-ui-updates",
-  "updated_at": "2026-11-20 14:25",
+  "release_id": "2026-11-20-hotspot-warning-col",
+  "updated_at": "2026-11-20 14:32",
   "bn": [
-    "হটস্পট ইউজার লিস্টের উপরের অপশনগুলোর পাশে ছোট ইয়েলো ওয়ার্নিং বাটন যুক্ত হয়েছে — ক্লিক করে সরাসরি ওয়ার্নিং ইউজার ফিল্টার করা যায়।",
-    "আপটাইম আছে কিন্তু কমেন্টে ক্যালেন্ডার ডেট নেই অথবা ক্যালেন্ডার ডেট ও টাইম পার হয়ে যাওয়ার পরও রিমুভ হয়নি — এমন প্রতিটি হটস্পট ইউজারের নামের পাশে ছোট ইয়েলো ওয়ার্নিং বাটন ও বিস্তারিত পপআপ যুক্ত হয়েছে।",
-    "ভিপিএন (VPN) সেকশন নতুন করে সাজানো হয়েছে — প্রথমে ভিপিএন রাউটার কার্ড লিস্ট, ক্লিক করলে ড্যাশবোর্ড, এবং অ্যাড/এডিট পপআপে শুধু ৫টি মূল ফিল্ড ও আলাদা Settings পপআপ।",
-    "ভিপিএন ইউজার লিস্টে SSTP, L2TP ও PPTP ইউজার তৈরি/এডিট, প্রোফাইল অনুযায়ী অটো ফ্রি Static IP সাজেশন এবং সব অ্যাকশন বাটন (Enable, Disable, Edit, Script, Remove) থ্রি-ডট মেনুতে আনা হয়েছে।",
-    "পোর্ট ফরওয়ার্ড ট্যাবে উপরের Forward বাটন পপআপ, Winbox/API/Web অটো পোর্ট ফরওয়ার্ড ও কপি-রেডি কনফার্মেশন পপআপ এবং প্রতিটি সারির থ্রি-ডট মেনুতে Edit অপশন যুক্ত হয়েছে।",
-    "ভয়েস কল সেকশনে WhatsApp, imo ও Messenger পারপাস সিলেক্ট করে Generate বাটনে ক্লিক করে RouterOS v6/v7 স্ক্রিপ্ট তৈরি ও কপি করার অপশন এবং ফিক্সড Voice-Call ইন্টারফেস/টেবিল যুক্ত হয়েছে।",
-    "সিস্টেম আপডেটের ভার্সন ডিটেইলস থেকে টেকনিক্যাল ফাইল লিস্ট বাদ দিয়ে সরাসরি ইউআই ও ফিচারের ভিজ্যুয়াল পরিবর্তনগুলো দেখানোর ব্যবস্থা করা হয়েছে।"
+    "হটস্পট ইউজার লিস্ট থেকে Print QR এবং Print Small বাটন সম্পূর্ণ বাদ দেওয়া হয়েছে এবং নির্দিষ্ট প্রোফাইল বা ভাউচার ব্যাচ সিলেক্ট না করলে উপরের Print বাটন দেখাবে না।",
+    "হটস্পট ইউজার টেবিলের Password কলামের পরের Print কলাম বাদ দিয়ে সেখানে Warning কলাম যুক্ত করা হয়েছে — যেখানে চেক ভাউচার (সার্চ আইকন) ও ছোট ইয়েলো ওয়ার্নিং বাটন একসাথে থাকবে।",
+    "উপরের হেডার অপশনগুলোর পাশে ছোট ইয়েলো ওয়ার্নিং ফিল্টার বাটন যুক্ত হয়েছে — আপটাইম থাকা সত্ত্বেও ক্যালেন্ডার ডেট না থাকা বা মেয়াদোত্তীর্ণ হয়েও রিমুভ না হওয়া ইউজার এক ক্লিকে ফিল্টার ও ডিটেইল দেখা যায়।",
+    "ভিপিএন (VPN) সেকশন নতুন করে সাজানো হয়েছে — রাউটার কার্ড লিস্ট, ৫-ফিল্ড অ্যাড/এডিট পপআপ, আলাদা Settings, SSTP/L2TP/PPTP ইউজার ও থ্রি-ডট মেনু।",
+    "পোর্ট ফরওয়ার্ড ট্যাবে Forward পপআপ, কপি-রেডি কনফার্মেশন ও প্রতিটি সারির থ্রি-ডট মেনুতে Edit অপশন যুক্ত হয়েছে।",
+    "ভয়েস কল সেকশনে WhatsApp, imo ও Messenger পারপাস সিলেক্ট করে Generate বাটনে ক্লিক করে RouterOS v6/v7 স্ক্রিপ্ট তৈরি ও কপি করার সুবিধা যুক্ত হয়েছে।",
+    "সিস্টেম আপডেটের ভার্সন ডিটেইলস থেকে ফাইল লিস্ট বাদ দিয়ে সরাসরি ইউআই ও ফিচারের ভিজ্যুয়াল পরিবর্তনগুলো দেখানো হচ্ছে।"
   ],
   "en": [
-    "Added a compact yellow Warning filter button in the Hotspot Users header options to filter flagged users with one click.",
-    "Added a tiny yellow warning icon button and detail popup beside every Hotspot user who has uptime without a calendar date or whose calendar expiry date & time passed without removal.",
-    "Redesigned the VPN section with a VPN Router card list opening into the router dashboard, simplified 5-field Add/Edit router modal, and a separate VPN Settings popup.",
-    "Added SSTP, L2TP, and PPTP PPP Secret management with profile-based free Static IP auto-suggestion and grouped row actions (Enable, Disable, Edit, Script, Remove) into a clean three-dot menu.",
-    "Updated Port Forward with a top Forward popup (auto Winbox/API/Web forwarding + copyable confirmation modal), existing NAT rule visibility, and a row-level Edit option.",
-    "Upgraded Voice Call script generation with WhatsApp, imo, and Messenger purpose checkboxes, explicit Generate button before Copy Script, fixed Voice-Call interface/table, and on-demand Scan Live.",
+    "Removed Print QR and Print Small buttons from Hotspot Users; the Print button now appears only when a specific profile or voucher batch is selected.",
+    "Replaced the Print column after Password with a dedicated Warning column holding both Check Voucher (search icon) and the compact yellow warning button.",
+    "Added a compact yellow Warning filter button in the Hotspot Users header to filter users with uptime missing a calendar date or passed expiry not removed.",
+    "Redesigned VPN with Router Cards, 5-field Add/Edit modal, separate Settings modal, SSTP/L2TP/PPTP secrets, and three-dot action menus.",
+    "Added Port Forward popup, copyable confirmation modal, and per-row Edit modal.",
+    "Upgraded Voice Call with WhatsApp, imo, and Messenger purpose checkboxes and explicit Generate-before-Copy RouterOS v6/v7 scripts.",
     "Updated System Update Version Details to display clear visual UI & feature changes directly without technical file lists."
   ]
 }
