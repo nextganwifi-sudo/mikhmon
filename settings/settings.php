@@ -28,6 +28,16 @@ if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
   exit;
 } else {
+  include_once(__DIR__ . '/../include/reseller_acl.php');
+  if (!hasResellerPermission('manage_router_settings')) {
+    http_response_code(403);
+    exit('Access denied.');
+  }
+  $isNewRouterAction = ($id == "settings" && explode("-", (string)$router)[0] == "new");
+  if (!$isNewRouterAction && isset($session) && (string)$session !== '' && !canAccessRouterSession((string)$session)) {
+    http_response_code(403);
+    exit('Access denied.');
+  }
   $settingsCsrfToken = ngwCsrfToken('ngw_settings_csrf');
   if (is_file('./include/data_recovery.php')) {
     include_once('./include/data_recovery.php');
@@ -118,6 +128,26 @@ if (!isset($_SESSION["mikhmon"])) {
       $slivereport = 'disable';
     }
 
+    // Prevent overwriting or hijacking an existing router session (including another Admin's router)
+    $sessionCollision = false;
+    if (strcasecmp((string)$sesname, (string)$session) !== 0 && isset($data) && is_array($data)) {
+      foreach (array_keys($data) as $existingKey) {
+        if ($existingKey === 'mikhmon') {
+          continue;
+        }
+        if (strcasecmp((string)$existingKey, (string)$sesname) === 0) {
+          $sessionCollision = true;
+          break;
+        }
+      }
+    }
+
+    if ($sessionCollision) {
+      $dupErrMsg = (isset($langid) && $langid === 'bn')
+        ? ('সেশন নাম "' . $sesname . '" ইতিমধ্যে ব্যবহৃত হয়েছে। অনুগ্রহ করে অন্য একটি ইউনিক সেশন নাম দিন।')
+        : ('Session name "' . $sesname . '" already exists. Please choose a unique session name.');
+      echo "<div class='alert alert-danger'>" . htmlspecialchars($dupErrMsg, ENT_QUOTES, 'UTF-8') . "</div>";
+    } else {
     $newRouterLine = "\$data['" . $sesname . "'] = array ('1'=>'" . $sesname . "!" . $siphost . "','" . $sesname . "@|@" . $suserhost . "','" . $sesname . "#|#" . $spasswdhost . "','" . $sesname . "%" . $shotspotname . "','" . $sesname . "^" . $sdnsname . "','" . $sesname . "&" . $scurrency . "','" . $sesname . "*" . $sreload . "','" . $sesname . "(" . $siface . "','" . $sesname . ")" . $sinfolp . "','" . $sesname . "=" . $sidleto . "','" . $sesname . "@!@" . $slivereport . "');";
 
     $configPath = './include/config.php';
@@ -172,6 +202,7 @@ if (!isset($_SESSION["mikhmon"])) {
       session_write_close();
       echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
       exit;
+    }
     }
     }
   }

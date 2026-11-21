@@ -63,6 +63,10 @@ if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
 
 
   if ($load == "sysresource") {
+    if (!hasResellerPermission('view_dashboard')) {
+      http_response_code(403);
+      exit;
+    }
 
     $API->connect($iphost, $userhost, decrypt($passwdhost));
 
@@ -133,6 +137,10 @@ if ($langid !== 'en' && is_file('../lang/'.$langid.'.php')) {
 
 <?php 
 } else if ($load == "hotspot") {
+  if (!hasResellerPermission('view_dashboard') && !hasResellerPermission('view_active') && !hasResellerPermission('view_users')) {
+    http_response_code(403);
+    exit;
+  }
 
   $API->connect($iphost, $userhost, decrypt($passwdhost));
   include_once('../include/ros_version.php');

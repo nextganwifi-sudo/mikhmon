@@ -29,12 +29,17 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
   include_once('./include/reseller_acl.php');
   $isAdminUser = isMikhmonAdmin();
-  if (!$isAdminUser && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
+  $isSuperAdminUser = isMikhmonAdminStore();
+  if (!$isSuperAdminUser && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('manage_global_templates')) {
+    http_response_code(403);
+    exit('Access denied.');
+  }
+  if ($session !== '' && !canAccessRouterSession($session)) {
     http_response_code(403);
     exit('Access denied.');
   }
   $currentReseller = getCurrentResellerRecord();
-  $allResellersList = $isAdminUser ? loadResellers() : array();
+  $allResellersList = $isAdminUser ? getAccessibleResellers() : array();
 
   $uplogoRouteBase = (isset($_GET['hotspot']) && $_GET['hotspot'] === 'uplogo')
     ? './?hotspot=uplogo'
@@ -47,7 +52,10 @@ if (!isset($_SESSION["mikhmon"])) {
   if (!$isAdminUser) {
     $targetReseller = $currentReseller;
   } elseif (!empty($_GET['reseller_id']) && $_GET['reseller_id'] !== 'global') {
-    $targetReseller = findResellerByIdOrUsername($_GET['reseller_id']);
+    $candRes = findResellerByIdOrUsername($_GET['reseller_id']);
+    if ($candRes && canCurrentAdminAccessReseller($candRes)) {
+      $targetReseller = $candRes;
+    }
   }
 
   $targetResId = ($targetReseller !== null && isset($targetReseller['id']))
@@ -70,10 +78,13 @@ if (!isset($_SESSION["mikhmon"])) {
         if (!$isAdminUser) {
           $currentReseller = getCurrentResellerRecord();
         }
-        $allResellersList = $isAdminUser ? loadResellers() : array();
+        $allResellersList = $isAdminUser ? getAccessibleResellers() : array();
         $galat = $isBnEarly
           ? '<div class="box bg-success"><i class="fa fa-check-circle"></i> সফল! রিসেলার লোগো (<b>' . htmlspecialchars($upRes['filename']) . '</b>) <b>' . htmlspecialchars($targetReseller['name']) . '</b> (#' . htmlspecialchars($targetResId) . ') এর জন্য আপলোড হয়েছে।</div>'
           : '<div class="box bg-success"><i class="fa fa-check-circle"></i> Success! Reseller logo (<b>' . htmlspecialchars($upRes['filename']) . '</b>) uploaded for <b>' . htmlspecialchars($targetReseller['name']) . '</b> (#' . htmlspecialchars($targetResId) . ').</div>';
+        if (function_exists('ngwRecordActivity')) {
+          ngwRecordActivity('logo_uploaded', array('target' => isset($targetReseller['username']) ? $targetReseller['username'] : $targetResId, 'detail' => $upRes['filename']));
+        }
       } else {
         $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!' : 'Alert!') . '<br> ' . htmlspecialchars($upRes['error']) . '</div>';
       }
@@ -83,8 +94,11 @@ if (!isset($_SESSION["mikhmon"])) {
       if (!$isAdminUser) {
         $currentReseller = getCurrentResellerRecord();
       }
-      $allResellersList = $isAdminUser ? loadResellers() : array();
+      $allResellersList = $isAdminUser ? getAccessibleResellers() : array();
       $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> ' . ($isBnEarly ? 'রিসেলারের কাস্টম লোগো মুছে ফেলা হয়েছে। ডিফল্ট সেশন/গ্লোবাল লোগো ব্যবহৃত হচ্ছে।' : 'Reseller custom logo removed. Reverting to default session/global logo.') . '</div>';
+      if (function_exists('ngwRecordActivity')) {
+        ngwRecordActivity('logo_removed', array('target' => isset($targetReseller['username']) ? $targetReseller['username'] : $targetResId));
+      }
     }
   } elseif ($isAdminUser) {
     // Administrator session/global logo upload handler (img/logo-{session}.png)
@@ -92,21 +106,33 @@ if (!isset($_SESSION["mikhmon"])) {
       $logo_dir = "./img/";
       $cleanSession = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
       $uploadedName = basename($_FILES["UploadLogo"]["name"]);
-      // Automatically normalize filename to logo-{session}.png if another image name was selected
-      if (preg_match('/^logo-[a-zA-Z0-9_\-]+\.png$/i', $uploadedName)) {
-        $finalLogoName = $uploadedName;
+      if (!$isSuperAdminUser) {
+        if ($cleanSession === '' || !canAccessRouterSession($session)) {
+          $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!<br> এই রাউটারের লোগো পরিবর্তন করার অনুমতি নেই।' : 'Alert!<br> You do not have permission to update this router logo.') . '</div>';
+          $uploadOk = 0;
+          $finalLogoName = '';
+        } else {
+          // Non-Super-Admins can only write their own active router session logo
+          $finalLogoName = "logo-" . $cleanSession . ".png";
+          $uploadOk = 1;
+        }
       } else {
-        $finalLogoName = "logo-" . ($cleanSession !== '' ? $cleanSession : 'default') . ".png";
+        // Super Admin may upload a specifically named logo-{session}.png or default to active session
+        if (preg_match('/^logo-[a-zA-Z0-9_\-]+\.png$/i', $uploadedName)) {
+          $finalLogoName = $uploadedName;
+        } else {
+          $finalLogoName = "logo-" . ($cleanSession !== '' ? $cleanSession : 'default') . ".png";
+        }
+        $uploadOk = 1;
       }
       $logo_file = $logo_dir . $finalLogoName;
-      $uploadOk = 1;
 
-      $check = @getimagesize($_FILES["UploadLogo"]["tmp_name"]);
-      if ($check !== false) {
-        $uploadOk = 1;
-      } else {
-        $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!<br> ফাইলটি সঠিক ছবি নয়।' : 'Alert!<br> File is not a valid image.') . '</div>';
-        $uploadOk = 0;
+      if ($uploadOk != 0) {
+        $check = @getimagesize($_FILES["UploadLogo"]["tmp_name"]);
+        if ($check === false) {
+          $galat = '<div class="box bg-danger"><i class="fa fa-ban"></i> ' . ($isBnEarly ? 'সতর্কতা!<br> ফাইলটি সঠিক ছবি নয়।' : 'Alert!<br> File is not a valid image.') . '</div>';
+          $uploadOk = 0;
+        }
       }
 
       if ($_FILES["UploadLogo"]["size"] > 2000000) {
@@ -131,6 +157,9 @@ if (!isset($_SESSION["mikhmon"])) {
         if (@move_uploaded_file($_FILES["UploadLogo"]["tmp_name"], $logo_file)) {
           if (is_dir('./images')) {
             @copy($logo_file, './images/' . $finalLogoName);
+          }
+          if (function_exists('ngwRecordActivity')) {
+            ngwRecordActivity('logo_uploaded', array('router' => (string)$session, 'target' => $finalLogoName));
           }
           $galat = '<div class="box bg-success"><i class="fa fa-check-circle"></i> ' . ($isBnEarly ? ('সফল! লোগো <b>' . htmlspecialchars($finalLogoName) . '</b> নামে সেভ হয়েছে।') : ('Success! Logo saved as <b>' . htmlspecialchars($finalLogoName) . '</b>.')) . '</div>';
         } else {
@@ -281,7 +310,13 @@ if (!isset($_SESSION["mikhmon"])) {
                   substr($file, -4) == ".php" ||
                   substr($file, -4) == ".jpg" ||
                   substr($file, -4) == ".bak") {
-                } else { ?>
+                } else {
+                  if (!$isSuperAdminUser) {
+                    $logoSessName = preg_replace('/^logo-(.+)\.[a-zA-Z0-9]+$/', '$1', $file);
+                    if ($logoSessName === '' || $logoSessName === $file || !canAccessRouterSession($logoSessName)) {
+                      continue;
+                    }
+                  } ?>
               <tr>
                 <?php $safeLogoFile = htmlspecialchars($file, ENT_QUOTES, 'UTF-8'); $logoDelCsrf = ngwCsrfToken('ngw_admin_csrf'); ?>
                 <td><a href="javascript:window.open('./img/<?= rawurlencode($file); ?>','_blank','width=300,height=300')"><img height="30px" src="./img/<?= rawurlencode($file); ?>?t=<?= time(); ?>" title="Open <?= $safeLogoFile; ?>"></a><br><span><?= $safeLogoFile; ?></span></td>

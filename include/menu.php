@@ -223,7 +223,8 @@ if ($langid === 'bn') {
 $ngwProfileHref = './admin.php?id=my-profile' . (!empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : '');
 $ngwLogoutHref = (!empty($session) && $id == "") ? ('./?hotspot=logout&session=' . urlencode($session)) : './admin.php?id=logout';
 $ngwReqBase = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : './admin.php?id=sessions';
-$ngwReqBase = preg_replace('/([?&])setlang=[^&]*(&|$)/', '$1', $ngwReqBase);
+$ngwReqBase = preg_replace('/([?&])(?:setlang|set-theme)=[^&]*(&|$)/', '$1', $ngwReqBase);
+$ngwReqBase = preg_replace('/([?&])(?:setlang|set-theme)=[^&]*(&|$)/', '$1', $ngwReqBase);
 $ngwReqBase = str_replace('?&', '?', $ngwReqBase);
 $ngwReqBase = preg_replace('/&&+/', '&', $ngwReqBase);
 $ngwReqBase = rtrim($ngwReqBase, '?&');
@@ -233,6 +234,19 @@ if ($ngwReqBase === '') {
 $ngwLangSep = (strpos($ngwReqBase, '?') !== false) ? '&' : '?';
 $ngwLangUrlEn = $ngwReqBase . $ngwLangSep . 'setlang=en';
 $ngwLangUrlBn = $ngwReqBase . $ngwLangSep . 'setlang=bn';
+$ngwThemeOptions = array(
+  'dark'  => array('en' => 'Dark',  'bn' => 'ডার্ক',  'dot' => '#3a4149', 'ring' => '#64748b'),
+  'light' => array('en' => 'Light', 'bn' => 'লাইট',  'dot' => '#f8fafc', 'ring' => '#94a3b8'),
+  'blue'  => array('en' => 'Blue',  'bn' => 'ব্লু',   'dot' => '#008BC9', 'ring' => '#008BC9'),
+  'green' => array('en' => 'Green', 'bn' => 'গ্রিন',  'dot' => '#4DBD74', 'ring' => '#4DBD74'),
+  'pink'  => array('en' => 'Pink',  'bn' => 'পিঙ্ক',  'dot' => '#E83E8C', 'ring' => '#E83E8C'),
+);
+$ngwCurrentTheme = (isset($theme) && isset($ngwThemeOptions[$theme])) ? $theme : 'dark';
+$ngwThemeUrls = array();
+foreach ($ngwThemeOptions as $tKey => $tMeta) {
+  $ngwThemeUrls[$tKey] = $ngwReqBase . $ngwLangSep . 'set-theme=' . $tKey;
+}
+$ngwCanSwitchLangTheme = !function_exists('hasResellerPermission') || hasResellerPermission('switch_language_theme');
 
 $nav_idleto = "5";
 $didleto = 'display:block;';
@@ -1459,6 +1473,43 @@ $(document).ready(function(){
   font-size: 11.5px !important;
   padding: 4px 9px !important;
 }
+.ngw-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+.ngw-theme-opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none !important;
+  border: 1px solid <?= $ngwIsLightTheme ? 'rgba(15, 23, 42, 0.16)' : 'rgba(255, 255, 255, 0.16)'; ?>;
+  background: <?= $ngwIsLightTheme ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'; ?>;
+  color: <?= $ngwIsLightTheme ? '#1e293b' : '#e2e8f0'; ?> !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+.ngw-theme-opt:hover {
+  border-color: #20a8d8;
+  background: <?= $ngwIsLightTheme ? '#e2e8f0' : 'rgba(32, 168, 216, 0.16)'; ?>;
+}
+.ngw-theme-opt.is-active {
+  border-color: #20a8d8;
+  background: rgba(32, 168, 216, 0.2);
+  color: <?= $ngwIsLightTheme ? '#0f172a' : '#ffffff'; ?> !important;
+}
+.ngw-theme-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+}
 </style>
 <div id="ngw-profile-dropdown" class="ngw-profile-dropdown-card" role="menu" aria-label="Account Profile Menu">
   <div class="ngw-profile-dd-header">
@@ -1482,17 +1533,22 @@ $(document).ready(function(){
       <i class="fa fa-user"></i>
       <span><?= ($langid === 'bn') ? 'অ্যাকাউন্ট তথ্য' : 'Account Information'; ?></span>
     </a>
+    <?php if (!function_exists('hasResellerPermission') || hasResellerPermission('change_own_password')) { ?>
     <a class="ngw-profile-dd-link" href="<?= htmlspecialchars($ngwProfileHref . '#profile-password-section', ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-key"></i>
       <span><?= ($langid === 'bn') ? 'পাসওয়ার্ড পরিবর্তন' : 'Change Password'; ?></span>
     </a>
+    <?php } ?>
+    <?php if (!function_exists('hasResellerPermission') || hasResellerPermission('manage_own_profile')) { ?>
     <a class="ngw-profile-dd-link" href="<?= htmlspecialchars($ngwProfileHref . '#profile-avatar-section', ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-camera"></i>
       <span><?= ($langid === 'bn') ? 'অবতার আপলোড' : 'Upload Avatar'; ?></span>
     </a>
+    <?php } ?>
+    <?php if ($ngwCanSwitchLangTheme) { ?>
     <div class="ngw-profile-dd-divider"></div>
     <div style="padding: 6px 14px; font-size: 11px;">
-      <div style="color: #94a3b8; margin-bottom: 5px; display:flex; align-items:center; gap:6px; font-weight:600;">
+      <div style="color: <?= $ngwIsLightTheme ? '#475569' : '#94a3b8'; ?>; margin-bottom: 5px; display:flex; align-items:center; gap:6px; font-weight:600;">
         <i class="fa fa-globe text-primary"></i>
         <span><?= ($langid === 'bn') ? 'ভাষা নির্বাচন (Language)' : 'Language Selection'; ?>:</span>
       </div>
@@ -1505,6 +1561,24 @@ $(document).ready(function(){
         </a>
       </div>
     </div>
+    <div style="padding: 4px 14px 8px; font-size: 11px;">
+      <div style="color: <?= $ngwIsLightTheme ? '#475569' : '#94a3b8'; ?>; margin-bottom: 5px; display:flex; align-items:center; gap:6px; font-weight:600;">
+        <i class="fa fa-paint-brush text-primary"></i>
+        <span><?= ($langid === 'bn') ? 'থিম নির্বাচন (Theme)' : 'Theme Selection'; ?>:</span>
+      </div>
+      <div class="ngw-theme-grid">
+        <?php foreach ($ngwThemeOptions as $tKey => $tMeta) {
+          $isActTheme = ($ngwCurrentTheme === $tKey);
+          $tLabel = ($langid === 'bn') ? $tMeta['bn'] : $tMeta['en'];
+        ?>
+        <a href="<?= htmlspecialchars($ngwThemeUrls[$tKey], ENT_QUOTES, 'UTF-8'); ?>" class="ngw-theme-opt <?= $isActTheme ? 'is-active' : ''; ?>" title="<?= htmlspecialchars($tMeta['en'], ENT_QUOTES, 'UTF-8'); ?>">
+          <span class="ngw-theme-dot" style="background:<?= htmlspecialchars($tMeta['dot'], ENT_QUOTES, 'UTF-8'); ?>;border-color:<?= htmlspecialchars($tMeta['ring'], ENT_QUOTES, 'UTF-8'); ?>;"></span>
+          <span><?= htmlspecialchars($tLabel, ENT_QUOTES, 'UTF-8'); ?><?= $isActTheme ? ' ✓' : ''; ?></span>
+        </a>
+        <?php } ?>
+      </div>
+    </div>
+    <?php } ?>
     <div class="ngw-profile-dd-divider"></div>
     <a class="ngw-profile-dd-link is-logout" href="<?= htmlspecialchars($ngwLogoutHref, ENT_QUOTES, 'UTF-8'); ?>">
       <i class="fa fa-sign-out"></i>

@@ -1,24 +1,22 @@
 {
-  "release_id": "2026-11-20-check-voucher-clean-dates",
-  "updated_at": "2026-11-20 14:42",
+  "release_id": "2026-11-21-theme-owner-rbac-isolation",
+  "updated_at": "2026-11-21 04:55",
   "bn": [
-    "চেক / রিসেট ভাউচারে ডাবল এক্সপায়ারি ডেট বাদ দিয়ে শুধুমাত্র একটি পরিষ্কার ক্যালেন্ডার-মাস ডেট (যেমন: December 20, 2026 - 04:36:46 PM) দেখানো হচ্ছে।",
-    "এক্সপায়ার হওয়া বা রিমুভ হওয়া ভাউচার স্ট্যাটাসে ডাবল ডেট, অতিরিক্ত রিমুভড/ডিসকানেক্ট ডেট ও নিচের ডুপ্লিকেট হিস্টোরি টেবিল বাদ দিয়ে শুধুমাত্র প্রথম লগইন/অ্যাক্টিভেশন এবং এক্সপায়ারি ডেট — এই দুটি ডেট পরিষ্কারভাবে দেখানো হচ্ছে।",
-    "হটস্পট ইউজার লিস্ট থেকে Print QR এবং Print Small বাটন সম্পূর্ণ বাদ দেওয়া হয়েছে এবং নির্দিষ্ট প্রোফাইল বা ভাউচার ব্যাচ সিলেক্ট না করলে উপরের Print বাটন দেখাবে না।",
-    "হটস্পট ইউজার টেবিলের Password কলামের পরের Print কলাম বাদ দিয়ে সেখানে Warning কলাম যুক্ত করা হয়েছে — যেখানে চেক ভাউচার (সার্চ আইকন) ও ছোট ইয়েলো ওয়ার্নিং বাটন একসাথে থাকবে।",
-    "উপরের হেডার অপশনগুলোর পাশে ছোট ইয়েলো ওয়ার্নিং ফিল্টার বাটন যুক্ত হয়েছে — আপটাইম থাকা সত্ত্বেও ক্যালেন্ডার ডেট না থাকা বা মেয়াদোত্তীর্ণ হয়েও রিমুভ না হওয়া ইউজার এক ক্লিকে ফিল্টার ও ডিটেইল দেখা যায়।",
-    "ভিপিএন (VPN) সেকশন নতুন করে সাজানো হয়েছে — রাউটার কার্ড লিস্ট, ৫-ফিল্ড অ্যাড/এডিট পপআপ, আলাদা Settings, SSTP/L2TP/PPTP ইউজার ও থ্রি-ডট মেনু।",
-    "পোর্ট ফরওয়ার্ড ট্যাবে Forward পপআপ, কপি-রেডি কনফার্মেশন ও প্রতিটি সারির থ্রি-ডট মেনুতে Edit অপশন যুক্ত হয়েছে।",
-    "ভয়েস কল সেকশনে WhatsApp, imo ও Messenger পারপাস সিলেক্ট করে Generate বাটনে ক্লিক করে RouterOS v6/v7 স্ক্রিপ্ট তৈরি ও কপি করার সুবিধা যুক্ত হয়েছে।"
+    "প্রোফাইল মেনুর ভেতরে ৫টি থিম (Dark, Light, Blue, Green, Pink) নির্বাচনের অপশন যুক্ত করা হয়েছে — প্রতিটি ইউজারের পছন্দ আলাদাভাবে সংরক্ষিত থাকবে এবং যেকোনো পেজে এক ক্লিকে থিম পরিবর্তন করা যাবে।",
+    "এডমিন কোনো রাউটার অ্যাড করলে সুপার এডমিনের রাউটার লিস্টে এখন কোনো অতিরিক্ত লেখা ছাড়া শুধুমাত্র ওই এডমিনের নামটিই পরিষ্কারভাবে দেখানো হচ্ছে।",
+    "সুপার এডমিন, সাব-এডমিন এবং রিসেলারের পারমিশন ও আলাদা ডেটা আইসোলেশন আরও শক্তিশালী করা হয়েছে — কোনো এডমিন বা রিসেলার অন্য এডমিনের রাউটার, লোগো, টেমপ্লেট বা গ্লোবাল পারমিশন গ্রুপ পরিবর্তন বা দেখতে পারবেন না।",
+    "রাউটার সেশন নামের শেষে 'p' অক্ষর (যেমন: camp, shop, vip) থাকলে সেভ বা এডিট করার সময় অপ্রত্যাশিতভাবে লগইন পেজে চলে যাওয়ার বাগ সম্পূর্ণ সমাধান করা হয়েছে।",
+    "চেক / রিসেট ভাউচারে ডাবল এক্সপায়ারি ডেট বাদ দিয়ে শুধুমাত্র একটি পরিষ্কার ক্যালেন্ডার-মাস ডেট (যেমন: December 20, 2026 - 04:36:46 PM) দেখানো হচ্ছে এবং এক্সপায়ার্ড স্ট্যাটাসে শুধুমাত্র প্রথম লগইন ও এক্সপায়ারি ডেট দেখানো হচ্ছে।",
+    "হটস্পট ইউজার লিস্টে Print QR ও Print Small বাটন বাদ দিয়ে নতুন Warning কলাম ও উপরের ছোট ইয়েলো ওয়ার্নিং ফিল্টার বাটন যুক্ত করা হয়েছে।",
+    "ভিপিএন (VPN) সেকশন নতুন করে সাজানো হয়েছে — রাউটার কার্ড লিস্ট, ৫-ফিল্ড অ্যাড/এডিট পপআপ, আলাদা Settings, SSTP/L2TP/PPTP ইউজার ও থ্রি-ডট মেনু।"
   ],
   "en": [
-    "Check / Reset Voucher now displays a single clean calendar-month Expiry Date (e.g., December 20, 2026 - 04:36:46 PM) instead of duplicate ISO + legacy dates.",
-    "Expired and removed voucher status views now show only two distinct calendar-month dates — First Login / Activation and Expiry Date — with all duplicate dates, extra timestamps, and repeated history tables removed.",
-    "Removed Print QR and Print Small buttons from Hotspot Users; the Print button now appears only when a specific profile or voucher batch is selected.",
-    "Replaced the Print column after Password with a dedicated Warning column holding both Check Voucher (search icon) and the compact yellow warning button.",
-    "Added a compact yellow Warning filter button in the Hotspot Users header to filter users with uptime missing a calendar date or passed expiry not removed.",
-    "Redesigned VPN with Router Cards, 5-field Add/Edit modal, separate Settings modal, SSTP/L2TP/PPTP secrets, and three-dot action menus.",
-    "Added Port Forward popup, copyable confirmation modal, and per-row Edit modal.",
-    "Upgraded Voice Call with WhatsApp, imo, and Messenger purpose checkboxes and explicit Generate-before-Copy RouterOS v6/v7 scripts."
+    "Added a 5-theme selector (Dark, Light, Blue, Green, Pink) inside the Profile dropdown menu with per-user saved theme preferences across all pages.",
+    "Super Admin's Router List now displays only the Admin's name on routers added by a regular Admin, without extra prefix text.",
+    "Strengthened role-based access control and multi-admin data isolation so regular Admins and Resellers cannot view, overwrite, or delete another Admin's routers, logos, voucher templates, or global permission groups.",
+    "Fixed a legacy routing bug where router session names ending in 'p' (such as 'camp', 'shop', 'vip') unexpectedly redirected to the login page on save or edit.",
+    "Check / Reset Voucher now shows a single clean calendar-month Expiry Date, and expired voucher views show only First Login / Activation and Expiry Date.",
+    "Updated Hotspot Users with a dedicated Warning column and compact yellow Warning filter button while removing Print QR and Print Small buttons.",
+    "Redesigned VPN with Router Cards, 5-field Add/Edit modal, separate Settings modal, SSTP/L2TP/PPTP secrets, and three-dot action menus."
   ]
 }

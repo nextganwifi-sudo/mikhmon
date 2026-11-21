@@ -577,7 +577,7 @@ elseif ($removeexpiredhotspotuser != "") {
 
 // template editor
   elseif ($hotspot == "template-editor") {
-    if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template')) {
+    if (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_templates') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('preview_assigned_template')) {
       requireResellerPermission('edit_own_template', $defRedirect);
     }
     include_once('./settings/vouchereditor.php');
@@ -585,7 +585,7 @@ elseif ($removeexpiredhotspotuser != "") {
 
 // upload logo
   elseif ($hotspot == "uplogo") {
-    if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
+    if (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_templates') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
       requireResellerPermission('edit_own_template', $defRedirect);
     }
     include_once('./settings/uplogo.php');

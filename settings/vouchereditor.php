@@ -25,6 +25,7 @@ $session = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
 include_once('./include/config.php');
 include_once('./include/reseller_acl.php');
 $isAdminUser = isMikhmonAdmin();
+$isSuperAdminUser = isMikhmonAdminStore();
 
 // Template previews need a real, accessible RouterOS session for router-specific
 // variables. Preserve the selected session; otherwise pick the first accessible one.
@@ -47,7 +48,6 @@ include_once('./include/readcfg.php');
 $url = $_SERVER['REQUEST_URI'];
 $telplate = isset($_GET['template']) && $_GET['template'] !== '' ? $_GET['template'] : 'default';
 
-$isAdminUser = isMikhmonAdmin();
 $canEditTemplate = hasResellerPermission('manage_global_templates') || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template');
 $currentReseller = getCurrentResellerRecord();
 $targetReseller = null;
@@ -57,16 +57,27 @@ if (!$isAdminUser) {
 		requireResellerPermission('edit_own_template', './?session=' . urlencode($session));
 	}
 	$targetReseller = $currentReseller;
-} elseif (!empty($_GET['reseller_id']) && $_GET['reseller_id'] !== 'global') {
-	$candidateRes = findResellerByIdOrUsername($_GET['reseller_id']);
-	if ($candidateRes && canCurrentAdminAccessReseller($candidateRes)) {
-		$targetReseller = $candidateRes;
+} else {
+	if (!$isSuperAdminUser && !$canEditTemplate && !hasResellerPermission('preview_assigned_template')) {
+		requireResellerPermission('edit_own_template', './admin.php?id=sessions');
+	}
+	if (!empty($_GET['reseller_id']) && $_GET['reseller_id'] !== 'global') {
+		$candidateRes = findResellerByIdOrUsername($_GET['reseller_id']);
+		if ($candidateRes && canCurrentAdminAccessReseller($candidateRes)) {
+			$targetReseller = $candidateRes;
+		}
 	}
 }
 
 $targetResId = ($targetReseller !== null && isset($targetReseller['id']))
 	? preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$targetReseller['id'])
 	: '';
+$canMutateCurrentScope = ($targetResId !== '')
+	? ($isSuperAdminUser || hasResellerPermission('save_own_template') || hasResellerPermission('edit_own_template') || hasResellerPermission('manage_global_templates'))
+	: ($isSuperAdminUser && hasResellerPermission('manage_global_templates'));
+$canManageCurrentLogo = ($targetResId !== '')
+	? $canMutateCurrentScope
+	: ($isSuperAdminUser || ($isAdminUser && $canEditTemplate && $session !== '' && canAccessRouterSession($session)));
 
 if ($targetResId !== '') {
 	ensureResellerTemplateFiles($targetResId);
@@ -109,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !ngwValidateCsrf(isset($_POST['csrf
 if (isset($_POST['reset_to_default'])) {
 	if ($targetResId !== '') {
 		// Reseller scope reset
-		$canReset = $isAdminUser || hasResellerPermission('edit_own_template');
+		$canReset = $isSuperAdminUser || hasResellerPermission('edit_own_template') || hasResellerPermission('manage_global_templates');
 		if (!$canReset) {
 			$editorErr = 'Access Denied: You do not have permission to reset template.';
 		} else {
@@ -139,9 +150,9 @@ if (isset($_POST['reset_to_default'])) {
 			}
 		}
 	} else {
-		// Global scope reset (Admin only)
-		if (!$isAdminUser || !hasResellerPermission('manage_global_templates')) {
-			$editorErr = 'Access Denied: Only Administrator can reset global templates.';
+		// Global scope reset (Super Admin only)
+		if (!$isSuperAdminUser || !hasResellerPermission('manage_global_templates')) {
+			$editorErr = 'Access Denied: Only Super Administrator can reset global templates.';
 		} else {
 			@copy('./voucher/default.php', './voucher/template.php');
 			@copy('./voucher/default-thermal.php', './voucher/template-thermal.php');
@@ -159,7 +170,7 @@ if (isset($_POST['reset_to_default'])) {
 // ============================================================================
 elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 	if ($targetResId !== '') {
-		$canUpload = $isAdminUser || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template');
+		$canUpload = $isSuperAdminUser || hasResellerPermission('edit_own_template') || hasResellerPermission('save_own_template') || hasResellerPermission('manage_global_templates');
 		if (!$canUpload) {
 			$editorErr = 'Access Denied: You do not have permission to upload logo.';
 		} else {
@@ -185,8 +196,10 @@ elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 			}
 		}
 	} else {
-		if (!$isAdminUser) {
-			$editorErr = 'Access Denied: Only Administrator can modify global logo.';
+		$safeSessUpload = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
+		$canUploadSessionLogo = $isSuperAdminUser || ($isAdminUser && $canEditTemplate && $safeSessUpload !== '' && canAccessRouterSession($session));
+		if (!$canUploadSessionLogo) {
+			$editorErr = 'Access Denied: You can only upload logos for your own router sessions or resellers.';
 		} else {
 			$logoFile = $_FILES['voucher_logo'];
 			$imgInfo = @getimagesize($logoFile['tmp_name']);
@@ -195,12 +208,12 @@ elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 			} elseif ($logoFile['size'] > 2 * 1024 * 1024) {
 				$editorErr = 'Logo file size exceeds 2 MB limit.';
 			} else {
-				$dest = !empty($session) ? ('./img/logo-' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $session) . '.png') : './img/logo.png';
+				$dest = ($safeSessUpload !== '') ? ('./img/logo-' . $safeSessUpload . '.png') : './img/logo.png';
 				if (@move_uploaded_file($logoFile['tmp_name'], $dest)) {
 					if (is_dir('./images')) {
 						@copy($dest, './images/' . basename($dest));
 					}
-					$editorMsg = 'Global/Session logo successfully updated!';
+					$editorMsg = 'Session logo successfully updated!';
 					if (function_exists('ngwRecordActivity')) {
 						ngwRecordActivity('logo_uploaded', array('router' => (string)$session, 'target' => basename($dest)));
 					}
@@ -216,7 +229,7 @@ elseif (isset($_POST['upload_logo']) && isset($_FILES['voucher_logo'])) {
 // 3. ACTION HANDLER: REMOVE CUSTOM LOGO
 // ============================================================================
 elseif (isset($_POST['remove_logo'])) {
-	if (!$isAdminUser && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
+	if (!$canManageCurrentLogo) {
 		$editorErr = 'Access Denied: You do not have permission to remove logos.';
 	} elseif ($targetResId !== '') {
 		removeResellerCustomLogo($targetResId);
@@ -231,8 +244,11 @@ elseif (isset($_POST['remove_logo'])) {
 		}
 	} else {
 		$safeSess = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$session);
-		if ($safeSess !== '' && is_file('./img/logo-' . $safeSess . '.png')) {
+		if ($safeSess !== '' && canAccessRouterSession($session) && is_file('./img/logo-' . $safeSess . '.png')) {
 			@unlink('./img/logo-' . $safeSess . '.png');
+			if (is_file('./images/logo-' . $safeSess . '.png')) {
+				@unlink('./images/logo-' . $safeSess . '.png');
+			}
 			$editorMsg = 'Session logo removed. Reverted to global default logo.';
 			if (function_exists('ngwRecordActivity')) {
 				ngwRecordActivity('logo_removed', array('router' => (string)$session, 'target' => 'logo-' . $safeSess . '.png'));
@@ -249,7 +265,7 @@ elseif (isset($_POST['remove_logo'])) {
 elseif (isset($_POST['save'])) {
 	$data = isset($_POST['editor']) ? $_POST['editor'] : '';
 	if ($targetResId !== '') {
-		$canSave = $isAdminUser || hasResellerPermission('save_own_template') || hasResellerPermission('edit_own_template');
+		$canSave = $isSuperAdminUser || hasResellerPermission('save_own_template') || hasResellerPermission('edit_own_template') || hasResellerPermission('manage_global_templates');
 		if (!$canSave) {
 			$editorErr = 'Access Denied: You do not have save_own_template permission.';
 		} else {
@@ -268,8 +284,8 @@ elseif (isset($_POST['save'])) {
 			}
 		}
 	} else {
-		if (!$isAdminUser || !hasResellerPermission('manage_global_templates')) {
-			$editorErr = 'Access Denied: Only Administrator can modify global voucher templates.';
+		if (!$isSuperAdminUser || !hasResellerPermission('manage_global_templates')) {
+			$editorErr = 'Access Denied: Only Super Administrator can modify global voucher templates.';
 		} else {
 			$template = './voucher/' . $telplatet . '.php';
 			$handle = @fopen($template, 'w');
@@ -387,17 +403,15 @@ textarea {
 							<td style="padding:4px 0;">
 								<div class="row" style="align-items:center;">
 									<div class="col-6 col-box-12" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-										<?php if ($isAdminUser || hasResellerPermission('save_own_template') || hasResellerPermission('edit_own_template')) { ?>
+										<?php if ($canMutateCurrentScope) { ?>
 											<button type="submit" title="Save Template" class="btn bg-primary" name="save">
 												<i class="fa fa-save"></i> <?= $_save ?>
 											</button>
-										<?php } ?>
 
-										<?php if ($canEditTemplate) { ?>
-<button type="submit" name="reset_to_default" class="btn bg-danger" onclick="return confirm('<?= $isBn ? 'আপনি কি এই টেমপ্লেট ও লোগো সিস্টেম ডিফল্টে রিসেট করতে চান?' : 'Are you sure you want to reset this template and logo to clean system defaults?'; ?>');" title="Reset template and logo to system defaults">
-											<i class="fa fa-refresh"></i> <?= $isBn ? 'ডিফল্টে রিসেট' : 'Reset to Default'; ?>
-										</button>
-<?php } ?>
+											<button type="submit" name="reset_to_default" class="btn bg-danger" onclick="return confirm('<?= $isBn ? 'আপনি কি এই টেমপ্লেট ও লোগো সিস্টেম ডিফল্টে রিসেট করতে চান?' : 'Are you sure you want to reset this template and logo to clean system defaults?'; ?>');" title="Reset template and logo to system defaults">
+												<i class="fa fa-refresh"></i> <?= $isBn ? 'ডিফল্টে রিসেট' : 'Reset to Default'; ?>
+											</button>
+										<?php } ?>
 
 										<a class="btn bg-green" href="<?= htmlspecialchars($popup, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" title="Preview voucher with Logo">
 											<i class="fa fa-image"></i> <?= $isBn ? 'ভাউচার প্রিভিউ' : 'Voucher'; ?>
@@ -414,7 +428,7 @@ textarea {
 											?>
 												<div class="input-group-4">
 													<select style="padding:5px;" class="group-item group-item-l" onchange="window.location.href=this.value;">
-														<option value="<?= $editorRouteBase; ?>&template=<?= urlencode($telplate); ?>&session=<?= urlencode($session); ?>&reseller_id=global" <?= $targetResId === '' ? 'selected' : ''; ?>><?= $isBn ? 'স্কোপ: গ্লোবাল' : 'Scope: Global'; ?></option>
+														<option value="<?= $editorRouteBase; ?>&template=<?= urlencode($telplate); ?>&session=<?= urlencode($session); ?>&reseller_id=global" <?= $targetResId === '' ? 'selected' : ''; ?>><?= $isSuperAdminUser ? ($isBn ? 'স্কোপ: গ্লোবাল' : 'Scope: Global') : ($isBn ? 'গ্লোবাল (শুধু দেখুন)' : 'Global (Read-Only)'); ?></option>
 														<?php foreach ($allResList as $rOpt) { ?>
 															<option value="<?= $editorRouteBase; ?>&template=<?= urlencode($telplate); ?>&session=<?= urlencode($session); ?>&reseller_id=<?= urlencode($rOpt['id']); ?>" <?= (string)$rOpt['id'] === $targetResId ? 'selected' : ''; ?>>
 																#<?= htmlspecialchars($rOpt['id']); ?> <?= htmlspecialchars($rOpt['username']); ?> (<?= htmlspecialchars($rOpt['template_code']); ?>)
@@ -442,7 +456,7 @@ textarea {
 					</table>
 
 					<!-- CodeMirror Editor Textarea -->
-					<textarea class="bg-dark" id="editorNextGen" name="editor" style="width:100%" height="700" <?= $canEditTemplate ? '' : 'readonly'; ?>><?= htmlspecialchars($loadedTemplateContent); ?></textarea>
+					<textarea class="bg-dark" id="editorNextGen" name="editor" style="width:100%" height="700" <?= $canMutateCurrentScope ? '' : 'readonly'; ?>><?= htmlspecialchars($loadedTemplateContent); ?></textarea>
 				</form>
 			</div>
 		</div>
@@ -467,6 +481,7 @@ textarea {
 					<?php } ?>
 				</div>
 
+				<?php if ($canManageCurrentLogo) { ?>
 				<form autocomplete="off" method="post" action="" enctype="multipart/form-data">
 					<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($editorCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 					<div style="margin-bottom:8px;">
@@ -484,6 +499,7 @@ textarea {
 						<?php } ?>
 					</div>
 				</form>
+				<?php } ?>
 			</div>
 		</div>
 

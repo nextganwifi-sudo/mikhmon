@@ -111,15 +111,13 @@ if (!isset($_SESSION["mikhmon"])) {
             }
             $ownerBadgeText = '';
             $ownerBadgeIcon = 'fa-user-circle-o';
-            if (isMikhmonAdmin() && function_exists('getRouterOwnerInfo')) {
+            if (isMikhmonAdminStore() && function_exists('getRouterOwnerInfo')) {
               $rOwner = getRouterOwnerInfo($value);
               if (is_array($rOwner) && isset($rOwner['added_by_role']) && $rOwner['added_by_role'] === 'admin') {
                 $ownerDispName = !empty($rOwner['added_by_name'])
                   ? (string)$rOwner['added_by_name']
                   : (!empty($rOwner['added_by_username']) ? (string)$rOwner['added_by_username'] : 'Admin');
-                $ownerBadgeText = ($langid === 'bn')
-                  ? ('এডমিন অ্যাড করেছে: ' . $ownerDispName)
-                  : ('Added by Admin: ' . $ownerDispName);
+                $ownerBadgeText = $ownerDispName;
               }
             }
           ?>

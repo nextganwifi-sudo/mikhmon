@@ -106,7 +106,7 @@ if (!function_exists('ngwVpnCanAccessRouter')) {
             }
             return false;
         }
-        return true;
+        return false;
     }
 }
 

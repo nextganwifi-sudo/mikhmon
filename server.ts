@@ -169,7 +169,10 @@ function isBlockedPrivatePath(rawUrlPath: string): boolean {
   if (/^\/uploads\/reseller-templates(\/|$)/i.test(normalized)) {
     return true;
   }
-  if (/^\/(uploads|voucher)\/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$/i.test(normalized)) {
+  if (/^\/uploads\/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$/i.test(normalized)) {
+    return true;
+  }
+  if (/^\/voucher\/(?!index\.php$|print\.php$|printbt\.php$|vpreview\.php$).*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$/i.test(normalized)) {
     return true;
   }
   if (/\/\.(?!well-known\/)/i.test(normalized)) {

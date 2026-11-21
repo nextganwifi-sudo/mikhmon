@@ -190,14 +190,18 @@ server {
         try_files \$uri \$uri/ /index.php?\$args;
     }
 
-    # Never expose runtime configuration, backups, deployment files, Git metadata, or environment files.
-    location ~* ^/(include/|backups/|deploy/|\.git/|\.aistudio/|\.env) {
+    # Never expose runtime configuration, data stores, backups, deployment files, Git metadata, or environment files.
+    location ~* ^/(include/|data/|backups/|deploy/|uploads/reseller-templates/|\.git/|\.aistudio/|\.env) {
         deny all;
         return 404;
     }
 
-    # Uploaded templates may be included internally, but must not execute via direct HTTP requests.
-    location ~* ^/(uploads|voucher)/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$ {
+    # Uploaded files and voucher template fragments may be included internally, but must not execute via direct HTTP requests.
+    location ~* ^/uploads/.*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$ {
+        deny all;
+        return 404;
+    }
+    location ~* ^/voucher/(?!index\.php$|print\.php$|printbt\.php$|vpreview\.php$).*\.(php[0-9]?|phtml|phar|cgi|pl|sh)$ {
         deny all;
         return 404;
     }

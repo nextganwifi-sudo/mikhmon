@@ -593,7 +593,7 @@ function ngwFormatActivityBadge($action) {
         </h3>
         <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
           <a class="btn bg-primary pd-2p5 radius-3" style="font-size:11px;" href="./admin.php?id=active-sessions"><i class="fa fa-desktop"></i> <?= $isBn ? 'অ্যাক্টিভ সেশন' : 'Active Sessions'; ?></a>
-          <?php if (!empty($allEvents)) { ?>
+          <?php if ($isStoreAdmin && !empty($allEvents)) { ?>
           <form method="post" action="./admin.php?id=activity" style="margin:0; display:inline;" onsubmit="return confirm('<?= $isBn ? 'সব অ্যাক্টিভিটি হিস্টরি মুছে ফেলতে চান?' : 'Clear all recorded activity history?'; ?>');">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($actCsrf, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="clear_activity_log" value="1">

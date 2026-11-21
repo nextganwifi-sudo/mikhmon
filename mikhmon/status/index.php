@@ -20,7 +20,7 @@
 error_reporting(0);
 ob_start("ob_gzhandler");
 
-$session = $_GET['session'];
+$session = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
 require('../lib/routeros_api.class.php');
 include('../lib/formatbytesbites.php');
 include('../include/config.php');
@@ -28,12 +28,19 @@ include('../include/config.php');
 // theme  
 include('../include/theme.php');
 
+if ($session === '' || $session === 'mikhmon' || !isset($data[$session]) || !is_array($data[$session])) {
+	http_response_code(404);
+	echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Status Voucher</title></head><body style="font-family:sans-serif;text-align:center;padding:30px;"><h3>Invalid or unknown router session.</h3></body></html>';
+	exit;
+}
+
 $iphost = explode('!', $data[$session][1])[1];
 $userhost = explode('@|@', $data[$session][2])[1];
 $passwdhost = explode('#|#', $data[$session][3])[1];
 $hotspotname = explode('%', $data[$session][4])[1];
 $dnsname = explode('^', $data[$session][5])[1];
 $currency = explode('&', $data[$session][6])[1];
+$safeHotspotName = htmlspecialchars((string)$hotspotname, ENT_QUOTES, 'UTF-8');
 
 $cekindo['indo'] = array('RP', 'Rp', 'rp', 'IDR', 'idr', 'RP.', 'Rp.', 'rp.', 'IDR.', 'idr.', );
 
@@ -53,14 +60,14 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
 <!DOCTYPE html>
 <html>
 <head>
-<title><?= $title[0] . " " . $hotspotname; ?></title>
+<title><?= htmlspecialchars($title[0], ENT_QUOTES, 'UTF-8') . " " . $safeHotspotName; ?></title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta http-equiv="pragma" content="no-cache" />
 <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0;"/>
 <!-- Font Awesome -->
 <link rel="stylesheet" type="text/css" href="../css/font-awesome/css/font-awesome.min.css" />
 <!-- NextGan UI -->
-<link rel="stylesheet" href="../css/mikhmon-ui.<?= $theme; ?>.min.css">
+<link rel="stylesheet" href="../css/mikhmon-ui.<?= htmlspecialchars((string)$theme, ENT_QUOTES, 'UTF-8'); ?>.min.css">
 <link rel="icon" type="image/png" href="../img/favicon.png?v=nextgan" />
 <script>
 function goBack() {
@@ -71,61 +78,78 @@ function goBack() {
 </head>
 <body >
 <div class="login-box" style="padding-top: 10px;">
-<h3 class="text-center">Status Voucher<br><?= $hotspotname; ?></h3>
-<p class="text-center" id="date1"><?= $title[11] . " : " . date("d-m-Y") . "<br>"; ?></p>
-<form autocomplete="off"class="form" method="post" action="">
+<h3 class="text-center">Status Voucher<br><?= $safeHotspotName; ?></h3>
+<p class="text-center" id="date1"><?= htmlspecialchars($title[11], ENT_QUOTES, 'UTF-8') . " : " . date("d-m-Y") . "<br>"; ?></p>
+<form autocomplete="off" class="form" method="post" action="">
 	<div class="input-group">
         <div class="input-group-7">
-			<input type="text" class="group-item group-item-l" name="nama" placeholder="<?= $title[1]; ?>" autofocus required="1" />
+			<input type="text" class="group-item group-item-l" name="nama" placeholder="<?= htmlspecialchars($title[1], ENT_QUOTES, 'UTF-8'); ?>" autofocus required="1" />
 		</div>
 		<div class="input-group-5">
-			<button type="submit" style="cursor: pointer; padding: 2.5px;" class="group-item group-item-r"><i class="fa fa-search"></i> <?= " " . $title[12]; ?></button>
+			<button type="submit" style="cursor: pointer; padding: 2.5px;" class="group-item group-item-r"><i class="fa fa-search"></i> <?= " " . htmlspecialchars($title[12], ENT_QUOTES, 'UTF-8'); ?></button>
 		</div>
 </div>
 </form>
 <?php
 if (isset($_POST['nama'])) {
-	$name = ($_POST['nama']);
+	$name = trim((string)$_POST['nama']);
+	$safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+	$user = '';
+	$profile = '';
+	$exp = '';
+	$uptime = '';
+	$bytetot = '';
+	$limitup = '';
+	$limitbyte = '';
+	$getbyteo = 0;
+	$dataleft = '';
+	$getvalid = '';
 	if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
 		$getuser = $API->comm("/ip/hotspot/user/print", array("?name" => "$name"));
-		$user = $getuser[0]['name'];
-		$profile = $getuser[0]['profile'];
-		$exp = $getuser[0]['comment'];
-		$uptime = formatDTM($getuser[0]['uptime']);
-		$getbytein = $getuser[0]['bytes-in'];
-		$getbyteo = $getuser[0]['bytes-out'];
+		$user = isset($getuser[0]['name']) ? (string)$getuser[0]['name'] : '';
+		$profile = isset($getuser[0]['profile']) ? (string)$getuser[0]['profile'] : '';
+		$exp = isset($getuser[0]['comment']) ? (string)$getuser[0]['comment'] : '';
+		$uptime = formatDTM(isset($getuser[0]['uptime']) ? $getuser[0]['uptime'] : '');
+		$getbytein = isset($getuser[0]['bytes-in']) ? (float)$getuser[0]['bytes-in'] : 0;
+		$getbyteo = isset($getuser[0]['bytes-out']) ? (float)$getuser[0]['bytes-out'] : 0;
 		$getbytetot = ($getbytein + $getbyteo);
 		$bytetot = formatBytes($getbytetot, 2);
-		$limitup = $getuser[0]['limit-uptime'];
-		$limitbyte = $getuser[0]['limit-bytes-total'];
+		$limitup = isset($getuser[0]['limit-uptime']) ? (string)$getuser[0]['limit-uptime'] : '';
+		$limitbyte = isset($getuser[0]['limit-bytes-total']) ? (string)$getuser[0]['limit-bytes-total'] : '';
 		if ($limitbyte == "") {
 			$dataleft = "Unlimited";
-		} elseif ($limitbyte < $getbytetot) {
+		} elseif ((float)$limitbyte < $getbytetot) {
 			$dataleft = "0 Byte";
 		} else {
-			$dataleft = formatBytes($limitbyte - $getbytetot, 2);
+			$dataleft = formatBytes((float)$limitbyte - $getbytetot, 2);
 		}
 
 		$getprofile = $API->comm("/ip/hotspot/user/profile/print", array("?name" => "$profile", ));
-		$ponlogin = $getprofile[0]['on-login'];
-		$getvalid = explode(",", $ponlogin)[3];
+		$ponlogin = isset($getprofile[0]['on-login']) ? (string)$getprofile[0]['on-login'] : '';
+		$ponParts = explode(",", $ponlogin);
+		$getvalid = isset($ponParts[3]) ? (string)$ponParts[3] : '';
 		$unit = substr($getvalid, -1);
 		if ($unit == "d") {
 			$getvalid = substr($getvalid, 0, strlen($getvalid) - 1) . " " . $title[13];
 		} elseif ($unit == "h") {
 			$getvalid = substr($getvalid, 0, strlen($getvalid) - 1) . " " . $title[14];
 		}
-
-
 	}
   
 	if ($user == "" || (substr($exp,3,1) != "/" && substr($exp,6,1) != "/")) {
-		echo "<h3 class='text-center'>User <i style='color:#008CCA;'>$name</i> $title[9]</h3>";
-	} elseif ($limitup == "1s" || $uptime == $limitup || $getbyteo == $limitbyte) {
-		echo "<h3 class='text-center'>User <i style='color:#008CCA;'>$name</i> $title[10]</h3>";
+		echo "<h3 class='text-center'>User <i style='color:#008CCA;'>" . $safeName . "</i> " . htmlspecialchars($title[9], ENT_QUOTES, 'UTF-8') . "</h3>";
+	} elseif ($limitup == "1s" || $uptime == $limitup || ($limitbyte !== "" && $getbyteo == (float)$limitbyte)) {
+		echo "<h3 class='text-center'>User <i style='color:#008CCA;'>" . $safeName . "</i> " . htmlspecialchars($title[10], ENT_QUOTES, 'UTF-8') . "</h3>";
 	}
 	if ($user == "" || (substr($exp,3,1) != "/" && substr($exp,6,1) != "/")) {
 	} else {
+		$safeUser = htmlspecialchars($user, ENT_QUOTES, 'UTF-8');
+		$safeProfile = htmlspecialchars($profile, ENT_QUOTES, 'UTF-8');
+		$safeUptime = htmlspecialchars((string)$uptime, ENT_QUOTES, 'UTF-8');
+		$safeBytetot = htmlspecialchars((string)$bytetot, ENT_QUOTES, 'UTF-8');
+		$safeDataleft = htmlspecialchars((string)$dataleft, ENT_QUOTES, 'UTF-8');
+		$safeGetvalid = htmlspecialchars((string)$getvalid, ENT_QUOTES, 'UTF-8');
+		$safeExp = htmlspecialchars($exp, ENT_QUOTES, 'UTF-8');
 		?>
 <section>
 <div class="card">
@@ -140,44 +164,44 @@ if (isset($_POST['nama'])) {
 	echo "<div style='overflow-x:auto;'>";
 	echo "<table class='table table-bordered table-hover text-nowrap'>";
 	echo "	<tr>";
-	echo "		<td >$title[1]</td>";
-	echo "		<td > $user</td>";
+	echo "		<td >" . htmlspecialchars($title[1], ENT_QUOTES, 'UTF-8') . "</td>";
+	echo "		<td > " . $safeUser . "</td>";
 	echo "	</tr>";
 	echo "	<tr>";
-	echo "		<td >$title[2]</td>";
-	echo "		<td > $profile</td>";
+	echo "		<td >" . htmlspecialchars($title[2], ENT_QUOTES, 'UTF-8') . "</td>";
+	echo "		<td > " . $safeProfile . "</td>";
 	echo "	</tr>";
 	echo "	<tr>";
-	echo "		<td >$title[3]</td>";
-	echo "		<td > $uptime</td>";
+	echo "		<td >" . htmlspecialchars($title[3], ENT_QUOTES, 'UTF-8') . "</td>";
+	echo "		<td > " . $safeUptime . "</td>";
 	echo "	</tr>";
 	echo "	<tr>";
-	echo "		<td >$title[4]</td>";
-	echo "		<td > $bytetot</td>";
+	echo "		<td >" . htmlspecialchars($title[4], ENT_QUOTES, 'UTF-8') . "</td>";
+	echo "		<td > " . $safeBytetot . "</td>";
 	echo "	</tr>";
-	if ($limitup == "1s" || $uptime == $limitup || $getbyteo == $limitbyte) {
+	if ($limitup == "1s" || $uptime == $limitup || ($limitbyte !== "" && $getbyteo == (float)$limitbyte)) {
 		echo "	<tr>";
 		echo "		<td >Status</td>";
-		echo "		<td >$title[16]</td>";
+		echo "		<td >" . htmlspecialchars($title[16], ENT_QUOTES, 'UTF-8') . "</td>";
 		echo "	</tr>";
 		echo "</table>";
 		echo "</div>";
 	} else {
 		echo "	<tr>";
-		echo "		<td >$title[5]</td>";
-		echo "		<td > $dataleft</td>";
+		echo "		<td >" . htmlspecialchars($title[5], ENT_QUOTES, 'UTF-8') . "</td>";
+		echo "		<td > " . $safeDataleft . "</td>";
 		echo "	</tr>";
 		echo "	<tr>";
-		echo "		<td >$title[6]</td>";
-		echo "		<td >$getvalid</td>";
+		echo "		<td >" . htmlspecialchars($title[6], ENT_QUOTES, 'UTF-8') . "</td>";
+		echo "		<td >" . $safeGetvalid . "</td>";
 		echo "	</tr>";
 				echo "	<tr>";
-		echo "		<td >$title[8]</td>";
-		echo "		<td >$exp</td>";
+		echo "		<td >" . htmlspecialchars($title[8], ENT_QUOTES, 'UTF-8') . "</td>";
+		echo "		<td >" . $safeExp . "</td>";
 		echo "	</tr>";
 		echo "	<tr>";
 		echo "		<td >Status</td>";
-		echo "		<td >$title[15]</td>";
+		echo "		<td >" . htmlspecialchars($title[15], ENT_QUOTES, 'UTF-8') . "</td>";
 		echo "	</tr>";
 		echo "</table>";
 		echo "</div>";

@@ -85,11 +85,14 @@ include_once('./lib/routeros_api.class.php');
 include_once('./lib/formatbytesbites.php');
 include_once('./include/ros_version.php');
 include_once('./include/reseller_acl.php');
-enforceMikhmonSessionSecurity($id == "login" || $id == "logout" || substr($url, -1) == "p");
+$reqPathOnly = (string)parse_url((string)$url, PHP_URL_PATH);
+$isBareAdminEntry = (empty($id) && empty($session) && empty($router) && (substr($reqPathOnly, -1) === '/' || substr($reqPathOnly, -4) === '.php'));
+$isLoginRoute = ($id == "login" || ($isBareAdminEntry && !isset($_SESSION["mikhmon"])));
+enforceMikhmonSessionSecurity($isLoginRoute || $id == "logout");
 ?>
     
 <?php
-if ($id == "login" || substr($url, -1) == "p") {
+if ($isLoginRoute) {
 
   $isBnLogin = (isset($langid) && $langid === 'bn');
   $loginCsrfToken = ngwCsrfToken('ngw_login_csrf');
@@ -259,7 +262,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   session_write_close();
   echo "<script>window.location='./admin.php?id=sessions'</script>";
   exit;
-} elseif (substr($url, -1) == "/" || substr($url, -4) == ".php") {
+} elseif ($isBareAdminEntry) {
   session_write_close();
   echo "<script>window.location='./admin.php?id=sessions'</script>";
 
@@ -389,8 +392,13 @@ if ($id == "login" || substr($url, -1) == "p") {
     }
   }
 } elseif ($id == "uplogo"  && !empty($session)) {
-  if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
+  if (!isMikhmonAdminStore() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('manage_global_templates')) {
     requireResellerPermission('edit_own_template', './admin.php?id=sessions');
+  }
+  if (!canAccessRouterSession($session)) {
+    session_write_close();
+    echo "<script>window.location.replace('./admin.php?id=sessions')</script>";
+    exit;
   }
   include_once('./include/menu.php');
   session_write_close();
@@ -453,7 +461,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   ngwClearSessionCookie();
   echo "<script>try{sessionStorage.clear();}catch(e){} window.location='./admin.php?id=login'</script>";
 } elseif ($id == "remove-logo" && $logo != ""  && !empty($session)) {
-  if (!isMikhmonAdmin()) {
+  if (!isMikhmonAdminStore() && !hasResellerPermission('manage_router_settings') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template')) {
     requireResellerPermission('manage_router_settings', './admin.php?id=sessions');
   }
   if (!ngwValidateCsrf(isset($_REQUEST['csrf']) ? (string)$_REQUEST['csrf'] : '', 'ngw_admin_csrf')) {
@@ -464,20 +472,23 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./include/menu.php');
   session_write_close();
   $logoBase = basename((string)$logo);
-  if (preg_match('/^logo-[a-zA-Z0-9_\-]+\.(png|jpg|jpeg|webp)$/i', $logoBase)) {
-    $logopath = "./img/";
-    $remlogo = $logopath . $logoBase;
-    if (is_file($remlogo)) {
-      @unlink($remlogo);
-    }
-    $imagesLogo = "./images/" . $logoBase;
-    if (is_file($imagesLogo)) {
-      @unlink($imagesLogo);
+  if (preg_match('/^logo-([a-zA-Z0-9_\-]+)\.(png|jpg|jpeg|webp)$/i', $logoBase, $logoMatches)) {
+    $logoTargetSession = isset($logoMatches[1]) ? (string)$logoMatches[1] : '';
+    if (isMikhmonAdminStore() || ($logoTargetSession !== '' && canAccessRouterSession($logoTargetSession))) {
+      $logopath = "./img/";
+      $remlogo = $logopath . $logoBase;
+      if (is_file($remlogo)) {
+        @unlink($remlogo);
+      }
+      $imagesLogo = "./images/" . $logoBase;
+      if (is_file($imagesLogo)) {
+        @unlink($imagesLogo);
+      }
     }
   }
   echo "<script>window.location=" . json_encode('./admin.php?id=uplogo&session=' . rawurlencode((string)$session), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "</script>";
 } elseif ($id == "editor") {
-  if (!isMikhmonAdmin() && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher')) {
+  if (!isMikhmonAdminStore() && !hasResellerPermission('manage_global_templates') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template') && !hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher')) {
     requireResellerPermission('preview_assigned_template', './admin.php?id=sessions');
   }
   include_once('./include/menu.php');

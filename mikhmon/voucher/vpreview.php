@@ -34,27 +34,52 @@ if (!isset($_SESSION["mikhmon"])) {
   include_once('../include/reseller_acl.php');
   enforceMikhmonSessionSecurity(false);
   $isAdminPreview = isMikhmonAdmin();
-  if (!$isAdminPreview && $session !== '' && !canAccessRouterSession($session)) {
-    $session = '';
+  $isSuperAdminPreview = isMikhmonAdminStore();
+  $canPreviewTemplates = $isSuperAdminPreview ||
+    hasResellerPermission('manage_global_templates') ||
+    hasResellerPermission('preview_assigned_template') ||
+    hasResellerPermission('use_assigned_template') ||
+    hasResellerPermission('print_voucher') ||
+    hasResellerPermission('edit_own_template') ||
+    hasResellerPermission('save_own_template');
+
+  if ($session !== '' && !canAccessRouterSession($session)) {
+    session_write_close();
+    http_response_code(403);
+    echo "Access Denied: You do not have permission to preview voucher templates for this router session.";
+    exit;
   }
-  // If opened from the global template editor, select an accessible router
+  // If opened from the template editor without a session, select the first accessible router
   // session so the preview can resolve router-specific voucher variables.
   if ($session === '') {
     include_once('../include/config.php');
     if (isset($data) && is_array($data)) {
       foreach (array_keys($data) as $candidateSession) {
         if ($candidateSession === 'mikhmon' || !isset($data[$candidateSession]) || !is_array($data[$candidateSession])) continue;
-        if ($isAdminPreview || canAccessRouterSession((string)$candidateSession)) {
+        if (canAccessRouterSession((string)$candidateSession)) {
           $session = (string)$candidateSession;
           break;
         }
       }
     }
   }
-  if ($session === '' || (!$isAdminPreview && (!canAccessRouterSession($session) || (!hasResellerPermission('preview_assigned_template') && !hasResellerPermission('use_assigned_template') && !hasResellerPermission('print_voucher') && !hasResellerPermission('edit_own_template') && !hasResellerPermission('save_own_template'))))) {
+  if ($session === '' || !canAccessRouterSession($session) || !$canPreviewTemplates) {
     session_write_close();
+    http_response_code(403);
     echo "Access Denied: You do not have permission to preview voucher templates for this router session.";
     exit;
+  }
+
+  $overrideResId = null;
+  if ($isAdminPreview && isset($_GET['reseller_id']) && trim((string)$_GET['reseller_id']) !== '' && $_GET['reseller_id'] !== 'global') {
+    $candResPreview = findResellerByIdOrUsername((string)$_GET['reseller_id']);
+    if (!$candResPreview || !canCurrentAdminAccessReseller($candResPreview)) {
+      session_write_close();
+      http_response_code(403);
+      echo "Access Denied: You do not have permission to preview this reseller's template.";
+      exit;
+    }
+    $overrideResId = (string)$candResPreview['id'];
   }
   session_write_close();
 
@@ -69,7 +94,6 @@ if (!isset($_SESSION["mikhmon"])) {
   $usermode = isset($_GET['usermode']) ? (string)$_GET['usermode'] : '';
   $small = isset($_GET['small']) ? (string)$_GET['small'] : '';
   $userp = isset($_GET['user']) ? (string)$_GET['user'] : '';
-  $overrideResId = ($isAdminPreview && isset($_GET['reseller_id'])) ? (string)$_GET['reseller_id'] : null;
 
   $logo = resolveActiveVoucherLogo($session, '../', true, $overrideResId);
 

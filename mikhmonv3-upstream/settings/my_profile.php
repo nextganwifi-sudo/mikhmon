@@ -57,11 +57,15 @@ if (empty($_SESSION['ngw_profile_csrf'])) {
 $profileCsrf = (string)$_SESSION['ngw_profile_csrf'];
 $profileSavedMsg = '';
 $profileError = isset($profileError) ? $profileError : '';
+$canManageOwnAvatar = !$isResellerProfile || hasResellerPermission('manage_own_profile');
+$canChangeOwnPassword = !$isResellerProfile || hasResellerPermission('change_own_password');
 
 // Handle Profile Avatar Upload
 if (isset($_POST['upload_my_avatar'])) {
     $postedToken = isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '';
-    if ($postedToken === '' || !hash_equals($profileCsrf, $postedToken)) {
+    if (!$canManageOwnAvatar) {
+        $profileError = 'Access Denied: You do not have permission to update your profile avatar.';
+    } elseif ($postedToken === '' || !hash_equals($profileCsrf, $postedToken)) {
         $profileError = 'Security token expired. Reload this page and try again.';
     } elseif (!isset($_FILES['profile_logo_file']) || empty($_FILES['profile_logo_file']['tmp_name'])) {
         $profileError = 'Please select a PNG, JPG, or WebP image file to upload.';
@@ -116,7 +120,9 @@ if (isset($_POST['upload_my_avatar'])) {
 // Handle Profile Avatar Removal
 if (isset($_POST['remove_my_avatar'])) {
     $postedToken = isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '';
-    if ($postedToken === '' || !hash_equals($profileCsrf, $postedToken)) {
+    if (!$canManageOwnAvatar) {
+        $profileError = 'Access Denied: You do not have permission to remove your profile avatar.';
+    } elseif ($postedToken === '' || !hash_equals($profileCsrf, $postedToken)) {
         $profileError = 'Security token expired. Reload this page and try again.';
     } else {
         if ($isResellerProfile && $profileId !== '') {
@@ -124,7 +130,10 @@ if (isset($_POST['remove_my_avatar'])) {
             $_SESSION['mikhmon_logo_filename'] = '';
             unset($GLOBALS['NGW_RESELLER_SYNCED']);
         } else {
-            $foldersToClear = array('admin', preg_replace('/[^a-zA-Z0-9_\-]/', '', $profileId));
+            $safeAdminDirKey = preg_replace('/[^a-zA-Z0-9_\-]/', '', $profileId);
+            $foldersToClear = $isSuperAdminProfile
+                ? array('admin', $safeAdminDirKey)
+                : array($safeAdminDirKey);
             foreach ($foldersToClear as $f) {
                 if ($f === '') continue;
                 $adminDir = dirname(__DIR__) . '/uploads/reseller-logos/' . $f;
@@ -221,7 +230,9 @@ if (isset($_POST['change_my_password'])) {
     $newPassword = isset($_POST['new_password']) ? (string)$_POST['new_password'] : '';
     $confirmPassword = isset($_POST['confirm_password']) ? (string)$_POST['confirm_password'] : '';
 
-    if ($postedToken === '' || !hash_equals($profileCsrf, $postedToken)) {
+    if (!$canChangeOwnPassword) {
+        $profileError = 'Access Denied: You do not have permission to change your password.';
+    } elseif ($postedToken === '' || !hash_equals($profileCsrf, $postedToken)) {
         $profileError = 'Security token expired. Reload this page and try again.';
     } elseif ($isImpersonating) {
         $profileError = 'Password changes are disabled while an administrator is viewing a reseller account.';
@@ -235,9 +246,11 @@ if (isset($_POST['change_my_password'])) {
             $currentPasswordValid = is_array($profileRecord) && verifyResellerPassword($profileRecord, $currentPassword);
         } else {
             $adminRecord = getCurrentAdminRecord();
-            $currentPasswordValid = (is_array($adminRecord) && verifyAdminUserPassword($adminRecord, $currentPassword)) ||
-                (isset($passadm) && hash_equals((string)decrypt($passadm), $currentPassword)) ||
-                ($profileUsername === 'mikhmon' && $currentPassword === '1234');
+            if (is_array($adminRecord)) {
+                $currentPasswordValid = verifyAdminUserPassword($adminRecord, $currentPassword);
+            } elseif ($isSuperAdminProfile && isset($passadm) && (string)$passadm !== '') {
+                $currentPasswordValid = hash_equals((string)decrypt($passadm), $currentPassword);
+            }
         }
 
         if (!$currentPasswordValid) {
@@ -517,8 +530,10 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
       </div>
 
       <!-- Two-Column Self-Service Actions: Upload Avatar & Change Password -->
+      <?php if ($canManageOwnAvatar || $canChangeOwnPassword) { ?>
       <div class="ngw-profile-two-col">
         <!-- Upload Avatar -->
+        <?php if ($canManageOwnAvatar) { ?>
         <div id="profile-avatar-section" class="card ngw-profile-card">
           <div class="card-header">
             <h3><i class="fa fa-camera"></i> <?= $isBn ? 'প্রোফাইল ছবি আপলোড' : 'Upload Avatar'; ?></h3>
@@ -565,8 +580,10 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
             <?php } ?>
           </div>
         </div>
+        <?php } ?>
 
         <!-- Change Password Card -->
+        <?php if ($canChangeOwnPassword) { ?>
         <div id="profile-password-section" class="card ngw-profile-card">
           <div class="card-header">
             <h3><i class="fa fa-lock"></i> <?= $isBn ? 'পাসওয়ার্ড পরিবর্তন করুন' : 'Change Password'; ?></h3>
@@ -607,7 +624,9 @@ $currentAvatarUrl = getCurrentUserAvatarUrl();
             </form>
           </div>
         </div>
+        <?php } ?>
       </div>
+      <?php } ?>
     </div>
   </div>
 </div>

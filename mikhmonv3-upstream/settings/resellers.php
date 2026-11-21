@@ -154,19 +154,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !ngwValidateCsrf(isset($_POST['csrf
     unset($_POST['save_permission_groups'], $_POST['reset_permission_groups'], $_POST['save_reseller']);
 }
 
-// Save Permission Groups (Read / Write / Full / Reset Voucher)
+// Save Permission Groups (Read / Write / Full / Reset Voucher) — Super Admin only
 if (isset($_POST['save_permission_groups']) && $canManageResellers) {
     $activeView = 'groups';
-    $updatedGroups = array();
-    foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $gMode) {
-        $postedG = isset($_POST['grp_perms'][$gMode]) && is_array($_POST['grp_perms'][$gMode]) ? $_POST['grp_perms'][$gMode] : array();
-        $gMap = getDefaultPermissionMap(false);
-        foreach ($gMap as $pk => $pv) {
-            $gMap[$pk] = !isProtectedAdminPermission($pk) && !empty($postedG[$pk]);
+    if (!isMikhmonAdminStore()) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'শুধুমাত্র সুপার এডমিন গ্লোবাল পারমিশন গ্রুপ পরিবর্তন করতে পারবেন।' : 'Only Super Admin can modify global Permission Groups.') . "</div>";
+    } else {
+        $updatedGroups = array();
+        foreach (array('Read', 'Write', 'Full', 'Reset Voucher') as $gMode) {
+            $postedG = isset($_POST['grp_perms'][$gMode]) && is_array($_POST['grp_perms'][$gMode]) ? $_POST['grp_perms'][$gMode] : array();
+            $gMap = getDefaultPermissionMap(false);
+            foreach ($gMap as $pk => $pv) {
+                $gMap[$pk] = !isProtectedAdminPermission($pk) && !empty($postedG[$pk]);
+            }
+            $updatedGroups[$gMode] = sanitizeResellerPermissions($gMap);
         }
-        $updatedGroups[$gMode] = sanitizeResellerPermissions($gMap);
+        if (savePermissionGroups($updatedGroups)) {
+            $permGroups = loadPermissionGroups(true);
+            foreach ($allResellers as $rIdx => $rRow) {
+                if (!canCurrentAdminAccessReseller($rRow)) continue;
+                $rMode = isset($rRow['permission_mode']) ? $rRow['permission_mode'] : 'Custom';
+                if (isset($permGroups[$rMode])) {
+                    $allResellers[$rIdx]['permissions'] = $permGroups[$rMode];
+                }
+            }
+            saveResellers($allResellers);
+            ngwRecordActivity('permission_groups_updated');
+            $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? 'পারমিশন গ্রুপ সফলভাবে আপডেট হয়েছে।' : 'Permission Groups updated successfully.') . "</div>";
+        }
     }
-    if (savePermissionGroups($updatedGroups)) {
+}
+
+// Reset Permission Groups to Defaults — Super Admin only
+if (isset($_POST['reset_permission_groups']) && $canManageResellers) {
+    $activeView = 'groups';
+    if (!isMikhmonAdminStore()) {
+        $msg = "<div class='bg-danger pd-5 radius-3'><i class='fa fa-ban'></i> " . ($isBn ? 'শুধুমাত্র সুপার এডমিন গ্লোবাল পারমিশন গ্রুপ রিসেট করতে পারবেন।' : 'Only Super Admin can reset global Permission Groups.') . "</div>";
+    } else {
+        $defs = getDefaultPermissionGroupDefinitions();
+        savePermissionGroups($defs);
         $permGroups = loadPermissionGroups(true);
         foreach ($allResellers as $rIdx => $rRow) {
             if (!canCurrentAdminAccessReseller($rRow)) continue;
@@ -176,26 +202,8 @@ if (isset($_POST['save_permission_groups']) && $canManageResellers) {
             }
         }
         saveResellers($allResellers);
-        ngwRecordActivity('permission_groups_updated');
-        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-check'></i> " . ($isBn ? 'পারমিশন গ্রুপ সফলভাবে আপডেট হয়েছে।' : 'Permission Groups updated successfully.') . "</div>";
+        $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-refresh'></i> " . ($isBn ? 'পারমিশন গ্রুপ ডিফল্ট সেটিংসে রিস্টোর হয়েছে।' : 'Permission Groups restored to default settings.') . "</div>";
     }
-}
-
-// Reset Permission Groups to Defaults
-if (isset($_POST['reset_permission_groups']) && $canManageResellers) {
-    $activeView = 'groups';
-    $defs = getDefaultPermissionGroupDefinitions();
-    savePermissionGroups($defs);
-    $permGroups = loadPermissionGroups(true);
-    foreach ($allResellers as $rIdx => $rRow) {
-        if (!canCurrentAdminAccessReseller($rRow)) continue;
-        $rMode = isset($rRow['permission_mode']) ? $rRow['permission_mode'] : 'Custom';
-        if (isset($permGroups[$rMode])) {
-            $allResellers[$rIdx]['permissions'] = $permGroups[$rMode];
-        }
-    }
-    saveResellers($allResellers);
-    $msg = "<div class='bg-green pd-5 radius-3'><i class='fa fa-refresh'></i> " . ($isBn ? 'পারমিশন গ্রুপ ডিফল্ট সেটিংসে রিস্টোর হয়েছে।' : 'Permission Groups restored to default settings.') . "</div>";
 }
 
 // Save (Create or Update) reseller
@@ -1273,8 +1281,12 @@ function closeResellerDetailsModal() {
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($resellerCsrf, ENT_QUOTES, 'UTF-8'); ?>">
               <div class="ngw-pg-toolbar">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <?php if (isMikhmonAdminStore()) { ?>
                   <button type="submit" name="save_permission_groups" class="btn bg-primary"><i class="fa fa-save"></i> <?= $_save ?></button>
                   <button type="submit" name="reset_permission_groups" class="btn bg-warning"><i class="fa fa-refresh"></i> <?= $isBn ? 'ডিফল্ট রিস্টোর করুন' : 'Restore Defaults' ?></button>
+                  <?php } else { ?>
+                  <span style="font-size:12px; opacity:0.85;"><i class="fa fa-lock"></i> <?= $isBn ? 'শুধুমাত্র সুপার এডমিন গ্লোবাল পারমিশন গ্রুপ এডিট করতে পারবেন (শুধুমাত্র দেখার মোড)।' : 'Read-only view: only Super Admin can edit global Permission Groups.' ?></span>
+                  <?php } ?>
                 </div>
                 <div class="ngw-pg-search-wrap">
                   <i class="fa fa-search"></i>

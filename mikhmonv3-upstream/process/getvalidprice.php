@@ -27,7 +27,16 @@ if (!isset($_SESSION["mikhmon"])) {
 // load session MikroTik
   $session = isset($_GET['session']) ? (string)$_GET['session'] : '';
   include_once('../include/reseller_acl.php');
-  if ($session === '' || !canAccessRouterSession($session) || (function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked())) {
+  if ((function_exists('ngwIsCurrentSessionRevoked') && ngwIsCurrentSessionRevoked()) ||
+      (isset($_SESSION['mikhmon_last_activity']) && (time() - (int)$_SESSION['mikhmon_last_activity']) > 300)) {
+    $_SESSION = array();
+    @session_unset();
+    @session_destroy();
+    ngwClearSessionCookie();
+    http_response_code(401);
+    exit('Session expired.');
+  }
+  if ($session === '' || !canAccessRouterSession($session)) {
     session_write_close();
     http_response_code(403);
     exit('Access denied.');

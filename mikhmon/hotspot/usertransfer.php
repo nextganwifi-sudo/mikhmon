@@ -12,7 +12,11 @@ $transferTheme = $_SESSION['theme'] ?? $theme;
 if (!in_array($transferTheme, array('dark','light','blue','green','pink'), true)) $transferTheme='dark';
 
 $session=is_string($_GET['session']??null)?$_GET['session']:'';
-$canTransferAccess = hasResellerPermission('transfer_users_access') || hasResellerPermission('export_users') || hasResellerPermission('import_transfer_users') || hasResellerPermission('same_router_profile_transfer');
+$canExportUsers = hasResellerPermission('export_users');
+$canExportRsc = hasResellerPermission('export_rsc_users');
+$canImportUsers = hasResellerPermission('import_transfer_users');
+$canAutoActivateUsers = hasResellerPermission('auto_activate_transfer_users');
+$canTransferAccess = hasResellerPermission('transfer_users_access') || $canExportUsers || $canExportRsc || $canImportUsers || hasResellerPermission('same_router_profile_transfer');
 if(!isset($_SESSION['mikhmon'])||!canAccessRouterSession($session)||!$canTransferAccess) { http_response_code(403);exit(transferText('Access denied')); }
 if(empty($_SESSION['transfer_csrf']))$_SESSION['transfer_csrf']=bin2hex(random_bytes(32));
 $csrf=$_SESSION['transfer_csrf'];
@@ -67,6 +71,12 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     }
 
     if($action==='export' || $action==='export-rsc') {
+        if ($action === 'export' && !$canExportUsers) {
+            transferReply(['error' => 'Access denied'], 403);
+        }
+        if ($action === 'export-rsc' && !$canExportRsc) {
+            transferReply(['error' => 'Access denied'], 403);
+        }
         $target=(int)($_POST['target']??0);if(!in_array($target,[6,7],true))throw new Exception('Select destination OS.');
         $mode=$_POST['filter']??'all';$args=[];
         $filterVal = trim((string)($_POST['value']??''));
@@ -134,6 +144,9 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     }
 
     if($action==='prepare') {
+        if (!$canImportUsers) {
+            transferReply(['error' => 'Access denied'], 403);
+        }
         if(($_FILES['file']['error']??1)!==UPLOAD_ERR_OK||($_FILES['file']['size']??0)>10485760)throw new Exception('Choose a transfer file smaller than 10 MB.');
         $file=json_decode(file_get_contents($_FILES['file']['tmp_name']),true);
         if(!is_array($file)||($file['format']??'')!=='ngw-hotspot-users'||!in_array($file['target_os']??0,[6,7],true)||!is_array($file['users']??null)||count($file['users'])>10000)throw new Exception('Invalid transfer file.');
@@ -147,7 +160,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 
         $profile=(string)($_POST['profile']??'');
         $server=(string)($_POST['server']??'all');
-        $autoActivate = !empty($_POST['auto_activate']);
+        $autoActivate = !empty($_POST['auto_activate']) && $canAutoActivateUsers;
 
         if($profile !== '__keep__' && !isset($existingProfiles[$profile])) {
             throw new Exception('Select an existing destination profile.');
@@ -228,6 +241,9 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     }
 
     if($action==='step') {
+        if (!$canImportUsers) {
+            transferReply(['error' => 'Access denied'], 403);
+        }
         $id=(string)($_POST['job']??'');if(!isset($_SESSION['user_transfer'][$id])||$_SESSION['user_transfer'][$id]['router']!==$session)throw new Exception('Import job not found.');
         $job=&$_SESSION['user_transfer'][$id];
         $started=microtime(true);
@@ -331,13 +347,18 @@ header('Cache-Control: no-store');
   </div>
 </div></div>
 <div class="transfer-grid">
+<?php if ($canExportUsers || $canExportRsc) { ?>
 <section class="card box-bordered"><div class="card-header bg-primary"><h3><i class="fa fa-download"></i> <?= transferHtml('Export users') ?></h3></div><div class="card-body">
 <form id="export"><div class="field"><label for="target"><?= transferHtml('Destination OS') ?></label><select class="form-control" id="target" name="target"><option value="6">RouterOS 6 &amp; 7 (OS 6 Mode)</option><option value="7">RouterOS 7 &amp; 6 (OS 7 Mode)</option></select></div>
 <div class="field"><label for="filter"><?= transferHtml('Filter users') ?></label><select class="form-control" id="filter" name="filter"><option value="all"><?= transferHtml('All Hotspot users') ?></option><option value="batch"><?= ($transferLanguage === 'bn' ? 'ব্যাচ' : 'Batch') ?></option><option value="profile"><?= transferHtml('Specific profile') ?></option></select></div>
 <div class="field" id="filter-value-field" hidden><label for="filter-value"><?= transferHtml('Batch comment or profile name') ?></label><input class="form-control" id="filter-value" name="value" list="transfer-values" autocomplete="off"></div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;">
+  <?php if ($canExportUsers) { ?>
   <button class="btn bg-primary" type="submit"><i class="fa fa-download"></i> <?= transferHtml('Download file') ?></button>
+  <?php } ?>
+  <?php if ($canExportRsc) { ?>
   <button class="btn bg-success" type="submit" value="rsc"><i class="fa fa-terminal"></i> <?= $transferLanguage === 'bn' ? 'RSC ডাউনলোড' : 'Download RSC' ?></button>
+  <?php } ?>
 </div>
 <div class="transfer-help">
   <?= $transferLanguage === 'bn'
@@ -346,20 +367,26 @@ header('Cache-Control: no-store');
 </div>
 </form>
 </div></section>
+<?php } ?>
+<?php if ($canImportUsers) { ?>
 <section class="card box-bordered"><div class="card-header bg-success"><h3><i class="fa fa-upload"></i> <?= transferHtml('Import users') ?></h3></div><div class="card-body">
 
 <form id="import"><div class="field"><label for="transfer-file"><?= transferHtml('Transfer file') ?></label><input class="form-control" type="file" id="transfer-file" name="file" accept=".json" required></div>
 <div class="field"><label for="profile"><?= transferHtml('Destination profile') ?></label><select class="form-control" name="profile" id="profile" required><option value="__keep__"><?= transferHtml('Keep original profile (if exists on router)') ?></option></select></div>
+<?php if ($canAutoActivateUsers) { ?>
 <div class="field">
   <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;font-weight:600;font-size:12px;">
     <input type="checkbox" name="auto_activate" value="1" checked style="margin-top:2px;">
     <span><?= transferHtml('0-Second Auto-Login for MAC + Calendar Date users (DHCP Lease Script + Hotspot Cookie, no IP Binding, original comment intact)') ?></span>
   </label>
 </div>
+<?php } ?>
 
 <button class="btn bg-primary" type="submit"><i class="fa fa-check"></i> <?= transferHtml('Validate file') ?></button></form>
 <div class="transfer-actions"><button class="btn bg-success" id="start" hidden><i class="fa fa-play"></i> <?= transferHtml('Start import') ?></button><button class="btn bg-warning" id="resume" hidden><i class="fa fa-refresh"></i> <?= transferHtml('Resume import') ?></button></div>
-</div></section></div><datalist id="transfer-values"></datalist>
+</div></section>
+<?php } ?>
+</div><datalist id="transfer-values"></datalist>
 <div class="transfer-status" role="status" aria-live="polite"><span id="status"><?= transferHtml('Loading router data…') ?></span><progress id="transfer-progress" hidden></progress></div>
 <script>window.transferConfig=<?=json_encode(['csrf'=>$csrf,'text'=>$transferStrings],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="../js/user-transfer.js?v=4"></script>
 </main></body></html>

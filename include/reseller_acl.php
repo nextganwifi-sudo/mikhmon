@@ -2154,7 +2154,10 @@ function resolveActiveVoucherLogo($session, $relativePrefix = '../', $withCacheB
 
     $reseller = getCurrentResellerRecord();
     if ($reseller === null && isMikhmonAdmin() && !empty($overrideResellerId)) {
-        $reseller = findResellerByIdOrUsername($overrideResellerId);
+        $candOverride = findResellerByIdOrUsername($overrideResellerId);
+        if ($candOverride !== null && canCurrentAdminAccessReseller($candOverride)) {
+            $reseller = $candOverride;
+        }
     }
     if ($reseller !== null) {
         $safeId = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)$reseller['id']);
@@ -2190,8 +2193,11 @@ function resolveActiveVoucherTemplatePath($requestedVariant = 'default', $overri
     $reseller = getCurrentResellerRecord();
     $isAdminPreview = false;
     if ($reseller === null && isMikhmonAdmin() && !empty($overrideResellerId)) {
-        $reseller = findResellerByIdOrUsername($overrideResellerId);
-        $isAdminPreview = true;
+        $candOverride = findResellerByIdOrUsername($overrideResellerId);
+        if ($candOverride !== null && canCurrentAdminAccessReseller($candOverride)) {
+            $reseller = $candOverride;
+            $isAdminPreview = true;
+        }
     }
 
     $variantMap = array(
