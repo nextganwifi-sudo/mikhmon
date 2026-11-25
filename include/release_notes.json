@@ -1,0 +1,18 @@
+{
+  "release_id": "2026-11-22-multi-ui-crystal-glass-router-models",
+  "updated_at": "2026-11-22 19:50",
+  "bn": [
+    "চারটি সম্পূর্ণ আলাদা ইউআই স্টাইল (Classic, Modern Studio, Nova Command এবং নতুন Crystal Glass OS) যুক্ত করা হয়েছে — প্রতিটি ইউআই-এর লগইন, রাউটার লিস্ট, রাউটার সেটিংস, রিসেলার প্যানেল ও ৫টি থিম (Dark, Light, Blue, Green, Pink) এক ক্লিকে পরিবর্তন করা যাবে।",
+    "নতুন ৪র্থ ইউআই (Crystal Glass OS)-এ সম্পূর্ণ ফ্রস্টেড গ্লাস ডিজাইন, কুইক কমান্ড লঞ্চার (Ctrl+K), ৩-ধাপের গ্লাস রাউটার সেটআপ স্টুডিও, গ্লাস রিসেলার ডিরেক্টরি এবং ক্লিন গ্রুপ সিলেকশন ড্রপডাউন যুক্ত করা হয়েছে।",
+    "সবগুলো ইউআই-এর মোবাইল ভিউ কমপ্যাক্ট করা হয়েছে এবং ৪র্থ, ২য় ও ৩য় ইউআই-এর মোবাইল থ্রি-লাইন সাইডবার ড্রয়ারের লেয়ারিং ও ব্লার ইস্যু পুরোপুরি ফিক্স করা হয়েছে।",
+    "কোনো রাউটার অ্যাড করে প্রথমবার লগইন করলেই RouterOS থেকে অটোমেটিক MikroTik মডেল ডিটেক্ট হয়ে রাউটার কার্ডের বক্সের সাইজ অপরিবর্তিত রেখেই ওই মডেলের আসল লাইটওয়েট SVG ছবি দেখাবে এবং মাউস হোভার করলে মডেল নাম দেখাবে।",
+    "সিস্টেম আপডেটের সময় ইউআই সেটিংস (uploads/ui_settings.json) এবং রাউটার মেটাডেটা (include/router_meta.json) সম্পূর্ণ সুরক্ষিত রাখা হয়েছে।"
+  ],
+  "en": [
+    "Added four completely distinct UI styles (Classic, Modern Studio, Nova Command, and Crystal Glass OS) with full 5-theme support (Dark, Light, Blue, Green, Pink) switchable in one click from UI Style settings.",
+    "Redesigned Crystal Glass OS (4th UI) with frosted glass controls, Quick Command Launcher (Ctrl+K), 3-step Router Provisioning Studio, Glass Reseller Directory, and clean group selection dropdown without duplicate Add Router buttons.",
+    "Refined compact mobile layouts across Modern Studio, Nova Command, and Crystal Glass OS, and resolved mobile drawer backdrop stacking/blur and breakpoint alignment issues across all UIs.",
+    "Added ultra-lightweight automatic MikroTik hardware model detection on first router login (zero extra RouterOS API calls) displaying authentic model-matched SVG illustrations inside router cards with zero layout shift and hover model tooltips.",
+    "Protected uploads/ui_settings.json and include/router_meta.json during browser System Update and backup exports."
+  ]
+}

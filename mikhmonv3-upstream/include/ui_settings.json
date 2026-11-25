@@ -1,0 +1,19 @@
+{
+    "default_ui": "classic",
+    "super_admin_ui": {
+        "adm_1": "aurora"
+    },
+    "admin_ui": {
+        "adm_2": "classic"
+    },
+    "admin_allowed_uis": {
+        "adm_2": [
+            "classic"
+        ]
+    },
+    "reseller_ui": {
+        "106": "aurora"
+    },
+    "updated_at": "2026-11-25 01:15:10",
+    "updated_by": "super_admin"
+}

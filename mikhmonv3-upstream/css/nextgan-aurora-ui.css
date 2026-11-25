@@ -1,0 +1,2909 @@
+/* ==========================================================================
+   NextGan WiFi Solution — Crystal Glass OS (4th UI: data-ngw-ui="aurora")
+   True multi-layered frosted glassmorphism across all surfaces, buttons,
+   inputs, navigation, modals, and redesigned system workflows.
+   Scoped strictly to body[data-ngw-ui="aurora"] — zero impact on other UIs.
+   ========================================================================== */
+
+/* 1. THEME TOKENS (5 Full Glass Palettes: Dark, Light, Blue, Green, Pink) */
+body[data-ngw-ui="aurora"] {
+  --gl-font-display: 'Outfit', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
+  --gl-font-body: 'Manrope', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
+  --gl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Default: Deep Midnight Sapphire Glass (dark) */
+  --gl-canvas-base: #070c18;
+  --gl-orb-1: rgba(56, 189, 248, 0.34);
+  --gl-orb-2: rgba(99, 102, 241, 0.30);
+  --gl-orb-3: rgba(16, 185, 129, 0.22);
+  --gl-orb-4: rgba(168, 85, 247, 0.22);
+
+  --gl-surface: rgba(16, 25, 45, 0.56);
+  --gl-surface-strong: rgba(13, 21, 38, 0.78);
+  --gl-surface-soft: rgba(255, 255, 255, 0.065);
+  --gl-surface-hover: rgba(255, 255, 255, 0.12);
+  --gl-surface-active: rgba(56, 189, 248, 0.22);
+
+  --gl-border: rgba(255, 255, 255, 0.16);
+  --gl-border-strong: rgba(255, 255, 255, 0.28);
+  --gl-specular: rgba(255, 255, 255, 0.28);
+  --gl-specular-soft: rgba(255, 255, 255, 0.14);
+
+  --gl-shadow: 0 18px 42px -12px rgba(2, 6, 20, 0.62), 0 4px 14px rgba(2, 6, 20, 0.32);
+  --gl-shadow-sm: 0 8px 22px -6px rgba(2, 6, 20, 0.45);
+  --gl-blur: 22px;
+  --gl-blur-heavy: 30px;
+
+  --gl-text: #f1f5f9;
+  --gl-text-secondary: #cbd5e1;
+  --gl-text-muted: #94a3b8;
+
+  --gl-accent: #38bdf8;
+  --gl-accent-strong: #0ea5e9;
+  --gl-accent-bg: rgba(56, 189, 248, 0.22);
+  --gl-accent-border: rgba(125, 211, 252, 0.48);
+  --gl-accent-text: #e0f2fe;
+
+  --gl-success: #34d399;
+  --gl-success-bg: rgba(16, 185, 129, 0.22);
+  --gl-success-border: rgba(110, 231, 183, 0.44);
+  --gl-success-text: #d1fae5;
+
+  --gl-warning: #fbbf24;
+  --gl-warning-bg: rgba(245, 158, 11, 0.22);
+  --gl-warning-border: rgba(252, 211, 77, 0.44);
+  --gl-warning-text: #fef3c7;
+
+  --gl-danger: #fb7185;
+  --gl-danger-bg: rgba(244, 63, 94, 0.22);
+  --gl-danger-border: rgba(253, 164, 175, 0.44);
+  --gl-danger-text: #ffe4e6;
+
+  --gl-input-bg: rgba(8, 14, 28, 0.52);
+  --gl-input-focus-bg: rgba(12, 22, 42, 0.72);
+  --gl-focus-ring: rgba(56, 189, 248, 0.36);
+  --gl-option-bg: #10192d;
+  --gl-option-text: #f1f5f9;
+
+  --gl-btn-bg: rgba(255, 255, 255, 0.09);
+  --gl-btn-hover: rgba(255, 255, 255, 0.17);
+  --gl-table-head: rgba(255, 255, 255, 0.08);
+  --gl-table-stripe: rgba(255, 255, 255, 0.028);
+  --gl-table-hover: rgba(56, 189, 248, 0.12);
+
+  --gl-topbar-h: 62px;
+  --gl-rail-w: 256px;
+  --gl-gap: 16px;
+  --gl-radius-xl: 22px;
+  --gl-radius-lg: 16px;
+  --gl-radius-md: 12px;
+  --gl-radius-sm: 9px;
+}
+
+/* Light Theme: Frosted Glacier & Pearl Glass */
+body[data-ngw-ui="aurora"][data-ngw-theme="light"] {
+  --gl-canvas-base: #e7eef8;
+  --gl-orb-1: rgba(56, 189, 248, 0.42);
+  --gl-orb-2: rgba(129, 140, 248, 0.36);
+  --gl-orb-3: rgba(45, 212, 191, 0.30);
+  --gl-orb-4: rgba(244, 114, 182, 0.24);
+
+  --gl-surface: rgba(255, 255, 255, 0.62);
+  --gl-surface-strong: rgba(255, 255, 255, 0.84);
+  --gl-surface-soft: rgba(255, 255, 255, 0.48);
+  --gl-surface-hover: rgba(255, 255, 255, 0.78);
+  --gl-surface-active: rgba(14, 165, 233, 0.18);
+
+  --gl-border: rgba(255, 255, 255, 0.78);
+  --gl-border-strong: rgba(148, 163, 184, 0.55);
+  --gl-specular: rgba(255, 255, 255, 0.96);
+  --gl-specular-soft: rgba(255, 255, 255, 0.65);
+
+  --gl-shadow: 0 18px 40px -14px rgba(15, 23, 42, 0.15), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --gl-shadow-sm: 0 8px 20px -8px rgba(15, 23, 42, 0.12);
+
+  --gl-text: #0f172a;
+  --gl-text-secondary: #334155;
+  --gl-text-muted: #475569;
+
+  --gl-accent: #0284c7;
+  --gl-accent-strong: #0369a1;
+  --gl-accent-bg: rgba(2, 132, 199, 0.16);
+  --gl-accent-border: rgba(2, 132, 199, 0.42);
+  --gl-accent-text: #075985;
+
+  --gl-success: #059669;
+  --gl-success-bg: rgba(5, 150, 105, 0.15);
+  --gl-success-border: rgba(5, 150, 105, 0.40);
+  --gl-success-text: #065f46;
+
+  --gl-warning: #d97706;
+  --gl-warning-bg: rgba(217, 119, 6, 0.15);
+  --gl-warning-border: rgba(217, 119, 6, 0.40);
+  --gl-warning-text: #92400e;
+
+  --gl-danger: #dc2626;
+  --gl-danger-bg: rgba(220, 38, 38, 0.14);
+  --gl-danger-border: rgba(220, 38, 38, 0.38);
+  --gl-danger-text: #991b1b;
+
+  --gl-input-bg: rgba(255, 255, 255, 0.68);
+  --gl-input-focus-bg: rgba(255, 255, 255, 0.92);
+  --gl-focus-ring: rgba(2, 132, 199, 0.28);
+  --gl-option-bg: #ffffff;
+  --gl-option-text: #0f172a;
+
+  --gl-btn-bg: rgba(255, 255, 255, 0.64);
+  --gl-btn-hover: rgba(255, 255, 255, 0.88);
+  --gl-table-head: rgba(15, 23, 42, 0.055);
+  --gl-table-stripe: rgba(255, 255, 255, 0.35);
+  --gl-table-hover: rgba(2, 132, 199, 0.10);
+}
+
+/* Blue Theme: Ocean Sapphire Crystal */
+body[data-ngw-ui="aurora"][data-ngw-theme="blue"] {
+  --gl-canvas-base: #061529;
+  --gl-orb-1: rgba(0, 174, 255, 0.44);
+  --gl-orb-2: rgba(37, 99, 235, 0.38);
+  --gl-orb-3: rgba(6, 182, 212, 0.32);
+  --gl-orb-4: rgba(96, 165, 250, 0.24);
+
+  --gl-surface: rgba(10, 32, 62, 0.54);
+  --gl-surface-strong: rgba(8, 25, 49, 0.80);
+  --gl-accent: #38bdf8;
+  --gl-accent-strong: #0284c7;
+  --gl-accent-bg: rgba(14, 165, 233, 0.26);
+  --gl-accent-border: rgba(125, 211, 252, 0.55);
+  --gl-accent-text: #e0f2fe;
+  --gl-option-bg: #0a203e;
+}
+
+/* Green Theme: Emerald Mist Crystal */
+body[data-ngw-ui="aurora"][data-ngw-theme="green"] {
+  --gl-canvas-base: #051914;
+  --gl-orb-1: rgba(16, 185, 129, 0.40);
+  --gl-orb-2: rgba(20, 184, 166, 0.34);
+  --gl-orb-3: rgba(52, 211, 153, 0.26);
+  --gl-orb-4: rgba(56, 189, 248, 0.22);
+
+  --gl-surface: rgba(8, 36, 29, 0.56);
+  --gl-surface-strong: rgba(7, 29, 23, 0.80);
+  --gl-accent: #34d399;
+  --gl-accent-strong: #059669;
+  --gl-accent-bg: rgba(16, 185, 129, 0.26);
+  --gl-accent-border: rgba(110, 231, 183, 0.52);
+  --gl-accent-text: #d1fae5;
+  --gl-focus-ring: rgba(52, 211, 153, 0.36);
+  --gl-option-bg: #08241d;
+}
+
+/* Pink Theme: Rose Quartz Crystal */
+body[data-ngw-ui="aurora"][data-ngw-theme="pink"] {
+  --gl-canvas-base: #1a0917;
+  --gl-orb-1: rgba(236, 72, 153, 0.38);
+  --gl-orb-2: rgba(168, 85, 247, 0.34);
+  --gl-orb-3: rgba(244, 114, 182, 0.28);
+  --gl-orb-4: rgba(56, 189, 248, 0.20);
+
+  --gl-surface: rgba(42, 14, 36, 0.56);
+  --gl-surface-strong: rgba(33, 10, 29, 0.80);
+  --gl-accent: #f472b6;
+  --gl-accent-strong: #db2777;
+  --gl-accent-bg: rgba(236, 72, 153, 0.25);
+  --gl-accent-border: rgba(249, 168, 212, 0.52);
+  --gl-accent-text: #fce7f3;
+  --gl-focus-ring: rgba(244, 114, 182, 0.36);
+  --gl-option-bg: #2a0e24;
+}
+
+/* 2. GLOBAL BASE & LIVING ATMOSPHERIC PRISM BACKDROP */
+html,
+body[data-ngw-ui="aurora"] {
+  font-family: var(--gl-font-body) !important;
+  color: var(--gl-text) !important;
+  background-color: var(--gl-canvas-base) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+body[data-ngw-ui="aurora"]::before,
+body[data-ngw-ui="aurora"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body[data-ngw-ui="aurora"]::before {
+  background:
+    radial-gradient(62% 55% at 12% 8%, var(--gl-orb-1) 0%, transparent 66%),
+    radial-gradient(54% 52% at 88% 14%, var(--gl-orb-2) 0%, transparent 64%),
+    radial-gradient(58% 54% at 78% 88%, var(--gl-orb-3) 0%, transparent 68%),
+    radial-gradient(48% 48% at 18% 86%, var(--gl-orb-4) 0%, transparent 66%);
+}
+
+body[data-ngw-ui="aurora"]::after {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.35;
+}
+
+body[data-ngw-ui="aurora"][data-ngw-theme="light"]::after {
+  background-image:
+    radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  opacity: 0.45;
+}
+
+/* Lock root scroll when Crystal Glass OS topbar is present so content never scrolls behind/above #navbar */
+html:has(body[data-ngw-ui="aurora"]:has(#navbar)),
+body[data-ngw-ui="aurora"]:has(#navbar) {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+body[data-ngw-ui="aurora"] .wrapper {
+  position: static;
+  z-index: auto;
+  background: transparent !important;
+  min-height: 100vh;
+}
+body[data-ngw-ui="aurora"]:has(#navbar) .wrapper {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+body[data-ngw-ui="aurora"] h1,
+body[data-ngw-ui="aurora"] h2,
+body[data-ngw-ui="aurora"] h3,
+body[data-ngw-ui="aurora"] h4 {
+  font-family: var(--gl-font-display) !important;
+  color: var(--gl-text);
+  letter-spacing: -0.015em;
+}
+
+body[data-ngw-ui="aurora"] a {
+  color: var(--gl-accent);
+  transition: color 0.16s ease, opacity 0.16s ease;
+}
+
+body[data-ngw-ui="aurora"] code,
+body[data-ngw-ui="aurora"] .ngw-mono,
+body[data-ngw-ui="aurora"] #timer,
+body[data-ngw-ui="aurora"] #ngw-cpu-pct,
+body[data-ngw-ui="aurora"] #ngw-ram-pct,
+body[data-ngw-ui="aurora"] #router-count {
+  font-family: var(--gl-font-mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom Glass Scrollbars */
+body[data-ngw-ui="aurora"] ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+body[data-ngw-ui="aurora"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+body[data-ngw-ui="aurora"] ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.34);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+body[data-ngw-ui="aurora"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.56);
+}
+
+/* 3. FLOATING CRYSTAL GLASS TOP ISLAND (#navbar) */
+body[data-ngw-ui="aurora"] #navbar.navbar {
+  position: fixed !important;
+  top: 12px !important;
+  left: 16px !important;
+  right: 16px !important;
+  width: auto !important;
+  height: var(--gl-topbar-h) !important;
+  min-height: var(--gl-topbar-h) !important;
+  padding: 0 14px !important;
+  border-radius: 18px !important;
+  background: var(--gl-surface) !important;
+  backdrop-filter: blur(var(--gl-blur)) saturate(175%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(175%) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  z-index: 1200 !important;
+  overflow: visible !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left,
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right {
+  float: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left {
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right {
+  flex: 0 0 auto !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left > a,
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right > a {
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--gl-text) !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.14s ease !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left > a:hover,
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right > a:hover {
+  background: var(--gl-btn-hover) !important;
+  border-color: var(--gl-border-strong) !important;
+  transform: translateY(-1px);
+}
+
+/* Brand Custom Logo in Aurora Navbar */
+body[data-ngw-ui="aurora"] #navbar.navbar a#brand.ngw-brand-logo {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 240px !important;
+  height: 42px !important;
+  padding: 0 10px !important;
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: 13px !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular) !important;
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar a#brand.ngw-brand-logo:hover {
+  background: var(--gl-surface-hover) !important;
+  border-color: var(--gl-border-strong) !important;
+  transform: translateY(-1px);
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar a#brand.ngw-brand-logo span.ngw-brand-emblem {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  padding: 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar a#brand.ngw-brand-logo span.ngw-brand-emblem img.ngw-brand-emblem-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+/* Mobile Hamburger Toggle (#openNav / #closeNav) */
+body[data-ngw-ui="aurora"] #navbar.navbar a#openNav,
+body[data-ngw-ui="aurora"] #navbar.navbar a#closeNav {
+  width: 38px !important;
+  min-width: 38px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar a#closeNav {
+  display: none !important;
+}
+
+@media (min-width: 981px) {
+  body[data-ngw-ui="aurora"] #navbar.navbar a#openNav {
+    display: inline-flex !important;
+  }
+}
+
+/* Current Page Glass Pill */
+body[data-ngw-ui="aurora"] #navbar.navbar a#cpage {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+  font-family: var(--gl-font-display) !important;
+  font-weight: 700 !important;
+  pointer-events: none;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Glass Quick Command Palette Button (injected by JS) */
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  color: var(--gl-text-secondary) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.16s ease !important;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-trigger:hover {
+  background: var(--gl-btn-hover) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-text) !important;
+  transform: translateY(-1px);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-kbd {
+  font-family: var(--gl-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--gl-surface-soft);
+  border: 1px solid var(--gl-border);
+  color: var(--gl-text-muted);
+}
+
+/* Server CPU/RAM & Local Datetime Glass Capsules in Navbar */
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left > span[title="Server CPU & RAM"],
+body[data-ngw-ui="aurora"] #navbar.navbar #ngw-local-datetime {
+  height: 36px !important;
+  padding: 0 11px !important;
+  border-radius: 11px !important;
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  color: var(--gl-text-secondary) !important;
+  font-size: 11.5px !important;
+}
+
+/* Hide redundant legacy theme/lang selects & topbar logout (already inside profile glass popover & dock) */
+body[data-ngw-ui="aurora"] #navbar.navbar select.stheme,
+body[data-ngw-ui="aurora"] #navbar.navbar select.slang,
+body[data-ngw-ui="aurora"] #navbar.navbar a#logout {
+  display: none !important;
+}
+
+/* Router Switcher Select in Navbar (inside router session) */
+body[data-ngw-ui="aurora"] #navbar.navbar select.connect {
+  height: 38px !important;
+  max-width: 195px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  color: var(--gl-text) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+/* Idle Timer Glass Chip */
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right > a[title^="Idle Timeout"] {
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  color: var(--gl-text-secondary) !important;
+  pointer-events: none;
+}
+body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right > a[title^="Idle Timeout"] > span {
+  width: auto !important;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Profile Trigger Glass Pill */
+body[data-ngw-ui="aurora"] #navbar.navbar a.ngw-profile-trigger {
+  padding: 0 12px 0 6px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  color: var(--gl-text) !important;
+}
+
+body[data-ngw-ui="aurora"] #navbar.navbar .ngw-profile-trigger-avatar {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--gl-border-strong) !important;
+}
+
+/* Profile Dropdown Popover (Heavy Frosted Glass) */
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown.ngw-profile-dropdown-card {
+  top: calc(var(--gl-topbar-h) + 22px) !important;
+  right: 16px !important;
+  border-radius: 18px !important;
+  background: var(--gl-surface-strong) !important;
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(180%) !important;
+  border: 1px solid var(--gl-border-strong) !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+  z-index: 2500 !important;
+}
+
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-header {
+  background: var(--gl-surface-soft) !important;
+  border-bottom: 1px solid var(--gl-border) !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-title {
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-sub {
+  color: var(--gl-text-muted) !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-link {
+  margin: 3px 8px !important;
+  border-radius: 10px !important;
+  color: var(--gl-text) !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-link:hover {
+  background: var(--gl-btn-hover) !important;
+  border-color: var(--gl-border) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-link.is-logout {
+  color: var(--gl-danger) !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-profile-dd-link.is-logout:hover {
+  background: var(--gl-danger-bg) !important;
+  border-color: var(--gl-danger-border) !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-theme-opt {
+  border-radius: 9px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  color: var(--gl-text) !important;
+  padding: 5px 7px !important;
+}
+body[data-ngw-ui="aurora"] #ngw-profile-dropdown .ngw-theme-opt.is-active {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+}
+
+/* 4. SPATIAL FLOATING GLASS NAVIGATION DOCK (#sidenav)
+   Detached frosted glass floating rail with individual crystal glass option tiles */
+body[data-ngw-ui="aurora"] #sidenav.sidenav {
+  position: fixed !important;
+  top: calc(var(--gl-topbar-h) + 24px) !important;
+  left: 16px !important;
+  bottom: 16px !important;
+  width: var(--gl-rail-w) !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 12px 10px 18px !important;
+  border-radius: 22px !important;
+  background: var(--gl-surface) !important;
+  backdrop-filter: blur(var(--gl-blur)) saturate(175%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(175%) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 1150 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease !important;
+}
+
+/* Desktop Collapsible Rail Mode */
+body[data-ngw-ui="aurora"].ngw-gl-rail-collapsed #sidenav.sidenav {
+  transform: translateX(calc(-100% - 24px)) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+body[data-ngw-ui="aurora"].ngw-gl-rail-collapsed #main {
+  margin-left: 0 !important;
+}
+body[data-ngw-ui="aurora"]:has(#navbar).ngw-gl-rail-collapsed #main {
+  left: 16px !important;
+}
+
+/* Reset legacy 90% width & padding from mikhmon-ui.*.min.css */
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container a,
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown a {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  float: none !important;
+}
+
+/* Router Identity / Session Header Tile inside Sidenav */
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .menu.card-header {
+  width: 100% !important;
+  margin: 0 0 4px !important;
+  padding: 11px 12px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, var(--gl-accent-bg), var(--gl-surface-soft)) !important;
+  border: 1px solid var(--gl-accent-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular) !important;
+  text-align: left !important;
+}
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .menu.card-header h3 {
+  margin: 0 !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: var(--gl-accent-text) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-ngw-ui="aurora"] #sidenav.sidenav .menu.spa {
+  display: none !important;
+}
+
+/* Every Top-Level Menu Item = Tactile Frosted Glass Button Tile */
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a.menu,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 11px !important;
+  min-height: 44px !important;
+  border-radius: 13px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  color: var(--gl-text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.14s ease, box-shadow 0.16s ease !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a#ngw-settings-dropdown-toggle {
+  justify-content: space-between !important;
+}
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a#ngw-settings-dropdown-toggle > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a.menu:hover,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn:hover {
+  background: var(--gl-btn-hover) !important;
+  border-color: var(--gl-border-strong) !important;
+  transform: translateX(2px);
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 6px 16px rgba(0, 0, 0, 0.14) !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a.menu.active,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn.active {
+  background: linear-gradient(135deg, var(--gl-accent-bg), rgba(255, 255, 255, 0.12)) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 6px 18px -4px rgba(14, 165, 233, 0.32) !important;
+}
+
+/* Crystal Glass Icon Tiles inside Sidebar Buttons */
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a.menu > i:first-child,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a#ngw-settings-dropdown-toggle > span > i:first-child,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn > i:first-child {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  color: var(--gl-accent) !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a.menu.active > i:first-child,
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn.active > i:first-child {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav > .dropdown-btn > i.fa-caret-down {
+  margin-left: auto !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  opacity: 0.72;
+}
+
+/* Logout Glass Button Distinct Ruby Tint */
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a[href*="logout"] {
+  margin-top: 4px !important;
+  background: var(--gl-danger-bg) !important;
+  border-color: var(--gl-danger-border) !important;
+  color: var(--gl-danger-text) !important;
+}
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a[href*="logout"] > i:first-child {
+  background: rgba(244, 63, 94, 0.22) !important;
+  border-color: var(--gl-danger-border) !important;
+  color: var(--gl-danger) !important;
+}
+body[data-ngw-ui="aurora"] #sidenav.sidenav > a[href*="logout"]:hover {
+  filter: brightness(1.08);
+}
+
+/* Submenu Frosted Glass Trays (#ngw-settings-dropdown & .dropdown-container) */
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container {
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: 13px !important;
+  padding: 5px !important;
+  margin: -2px 0 4px !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.14) !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container.menu-open {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown a,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container a,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container .dropdown-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 10px !important;
+  margin: 0 0 3px !important;
+  border-radius: 9px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--gl-text-secondary) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid transparent !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.14s ease !important;
+}
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown a:last-child,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container a:last-child {
+  margin-bottom: 0 !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown a i,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container a i,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container .dropdown-btn i {
+  padding: 0 !important;
+  font-size: 12.5px !important;
+  width: 18px !important;
+  text-align: center !important;
+  color: var(--gl-accent) !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown a:hover,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container a:hover,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container .dropdown-btn:hover {
+  background: var(--gl-btn-hover) !important;
+  border-color: var(--gl-border) !important;
+  color: var(--gl-text) !important;
+}
+
+body[data-ngw-ui="aurora"] #sidenav.sidenav #ngw-settings-dropdown a.active,
+body[data-ngw-ui="aurora"] #sidenav.sidenav .dropdown-container a.active {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Mobile Drawer Header (hidden on desktop, visible inside mobile glass drawer) */
+body[data-ngw-ui="aurora"] .ngw-gl-drawer-head {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 4px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--gl-border);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-drawer-title {
+  font-family: var(--gl-font-display);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--gl-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-drawer-title i {
+  color: var(--gl-accent);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-drawer-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--gl-btn-bg);
+  border: 1px solid var(--gl-border);
+  color: var(--gl-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-drawer-close:hover {
+  background: var(--gl-danger-bg);
+  border-color: var(--gl-danger-border);
+  color: var(--gl-danger-text);
+}
+
+/* Mobile Backdrop Overlay for Glass Drawer (strictly below #sidenav z-index 1260) */
+body[data-ngw-ui="aurora"] .ngw-gl-drawer-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(4, 9, 20, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1240 !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+body[data-ngw-ui="aurora"].ngw-gl-drawer-open .ngw-gl-drawer-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 5. MAIN WORKSPACE VIEWPORT (#main)
+   When #navbar is active, #main acts as an independent clipped scroll viewport
+   starting strictly below the topbar so scrolled content closes cleanly at the
+   topbar boundary and NEVER bleeds transparently behind or above the topbar.
+   z-index stays auto (no stacking context) so position:fixed modals inside #main
+   continue floating cleanly above #navbar and #sidenav. */
+body[data-ngw-ui="aurora"] #main {
+  position: relative;
+  z-index: 1;
+  margin-top: calc(var(--gl-topbar-h) + 24px) !important;
+  margin-left: calc(var(--gl-rail-w) + 28px) !important;
+  margin-right: 0 !important;
+  padding: 0 18px 34px 4px !important;
+  min-height: calc(100vh - var(--gl-topbar-h) - 24px) !important;
+  background: transparent !important;
+  transition: margin-left 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+body[data-ngw-ui="aurora"]:has(#navbar) #main {
+  position: fixed !important;
+  top: calc(var(--gl-topbar-h) + 22px) !important;
+  left: calc(var(--gl-rail-w) + 28px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: auto !important;
+  margin: 0 !important;
+  padding: 2px 18px 34px 4px !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  transition: left 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+body[data-ngw-ui="aurora"] #main .main-container {
+  background: transparent !important;
+  max-width: 1520px;
+  margin: 0 auto;
+}
+
+/* 6. UNIVERSAL CRYSTAL GLASS CARDS, PANELS & BOXES */
+body[data-ngw-ui="aurora"] .card {
+  background: var(--gl-surface) !important;
+  backdrop-filter: blur(var(--gl-blur)) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(165%) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: var(--gl-radius-xl) !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+  margin-bottom: 16px !important;
+  overflow: hidden;
+}
+
+/* Nested cards get lighter secondary frost instead of heavy double shadow */
+body[data-ngw-ui="aurora"] .card .card {
+  background: var(--gl-surface-soft) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  border-radius: var(--gl-radius-lg) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+body[data-ngw-ui="aurora"] .card-header {
+  background: var(--gl-surface-soft) !important;
+  border-bottom: 1px solid var(--gl-border) !important;
+  padding: 14px 18px !important;
+  color: var(--gl-text) !important;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body[data-ngw-ui="aurora"] .card-header h3,
+body[data-ngw-ui="aurora"] .card-header .card-title {
+  margin: 0 !important;
+  font-family: var(--gl-font-display) !important;
+  font-size: 15.5px !important;
+  font-weight: 700 !important;
+  color: var(--gl-text) !important;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+body[data-ngw-ui="aurora"] .card-body {
+  padding: 16px 18px !important;
+  background: transparent !important;
+  color: var(--gl-text) !important;
+}
+
+/* Dashboard & Stat Boxes -> Translucent Crystal Glass Tiles */
+body[data-ngw-ui="aurora"] .box,
+body[data-ngw-ui="aurora"] .box-bordered {
+  background: var(--gl-surface) !important;
+  backdrop-filter: blur(var(--gl-blur)) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(165%) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: var(--gl-radius-lg) !important;
+  box-shadow: var(--gl-shadow-sm), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease !important;
+}
+
+body[data-ngw-ui="aurora"] .box:hover {
+  border-color: var(--gl-border-strong) !important;
+  transform: translateY(-2px);
+}
+
+body[data-ngw-ui="aurora"] .box .box-group-icon {
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: 13px !important;
+  width: 50px !important;
+  height: 50px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 10px 12px 10px 10px !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-accent) !important;
+  font-size: 20px !important;
+  float: left !important;
+}
+
+body[data-ngw-ui="aurora"] .box .box-group-area {
+  padding: 10px 12px 10px 0 !important;
+  color: var(--gl-text) !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Semantic Tinted Glass Boxes (Dashboard Active / Users / Add / Generate) */
+body[data-ngw-ui="aurora"] .box.bg-blue,
+body[data-ngw-ui="aurora"] .box.bg-primary,
+body[data-ngw-ui="aurora"] .box.bg-cyan,
+body[data-ngw-ui="aurora"] .box.bg-light-blue {
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.28), rgba(56, 189, 248, 0.10)) !important;
+  border-color: rgba(125, 211, 252, 0.45) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .box.bg-green,
+body[data-ngw-ui="aurora"] .box.bg-teal,
+body[data-ngw-ui="aurora"] .box.bg-success {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.28), rgba(52, 211, 153, 0.10)) !important;
+  border-color: rgba(110, 231, 183, 0.45) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .box.bg-yellow,
+body[data-ngw-ui="aurora"] .box.bg-warning {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.28), rgba(251, 191, 36, 0.10)) !important;
+  border-color: rgba(252, 211, 77, 0.45) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .box.bg-red,
+body[data-ngw-ui="aurora"] .box.bg-danger,
+body[data-ngw-ui="aurora"] .box.bg-pink {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.28), rgba(251, 113, 133, 0.10)) !important;
+  border-color: rgba(253, 164, 175, 0.45) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .box.bg-purple,
+body[data-ngw-ui="aurora"] .box.bg-indigo {
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.28), rgba(167, 139, 250, 0.10)) !important;
+  border-color: rgba(196, 181, 253, 0.45) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .box a {
+  color: var(--gl-text) !important;
+  text-decoration: none !important;
+}
+body[data-ngw-ui="aurora"] .box h1 {
+  font-family: var(--gl-font-display) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800 !important;
+  color: var(--gl-text) !important;
+}
+
+/* 7. EVERY BUTTON & INTERACTIVE OPTION = CRYSTAL GLASS */
+body[data-ngw-ui="aurora"] .btn,
+body[data-ngw-ui="aurora"] button:not(.ngw-gl-raw),
+body[data-ngw-ui="aurora"] input[type="submit"],
+body[data-ngw-ui="aurora"] input[type="button"],
+body[data-ngw-ui="aurora"] .btn-login,
+body[data-ngw-ui="aurora"] .group-item[type="submit"],
+body[data-ngw-ui="aurora"] .ngw-glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 11px !important;
+  font-family: var(--gl-font-body) !important;
+  font-size: 13px;
+  font-weight: 600 !important;
+  line-height: 1.25;
+  color: var(--gl-text) !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft), 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.14s ease, box-shadow 0.16s ease !important;
+}
+
+body[data-ngw-ui="aurora"] .btn:hover,
+body[data-ngw-ui="aurora"] button:not(.ngw-gl-raw):hover,
+body[data-ngw-ui="aurora"] input[type="submit"]:hover,
+body[data-ngw-ui="aurora"] input[type="button"]:hover,
+body[data-ngw-ui="aurora"] .btn-login:hover,
+body[data-ngw-ui="aurora"] .ngw-glass-btn:hover {
+  background: var(--gl-btn-hover) !important;
+  border-color: var(--gl-border-strong) !important;
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 8px 20px -4px rgba(0, 0, 0, 0.22) !important;
+}
+
+body[data-ngw-ui="aurora"] .btn:active,
+body[data-ngw-ui="aurora"] button:not(.ngw-gl-raw):active,
+body[data-ngw-ui="aurora"] input[type="submit"]:active,
+body[data-ngw-ui="aurora"] .ngw-glass-btn:active {
+  transform: translateY(0);
+}
+
+/* Primary / Blue Crystal Glass Button */
+body[data-ngw-ui="aurora"] .btn.bg-primary,
+body[data-ngw-ui="aurora"] .btn.bg-blue,
+body[data-ngw-ui="aurora"] .btn-login.bg-primary,
+body[data-ngw-ui="aurora"] input[type="submit"].bg-primary,
+body[data-ngw-ui="aurora"] .ngw-glass-btn.is-primary {
+  background: linear-gradient(135deg, var(--gl-accent-bg), rgba(56, 189, 248, 0.34)) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 8px 22px -6px rgba(14, 165, 233, 0.42) !important;
+}
+body[data-ngw-ui="aurora"] .btn.bg-primary:hover,
+body[data-ngw-ui="aurora"] .btn.bg-blue:hover,
+body[data-ngw-ui="aurora"] .btn-login.bg-primary:hover,
+body[data-ngw-ui="aurora"] .ngw-glass-btn.is-primary:hover {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.36), rgba(56, 189, 248, 0.48)) !important;
+  border-color: var(--gl-accent) !important;
+}
+
+/* Emerald / Success Crystal Glass Button */
+body[data-ngw-ui="aurora"] .btn.bg-green,
+body[data-ngw-ui="aurora"] .btn.bg-success,
+body[data-ngw-ui="aurora"] .ngw-glass-btn.is-success {
+  background: linear-gradient(135deg, var(--gl-success-bg), rgba(16, 185, 129, 0.34)) !important;
+  border-color: var(--gl-success-border) !important;
+  color: var(--gl-success-text) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 8px 20px -6px rgba(16, 185, 129, 0.36) !important;
+}
+
+/* Amber / Warning Crystal Glass Button */
+body[data-ngw-ui="aurora"] .btn.bg-warning,
+body[data-ngw-ui="aurora"] .btn.bg-yellow,
+body[data-ngw-ui="aurora"] .ngw-glass-btn.is-warning {
+  background: linear-gradient(135deg, var(--gl-warning-bg), rgba(245, 158, 11, 0.32)) !important;
+  border-color: var(--gl-warning-border) !important;
+  color: var(--gl-warning-text) !important;
+}
+
+/* Ruby / Danger Crystal Glass Button */
+body[data-ngw-ui="aurora"] .btn.bg-danger,
+body[data-ngw-ui="aurora"] .btn.bg-red,
+body[data-ngw-ui="aurora"] .ngw-glass-btn.is-danger {
+  background: linear-gradient(135deg, var(--gl-danger-bg), rgba(244, 63, 94, 0.32)) !important;
+  border-color: var(--gl-danger-border) !important;
+  color: var(--gl-danger-text) !important;
+}
+
+/* 8. FROSTED GLASS INPUTS, SELECTS & FORM CONTROLS */
+body[data-ngw-ui="aurora"] .form-control,
+body[data-ngw-ui="aurora"] input[type="text"],
+body[data-ngw-ui="aurora"] input[type="password"],
+body[data-ngw-ui="aurora"] input[type="search"],
+body[data-ngw-ui="aurora"] input[type="number"],
+body[data-ngw-ui="aurora"] input[type="email"],
+body[data-ngw-ui="aurora"] select,
+body[data-ngw-ui="aurora"] textarea,
+body[data-ngw-ui="aurora"] .group-item {
+  background: var(--gl-input-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: 11px !important;
+  color: var(--gl-text) !important;
+  padding: 8px 12px;
+  font-family: var(--gl-font-body) !important;
+  font-size: 13.5px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.14), inset 0 1px 0 var(--gl-specular-soft) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease !important;
+}
+
+body[data-ngw-ui="aurora"] .form-control:focus,
+body[data-ngw-ui="aurora"] input:focus,
+body[data-ngw-ui="aurora"] select:focus,
+body[data-ngw-ui="aurora"] textarea:focus {
+  outline: none !important;
+  background: var(--gl-input-focus-bg) !important;
+  border-color: var(--gl-accent) !important;
+  box-shadow: 0 0 0 3px var(--gl-focus-ring), inset 0 1px 0 var(--gl-specular) !important;
+}
+
+body[data-ngw-ui="aurora"] select option {
+  background-color: var(--gl-option-bg) !important;
+  color: var(--gl-option-text) !important;
+}
+
+body[data-ngw-ui="aurora"] input::placeholder,
+body[data-ngw-ui="aurora"] textarea::placeholder {
+  color: var(--gl-text-muted) !important;
+  opacity: 0.85;
+}
+
+/* 9. FROSTED GLASS TABLES, ALERTS & MODALS */
+body[data-ngw-ui="aurora"] .table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: var(--gl-text) !important;
+  background: transparent !important;
+}
+
+body[data-ngw-ui="aurora"] .table th,
+body[data-ngw-ui="aurora"] .table thead td {
+  background: var(--gl-table-head) !important;
+  color: var(--gl-text) !important;
+  border-color: var(--gl-border) !important;
+  font-family: var(--gl-font-display) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  padding: 10px 12px !important;
+}
+
+body[data-ngw-ui="aurora"] .table td {
+  border-color: var(--gl-border) !important;
+  color: var(--gl-text) !important;
+  padding: 9px 12px !important;
+  background: transparent !important;
+}
+
+body[data-ngw-ui="aurora"] .table-hover tbody tr:hover td {
+  background: var(--gl-table-hover) !important;
+}
+
+body[data-ngw-ui="aurora"] .overflow.box-bordered {
+  border-radius: 14px !important;
+  border: 1px solid var(--gl-border) !important;
+  background: var(--gl-surface-soft) !important;
+  overflow: auto !important;
+}
+
+/* Alerts as Tinted Frosted Glass Banners */
+body[data-ngw-ui="aurora"] .alert {
+  border-radius: 13px !important;
+  padding: 11px 15px !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+}
+body[data-ngw-ui="aurora"] .alert-success,
+body[data-ngw-ui="aurora"] .alert.bg-success {
+  background: var(--gl-success-bg) !important;
+  border-color: var(--gl-success-border) !important;
+  color: var(--gl-success-text) !important;
+}
+body[data-ngw-ui="aurora"] .alert-danger,
+body[data-ngw-ui="aurora"] .alert.bg-danger {
+  background: var(--gl-danger-bg) !important;
+  border-color: var(--gl-danger-border) !important;
+  color: var(--gl-danger-text) !important;
+}
+
+/* Modals & Floating Menus (Resellers, Router Picker, Action Menus) */
+body[data-ngw-ui="aurora"] .ngw-modal-backdrop,
+body[data-ngw-ui="aurora"] .ngw-rpicker-backdrop {
+  background: rgba(4, 8, 20, 0.58) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+body[data-ngw-ui="aurora"] .ngw-modal-box,
+body[data-ngw-ui="aurora"] .ngw-rpicker-dialog {
+  background: var(--gl-surface-strong) !important;
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%) !important;
+  border: 1px solid var(--gl-border-strong) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+}
+
+body[data-ngw-ui="aurora"] .ngw-rpicker-header,
+body[data-ngw-ui="aurora"] .ngw-rpicker-controls,
+body[data-ngw-ui="aurora"] .ngw-rpicker-footer {
+  background: var(--gl-surface-soft) !important;
+  border-color: var(--gl-border) !important;
+}
+
+body[data-ngw-ui="aurora"] .ngw-rpicker-card {
+  border-radius: 13px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-rpicker-card.is-selected {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+}
+
+body[data-ngw-ui="aurora"] .ngw-action-menu,
+body[data-ngw-ui="aurora"] .ngw-rfilter-menu {
+  background: var(--gl-surface-strong) !important;
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(180%) !important;
+  border: 1px solid var(--gl-border-strong) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+  padding: 6px !important;
+}
+body[data-ngw-ui="aurora"] .ngw-action-menu a,
+body[data-ngw-ui="aurora"] .ngw-rfilter-item {
+  border-radius: 9px !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-action-menu a:hover,
+body[data-ngw-ui="aurora"] .ngw-rfilter-item:hover {
+  background: var(--gl-accent-bg) !important;
+  color: var(--gl-accent-text) !important;
+}
+
+/* ==========================================================================
+   10. REDESIGNED SYSTEM 1: CRYSTAL GLASS LOGIN PORTAL (include/login.php)
+   ========================================================================== */
+body[data-ngw-ui="aurora"] .ngw-gl-login-stage {
+  position: relative;
+  min-height: 100vh;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 24px 16px !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-card-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--gl-border);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-login-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-login-brand img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  padding: 2px;
+  background: #ffffff;
+  object-fit: cover;
+  border: 2px solid rgba(125, 211, 252, 0.65);
+  box-shadow: 0 6px 18px rgba(2, 8, 23, 0.35);
+  flex-shrink: 0;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-login-brand-name {
+  font-family: var(--gl-font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--gl-text);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-lang-pills {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--gl-surface-soft);
+  border: 1px solid var(--gl-border);
+  flex-shrink: 0;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-lang-pills a {
+  padding: 5px 11px;
+  border-radius: 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--gl-text-secondary) !important;
+  text-decoration: none !important;
+  border: 1px solid transparent;
+  transition: all 0.16s ease;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-lang-pills a:hover {
+  background: var(--gl-btn-hover);
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-lang-pills a.is-active {
+  background: var(--gl-accent-bg);
+  border-color: var(--gl-accent-border);
+  color: var(--gl-accent-text) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-login-card {
+  width: 100%;
+  max-width: 416px;
+  padding: 24px 26px 26px;
+  border-radius: 24px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%);
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%);
+  border: 1px solid var(--gl-border-strong);
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-login-head {
+  text-align: left;
+  margin-bottom: 18px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-login-head h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-field {
+  margin-bottom: 15px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gl-text-secondary);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-input-box > i {
+  position: absolute;
+  left: 14px;
+  font-size: 14px;
+  color: var(--gl-accent);
+  pointer-events: none;
+  z-index: 2;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-input-box input.form-control {
+  width: 100%;
+  height: 46px !important;
+  padding: 10px 44px 10px 40px !important;
+  border-radius: 14px !important;
+  font-size: 14px !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-eye-btn {
+  position: absolute;
+  right: 6px;
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  z-index: 2;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--gl-text-secondary);
+  cursor: pointer;
+  margin: 4px 0 18px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-submit-btn {
+  width: 100% !important;
+  height: 46px !important;
+  border-radius: 14px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-login-error {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--gl-danger-bg);
+  border: 1px solid var(--gl-danger-border);
+  color: var(--gl-danger-text);
+  font-size: 13px;
+  text-align: center;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-login-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-login-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 12px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--gl-border);
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gl-text-secondary);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-login-chip i {
+  color: var(--gl-accent);
+}
+
+/* ==========================================================================
+   11. REDESIGNED SYSTEM 2: GLASS ROUTER HUB (settings/sessions.php)
+   ========================================================================== */
+body[data-ngw-ui="aurora"] .ngw-gl-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-hero {
+  padding: 20px 22px;
+  border-radius: 22px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, var(--gl-accent-bg), rgba(255, 255, 255, 0.14));
+  border: 1px solid var(--gl-accent-border);
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 8px 20px -6px rgba(14, 165, 233, 0.34);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--gl-accent);
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-hero-title {
+  margin: 0;
+  font-family: var(--gl-font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gl-text);
+  line-height: 1.2;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-hero-sub {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--gl-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* Filter & Search Glass Deck */
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar {
+  position: relative;
+  z-index: 35;
+  overflow: visible !important;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur)) saturate(165%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(165%);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-sm), inset 0 1px 0 var(--gl-specular);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-search-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 460px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-search-wrap > i {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gl-accent);
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 2;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-search-wrap input {
+  width: 100%;
+  height: 40px !important;
+  padding: 8px 14px 8px 36px !important;
+  border-radius: 12px !important;
+  box-sizing: border-box;
+}
+
+/* Native Crystal Glass Group Selection Dropdown */
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-wrap {
+  flex-shrink: 0;
+  z-index: 40;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-btn {
+  height: 40px !important;
+  padding: 0 13px !important;
+  border-radius: 12px !important;
+  background: var(--gl-btn-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft);
+  color: var(--gl-text) !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  max-width: 210px;
+  gap: 7px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-btn:hover,
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-btn.is-active {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-clear {
+  height: 40px !important;
+  width: 34px !important;
+  border-radius: 11px !important;
+  background: var(--gl-danger-bg) !important;
+  border-color: var(--gl-danger-border) !important;
+  color: var(--gl-danger-text) !important;
+  font-size: 15px !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-menu {
+  left: auto !important;
+  right: 0 !important;
+  top: calc(100% + 7px) !important;
+  min-width: 235px !important;
+  max-width: min(300px, calc(100vw - 24px)) !important;
+  max-height: 320px !important;
+  padding: 7px !important;
+  border-radius: 15px !important;
+  background: var(--gl-surface-strong) !important;
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%) !important;
+  border: 1px solid var(--gl-border-strong) !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+  z-index: 800 !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-search {
+  height: 34px !important;
+  padding: 5px 10px !important;
+  margin-bottom: 6px !important;
+  border-radius: 9px !important;
+  background: var(--gl-input-bg) !important;
+  border: 1px solid var(--gl-border) !important;
+  color: var(--gl-text) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-item {
+  padding: 7px 10px !important;
+  border-radius: 9px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--gl-text) !important;
+  transition: background 0.14s ease;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-item:hover {
+  background: var(--gl-btn-bg-hover) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-item.is-selected {
+  background: var(--gl-accent-bg) !important;
+  border: 1px solid var(--gl-accent-border) !important;
+  color: var(--gl-accent-text) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-item-cnt {
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border);
+  color: var(--gl-text-secondary) !important;
+  font-family: var(--gl-font-mono);
+}
+
+/* Spatial Glass Router Cards Grid */
+body[data-ngw-ui="aurora"] .ngw-gl-router-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-router-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 17px;
+  border-radius: 20px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-sm), inset 0 1px 0 var(--gl-specular);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-router-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--gl-accent-border);
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--gl-accent-bg), var(--gl-surface-soft));
+  border: 1px solid var(--gl-accent-border);
+  box-shadow: inset 0 1px 0 var(--gl-specular);
+  color: var(--gl-accent);
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: default;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-ico.has-hw-img {
+  width: 44px;
+  height: 44px;
+  padding: 4px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.34), var(--gl-surface-soft));
+}
+body[data-ngw-ui="aurora"][data-ngw-theme="light"] .ngw-gl-rcard-ico.has-hw-img {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.08), rgba(255, 255, 255, 0.72));
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-name {
+  font-family: var(--gl-font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gl-text);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-sub {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--gl-surface-soft);
+  border: 1px solid var(--gl-border);
+  color: var(--gl-text-secondary);
+  max-width: 100%;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-chip.is-accent {
+  background: var(--gl-accent-bg);
+  border-color: var(--gl-accent-border);
+  color: var(--gl-accent-text);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-chip.is-success {
+  background: var(--gl-success-bg);
+  border-color: var(--gl-success-border);
+  color: var(--gl-success-text);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-chip.is-danger {
+  background: var(--gl-danger-bg);
+  border-color: var(--gl-danger-border);
+  color: var(--gl-danger-text);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gl-border);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-actions .ngw-gl-open-btn {
+  flex: 1 1 auto;
+  height: 36px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-rcard-actions .ngw-gl-icon-btn {
+  height: 36px;
+  padding: 0 11px !important;
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-empty {
+  padding: 46px 20px;
+  text-align: center;
+  border-radius: 22px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur));
+  border: 1px solid var(--gl-border);
+  box-shadow: inset 0 1px 0 var(--gl-specular);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-empty-ico {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 16px;
+  background: var(--gl-accent-bg);
+  border: 1px solid var(--gl-accent-border);
+  color: var(--gl-accent);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   12. REDESIGNED SYSTEM 3: GLASS ADD/EDIT ROUTER STUDIO (settings/settings.php)
+   ========================================================================== */
+body[data-ngw-ui="aurora"] .ngw-gl-studio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(290px, 0.95fr);
+  gap: 18px;
+  align-items: start;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-studio-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-step-card {
+  padding: 20px 22px;
+  border-radius: 22px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-sm), inset 0 1px 0 var(--gl-specular);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--gl-border);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-step-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--gl-accent-bg);
+  border: 1px solid var(--gl-accent-border);
+  box-shadow: inset 0 1px 0 var(--gl-specular);
+  color: var(--gl-accent-text);
+  font-family: var(--gl-font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-step-title {
+  margin: 0;
+  font-family: var(--gl-font-display);
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--gl-text);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-step-desc {
+  font-size: 12px;
+  color: var(--gl-text-muted);
+  margin-top: 2px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-form-grid .is-full {
+  grid-column: 1 / -1;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-fgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-fgroup label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gl-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-fgroup input.form-control,
+body[data-ngw-ui="aurora"] .ngw-gl-fgroup select.form-control {
+  width: 100%;
+  height: 42px !important;
+  box-sizing: border-box;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-input-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-input-unit > input,
+body[data-ngw-ui="aurora"] .ngw-gl-input-unit > select {
+  flex: 1 1 auto;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-unit-badge {
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 11px;
+  background: var(--gl-surface-soft);
+  border: 1px solid var(--gl-border);
+  color: var(--gl-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-sugg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-sugg-chip {
+  padding: 4px 10px !important;
+  font-size: 11.5px !important;
+  border-radius: 9px !important;
+}
+
+/* Sticky Right Preview & Action Console */
+body[data-ngw-ui="aurora"] .ngw-gl-studio-aside {
+  position: sticky;
+  top: calc(var(--gl-topbar-h) + 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-preview-card {
+  padding: 20px;
+  border-radius: 22px;
+  background: linear-gradient(155deg, var(--gl-accent-bg), var(--gl-surface));
+  backdrop-filter: blur(var(--gl-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(180%);
+  border: 1px solid var(--gl-accent-border);
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-preview-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gl-accent-text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-preview-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 16px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--gl-surface-soft);
+  border: 1px solid var(--gl-border);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-preview-row span {
+  color: var(--gl-text-muted);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-preview-row b {
+  color: var(--gl-text);
+  font-family: var(--gl-font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 65%;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-studio-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-studio-actions .ngw-gl-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* ==========================================================================
+   13. REDESIGNED SYSTEM 4: GLASS RESELLER DIRECTORY (settings/resellers.php)
+   ========================================================================== */
+body[data-ngw-ui="aurora"] .ngw-gl-res-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-tile {
+  padding: 14px 16px;
+  border-radius: 17px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(170%);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-sm), inset 0 1px 0 var(--gl-specular);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--gl-accent-bg);
+  border: 1px solid var(--gl-accent-border);
+  color: var(--gl-accent);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-ico.is-green {
+  background: var(--gl-success-bg);
+  border-color: var(--gl-success-border);
+  color: var(--gl-success);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-ico.is-red {
+  background: var(--gl-danger-bg);
+  border-color: var(--gl-danger-border);
+  color: var(--gl-danger);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-val {
+  font-family: var(--gl-font-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--gl-text);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-kpi-lbl {
+  font-size: 12px;
+  color: var(--gl-text-muted);
+  margin-top: 2px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-res-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-res-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--gl-surface);
+  backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--gl-blur)) saturate(175%);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-sm), inset 0 1px 0 var(--gl-specular);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gl-accent-border);
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-res-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--gl-accent-bg), var(--gl-surface-soft));
+  border: 1px solid var(--gl-accent-border);
+  color: var(--gl-accent-text);
+  font-family: var(--gl-font-display);
+  font-size: 16px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-name {
+  font-family: var(--gl-font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gl-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-handle {
+  font-family: var(--gl-font-mono);
+  font-size: 11.5px;
+  color: var(--gl-text-muted);
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-res-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+body[data-ngw-ui="aurora"] .ngw-gl-res-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gl-border);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-actions > a,
+body[data-ngw-ui="aurora"] .ngw-gl-res-actions > button {
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-res-actions .is-grow {
+  flex: 1 1 auto;
+}
+
+/* Permission Group Cards Glass Styling */
+body[data-ngw-ui="aurora"] .ngw-pg-toolbar,
+body[data-ngw-ui="aurora"] .ngw-pg-sidebar,
+body[data-ngw-ui="aurora"] .ngw-pg-sec-card {
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-pg-item-box,
+body[data-ngw-ui="aurora"] .ngw-cp-tile {
+  background: var(--gl-btn-bg) !important;
+  border-color: var(--gl-border) !important;
+  border-radius: 10px !important;
+}
+
+/* ==========================================================================
+   14. GLASS SPOTLIGHT / COMMAND LAUNCHER MODAL (JS-Powered)
+   ========================================================================== */
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4200;
+  background: rgba(4, 9, 20, 0.56);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 16px 24px;
+  box-sizing: border-box;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-backdrop.is-open {
+  display: flex;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-dialog {
+  width: 100%;
+  max-width: 560px;
+  border-radius: 22px;
+  background: var(--gl-surface-strong);
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(190%);
+  border: 1px solid var(--gl-border-strong);
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gl-border);
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-head i {
+  color: var(--gl-accent);
+  font-size: 15px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-input {
+  flex: 1;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--gl-text) !important;
+  font-size: 14.5px !important;
+  padding: 4px 0 !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--gl-btn-bg);
+  border: 1px solid var(--gl-border);
+  color: var(--gl-text) !important;
+  text-decoration: none !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-item:hover,
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-item.is-focused {
+  background: var(--gl-accent-bg);
+  border-color: var(--gl-accent-border);
+  color: var(--gl-accent-text) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-item-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+body[data-ngw-ui="aurora"] .ngw-gl-cmd-item-left i {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--gl-surface-soft);
+  border: 1px solid var(--gl-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gl-accent);
+  font-size: 12px;
+}
+
+/* De-duplicate outer card chrome around Crystal Glass Reseller Directory */
+body[data-ngw-ui="aurora"] .ngw-reseller-page:has(.ngw-gl-res-shell) > .col-12 > .card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+}
+body[data-ngw-ui="aurora"] .ngw-reseller-page:has(.ngw-gl-res-shell) > .col-12 > .card > .card-header {
+  display: none !important;
+}
+body[data-ngw-ui="aurora"] .ngw-reseller-page:has(.ngw-gl-res-shell) > .col-12 > .card > .card-body {
+  padding: 0 !important;
+}
+
+/* Connect HUD, Toast Notify & UI Option Cards in Crystal Glass */
+body[data-ngw-ui="aurora"] .ngw-connect-hud,
+body[data-ngw-ui="aurora"] #notify .message {
+  background: var(--gl-surface-strong) !important;
+  backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%) !important;
+  -webkit-backdrop-filter: blur(var(--gl-blur-heavy)) saturate(185%) !important;
+  border: 1px solid var(--gl-border-strong) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--gl-shadow), inset 0 1px 0 var(--gl-specular) !important;
+  color: var(--gl-text) !important;
+}
+
+body[data-ngw-ui="aurora"] .ngw-ui-option-card {
+  background: var(--gl-surface-soft) !important;
+  border: 1px solid var(--gl-border) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular-soft) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+body[data-ngw-ui="aurora"] .ngw-ui-option-card.is-selected {
+  background: var(--gl-accent-bg) !important;
+  border-color: var(--gl-accent-border) !important;
+  box-shadow: inset 0 1px 0 var(--gl-specular), 0 10px 24px -8px rgba(14, 165, 233, 0.36) !important;
+}
+
+/* ==========================================================================
+   15. RESPONSIVE BREAKPOINTS (Tablet & Mobile Glass Drawer)
+   ========================================================================== */
+@media (max-width: 1240px) {
+  body[data-ngw-ui="aurora"] .ngw-gl-router-grid,
+  body[data-ngw-ui="aurora"] .ngw-gl-res-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar #ngw-local-datetime {
+    display: none !important;
+  }
+}
+
+@media (max-width: 980px) {
+  html,
+  body[data-ngw-ui="aurora"] {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  body[data-ngw-ui="aurora"] #navbar.navbar {
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    height: 50px !important;
+    padding: 0 8px !important;
+    border-radius: 15px !important;
+  }
+
+  body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left > span[title="Server CPU & RAM"],
+  body[data-ngw-ui="aurora"] .ngw-gl-cmd-trigger .ngw-gl-cmd-label,
+  body[data-ngw-ui="aurora"] .ngw-gl-cmd-trigger .ngw-gl-cmd-kbd {
+    display: none !important;
+  }
+
+  body[data-ngw-ui="aurora"] #sidenav.sidenav {
+    top: 8px !important;
+    left: 8px !important;
+    bottom: 8px !important;
+    width: min(272px, calc(100vw - 24px)) !important;
+    border-radius: 18px !important;
+    transform: translateX(calc(-100% - 28px)) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: 1260 !important;
+    background: var(--gl-surface-strong) !important;
+    backdrop-filter: blur(22px) saturate(185%) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(185%) !important;
+    box-shadow: 0 24px 56px -12px rgba(2, 6, 23, 0.65), inset 0 1px 0 var(--gl-specular) !important;
+  }
+
+  body[data-ngw-ui="aurora"] .ngw-gl-drawer-head {
+    display: flex !important;
+  }
+
+  body[data-ngw-ui="aurora"].ngw-gl-drawer-open #sidenav.sidenav {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  body[data-ngw-ui="aurora"] #main {
+    margin-left: 0 !important;
+    margin-top: 64px !important;
+    padding: 0 8px 22px !important;
+  }
+  body[data-ngw-ui="aurora"]:has(#navbar) #main,
+  body[data-ngw-ui="aurora"]:has(#navbar).ngw-gl-rail-collapsed #main {
+    top: 64px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    padding: 2px 8px 24px !important;
+  }
+
+  body[data-ngw-ui="aurora"] .ngw-gl-studio-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-studio-aside {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  body[data-ngw-ui="aurora"] {
+    --gl-topbar-h: 46px;
+  }
+
+  body[data-ngw-ui="aurora"] #navbar.navbar {
+    top: 6px !important;
+    left: 6px !important;
+    right: 6px !important;
+    height: 46px !important;
+    padding: 0 6px !important;
+    border-radius: 13px !important;
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar .navbar-left,
+  body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right {
+    gap: 4px !important;
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar a#openNav,
+  body[data-ngw-ui="aurora"] #navbar.navbar a#closeNav,
+  body[data-ngw-ui="aurora"] .ngw-gl-cmd-trigger {
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    justify-content: center !important;
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right select {
+    max-width: 72px !important;
+    height: 32px !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+    border-radius: 9px !important;
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar .ngw-brand-text,
+  body[data-ngw-ui="aurora"] #navbar.navbar .ngw-profile-trigger-name,
+  body[data-ngw-ui="aurora"] #navbar.navbar .navbar-right > a[title^="Idle Timeout"] {
+    display: none !important;
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar a#brand.ngw-brand-logo {
+    display: inline-flex !important;
+    width: 36px !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+    background: transparent !important;
+    border: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  body[data-ngw-ui="aurora"] #navbar.navbar a#brand.ngw-brand-logo span.ngw-brand-emblem {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  body[data-ngw-ui="aurora"] #main {
+    margin-top: 58px !important;
+    padding: 0 6px 18px !important;
+  }
+  body[data-ngw-ui="aurora"]:has(#navbar) #main,
+  body[data-ngw-ui="aurora"]:has(#navbar).ngw-gl-rail-collapsed #main {
+    top: 58px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    padding: 2px 6px 20px !important;
+  }
+
+  /* Compact Vertical Gaps */
+  body[data-ngw-ui="aurora"] .ngw-gl-hub,
+  body[data-ngw-ui="aurora"] .ngw-gl-studio,
+  body[data-ngw-ui="aurora"] .ngw-gl-res-shell {
+    gap: 10px !important;
+  }
+
+  /* Compact Glass Hero Banner */
+  body[data-ngw-ui="aurora"] .ngw-gl-hero {
+    padding: 11px 12px !important;
+    border-radius: 15px !important;
+    gap: 9px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-hero-left {
+    gap: 10px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-hero-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-hero-title {
+    font-size: 15.5px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-hero-sub {
+    font-size: 11px !important;
+    gap: 6px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-hero-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 6px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-hero-actions .ngw-glass-btn {
+    height: 33px !important;
+    padding: 0 11px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Compact Single-Row Search + Group Select Bar */
+  body[data-ngw-ui="aurora"] .ngw-gl-toolbar {
+    padding: 8px 9px !important;
+    border-radius: 14px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-toolbar-top {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-search-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-search-wrap > i {
+    left: 10px !important;
+    font-size: 12px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-search-wrap input {
+    height: 36px !important;
+    padding: 6px 10px 6px 30px !important;
+    font-size: 12.5px !important;
+    border-radius: 10px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-wrap {
+    margin-top: 0 !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-btn {
+    height: 36px !important;
+    padding: 0 9px !important;
+    font-size: 11.5px !important;
+    border-radius: 10px !important;
+    max-width: 132px !important;
+    gap: 5px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-btn-text {
+    max-width: 78px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-toolbar .ngw-rfilter-clear {
+    height: 36px !important;
+    width: 30px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Compact Glass Router Cards */
+  body[data-ngw-ui="aurora"] .ngw-gl-router-grid,
+  body[data-ngw-ui="aurora"] .ngw-gl-res-grid,
+  body[data-ngw-ui="aurora"] .ngw-gl-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-router-card {
+    padding: 11px 12px !important;
+    border-radius: 15px !important;
+    gap: 9px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-top {
+    gap: 10px !important;
+    align-items: center !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-ico {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    font-size: 16px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-ico.has-hw-img {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 3px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-name {
+    font-size: 14px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-sub {
+    margin-top: 3px !important;
+    gap: 4px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-chip {
+    padding: 2px 7px !important;
+    font-size: 10.5px !important;
+    border-radius: 6px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-actions {
+    padding-top: 9px !important;
+    gap: 6px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-actions .ngw-gl-open-btn,
+  body[data-ngw-ui="aurora"] .ngw-gl-rcard-actions .ngw-gl-icon-btn {
+    height: 33px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Compact 3-Column Mini KPI Strip & Compact Reseller Cards (Design Preserved) */
+  body[data-ngw-ui="aurora"] .ngw-gl-kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-kpi-tile {
+    padding: 9px 8px !important;
+    border-radius: 13px !important;
+    gap: 6px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-kpi-ico {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-kpi-val {
+    font-size: 17px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-kpi-lbl {
+    font-size: 10.5px !important;
+    line-height: 1.2 !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-card {
+    padding: 12px !important;
+    border-radius: 15px !important;
+    gap: 10px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 10px !important;
+    font-size: 13.5px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-name {
+    font-size: 13.5px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-actions {
+    padding-top: 9px !important;
+    gap: 5px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-actions > a,
+  body[data-ngw-ui="aurora"] .ngw-gl-res-actions > button {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-toolbar .ngw-gl-search-box {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-toolbar .ngw-gl-seg {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-res-toolbar .ngw-gl-seg > button {
+    padding: 6px 4px !important;
+    font-size: 11.5px !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+  }
+
+  /* Compact Add/Edit Router Studio & Standard Pages */
+  body[data-ngw-ui="aurora"] .ngw-gl-step-card,
+  body[data-ngw-ui="aurora"] .ngw-gl-preview-card {
+    padding: 13px !important;
+    border-radius: 15px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-step-head {
+    padding-bottom: 10px !important;
+    margin-bottom: 11px !important;
+    gap: 9px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-step-num {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 9px !important;
+    font-size: 11.5px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-step-title {
+    font-size: 14px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-fgroup input.form-control,
+  body[data-ngw-ui="aurora"] .ngw-gl-fgroup select.form-control {
+    height: 36px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-unit-badge {
+    height: 36px !important;
+    padding: 0 9px !important;
+    font-size: 11px !important;
+    border-radius: 9px !important;
+  }
+  body[data-ngw-ui="aurora"] .card {
+    margin: 4px 0 8px !important;
+    border-radius: 14px !important;
+  }
+  body[data-ngw-ui="aurora"] .card-header {
+    padding: 9px 11px !important;
+  }
+  body[data-ngw-ui="aurora"] .card-header h3 {
+    font-size: 13.5px !important;
+  }
+  body[data-ngw-ui="aurora"] .card-body {
+    padding: 9px 10px !important;
+  }
+  body[data-ngw-ui="aurora"] .box {
+    margin: 4px 0 !important;
+    padding: 9px 10px !important;
+    border-radius: 13px !important;
+    min-height: 0 !important;
+  }
+  body[data-ngw-ui="aurora"] .box h1 {
+    font-size: 19px !important;
+  }
+  body[data-ngw-ui="aurora"] .table:not(.ngw-mobile-card-table) th,
+  body[data-ngw-ui="aurora"] .table:not(.ngw-mobile-card-table) td {
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr {
+    background: var(--gl-panel) !important;
+    border: 1px solid var(--gl-border) !important;
+    border-radius: 15px !important;
+    padding: 12px 13px !important;
+    box-shadow: inset 0 1px 0 var(--gl-spec), 0 8px 20px rgba(2, 6, 23, 0.22) !important;
+    backdrop-filter: blur(12px) saturate(155%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(155%) !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr:hover {
+    background: var(--gl-panel-strong) !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td {
+    border-bottom-color: rgba(255, 255, 255, 0.11) !important;
+    color: var(--gl-text) !important;
+  }
+  body[data-ngw-ui="aurora"][data-ngw-theme="light"] table.ngw-mobile-card-table tbody tr td {
+    border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td.ngw-mc-head {
+    border-bottom-color: var(--gl-border) !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td.ngw-mc-actions {
+    border-top-color: var(--gl-border) !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td[data-label]::before {
+    color: var(--gl-muted) !important;
+    opacity: 1 !important;
+  }
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td.ngw-mc-actions .btn,
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td.ngw-mc-actions a.btn,
+  body[data-ngw-ui="aurora"] table.ngw-mobile-card-table tbody tr td.ngw-mc-actions button.btn {
+    border-radius: 10px !important;
+  }
+  body[data-ngw-ui="aurora"] .ngw-gl-login-card {
+    padding: 20px 16px 18px !important;
+    border-radius: 20px !important;
+  }
+}
+
+/* Reduced Motion Respect */
+@media (prefers-reduced-motion: reduce) {
+  body[data-ngw-ui="aurora"] *,
+  body[data-ngw-ui="aurora"] *::before,
+  body[data-ngw-ui="aurora"] *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

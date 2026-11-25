@@ -1,0 +1,1000 @@
+/*
+ * NextGen WiFi Solution — Reseller-only responsive refinements.
+ * VPN Hub deliberately retains its original page styling and layout.
+ * Inherit the selected NextGen theme; do not override page/card backgrounds.
+ */
+.ngw-reseller-page,
+.ngw-reseller-page * {
+  box-sizing: border-box;
+}
+.ngw-reseller-page {
+  width: 100%;
+  min-width: 0;
+}
+.ngw-reseller-page .card,
+.ngw-reseller-page .card-body,
+.ngw-reseller-page .row {
+  min-width: 0;
+  max-width: 100%;
+}
+.ngw-reseller-page .card {
+  border-radius: 4px;
+}
+.ngw-reseller-page .card-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.ngw-reseller-page .card-header h3,
+.ngw-reseller-page .card-header h4 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page .overflow {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.ngw-reseller-page table {
+  max-width: 100%;
+}
+.ngw-reseller-page input,
+.ngw-reseller-page select,
+.ngw-reseller-page textarea,
+.ngw-reseller-page .form-control {
+  max-width: 100%;
+}
+.ngw-reseller-page .btn {
+  min-height: 32px;
+  max-width: 100%;
+  white-space: normal;
+}
+.ngw-reseller-page .ngw-action-menu,
+.ngw-reseller-page .ngw-router-dd-panel {
+  border: 1px solid rgba(127, 127, 127, .55);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
+.ngw-reseller-page[data-theme="dark"] .ngw-action-menu,
+.ngw-reseller-page[data-theme="dark"] .ngw-router-dd-panel {
+  background-color: #3a4149;
+  color: #f3f4f5;
+}
+.ngw-reseller-page[data-theme="blue"] .ngw-action-menu,
+.ngw-reseller-page[data-theme="blue"] .ngw-router-dd-panel {
+  background-color: #ffffff;
+  color: #3e3e3e;
+  border-color: #008bc9;
+}
+.ngw-reseller-page .ngw-action-menu.card {
+  padding: 4px 0;
+}
+.ngw-reseller-page .ngw-action-menu a {
+  display: block;
+  padding: 7px 12px;
+  color: inherit !important;
+}
+.ngw-reseller-page .ngw-action-menu a:hover {
+  background-color: #20a8d8;
+  color: #ffffff !important;
+}
+.ngw-reseller-page .ngw-action-menu a {
+  color: inherit !important;
+}
+.ngw-reseller-page .ngw-action-menu a:hover,
+.ngw-reseller-page .ngw-router-dd-item:hover,
+.ngw-reseller-page .ngw-dots-btn:hover {
+  background-color: rgba(127, 127, 127, .18);
+  color: inherit !important;
+}
+.ngw-reseller-page .ngw-dots-btn.btn.bg-primary {
+  min-width: 34px;
+  min-height: 32px;
+  padding: 4px 9px;
+  color: #ffffff;
+  background-color: #20a8d8;
+  border: 1px solid #20a8d8;
+  border-radius: 4px;
+  opacity: 1;
+}
+.ngw-reseller-page .ngw-dots-btn.btn.bg-primary:hover,
+.ngw-reseller-page .ngw-dots-btn.btn.bg-primary:focus {
+  color: #ffffff;
+  background-color: #1985ac;
+  border-color: #1985ac;
+}
+.ngw-reseller-page .ngw-modal-box {
+  width: 100%;
+  max-width: 580px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 10px auto;
+}
+.ngw-reseller-page .ngw-modal-box .card-body {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .ngw-reseller-page > .row > [class*="col-"] {
+    width: 100%;
+    max-width: 100%;
+    float: none;
+  }
+  .ngw-reseller-page .card {
+    margin: 5px 0;
+  }
+  .ngw-reseller-page .card-body {
+    padding: 8px;
+  }
+  .ngw-reseller-page .card-header {
+    padding: 8px 10px;
+  }
+  .ngw-reseller-page .card-header > div {
+    width: 100%;
+  }
+  .ngw-reseller-page .overflow {
+    max-height: 65vh;
+  }
+  .ngw-reseller-page .ngw-login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+  }
+  .ngw-reseller-page .ngw-action-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ngw-reseller-page .ngw-action-menu {
+    left: auto;
+    right: 0;
+    min-width: 165px;
+    max-width: min(82vw, 220px);
+  }
+  .ngw-reseller-page .ngw-action-menu a {
+    padding: 9px 11px;
+    white-space: normal;
+  }
+  .ngw-reseller-page .ngw-dots-btn.btn.bg-primary {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px 8px;
+  }
+  .ngw-reseller-page .ngw-modal-box .table td {
+    padding: 6px;
+    overflow-wrap: anywhere;
+  }
+  .ngw-reseller-page .table,
+  .ngw-reseller-page .table.text-nowrap {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+  }
+  .ngw-reseller-page .table th,
+  .ngw-reseller-page .table td {
+    padding: 4px 3px !important;
+    font-size: 11px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    vertical-align: middle;
+  }
+  .ngw-reseller-page .ngw-mode-chip {
+    min-height: 20px;
+    padding: 2px 5px;
+    font-size: 10px;
+  }
+  .ngw-reseller-page .row [class*="col-"] {
+    min-width: 0;
+  }
+  .ngw-reseller-page .ngw-modal-box {
+    max-height: calc(100dvh - 20px);
+    margin: 0 auto;
+  }
+  .ngw-reseller-page .ngw-modal-box .row [class*="col-"] {
+    width: 100%;
+    float: none;
+  }
+}
+@media (max-width: 420px) {
+  .ngw-reseller-page .btn {
+    margin: 2px 1px;
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  .ngw-reseller-page .box {
+    margin: 3px 0;
+  }
+}
+
+
+/* Reseller management: refined inputs, permission tiles and floating actions */
+.ngw-reseller-page .ngw-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  color: #fff;
+  background: #20a8d8;
+  border: 1px solid #20a8d8;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.ngw-reseller-page .ngw-action-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ngw-action-menu-floating {
+  position: fixed !important;
+  min-width: 180px;
+  max-width: min(260px, calc(100vw - 16px));
+  margin: 0 !important;
+  padding: 5px !important;
+  border-radius: 7px !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .42) !important;
+  transform: none !important;
+}
+.ngw-reseller-page .ngw-action-menu-floating[data-theme="dark"] {
+  background: #252b31 !important;
+  color: #f3f4f5 !important;
+  border: 1px solid #56616b !important;
+}
+.ngw-reseller-page .ngw-action-menu-floating[data-theme="blue"] {
+  background: #fff !important;
+  color: #303840 !important;
+  border: 1px solid #008bc9 !important;
+}
+.ngw-reseller-page .ngw-action-menu-floating a {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 10px !important;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.ngw-reseller-page .ngw-action-menu-floating a:hover {
+  background: #20a8d8 !important;
+  color: #fff !important;
+}
+.ngw-reseller-page #resellerFormModal .form-control,
+.ngw-reseller-page #resellerFormModal input[type="text"],
+.ngw-reseller-page #resellerFormModal input[type="password"],
+.ngw-reseller-page #resellerFormModal select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid #56616b;
+  border-radius: 6px;
+  background: #252b31;
+  color: #f3f4f5;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .16);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.ngw-reseller-page #resellerFormModal .form-control:focus,
+.ngw-reseller-page #resellerFormModal input:focus,
+.ngw-reseller-page #resellerFormModal select:focus {
+  outline: none;
+  border-color: #20a8d8;
+  box-shadow: 0 0 0 3px rgba(32, 168, 216, .18);
+}
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal .form-control,
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal input[type="text"],
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal input[type="password"],
+.ngw-reseller-page[data-theme="blue"] #resellerFormModal select {
+  background: #fff;
+  color: #303840;
+  border-color: #b8c7d1;
+}
+.ngw-reseller-page #resellerFormModal table,
+.ngw-reseller-page #resellerFormModal tbody,
+.ngw-reseller-page #resellerFormModal tr,
+.ngw-reseller-page #resellerFormModal td {
+  border: 0 !important;
+  background: transparent !important;
+}
+.ngw-reseller-page #resellerFormModal td {
+  padding: 7px 6px;
+  vertical-align: middle;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  height: 100%;
+  margin: 2px 0;
+  padding: 8px 10px;
+  border: 1px solid #46515b;
+  border-radius: 6px;
+  background: #252b31;
+  color: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile:has(input:checked) {
+  background: rgba(32, 168, 216, .18);
+  border: 1px solid #20a8d8;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #20a8d8;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile span {
+  line-height: 1.35;
+}
+.ngw-reseller-page[data-theme="blue"] #customPermChecklist .ngw-permission-tile {
+  background: #f5f9fc;
+  color: #303840;
+  border-color: #c8d8e3;
+}
+.ngw-reseller-page[data-theme="blue"] #customPermChecklist .ngw-permission-tile:has(input:checked) {
+  background: #dff4fc;
+  border-color: #20a8d8;
+}
+
+
+/* Reseller modal: compact router selector and neutral permission checklist */
+.ngw-reseller-page #routerDropdownWrap,
+.ngw-reseller-page .ngw-router-dd-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.ngw-reseller-page #routerDropdownWrap .ngw-router-dd-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  overflow: hidden;
+  text-align: left;
+}
+.ngw-reseller-page #routerDropdownLabel {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ngw-reseller-page #routerDropdownWrap .ngw-router-dd-btn > i {
+  flex: 0 0 auto;
+}
+.ngw-reseller-page #routerDropdownPanel,
+.ngw-reseller-page .ngw-router-dd-panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  max-height: 220px;
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+}
+.ngw-reseller-page .ngw-router-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 7px 5px;
+  margin: 0;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.ngw-reseller-page .ngw-router-dd-item input {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.ngw-reseller-page .ngw-router-dd-item b,
+.ngw-reseller-page .ngw-router-dd-item small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page #resellerFormModal .table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.ngw-reseller-page #resellerFormModal .table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  height: auto;
+  margin: 0;
+  padding: 3px 2px;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: inherit;
+  box-shadow: none !important;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile:has(input:checked) {
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-tile input {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.ngw-reseller-page #customPermChecklist .ngw-permission-col {
+  min-width: 0;
+}
+.ngw-reseller-page #customPermChecklist .card-body > div > div:first-child {
+  padding: 3px 0 !important;
+  border-bottom: 1px solid rgba(127,127,127,.28) !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+@media (max-width: 767px) {
+  .ngw-reseller-page #resellerFormModal .table {
+    table-layout: fixed;
+  }
+  .ngw-reseller-page #resellerFormModal .table tr {
+    display: grid;
+    grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
+    align-items: center;
+    width: 100%;
+  }
+  .ngw-reseller-page #resellerFormModal .table td {
+    width: auto !important;
+    min-width: 0;
+    padding: 6px 4px;
+    overflow-wrap: anywhere;
+  }
+  .ngw-reseller-page #customPermChecklist .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+  .ngw-reseller-page #customPermChecklist .ngw-permission-col {
+    width: 50%;
+    max-width: 50%;
+    flex: 0 0 50%;
+    padding: 2px 4px !important;
+  }
+}
+
+
+/* Reseller details: clean, deduplicated assigned-router presentation */
+.ngw-reseller-page .ngw-router-detail-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: inherit;
+  font-size: 12px;
+}
+.ngw-reseller-page .ngw-router-detail-summary b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 27px;
+  min-height: 24px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #fff;
+  background: #20a8d8;
+}
+.ngw-reseller-page .ngw-router-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.ngw-reseller-page .ngw-router-detail-chip {
+  display: block;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(127,127,127,.35);
+  border-radius: 5px;
+  background: rgba(127,127,127,.08);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.ngw-reseller-page #resellerDetailsModal .table td {
+  vertical-align: middle;
+}
+.ngw-reseller-page #resellerDetailsModal #det_routers {
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 767px) {
+  .ngw-reseller-page .ngw-router-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .ngw-reseller-page .ngw-router-detail-chip {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+}
+
+
+/* Reseller router details: one distinct hotspot server per numbered row */
+.ngw-reseller-page .ngw-router-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.ngw-reseller-page .ngw-router-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(127,127,127,.32);
+  border-radius: 5px;
+  background: rgba(127,127,127,.07);
+}
+.ngw-reseller-page .ngw-router-detail-number {
+  display: inline-flex;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #20a8d8;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ngw-reseller-page .ngw-router-detail-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/*
+ * Global Mobile-Compact Refinements (<= 767px):
+ * Strictly scoped to mobile viewports — desktop (> 767px) remains 100% untouched.
+ * Eliminates horizontal page overflow while keeping data tables readable and
+ * converting management list tables (.ngw-mobile-card-table) into clean cards.
+ */
+@media screen and (max-width: 767px) {
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .wrapper,
+  #main,
+  .main-container,
+  .row,
+  [class*="col-"] {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  #main {
+    padding: 3px !important;
+    margin-top: 50px !important;
+  }
+  .card {
+    margin: 4px 2px 8px !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 8px 10px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px 10px !important;
+  }
+  .card-header h3,
+  .card-header .card-title {
+    font-size: 13.5px !important;
+    line-height: 1.35;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+  .card-body {
+    padding: 8px 8px !important;
+  }
+  .box {
+    margin: 4px 2px !important;
+    padding: 8px !important;
+  }
+  .btn {
+    padding: 4px 9px;
+    font-size: 11.5px;
+    margin: 2px 1px;
+  }
+  .form-control,
+  .group-item,
+  select,
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="date"] {
+    font-size: 12.5px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Scrollable wrapper for wide RouterOS data tables (Hotspot, PPPoE, Reports, Logs, etc.) */
+  .overflow {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Wide data tables inside .overflow stay crisp & legible with smooth horizontal scroll inside .overflow */
+  .overflow > table.table:not(.ngw-mobile-card-table) {
+    width: max-content !important;
+    min-width: 100% !important;
+    max-width: none !important;
+  }
+  .overflow > table.table:not(.ngw-mobile-card-table) th,
+  .overflow > table.table:not(.ngw-mobile-card-table) td {
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+  /* Non-overflow layout/form tables wrap gracefully without letter-by-letter breaking */
+  table.table:not(.ngw-mobile-card-table) {
+    max-width: 100%;
+  }
+  .card-body > table.table:not(.ngw-mobile-card-table) th,
+  .card-body > table.table:not(.ngw-mobile-card-table) td,
+  form > table.table:not(.ngw-mobile-card-table) th,
+  form > table.table:not(.ngw-mobile-card-table) td {
+    padding: 6px 5px !important;
+    font-size: 12px !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+  }
+  .vpn-secret-actions,
+  .pppoe-actions {
+    min-width: 0 !important;
+    white-space: nowrap !important;
+  }
+  .preset-btn {
+    padding: 3px 6px !important;
+    font-size: 11px !important;
+    margin: 1px !important;
+  }
+
+  /* ---------- Unified Mobile Card-Table System (Management Lists across ALL 4 UIs) ---------- */
+  .overflow.ngw-mobile-card-wrap {
+    overflow: visible !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+  table.ngw-mobile-card-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    border-collapse: separate !important;
+    white-space: normal !important;
+  }
+  table.ngw-mobile-card-table thead {
+    display: none !important;
+  }
+  table.ngw-mobile-card-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  table.ngw-mobile-card-table tbody tr {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(148, 163, 184, 0.28) !important;
+    background: rgba(148, 163, 184, 0.08) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+  body[data-ngw-theme="light"] table.ngw-mobile-card-table tbody tr {
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.15) !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+  }
+  table.ngw-mobile-card-table tbody tr td {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 6px 0 !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16) !important;
+    background: transparent !important;
+    text-align: right !important;
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    box-sizing: border-box !important;
+  }
+  table.ngw-mobile-card-table tbody tr td:last-child {
+    border-bottom: none !important;
+    padding-bottom: 2px !important;
+  }
+  table.ngw-mobile-card-table tbody tr td[data-label]::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.72;
+    text-align: left;
+    flex-shrink: 0;
+    max-width: 44%;
+    line-height: 1.3;
+  }
+  table.ngw-mobile-card-table tbody tr td[colspan] {
+    justify-content: center !important;
+    text-align: center !important;
+    border-bottom: none !important;
+    padding: 14px 8px !important;
+  }
+  table.ngw-mobile-card-table tbody tr td[colspan]::before {
+    display: none !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-hide-mobile {
+    display: none !important;
+  }
+  /* Card Header Cell (Primary Name / Username) */
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-head {
+    order: -2 !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    text-align: left !important;
+    min-height: 36px !important;
+    padding: 2px 0 10px !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.24) !important;
+    font-size: 13.5px !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-head::before {
+    display: none !important;
+  }
+  /* Top-Right Floating Three-Dot Menu Cell (Reseller List) */
+  table.ngw-mobile-card-table tbody tr.ngw-mc-has-corner-menu td.ngw-mc-head {
+    padding-right: 42px !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-corner-menu {
+    position: absolute !important;
+    top: 10px !important;
+    right: 11px !important;
+    width: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    justify-content: flex-end !important;
+    z-index: 3 !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-corner-menu::before {
+    display: none !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-corner-menu .ngw-dots-btn {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 7px !important;
+  }
+  /* Full-Width Stacked Section Cell (Permissions chips, Select dropdowns, Checkboxes, Long details) */
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    gap: 6px !important;
+    padding: 8px 0 !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-stack::before {
+    max-width: 100% !important;
+    font-size: 10.5px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.68;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-stack select.form-control,
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-stack input.form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* Card Footer Action Bar (single divider comes cleanly from preceding row) */
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions {
+    order: 99 !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
+    padding: 9px 0 2px !important;
+    margin-top: 0 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    text-align: left !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions::before {
+    display: none !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions > form {
+    display: inline-flex !important;
+    margin: 0 !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions .btn,
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions a.btn,
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions button.btn {
+    height: 32px !important;
+    min-height: 32px !important;
+    line-height: 1 !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions.is-full-cta .btn,
+  table.ngw-mobile-card-table tbody tr td.ngw-mc-actions.is-full-cta a.btn {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    font-weight: 700 !important;
+  }
+  table.ngw-mobile-card-table tbody tr td .ngw-table-perm-list {
+    justify-content: flex-start !important;
+    gap: 5px !important;
+  }
+  table.ngw-mobile-card-table tbody tr td .ngw-table-perm-chip {
+    font-size: 10.5px !important;
+    padding: 2px 7px !important;
+  }
+  table.ngw-mobile-card-table tbody tr td .ngw-ui-perm-check-wrap {
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  table.ngw-mobile-card-table tbody tr td .ngw-ui-perm-check {
+    font-size: 11.5px !important;
+    padding: 5px 9px !important;
+  }
+
+  /* Reseller top nav header links wrap neatly on narrow phones */
+  .ngw-reseller-nav-title {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 5px 8px !important;
+    line-height: 1.4 !important;
+  }
+  .ngw-reseller-nav-sep {
+    opacity: 0.4;
+  }
+}
+
+/* Mobile Form-Stacking Helper for 2-Column Label/Input Tables (<= 600px) */
+@media screen and (max-width: 600px) {
+  table.ngw-form-stack-table,
+  table.ngw-form-stack-table tbody,
+  table.ngw-form-stack-table tr,
+  table.ngw-form-stack-table td {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  table.ngw-form-stack-table tr {
+    margin-bottom: 8px !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    padding-bottom: 6px !important;
+  }
+  table.ngw-form-stack-table tr:last-child {
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+  table.ngw-form-stack-table td {
+    border: none !important;
+    padding: 2px 0 !important;
+  }
+  table.ngw-form-stack-table td:first-child:not([colspan]) {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    opacity: 0.85;
+    padding-bottom: 4px !important;
+  }
+  table.ngw-form-stack-table td:first-child:empty {
+    display: none !important;
+  }
+}
+
+/* ---------- Auto-Detected MikroTik Router Hardware Illustrations (Zero Box-Shift Across All 4 UIs) ---------- */
+.ngw-rtr-hw-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: middle;
+  line-height: 1;
+  cursor: default;
+  box-sizing: border-box;
+}
+.ngw-rtr-hw-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+  user-select: none;
+}
+.ngw-rpicker-card-ico.has-hw-img {
+  padding: 3px !important;
+  overflow: hidden;
+}
+.ngw-rpicker-card-ico.has-hw-img .ngw-rtr-hw-img {
+  width: 28px;
+  height: 22px;
+}
+
+
+

@@ -1,0 +1,45 @@
+<?php http_response_code(404); exit; ?>
+{
+    "030cf65354c36ced77eb554866ee3e35": {
+        "token": "030cf65354c36ced77eb554866ee3e35",
+        "php_sid": "20vpjv8uft0rpeq6371ninh2pg",
+        "username": "mikhmon",
+        "display_name": "Administrator",
+        "role": "admin",
+        "impersonated_by": "",
+        "ip": "127.0.0.1",
+        "area": "UTC",
+        "device": "Linux \u00b7 Chrome 155 (Desktop)",
+        "device_type": "Desktop",
+        "os": "Linux",
+        "browser": "Chrome 155",
+        "current_page": "Router",
+        "router_session": "",
+        "login_at": "2026-11-25 01:52:30",
+        "login_ts": 1795571550,
+        "last_active": "2026-11-25 01:52:30",
+        "last_active_ts": 1795571550,
+        "revoked": false
+    },
+    "046ff244ba9f92f0c5ea2b01eb8c16a4": {
+        "token": "046ff244ba9f92f0c5ea2b01eb8c16a4",
+        "php_sid": "cmp0g0hm6nvqhluggqkjundf29",
+        "username": "mikhmon",
+        "display_name": "Administrator",
+        "role": "admin",
+        "impersonated_by": "",
+        "ip": "127.0.0.1",
+        "area": "UTC",
+        "device": "Linux \u00b7 Chrome 155 (Desktop)",
+        "device_type": "Desktop",
+        "os": "Linux",
+        "browser": "Chrome 155",
+        "current_page": "Router",
+        "router_session": "",
+        "login_at": "2026-11-25 01:54:19",
+        "login_ts": 1795571659,
+        "last_active": "2026-11-25 01:54:27",
+        "last_active_ts": 1795571667,
+        "revoked": false
+    }
+}

@@ -1,0 +1,2896 @@
+/*
+ * ============================================================================
+ * NextGan WiFi Solution — Modern Architectural Network OS UI (2026 Redesign)
+ * Pure presentation layer: 100% preserves all backend logic, routes, and forms.
+ * Supports all 5 themes: dark, light, blue, green, pink.
+ * ============================================================================
+ */
+
+/* ---------- 1. Theme Tokens (60-30-10 Color Discipline + High Contrast) ---------- */
+body[data-ngw-ui="modern"] {
+  --ngw-font-display: 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ngw-font-body: 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ngw-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Default: Dark — Midnight Obsidian Console */
+  --ngw-canvas: #0b0f17;
+  --ngw-canvas-dot: rgba(148, 163, 184, 0.08);
+  --ngw-canvas-glow: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59, 130, 246, 0.11), transparent 65%);
+  --ngw-nav-bg: rgba(14, 19, 30, 0.84);
+  --ngw-nav-border: rgba(148, 163, 184, 0.12);
+  --ngw-nav-text: #f1f5f9;
+  --ngw-nav-muted: #94a3b8;
+
+  --ngw-side-bg: #101624;
+  --ngw-side-border: rgba(148, 163, 184, 0.11);
+  --ngw-side-text: #cbd5e1;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(148, 163, 184, 0.09);
+  --ngw-side-active-bg: rgba(59, 130, 246, 0.16);
+  --ngw-side-active-border: rgba(59, 130, 246, 0.34);
+  --ngw-side-active-text: #93c5fd;
+  --ngw-side-icon-bg: rgba(148, 163, 184, 0.09);
+  --ngw-side-icon-active-bg: rgba(59, 130, 246, 0.24);
+  --ngw-side-sub-bg: rgba(7, 10, 17, 0.42);
+  --ngw-side-sub-line: rgba(148, 163, 184, 0.16);
+  --ngw-side-shadow: 0 18px 42px -12px rgba(0, 0, 0, 0.55);
+
+  --ngw-card-bg: #131a28;
+  --ngw-card-header-bg: rgba(255, 255, 255, 0.02);
+  --ngw-surface-2: #182133;
+  --ngw-surface-hover: rgba(148, 163, 184, 0.065);
+  --ngw-border: rgba(148, 163, 184, 0.13);
+  --ngw-border-subtle: rgba(148, 163, 184, 0.08);
+  --ngw-border-strong: rgba(148, 163, 184, 0.24);
+  --ngw-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 24px -12px rgba(0, 0, 0, 0.45);
+
+  --ngw-text: #f1f5f9;
+  --ngw-text-secondary: #cbd5e1;
+  --ngw-text-muted: #8b9bb4;
+  --ngw-link: #60a5fa;
+
+  --ngw-input-bg: #0d1320;
+  --ngw-input-border: rgba(148, 163, 184, 0.22);
+  --ngw-input-text: #f8fafc;
+  --ngw-input-placeholder: #64748b;
+  --ngw-focus-ring: rgba(59, 130, 246, 0.26);
+
+  --ngw-accent: #3b82f6;
+  --ngw-accent-hover: #2563eb;
+  --ngw-accent-soft: rgba(59, 130, 246, 0.15);
+  --ngw-accent-text: #60a5fa;
+
+  --ngw-success: #10b981;
+  --ngw-success-hover: #059669;
+  --ngw-danger: #ef4444;
+  --ngw-danger-hover: #dc2626;
+  --ngw-warning: #d97706;
+  --ngw-warning-hover: #b45309;
+  --ngw-info: #0ea5e9;
+  --ngw-info-hover: #0284c7;
+  --ngw-secondary: #334155;
+  --ngw-secondary-hover: #475569;
+
+  --ngw-dropdown-bg: #151e2e;
+  --ngw-dropdown-border: rgba(148, 163, 184, 0.18);
+  --ngw-dropdown-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.65);
+
+  --ngw-radius-xs: 6px;
+  --ngw-radius-sm: 9px;
+  --ngw-radius-md: 14px;
+  --ngw-radius-lg: 18px;
+}
+
+/* Light — Porcelain Architectural Studio */
+body[data-ngw-ui="modern"][data-ngw-theme="light"] {
+  --ngw-canvas: #f3f5f9;
+  --ngw-canvas-dot: rgba(15, 23, 42, 0.055);
+  --ngw-canvas-glow: radial-gradient(ellipse 80% 45% at 50% -10%, rgba(37, 99, 235, 0.07), transparent 65%);
+  --ngw-nav-bg: rgba(255, 255, 255, 0.88);
+  --ngw-nav-border: rgba(15, 23, 42, 0.08);
+  --ngw-nav-text: #0f172a;
+  --ngw-nav-muted: #64748b;
+
+  --ngw-side-bg: #ffffff;
+  --ngw-side-border: rgba(15, 23, 42, 0.08);
+  --ngw-side-text: #475569;
+  --ngw-side-text-hover: #0f172a;
+  --ngw-side-hover-bg: #f1f5f9;
+  --ngw-side-active-bg: #eff6ff;
+  --ngw-side-active-border: rgba(37, 99, 235, 0.24);
+  --ngw-side-active-text: #1d4ed8;
+  --ngw-side-icon-bg: #f1f5f9;
+  --ngw-side-icon-active-bg: #dbeafe;
+  --ngw-side-sub-bg: #f8fafc;
+  --ngw-side-sub-line: #cbd5e1;
+  --ngw-side-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.11);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #fafbfd;
+  --ngw-surface-2: #f8fafc;
+  --ngw-surface-hover: #f1f5f9;
+  --ngw-border: rgba(15, 23, 42, 0.09);
+  --ngw-border-subtle: rgba(15, 23, 42, 0.06);
+  --ngw-border-strong: #cbd5e1;
+  --ngw-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -14px rgba(15, 23, 42, 0.09);
+
+  --ngw-text: #0f172a;
+  --ngw-text-secondary: #334155;
+  --ngw-text-muted: #64748b;
+  --ngw-link: #2563eb;
+
+  --ngw-input-bg: #ffffff;
+  --ngw-input-border: #cbd5e1;
+  --ngw-input-text: #0f172a;
+  --ngw-input-placeholder: #94a3b8;
+  --ngw-focus-ring: rgba(37, 99, 235, 0.18);
+
+  --ngw-accent: #2563eb;
+  --ngw-accent-hover: #1d4ed8;
+  --ngw-accent-soft: rgba(37, 99, 235, 0.1);
+  --ngw-accent-text: #1d4ed8;
+
+  --ngw-secondary: #475569;
+  --ngw-secondary-hover: #334155;
+
+  --ngw-dropdown-bg: #ffffff;
+  --ngw-dropdown-border: rgba(15, 23, 42, 0.11);
+  --ngw-dropdown-shadow: 0 20px 44px -12px rgba(15, 23, 42, 0.16);
+}
+
+/* Blue — Nordic Glacier Slate (Deep Navy Rail + Airy Glacier Workspace) */
+body[data-ngw-ui="modern"][data-ngw-theme="blue"] {
+  --ngw-canvas: #eef4fb;
+  --ngw-canvas-dot: rgba(2, 132, 199, 0.07);
+  --ngw-canvas-glow: radial-gradient(ellipse 80% 45% at 50% -10%, rgba(2, 132, 199, 0.1), transparent 65%);
+  --ngw-nav-bg: rgba(255, 255, 255, 0.9);
+  --ngw-nav-border: rgba(12, 74, 110, 0.1);
+  --ngw-nav-text: #0c1f3a;
+  --ngw-nav-muted: #4b6584;
+
+  --ngw-side-bg: #0c1f3d;
+  --ngw-side-border: rgba(125, 211, 252, 0.14);
+  --ngw-side-text: #bfd6f0;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(125, 211, 252, 0.1);
+  --ngw-side-active-bg: rgba(14, 165, 233, 0.22);
+  --ngw-side-active-border: rgba(56, 189, 248, 0.42);
+  --ngw-side-active-text: #e0f2fe;
+  --ngw-side-icon-bg: rgba(125, 211, 252, 0.1);
+  --ngw-side-icon-active-bg: rgba(14, 165, 233, 0.34);
+  --ngw-side-sub-bg: rgba(5, 14, 30, 0.35);
+  --ngw-side-sub-line: rgba(125, 211, 252, 0.22);
+  --ngw-side-shadow: 0 18px 40px -12px rgba(12, 31, 61, 0.32);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #f6faff;
+  --ngw-surface-2: #f1f6fc;
+  --ngw-surface-hover: #edf4fc;
+  --ngw-border: rgba(12, 74, 110, 0.11);
+  --ngw-border-subtle: rgba(12, 74, 110, 0.065);
+  --ngw-border-strong: #b8cde2;
+  --ngw-card-shadow: 0 1px 2px rgba(12, 31, 61, 0.04), 0 10px 26px -14px rgba(12, 31, 61, 0.1);
+
+  --ngw-text: #0f1f38;
+  --ngw-text-secondary: #334e6f;
+  --ngw-text-muted: #5a7394;
+  --ngw-link: #0284c7;
+
+  --ngw-input-bg: #ffffff;
+  --ngw-input-border: #bdd0e4;
+  --ngw-input-text: #0f1f38;
+  --ngw-input-placeholder: #7c95b4;
+  --ngw-focus-ring: rgba(2, 132, 199, 0.2);
+
+  --ngw-accent: #0284c7;
+  --ngw-accent-hover: #0369a1;
+  --ngw-accent-soft: rgba(2, 132, 199, 0.11);
+  --ngw-accent-text: #0369a1;
+
+  --ngw-secondary: #475569;
+  --ngw-secondary-hover: #334155;
+
+  --ngw-dropdown-bg: #ffffff;
+  --ngw-dropdown-border: rgba(12, 74, 110, 0.14);
+  --ngw-dropdown-shadow: 0 20px 44px -12px rgba(12, 31, 61, 0.18);
+}
+
+/* Green — Botanical Emerald Console (Deep Forest Rail + Crisp Sage Workspace) */
+body[data-ngw-ui="modern"][data-ngw-theme="green"] {
+  --ngw-canvas: #eff6f2;
+  --ngw-canvas-dot: rgba(5, 150, 105, 0.065);
+  --ngw-canvas-glow: radial-gradient(ellipse 80% 45% at 50% -10%, rgba(16, 185, 129, 0.09), transparent 65%);
+  --ngw-nav-bg: rgba(255, 255, 255, 0.9);
+  --ngw-nav-border: rgba(6, 78, 59, 0.1);
+  --ngw-nav-text: #0d261e;
+  --ngw-nav-muted: #4b6b60;
+
+  --ngw-side-bg: #0b231c;
+  --ngw-side-border: rgba(110, 231, 183, 0.14);
+  --ngw-side-text: #b7ded0;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(110, 231, 183, 0.1);
+  --ngw-side-active-bg: rgba(16, 185, 129, 0.22);
+  --ngw-side-active-border: rgba(52, 211, 153, 0.4);
+  --ngw-side-active-text: #d1fae5;
+  --ngw-side-icon-bg: rgba(110, 231, 183, 0.1);
+  --ngw-side-icon-active-bg: rgba(16, 185, 129, 0.34);
+  --ngw-side-sub-bg: rgba(4, 15, 12, 0.36);
+  --ngw-side-sub-line: rgba(110, 231, 183, 0.22);
+  --ngw-side-shadow: 0 18px 40px -12px rgba(6, 35, 28, 0.32);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #f6fbf8;
+  --ngw-surface-2: #f0f8f4;
+  --ngw-surface-hover: #ebf5f0;
+  --ngw-border: rgba(6, 78, 59, 0.1);
+  --ngw-border-subtle: rgba(6, 78, 59, 0.065);
+  --ngw-border-strong: #b8d6ca;
+  --ngw-card-shadow: 0 1px 2px rgba(6, 35, 28, 0.04), 0 10px 26px -14px rgba(6, 35, 28, 0.1);
+
+  --ngw-text: #0f261f;
+  --ngw-text-secondary: #2e4f44;
+  --ngw-text-muted: #557469;
+  --ngw-link: #059669;
+
+  --ngw-input-bg: #ffffff;
+  --ngw-input-border: #bad6cb;
+  --ngw-input-text: #0f261f;
+  --ngw-input-placeholder: #78988d;
+  --ngw-focus-ring: rgba(5, 150, 105, 0.2);
+
+  --ngw-accent: #059669;
+  --ngw-accent-hover: #047857;
+  --ngw-accent-soft: rgba(5, 150, 105, 0.11);
+  --ngw-accent-text: #047857;
+
+  --ngw-secondary: #475569;
+  --ngw-secondary-hover: #334155;
+
+  --ngw-dropdown-bg: #ffffff;
+  --ngw-dropdown-border: rgba(6, 78, 59, 0.14);
+  --ngw-dropdown-shadow: 0 20px 44px -12px rgba(6, 35, 28, 0.18);
+}
+
+/* Pink — Velvet Plum & Rose Studio */
+body[data-ngw-ui="modern"][data-ngw-theme="pink"] {
+  --ngw-canvas: #faf2f6;
+  --ngw-canvas-dot: rgba(219, 39, 119, 0.065);
+  --ngw-canvas-glow: radial-gradient(ellipse 80% 45% at 50% -10%, rgba(219, 39, 119, 0.09), transparent 65%);
+  --ngw-nav-bg: rgba(255, 255, 255, 0.9);
+  --ngw-nav-border: rgba(131, 24, 67, 0.1);
+  --ngw-nav-text: #2a1020;
+  --ngw-nav-muted: #724b62;
+
+  --ngw-side-bg: #261022;
+  --ngw-side-border: rgba(249, 168, 212, 0.15);
+  --ngw-side-text: #e7c2d8;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(249, 168, 212, 0.1);
+  --ngw-side-active-bg: rgba(219, 39, 119, 0.25);
+  --ngw-side-active-border: rgba(244, 114, 182, 0.45);
+  --ngw-side-active-text: #fce7f3;
+  --ngw-side-icon-bg: rgba(249, 168, 212, 0.11);
+  --ngw-side-icon-active-bg: rgba(219, 39, 119, 0.38);
+  --ngw-side-sub-bg: rgba(18, 6, 16, 0.36);
+  --ngw-side-sub-line: rgba(249, 168, 212, 0.22);
+  --ngw-side-shadow: 0 18px 40px -12px rgba(38, 16, 34, 0.34);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #fdf7fa;
+  --ngw-surface-2: #f9eff4;
+  --ngw-surface-hover: #f7eaf1;
+  --ngw-border: rgba(131, 24, 67, 0.1);
+  --ngw-border-subtle: rgba(131, 24, 67, 0.065);
+  --ngw-border-strong: #dfc0d2;
+  --ngw-card-shadow: 0 1px 2px rgba(38, 16, 34, 0.04), 0 10px 26px -14px rgba(38, 16, 34, 0.1);
+
+  --ngw-text: #27101f;
+  --ngw-text-secondary: #523246;
+  --ngw-text-muted: #7a556c;
+  --ngw-link: #db2777;
+
+  --ngw-input-bg: #ffffff;
+  --ngw-input-border: #dfc0d2;
+  --ngw-input-text: #27101f;
+  --ngw-input-placeholder: #9d778e;
+  --ngw-focus-ring: rgba(219, 39, 119, 0.2);
+
+  --ngw-accent: #db2777;
+  --ngw-accent-hover: #be185d;
+  --ngw-accent-soft: rgba(219, 39, 119, 0.11);
+  --ngw-accent-text: #be185d;
+
+  --ngw-secondary: #5b4354;
+  --ngw-secondary-hover: #44303e;
+
+  --ngw-dropdown-bg: #ffffff;
+  --ngw-dropdown-border: rgba(131, 24, 67, 0.14);
+  --ngw-dropdown-shadow: 0 20px 44px -12px rgba(38, 16, 34, 0.18);
+}
+
+/* ---------- 2. Base Canvas, Typography & Scrollbars ---------- */
+body[data-ngw-ui="modern"] {
+  font-family: var(--ngw-font-body) !important;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ngw-text) !important;
+  background-color: var(--ngw-canvas) !important;
+  background-image:
+    var(--ngw-canvas-glow),
+    radial-gradient(var(--ngw-canvas-dot) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 24px 24px !important;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+body[data-ngw-ui="modern"] *,
+body[data-ngw-ui="modern"] *::before,
+body[data-ngw-ui="modern"] *::after {
+  box-sizing: border-box;
+}
+
+body[data-ngw-ui="modern"] h1,
+body[data-ngw-ui="modern"] h2,
+body[data-ngw-ui="modern"] h3,
+body[data-ngw-ui="modern"] h4,
+body[data-ngw-ui="modern"] h5 {
+  font-family: var(--ngw-font-display);
+  letter-spacing: -0.018em;
+  color: var(--ngw-text);
+}
+
+body[data-ngw-ui="modern"] code,
+body[data-ngw-ui="modern"] pre,
+body[data-ngw-ui="modern"] #ngw-cpu-pct,
+body[data-ngw-ui="modern"] #ngw-ram-pct,
+body[data-ngw-ui="modern"] #ngw-local-datetime,
+body[data-ngw-ui="modern"] #timer {
+  font-family: var(--ngw-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-ngw-ui="modern"] code {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--ngw-surface-2);
+  border: 1px solid var(--ngw-border-subtle);
+  color: var(--ngw-accent-text);
+}
+
+body[data-ngw-ui="modern"] a {
+  color: var(--ngw-link);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+/* Sleek Modern Scrollbars */
+body[data-ngw-ui="modern"] ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+body[data-ngw-ui="modern"] ::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+body[data-ngw-ui="modern"] ::-webkit-scrollbar-thumb {
+  background: var(--ngw-border-strong);
+  border-radius: 99px;
+  border: none;
+}
+body[data-ngw-ui="modern"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--ngw-text-muted);
+}
+
+/* Modern Slim Pace Loading Bar */
+body[data-ngw-ui="modern"] .pace .pace-progress {
+  background: var(--ngw-accent) !important;
+  height: 2.5px !important;
+  box-shadow: 0 0 10px var(--ngw-accent);
+}
+
+/* ---------- 3. Floating Glass Top Command Bar (#navbar) ---------- */
+body[data-ngw-ui="modern"] #navbar.navbar {
+  height: 58px !important;
+  background: var(--ngw-nav-bg) !important;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid var(--ngw-nav-border) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 4px 20px -10px rgba(0, 0, 0, 0.22);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 14px 0 0 !important;
+  z-index: 950 !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left {
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 58px !important;
+  gap: 2px;
+  min-width: 0;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo {
+  width: auto !important;
+  min-width: 200px !important;
+  height: 58px !important;
+  padding: 0 14px !important;
+  background: transparent !important;
+  border-right: 1px solid var(--ngw-nav-border) !important;
+  gap: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo:hover {
+  background: var(--ngw-surface-hover) !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo span.ngw-brand-emblem {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9px !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
+  padding: 2.5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo span.ngw-brand-emblem img.ngw-brand-emblem-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > a#openNav,
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > a#closeNav {
+  height: 36px !important;
+  width: 36px !important;
+  padding: 0 !important;
+  margin-left: 10px !important;
+  border-radius: 9px !important;
+  text-align: center !important;
+  line-height: 34px !important;
+  color: var(--ngw-nav-muted) !important;
+  border: 1px solid transparent;
+  font-size: 16px !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > a#openNav:hover,
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > a#closeNav:hover {
+  background: var(--ngw-surface-hover) !important;
+  color: var(--ngw-nav-text) !important;
+  border-color: var(--ngw-border) !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > a#cpage {
+  height: 36px !important;
+  padding: 0 10px !important;
+  margin-left: 4px !important;
+  font-family: var(--ngw-font-display) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--ngw-nav-text) !important;
+  letter-spacing: -0.01em;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > span.navbar-left {
+  height: 32px !important;
+  padding: 0 10px !important;
+  margin-left: 8px;
+  border-radius: 8px;
+  background: var(--ngw-surface-2);
+  border: 1px solid var(--ngw-border-subtle);
+  color: var(--ngw-nav-text) !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar #ngw-local-datetime {
+  background: transparent !important;
+  border: none !important;
+  color: var(--ngw-nav-muted) !important;
+  font-size: 11px !important;
+  font-weight: 500;
+  opacity: 0.9 !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-right {
+  float: none !important;
+  height: 58px !important;
+  padding: 0 !important;
+  gap: 8px !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .navbar-right > select.connect {
+  height: 34px !important;
+  padding: 0 10px !important;
+  border-radius: 9px !important;
+  background: var(--ngw-surface-2) !important;
+  color: var(--ngw-nav-text) !important;
+  border: 1px solid var(--ngw-border) !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .ngw-navbar-mainmenu {
+  height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 9px !important;
+  background: var(--ngw-accent-soft) !important;
+  border: 1px solid var(--ngw-border) !important;
+  color: var(--ngw-accent-text) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+body[data-ngw-ui="modern"] #navbar.navbar .ngw-navbar-mainmenu:hover {
+  background: var(--ngw-accent) !important;
+  border-color: var(--ngw-accent) !important;
+  color: #ffffff !important;
+}
+
+/* Impersonation Return Button in Navbar */
+body[data-ngw-ui="modern"] #navbar.navbar a[href*="return-to-admin"] {
+  height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.45);
+}
+
+/* Sleek Modern Account Trigger */
+body[data-ngw-ui="modern"] .ngw-profile-trigger {
+  height: 36px !important;
+  padding: 3px 10px 3px 5px !important;
+  border-radius: 10px !important;
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border) !important;
+  color: var(--ngw-nav-text) !important;
+  box-shadow: none !important;
+  gap: 8px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger:hover {
+  background: var(--ngw-surface-hover) !important;
+  border-color: var(--ngw-accent) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger-avatar {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+  font-size: 14px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger-name {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--ngw-nav-text) !important;
+  max-width: 110px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger-badge {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger-badge.is-admin {
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger-badge.is-reseller {
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #10b981 !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-trigger-caret {
+  color: var(--ngw-nav-muted) !important;
+}
+
+/* ---------- 4. Floating Detached Architectural Sidebar Rail (#sidenav) ---------- */
+body[data-ngw-ui="modern"] #sidenav.sidenav {
+  top: 70px !important;
+  left: 12px !important;
+  bottom: 12px !important;
+  height: calc(100vh - 82px) !important;
+  margin-top: 0 !important;
+  background: var(--ngw-side-bg) !important;
+  border: 1px solid var(--ngw-side-border) !important;
+  border-radius: var(--ngw-radius-lg) !important;
+  box-shadow: var(--ngw-side-shadow) !important;
+  padding: 10px 8px 18px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 900 !important;
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@media screen and (min-width: 751px) {
+  body[data-ngw-ui="modern"] #sidenav.sidenav:not([style*="width: 0"]):not([style*="width:0"]) {
+    width: 230px !important;
+  }
+  body[data-ngw-ui="modern"] #main:not([style*="margin-left: 0"]):not([style*="margin-left:0"]) {
+    margin-left: 254px !important;
+  }
+}
+
+body[data-ngw-ui="modern"] #sidenav.sidenav[style*="width: 0"],
+body[data-ngw-ui="modern"] #sidenav.sidenav[style*="width:0"] {
+  width: 0 !important;
+  padding: 0 !important;
+  border-width: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Session Title Header inside Router Sidebar */
+body[data-ngw-ui="modern"] #sidenav .card-header,
+body[data-ngw-ui="modern"] #sidenav .menu.card-header {
+  background: var(--ngw-side-hover-bg) !important;
+  border: 1px solid var(--ngw-side-border) !important;
+  border-radius: 11px !important;
+  padding: 10px 12px !important;
+  margin: 0 0 10px 0 !important;
+  width: 100% !important;
+}
+
+body[data-ngw-ui="modern"] #sidenav #MikhmonSession {
+  font-family: var(--ngw-font-display) !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: var(--ngw-side-text-hover) !important;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-ngw-ui="modern"] #sidenav .spa {
+  border-bottom: 1px solid var(--ngw-side-border) !important;
+  margin: 8px 6px !important;
+  height: 1px;
+}
+
+/* Sidebar Navigation Links & Dropdown Toggles */
+body[data-ngw-ui="modern"] #sidenav a.menu,
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin: 2px 0 !important;
+  padding: 7px 10px !important;
+  border-radius: 10px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--ngw-side-text) !important;
+  font-family: var(--ngw-font-body) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  text-align: left !important;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-ngw-ui="modern"] #sidenav #ngw-settings-dropdown-toggle > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+body[data-ngw-ui="modern"] #sidenav a.menu i.fa,
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn i.fa:first-child {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--ngw-side-icon-bg) !important;
+  color: inherit !important;
+  font-size: 13px !important;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn .fa-caret-down,
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn .fa-caret-left,
+body[data-ngw-ui="modern"] #sidenav #ngw-settings-dropdown-chevron {
+  margin-left: auto !important;
+  float: none !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  font-size: 11px !important;
+  opacity: 0.7;
+}
+
+body[data-ngw-ui="modern"] #sidenav a.menu:hover,
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn:hover {
+  background: var(--ngw-side-hover-bg) !important;
+  color: var(--ngw-side-text-hover) !important;
+}
+
+body[data-ngw-ui="modern"] #sidenav a.menu.active,
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn.active {
+  background: var(--ngw-side-active-bg) !important;
+  border-color: var(--ngw-side-active-border) !important;
+  color: var(--ngw-side-active-text) !important;
+  font-weight: 600 !important;
+}
+
+body[data-ngw-ui="modern"] #sidenav a.menu.active i.fa,
+body[data-ngw-ui="modern"] #sidenav .dropdown-btn.active i.fa:first-child {
+  background: var(--ngw-side-icon-active-bg) !important;
+  color: var(--ngw-side-active-text) !important;
+}
+
+/* Remove legacy thick left border on mainmenu item */
+body[data-ngw-ui="modern"] #sidenav a.menu.ngw-sidenav-mainmenu {
+  border-left: 1px solid var(--ngw-side-active-border) !important;
+  background: var(--ngw-side-hover-bg) !important;
+  margin-bottom: 6px !important;
+}
+
+/* Nested Submenus */
+body[data-ngw-ui="modern"] #sidenav .dropdown-container,
+body[data-ngw-ui="modern"] #sidenav #ngw-settings-dropdown {
+  background: var(--ngw-side-sub-bg) !important;
+  border-radius: 10px !important;
+  margin: 3px 0 6px 8px !important;
+  padding: 4px 6px 4px 10px !important;
+  border-left: 1.5px solid var(--ngw-side-sub-line) !important;
+}
+
+body[data-ngw-ui="modern"] #sidenav .dropdown-container a,
+body[data-ngw-ui="modern"] #sidenav #ngw-settings-dropdown a {
+  padding: 6px 9px !important;
+  font-size: 12.5px !important;
+  border-radius: 8px !important;
+}
+
+body[data-ngw-ui="modern"] #sidenav .dropdown-container i.fa,
+body[data-ngw-ui="modern"] #sidenav #ngw-settings-dropdown i.fa {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 11.5px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+/* ---------- 5. Main Workspace Viewport (#main) ---------- */
+body[data-ngw-ui="modern"] #main {
+  margin-top: 64px !important;
+  padding: 8px 18px 28px 12px !important;
+  transition: margin-left 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body[data-ngw-ui="modern"] .main-container {
+  padding: 2px 0 !important;
+  max-width: 100%;
+}
+
+/* ---------- 6. Architectural Cards (.card) ---------- */
+body[data-ngw-ui="modern"] .card {
+  background: var(--ngw-card-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: var(--ngw-radius-md) !important;
+  box-shadow: var(--ngw-card-shadow) !important;
+  margin: 8px 6px 14px !important;
+  overflow: hidden;
+}
+
+body[data-ngw-ui="modern"] .card-header {
+  background: var(--ngw-card-header-bg) !important;
+  color: var(--ngw-text) !important;
+  border-bottom: 1px solid var(--ngw-border-subtle) !important;
+  padding: 13px 18px !important;
+  margin-bottom: 0 !important;
+  border-radius: var(--ngw-radius-md) var(--ngw-radius-md) 0 0 !important;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+body[data-ngw-ui="modern"] .card-header h3,
+body[data-ngw-ui="modern"] .card-header h4 {
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  color: var(--ngw-text) !important;
+  margin: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+body[data-ngw-ui="modern"] .card-header h3 > i.fa,
+body[data-ngw-ui="modern"] .card-header h4 > i.fa {
+  color: var(--ngw-accent);
+  font-size: 14px;
+}
+
+body[data-ngw-ui="modern"] .card-body {
+  padding: 16px 18px !important;
+  margin-bottom: 0 !important;
+  color: var(--ngw-text);
+}
+
+body[data-ngw-ui="modern"] .card-footer {
+  padding: 12px 18px !important;
+  border-top: 1px solid var(--ngw-border-subtle) !important;
+  background: var(--ngw-card-header-bg) !important;
+}
+
+/* ---------- 7. Modernized Router Tiles & Dashboard KPI Cards (.box) ---------- */
+/*
+ * Replaces 2015 flat solid-color Bootstrap bricks with sleek elevated
+ * architectural metric/router cards featuring subtle top accent strips
+ * and tinted squircle icon tiles!
+ */
+body[data-ngw-ui="modern"] .box {
+  --tile-accent: var(--ngw-accent);
+  --tile-soft: var(--ngw-accent-soft);
+  position: relative;
+  background: var(--ngw-card-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: var(--ngw-radius-md) !important;
+  box-shadow: var(--ngw-card-shadow) !important;
+  padding: 15px 16px !important;
+  margin: 7px 6px !important;
+  overflow: hidden;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.16s ease, box-shadow 0.16s ease !important;
+}
+
+body[data-ngw-ui="modern"] .box::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--tile-accent);
+  opacity: 0.9;
+}
+
+body[data-ngw-ui="modern"] .box:hover {
+  transform: translateY(-2px);
+  border-color: var(--tile-accent) !important;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.32) !important;
+}
+
+body[data-ngw-ui="modern"] .box a {
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .box a:hover {
+  color: var(--tile-accent) !important;
+}
+
+/* Map legacy .box.bg-* classes to clean semantic accent tokens */
+body[data-ngw-ui="modern"] .box.bg-blue,
+body[data-ngw-ui="modern"] .box.bg-primary { --tile-accent: #3b82f6; --tile-soft: rgba(59, 130, 246, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-indigo  { --tile-accent: #6366f1; --tile-soft: rgba(99, 102, 241, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-purple  { --tile-accent: #8b5cf6; --tile-soft: rgba(139, 92, 246, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-pink    { --tile-accent: #ec4899; --tile-soft: rgba(236, 72, 153, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-red,
+body[data-ngw-ui="modern"] .box.bg-danger  { --tile-accent: #ef4444; --tile-soft: rgba(239, 68, 68, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-yellow,
+body[data-ngw-ui="modern"] .box.bg-warning,
+body[data-ngw-ui="modern"] .box.bg-orange  { --tile-accent: #f59e0b; --tile-soft: rgba(245, 158, 11, 0.15); }
+body[data-ngw-ui="modern"] .box.bg-green,
+body[data-ngw-ui="modern"] .box.bg-success { --tile-accent: #10b981; --tile-soft: rgba(16, 185, 129, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-teal    { --tile-accent: #14b8a6; --tile-soft: rgba(20, 184, 166, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-cyan,
+body[data-ngw-ui="modern"] .box.bg-info,
+body[data-ngw-ui="modern"] .box.bg-light-blue { --tile-accent: #0ea5e9; --tile-soft: rgba(14, 165, 233, 0.14); }
+body[data-ngw-ui="modern"] .box.bg-grey,
+body[data-ngw-ui="modern"] .box.bg-secondary,
+body[data-ngw-ui="modern"] .box.bg-dark    { --tile-accent: #64748b; --tile-soft: rgba(100, 116, 139, 0.16); }
+
+body[data-ngw-ui="modern"] .box-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+body[data-ngw-ui="modern"] .box-group > div {
+  display: block !important;
+}
+
+body[data-ngw-ui="modern"] .box-group-icon {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
+  background: var(--tile-soft) !important;
+  color: var(--tile-accent) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="modern"] .box-group-area {
+  padding: 0 !important;
+  min-width: 0;
+  flex: 1;
+}
+
+body[data-ngw-ui="modern"] .box-group-area h3,
+body[data-ngw-ui="modern"] .box h1,
+body[data-ngw-ui="modern"] .box h3 {
+  font-family: var(--ngw-font-display) !important;
+  color: var(--ngw-text) !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-ngw-ui="modern"] .box-group-area span,
+body[data-ngw-ui="modern"] .box-group-area small {
+  color: var(--ngw-text-secondary);
+}
+
+/* Router card action links & Open button inside sessions.php */
+body[data-ngw-ui="modern"] .box .box-group-area span.connect.pointer,
+body[data-ngw-ui="modern"] .box .box-group-area a.pointer,
+body[data-ngw-ui="modern"] .box .box-group-area a[href*="settings&session"],
+body[data-ngw-ui="modern"] .box .box-group-area a[onclick*="remove-session"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  margin: 6px 4px 0 0;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--ngw-surface-2);
+  border: 1px solid var(--ngw-border);
+  color: var(--ngw-text-secondary) !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+body[data-ngw-ui="modern"] .box .box-group-area span.connect.pointer,
+body[data-ngw-ui="modern"] .box .box-group-area a.connect {
+  background: var(--tile-soft);
+  border-color: transparent;
+  color: var(--tile-accent) !important;
+}
+
+body[data-ngw-ui="modern"] .box .box-group-area span.connect.pointer:hover,
+body[data-ngw-ui="modern"] .box .box-group-area a:hover {
+  border-color: var(--tile-accent);
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .box .box-group-area a[onclick*="remove-session"]:hover {
+  border-color: var(--ngw-danger);
+  color: var(--ngw-danger) !important;
+}
+
+body[data-ngw-ui="modern"] #router-search {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 4px 11px !important;
+  border-radius: 9px !important;
+}
+
+/* Router Owner Corner Tag in sessions.php */
+body[data-ngw-ui="modern"] .ngw-router-owner-corner {
+  top: 10px !important;
+  right: 12px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border) !important;
+  color: var(--ngw-text-muted) !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+}
+
+/* Router Filter Button & Dropdown */
+body[data-ngw-ui="modern"] .ngw-rfilter-btn {
+  padding: 6px 12px !important;
+  border-radius: 9px !important;
+  border: 1px solid var(--ngw-border-strong) !important;
+  background: var(--ngw-surface-2) !important;
+  color: var(--ngw-text) !important;
+  font-size: 12.5px !important;
+}
+body[data-ngw-ui="modern"] .ngw-rfilter-btn:hover,
+body[data-ngw-ui="modern"] .ngw-rfilter-btn.is-active {
+  border-color: var(--ngw-accent) !important;
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rfilter-menu {
+  background: var(--ngw-dropdown-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+  padding: 6px !important;
+}
+
+/* ---------- 8. Modern Data Tables (.table) ---------- */
+body[data-ngw-ui="modern"] .overflow {
+  border-radius: 11px;
+  border: 1px solid var(--ngw-border-subtle);
+  background: var(--ngw-card-bg);
+}
+
+body[data-ngw-ui="modern"] .table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: var(--ngw-text) !important;
+  font-size: 13px;
+}
+
+body[data-ngw-ui="modern"] .table thead th {
+  background: var(--ngw-surface-2) !important;
+  color: var(--ngw-text-muted) !important;
+  font-family: var(--ngw-font-display);
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  padding: 10px 12px !important;
+  border: none !important;
+  border-bottom: 1px solid var(--ngw-border) !important;
+  white-space: nowrap;
+}
+
+body[data-ngw-ui="modern"] .table tbody td,
+body[data-ngw-ui="modern"] .table td {
+  color: var(--ngw-text) !important;
+  padding: 9.5px 12px !important;
+  border: none !important;
+  border-bottom: 1px solid var(--ngw-border-subtle) !important;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-ngw-ui="modern"] .table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+body[data-ngw-ui="modern"] .table-bordered td,
+body[data-ngw-ui="modern"] .table-bordered th {
+  border: none !important;
+  border-bottom: 1px solid var(--ngw-border-subtle) !important;
+}
+
+body[data-ngw-ui="modern"] .table-bordered thead th {
+  border-bottom: 1px solid var(--ngw-border) !important;
+}
+
+body[data-ngw-ui="modern"] .table-hover tbody tr:hover,
+body[data-ngw-ui="modern"] .table-hover:hover tbody tr:hover {
+  background: var(--ngw-surface-hover) !important;
+}
+
+/* ---------- 9. Crisp Modern Buttons (.btn) ---------- */
+body[data-ngw-ui="modern"] .btn,
+body[data-ngw-ui="modern"] .btn-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--ngw-font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 7px 13px;
+  border-radius: var(--ngw-radius-sm) !important;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.13s ease, background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+
+body[data-ngw-ui="modern"] .btn:hover,
+body[data-ngw-ui="modern"] .btn-login:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.32) !important;
+}
+
+body[data-ngw-ui="modern"] .btn:active,
+body[data-ngw-ui="modern"] .btn-login:active {
+  transform: translateY(0);
+}
+
+body[data-ngw-ui="modern"] .btn.bg-primary,
+body[data-ngw-ui="modern"] .btn.bg-blue,
+body[data-ngw-ui="modern"] .btn-login.bg-primary {
+  background: var(--ngw-accent) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+body[data-ngw-ui="modern"] .btn.bg-primary:hover,
+body[data-ngw-ui="modern"] .btn.bg-blue:hover,
+body[data-ngw-ui="modern"] .btn-login.bg-primary:hover {
+  background: var(--ngw-accent-hover) !important;
+}
+
+body[data-ngw-ui="modern"] .btn.bg-success,
+body[data-ngw-ui="modern"] .btn.bg-green {
+  background: var(--ngw-success) !important;
+  color: #ffffff !important;
+}
+body[data-ngw-ui="modern"] .btn.bg-success:hover,
+body[data-ngw-ui="modern"] .btn.bg-green:hover {
+  background: var(--ngw-success-hover) !important;
+}
+
+body[data-ngw-ui="modern"] .btn.bg-danger,
+body[data-ngw-ui="modern"] .btn.bg-red {
+  background: var(--ngw-danger) !important;
+  color: #ffffff !important;
+}
+body[data-ngw-ui="modern"] .btn.bg-danger:hover,
+body[data-ngw-ui="modern"] .btn.bg-red:hover {
+  background: var(--ngw-danger-hover) !important;
+}
+
+body[data-ngw-ui="modern"] .btn.bg-warning,
+body[data-ngw-ui="modern"] .btn.bg-yellow,
+body[data-ngw-ui="modern"] .btn.bg-orange {
+  background: var(--ngw-warning) !important;
+  color: #ffffff !important;
+}
+body[data-ngw-ui="modern"] .btn.bg-warning:hover {
+  background: var(--ngw-warning-hover) !important;
+}
+
+body[data-ngw-ui="modern"] .btn.bg-info,
+body[data-ngw-ui="modern"] .btn.bg-cyan,
+body[data-ngw-ui="modern"] .btn.bg-light-blue {
+  background: var(--ngw-info) !important;
+  color: #ffffff !important;
+}
+body[data-ngw-ui="modern"] .btn.bg-info:hover {
+  background: var(--ngw-info-hover) !important;
+}
+
+body[data-ngw-ui="modern"] .btn.bg-secondary,
+body[data-ngw-ui="modern"] .btn.bg-grey {
+  background: var(--ngw-secondary) !important;
+  color: #ffffff !important;
+}
+body[data-ngw-ui="modern"] .btn.bg-secondary:hover {
+  background: var(--ngw-secondary-hover) !important;
+}
+
+/* Compact Inline Back Button */
+body[data-ngw-ui="modern"] .ngw-compact-back-btn {
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--ngw-border-strong) !important;
+  background: var(--ngw-surface-2) !important;
+  color: var(--ngw-text-secondary) !important;
+  font-size: 11.5px !important;
+}
+body[data-ngw-ui="modern"] .ngw-compact-back-btn:hover {
+  border-color: var(--ngw-accent) !important;
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+
+/* ---------- 10. Modern Inputs, Selects, Textareas & Input Groups ---------- */
+body[data-ngw-ui="modern"] .form-control,
+body[data-ngw-ui="modern"] .group-item,
+body[data-ngw-ui="modern"] input[type="text"],
+body[data-ngw-ui="modern"] input[type="password"],
+body[data-ngw-ui="modern"] input[type="number"],
+body[data-ngw-ui="modern"] input[type="email"],
+body[data-ngw-ui="modern"] input[type="search"],
+body[data-ngw-ui="modern"] input[type="date"],
+body[data-ngw-ui="modern"] select,
+body[data-ngw-ui="modern"] textarea {
+  font-family: var(--ngw-font-body);
+  font-size: 13px;
+  background-color: var(--ngw-input-bg) !important;
+  color: var(--ngw-input-text) !important;
+  border: 1px solid var(--ngw-input-border) !important;
+  border-radius: var(--ngw-radius-sm);
+  padding: 7px 11px;
+  min-height: 36px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+body[data-ngw-ui="modern"] input::placeholder,
+body[data-ngw-ui="modern"] textarea::placeholder {
+  color: var(--ngw-input-placeholder) !important;
+  opacity: 1;
+}
+
+body[data-ngw-ui="modern"] .form-control:focus,
+body[data-ngw-ui="modern"] .group-item:focus,
+body[data-ngw-ui="modern"] input:focus,
+body[data-ngw-ui="modern"] select:focus,
+body[data-ngw-ui="modern"] textarea:focus {
+  outline: none !important;
+  border-color: var(--ngw-accent) !important;
+  box-shadow: 0 0 0 3px var(--ngw-focus-ring) !important;
+}
+
+body[data-ngw-ui="modern"] input[type="checkbox"],
+body[data-ngw-ui="modern"] input[type="radio"] {
+  accent-color: var(--ngw-accent);
+  min-height: auto;
+  padding: 0;
+  border-radius: 4px;
+}
+
+body[data-ngw-ui="modern"] .group-item-l {
+  border-radius: var(--ngw-radius-sm) 0 0 var(--ngw-radius-sm) !important;
+}
+body[data-ngw-ui="modern"] .group-item-md {
+  border-radius: 0 !important;
+}
+body[data-ngw-ui="modern"] .group-item-r {
+  border-radius: 0 var(--ngw-radius-sm) var(--ngw-radius-sm) 0 !important;
+}
+
+/* Keep navbar select compact */
+body[data-ngw-ui="modern"] #navbar select {
+  min-height: 32px !important;
+}
+
+/* ---------- 11. Profile Dropdown, Modals & Connection HUD ---------- */
+body[data-ngw-ui="modern"] .ngw-profile-dropdown-card {
+  top: 62px !important;
+  right: 14px !important;
+  width: 292px !important;
+  background: var(--ngw-dropdown-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-header {
+  background: var(--ngw-card-header-bg) !important;
+  border-bottom: 1px solid var(--ngw-border-subtle) !important;
+  padding: 15px 16px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-title {
+  color: var(--ngw-text) !important;
+  font-family: var(--ngw-font-display);
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-sub {
+  color: var(--ngw-text-muted) !important;
+  font-family: var(--ngw-font-mono);
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-avatar {
+  border-radius: 12px !important;
+  border-color: var(--ngw-border) !important;
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-link {
+  color: var(--ngw-text-secondary) !important;
+  border-radius: 8px;
+  margin: 2px 8px;
+  padding: 8px 10px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-link:hover {
+  background: var(--ngw-surface-hover) !important;
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-profile-dd-divider {
+  background: var(--ngw-border-subtle) !important;
+  margin: 6px 0 !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-theme-opt {
+  border-radius: 8px !important;
+  padding: 6px 7px !important;
+  border: 1px solid var(--ngw-border) !important;
+  background: var(--ngw-surface-2) !important;
+  color: var(--ngw-text-secondary) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-theme-opt.is-active {
+  border-color: var(--ngw-accent) !important;
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+
+/* Modal Windows & Popups */
+body[data-ngw-ui="modern"] .modal-window {
+  background-color: rgba(6, 10, 18, 0.58) !important;
+  backdrop-filter: blur(6px);
+}
+body[data-ngw-ui="modern"] .modal-window > div {
+  background: var(--ngw-card-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: var(--ngw-radius-lg) !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+  padding: 20px !important;
+}
+body[data-ngw-ui="modern"] .ngw-connect-hud-card {
+  background: var(--ngw-card-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+}
+body[data-ngw-ui="modern"] .ngw-action-menu-floating {
+  background: var(--ngw-dropdown-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+}
+
+/* Toast Notification (#notify) */
+body[data-ngw-ui="modern"] #notify {
+  background: var(--ngw-dropdown-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-accent) !important;
+  border-radius: 11px !important;
+  padding: 10px 18px !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+  font-weight: 600;
+  z-index: 100001;
+}
+
+/* ---------- 12. Alerts, Badges & Page-Specific Refinements ---------- */
+body[data-ngw-ui="modern"] .alert {
+  padding: 11px 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--ngw-border);
+}
+
+body[data-ngw-ui="modern"] .progress {
+  background: var(--ngw-surface-2) !important;
+  border-radius: 99px !important;
+  height: 8px !important;
+  overflow: hidden;
+}
+
+body[data-ngw-ui="modern"] .CodeMirror {
+  border-radius: 11px;
+  border: 1px solid var(--ngw-border);
+  font-family: var(--ngw-font-mono) !important;
+  font-size: 12.5px;
+}
+
+/* Reseller & Admin Settings Cards / Chips */
+body[data-ngw-ui="modern"] .ngw-reseller-page .ngw-mode-chip {
+  border-radius: 7px !important;
+  background: var(--ngw-accent-soft) !important;
+  border-color: transparent !important;
+  color: var(--ngw-accent-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-reseller-page .ngw-dots-btn.btn.bg-primary {
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border-strong) !important;
+  color: var(--ngw-text) !important;
+  border-radius: 8px !important;
+}
+body[data-ngw-ui="modern"] .ngw-reseller-page .ngw-dots-btn.btn.bg-primary:hover {
+  background: var(--ngw-accent) !important;
+  border-color: var(--ngw-accent) !important;
+  color: #ffffff !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-adm-role-badge,
+body[data-ngw-ui="modern"] .ngw-table-perm-chip {
+  border-radius: 7px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-adm-form-drawer {
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border-strong) !important;
+  border-radius: 13px !important;
+  box-shadow: none !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-adm-perm-panel {
+  background: var(--ngw-card-bg) !important;
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: 11px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-perm-switch-card {
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: 10px !important;
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-perm-switch-card.is-active {
+  border-color: var(--ngw-success) !important;
+  background: rgba(16, 185, 129, 0.11) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-adm-ui-radio-card {
+  background: var(--ngw-card-bg) !important;
+  border: 1.5px solid var(--ngw-border) !important;
+  border-radius: 10px !important;
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-adm-ui-radio-card.is-selected {
+  border-color: var(--ngw-accent) !important;
+  background: var(--ngw-accent-soft) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-adm-eye-btn {
+  color: var(--ngw-text-muted) !important;
+}
+body[data-ngw-ui="modern"] .ngw-adm-eye-btn:hover {
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-btn-add-user {
+  border-radius: 9px !important;
+  background: linear-gradient(135deg, var(--ngw-success), var(--ngw-success-hover)) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-btn-compact-dl {
+  border-radius: 9px !important;
+  background: var(--ngw-accent-soft) !important;
+  border-color: var(--ngw-border-strong) !important;
+  color: var(--ngw-accent-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-btn-compact-dl:hover {
+  background: var(--ngw-accent) !important;
+  border-color: var(--ngw-accent) !important;
+  color: #ffffff !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-rfilter-item {
+  border-radius: 8px !important;
+  color: var(--ngw-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rfilter-item:hover {
+  background: var(--ngw-surface-hover) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rfilter-item.is-selected {
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rfilter-item-cnt {
+  background: var(--ngw-surface-2) !important;
+  color: var(--ngw-text-muted) !important;
+  font-family: var(--ngw-font-mono);
+}
+
+/* ---------- 12B. Subpage Architectural Unification (Every Module) ---------- */
+/* My Profile */
+body[data-ngw-ui="modern"] .ngw-profile-card {
+  border-radius: var(--ngw-radius-lg) !important;
+  border: 1px solid var(--ngw-border) !important;
+  box-shadow: var(--ngw-card-shadow) !important;
+}
+body[data-ngw-ui="modern"] .ngw-profile-hero {
+  background: linear-gradient(125deg, var(--ngw-accent-soft) 0%, var(--ngw-card-header-bg) 100%) !important;
+  border-bottom: 1px solid var(--ngw-border-subtle) !important;
+}
+body[data-ngw-ui="modern"] .ngw-profile-avatar-lg {
+  border-radius: 16px !important;
+  background: var(--ngw-accent-soft) !important;
+  border: 2px solid var(--ngw-border-strong) !important;
+  color: var(--ngw-accent-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-profile-field {
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: 11px !important;
+}
+body[data-ngw-ui="modern"] .ngw-profile-role-pill,
+body[data-ngw-ui="modern"] .ngw-role-pill {
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+}
+
+/* Activity Log & PPPoE Segmented Tabs */
+body[data-ngw-ui="modern"] .ngw-act-filterbar {
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+}
+body[data-ngw-ui="modern"] .ngw-act-tab,
+body[data-ngw-ui="modern"] .ngw-pppoe-tab {
+  border-radius: 8px !important;
+  background: var(--ngw-card-bg) !important;
+  border: 1px solid var(--ngw-border) !important;
+  color: var(--ngw-text-secondary) !important;
+  font-weight: 600;
+}
+body[data-ngw-ui="modern"] .ngw-act-tab:hover,
+body[data-ngw-ui="modern"] .ngw-pppoe-tab:hover {
+  background: var(--ngw-surface-hover) !important;
+  color: var(--ngw-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-act-tab.is-active,
+body[data-ngw-ui="modern"] .ngw-pppoe-tab.is-active {
+  background: var(--ngw-accent) !important;
+  border-color: var(--ngw-accent) !important;
+  color: #ffffff !important;
+}
+
+/* Hotspot Users / Hosts / IP Binding / PPPoE Floating Action Menus & Modals */
+body[data-ngw-ui="modern"] .ngw-ipb-dots-btn,
+body[data-ngw-ui="modern"] .ngw-dots-btn {
+  border-radius: 8px !important;
+  background: var(--ngw-surface-2) !important;
+  border: 1px solid var(--ngw-border-strong) !important;
+  color: var(--ngw-text-secondary) !important;
+}
+body[data-ngw-ui="modern"] .ngw-ipb-dots-btn:hover,
+body[data-ngw-ui="modern"] .ngw-dots-btn:hover {
+  background: var(--ngw-accent) !important;
+  border-color: var(--ngw-accent) !important;
+  color: #ffffff !important;
+}
+body[data-ngw-ui="modern"] .ngw-ipb-dropdown-menu,
+body[data-ngw-ui="modern"] .ngw-action-dropdown-menu,
+body[data-ngw-ui="modern"] #actionFloatingMenu {
+  background: var(--ngw-dropdown-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+  padding: 6px !important;
+}
+body[data-ngw-ui="modern"] .ngw-ipb-dropdown-item,
+body[data-ngw-ui="modern"] .ngw-action-dropdown-item,
+body[data-ngw-ui="modern"] .floating-menu-item {
+  color: var(--ngw-text-secondary) !important;
+  border-radius: 8px !important;
+}
+body[data-ngw-ui="modern"] .ngw-ipb-dropdown-item:hover,
+body[data-ngw-ui="modern"] .ngw-action-dropdown-item:hover,
+body[data-ngw-ui="modern"] .floating-menu-item:hover {
+  background: var(--ngw-surface-hover) !important;
+  color: var(--ngw-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-ipb-dropdown-item.is-danger,
+body[data-ngw-ui="modern"] .ngw-action-dropdown-item.is-danger {
+  color: var(--ngw-danger) !important;
+}
+body[data-ngw-ui="modern"] .ngw-ipb-dropdown-item.is-danger:hover,
+body[data-ngw-ui="modern"] .ngw-action-dropdown-item.is-danger:hover {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: var(--ngw-danger) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-uwarn-backdrop {
+  background: rgba(6, 10, 18, 0.62) !important;
+  backdrop-filter: blur(6px);
+}
+body[data-ngw-ui="modern"] .ngw-uwarn-modal {
+  border-radius: var(--ngw-radius-lg) !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+}
+body[data-ngw-ui="modern"] .ngw-uwarn-topbtn,
+body[data-ngw-ui="modern"] .ngw-uwarn-btn {
+  border-radius: 8px !important;
+}
+
+/* VPN Hub Token Sync */
+body[data-ngw-ui="modern"] .ngw-vpn-wrap {
+  --vpn-surface: var(--ngw-card-bg) !important;
+  --vpn-surface-alt: var(--ngw-surface-2) !important;
+  --vpn-border: var(--ngw-border) !important;
+  --vpn-text: var(--ngw-text) !important;
+  --vpn-muted: var(--ngw-text-muted) !important;
+  --vpn-accent: var(--ngw-accent) !important;
+  --vpn-success: var(--ngw-success) !important;
+  --vpn-danger: var(--ngw-danger) !important;
+}
+body[data-ngw-ui="modern"] .ngw-vpn-seg {
+  border-radius: 9px !important;
+}
+
+/* Voucher Editor & Transfer Pages */
+body[data-ngw-ui="modern"] .tpl-logo-preview-box {
+  background: var(--ngw-surface-2) !important;
+  border: 1px dashed var(--ngw-border-strong) !important;
+  border-radius: 10px !important;
+}
+body[data-ngw-ui="modern"] .ngw-transfer .card {
+  border-radius: var(--ngw-radius-md) !important;
+}
+body[data-ngw-ui="modern"] .ngw-transfer .user-pick-box {
+  background: var(--ngw-surface-2);
+  border: 1px solid var(--ngw-border) !important;
+  border-radius: 10px !important;
+}
+
+/* ---------- 13. Clean Minimal Login Card (Modern Studio) ---------- */
+body[data-ngw-ui="modern"] .ngw-auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px !important;
+  box-sizing: border-box;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-frame {
+  width: 100%;
+  max-width: 920px;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  background: var(--ngw-card-bg);
+  border: 1px solid var(--ngw-border);
+  border-radius: 20px;
+  box-shadow: var(--ngw-dropdown-shadow);
+  overflow: hidden;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-frame.is-compact-card {
+  display: block;
+  max-width: 416px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-compact-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px;
+  background: linear-gradient(145deg, #0c172b 0%, #112447 100%);
+  border-bottom: 1px solid var(--ngw-border);
+}
+
+body[data-ngw-ui="modern"][data-ngw-theme="green"] .ngw-auth-compact-bar {
+  background: linear-gradient(145deg, #081f18 0%, #0e382b 100%);
+}
+body[data-ngw-ui="modern"][data-ngw-theme="pink"] .ngw-auth-compact-bar {
+  background: linear-gradient(145deg, #240c1f 0%, #451439 100%);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-compact-bar .ngw-auth-logo-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #ffffff;
+  padding: 2px;
+  object-fit: cover;
+  border: 2px solid rgba(56, 189, 248, 0.55);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.38);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-compact-bar .ngw-auth-wordmark {
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-compact-bar .ngw-auth-lang-seg {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-compact-bar .ngw-auth-lang-seg a {
+  color: rgba(226, 232, 240, 0.82) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-frame.is-compact-card .ngw-auth-form-pane {
+  padding: 24px 26px 26px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-frame.is-compact-card .ngw-auth-top {
+  margin-bottom: 18px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-frame.is-compact-card .ngw-auth-top h2 {
+  font-size: 19px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-brand {
+  position: relative;
+  padding: 40px 34px;
+  background: linear-gradient(155deg, #0c172b 0%, #112447 55%, #0b1324 100%);
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+body[data-ngw-ui="modern"][data-ngw-theme="green"] .ngw-auth-brand {
+  background: linear-gradient(155deg, #081f18 0%, #0e382b 55%, #071913 100%);
+}
+body[data-ngw-ui="modern"][data-ngw-theme="pink"] .ngw-auth-brand {
+  background: linear-gradient(155deg, #240c1f 0%, #451439 55%, #1d0a1a 100%);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.22), transparent 50%);
+  background-size: 22px 22px, 100% 100%;
+  pointer-events: none;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-brand > * {
+  position: relative;
+  z-index: 1;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-logo-img {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #ffffff;
+  padding: 2px;
+  border: 2px solid rgba(56, 189, 248, 0.55);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-wordmark {
+  font-family: var(--ngw-font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  line-height: 1.15;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-wordmark-sub {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  margin-top: 2px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-hero {
+  margin: 34px 0 28px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-hero h1 {
+  font-family: var(--ngw-font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  color: #ffffff !important;
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-hero p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(226, 232, 240, 0.78);
+  margin: 0;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-points {
+  display: grid;
+  gap: 11px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: rgba(241, 245, 249, 0.88);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-point i {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #7dd3fc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-form-pane {
+  padding: 40px 38px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--ngw-card-bg);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-top h2 {
+  font-size: 21px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--ngw-text) !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-lang-seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--ngw-surface-2);
+  border: 1px solid var(--ngw-border);
+  gap: 2px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-lang-seg a {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ngw-text-muted) !important;
+  text-decoration: none !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-lang-seg a.is-active {
+  background: var(--ngw-accent);
+  color: #ffffff !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-field {
+  margin-bottom: 16px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ngw-text-secondary);
+  margin-bottom: 6px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-input-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--ngw-text-muted);
+  font-size: 13.5px;
+  pointer-events: none;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-input-wrap .form-control {
+  width: 100% !important;
+  height: 44px !important;
+  padding: 0 40px 0 38px !important;
+  font-size: 14px !important;
+  border-radius: 11px !important;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-eye {
+  position: absolute;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--ngw-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body[data-ngw-ui="modern"] .ngw-auth-eye:hover {
+  background: var(--ngw-surface-hover);
+  color: var(--ngw-text);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ngw-text-secondary);
+  cursor: pointer;
+  margin: 2px 0 20px;
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-submit {
+  width: 100% !important;
+  height: 44px !important;
+  border-radius: 11px !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  background: linear-gradient(135deg, var(--ngw-accent) 0%, var(--ngw-accent-hover) 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 10px 22px -8px rgba(37, 99, 235, 0.55);
+}
+
+body[data-ngw-ui="modern"] .ngw-auth-error {
+  margin-top: 14px;
+  text-align: center;
+}
+
+@media screen and (max-width: 800px) {
+  body[data-ngw-ui="modern"] .ngw-auth-frame {
+    grid-template-columns: 1fr;
+    max-width: 416px;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-compact-bar {
+    padding: 15px 18px;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-frame.is-compact-card .ngw-auth-form-pane {
+    padding: 20px 18px 22px;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-brand {
+    padding: 26px 24px 22px;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-hero {
+    margin: 18px 0 0;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-hero h1 {
+    font-size: 21px;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-points {
+    display: none;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-form-pane {
+    padding: 22px 20px 24px;
+  }
+}
+
+/* ---------- 14. Responsive Mobile & Tablet Refinements (Compact Like Classic) ---------- */
+body[data-ngw-ui="modern"] .box-group-icon .ngw-rtr-hw-slot {
+  width: 38px;
+  height: 34px;
+  cursor: default;
+}
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box-group-icon .ngw-rtr-hw-slot {
+  width: 44px;
+  height: 34px;
+}
+
+@media screen and (max-width: 750px) {
+  html,
+  body[data-ngw-ui="modern"] {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar {
+    height: 46px !important;
+    padding: 0 6px 0 2px !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar .navbar-left,
+  body[data-ngw-ui="modern"] #navbar.navbar .navbar-right {
+    height: 46px !important;
+    gap: 2px !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar a#openNav,
+  body[data-ngw-ui="modern"] #navbar.navbar a#closeNav {
+    padding: 4px 8px !important;
+    font-size: 15px !important;
+    height: 34px !important;
+    width: 34px !important;
+    line-height: 26px !important;
+    margin-left: 4px !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar .navbar-right select {
+    max-width: 76px !important;
+    height: 30px !important;
+    padding: 2px 5px !important;
+    font-size: 11px !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 46px !important;
+    padding: 0 6px !important;
+    border-right: none !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo .ngw-brand-text {
+    display: none !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar a#brand.ngw-brand-logo span.ngw-brand-emblem {
+    display: inline-flex !important;
+    width: 30px !important;
+    height: 30px !important;
+  }
+  body[data-ngw-ui="modern"] #navbar.navbar #ngw-local-datetime,
+  body[data-ngw-ui="modern"] #navbar.navbar .navbar-left > span[title="Server CPU & RAM"] {
+    display: none !important;
+  }
+  /* Mobile drawer closed by default until #openNav sets inline width: 210px */
+  body[data-ngw-ui="modern"] #sidenav.sidenav {
+    top: 52px !important;
+    left: 6px !important;
+    height: calc(100vh - 58px) !important;
+    border-radius: 12px !important;
+    width: 0 !important;
+    padding: 0 !important;
+    border-width: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: 1200 !important;
+  }
+  body[data-ngw-ui="modern"] #sidenav.sidenav[style*="width: 210px"],
+  body[data-ngw-ui="modern"] #sidenav.sidenav[style*="width:210px"] {
+    width: 236px !important;
+    padding: 10px 8px 18px !important;
+    border-width: 1px !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 1200 !important;
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45) !important;
+  }
+  body[data-ngw-ui="modern"] #sidenav.sidenav a.menu {
+    padding: 7px 10px !important;
+    font-size: 12.5px !important;
+    margin: 2px 6px !important;
+  }
+  body[data-ngw-ui="modern"] #main {
+    margin-left: 0 !important;
+    margin-top: 50px !important;
+    padding: 4px 4px 18px !important;
+  }
+  body[data-ngw-ui="modern"] .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  body[data-ngw-ui="modern"] .card {
+    margin: 4px 1px 8px !important;
+    border-radius: 10px !important;
+  }
+  body[data-ngw-ui="modern"] .card-header {
+    padding: 8px 10px !important;
+    gap: 5px 8px !important;
+  }
+  body[data-ngw-ui="modern"] .card-header h3,
+  body[data-ngw-ui="modern"] .card-header .card-title {
+    font-size: 13.5px !important;
+    line-height: 1.3 !important;
+  }
+  body[data-ngw-ui="modern"] .card-header #router-search {
+    height: 30px !important;
+    padding: 3px 8px !important;
+    font-size: 12px !important;
+    width: 138px !important;
+    max-width: 48% !important;
+  }
+  body[data-ngw-ui="modern"] .card-body {
+    padding: 8px 9px !important;
+  }
+  body[data-ngw-ui="modern"] .box {
+    margin: 4px 1px !important;
+    padding: 9px 10px !important;
+    border-radius: 10px !important;
+    min-height: 0 !important;
+  }
+  body[data-ngw-ui="modern"] .box.bmh-75 {
+    min-height: 62px !important;
+  }
+  body[data-ngw-ui="modern"] .box h1 {
+    font-size: 19px !important;
+    margin: 0 0 2px !important;
+  }
+  body[data-ngw-ui="modern"] .box-group {
+    gap: 9px !important;
+    align-items: center !important;
+  }
+  body[data-ngw-ui="modern"] .box-group-icon {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    font-size: 20px !important;
+  }
+  body[data-ngw-ui="modern"] .box-group-icon .ngw-rtr-hw-slot {
+    width: 34px !important;
+    height: 30px !important;
+  }
+  body[data-ngw-ui="modern"] .box-group-area {
+    font-size: 12px !important;
+    line-height: 1.42 !important;
+    padding-left: 4px !important;
+  }
+  body[data-ngw-ui="modern"] .btn,
+  body[data-ngw-ui="modern"] button.btn,
+  body[data-ngw-ui="modern"] a.btn {
+    padding: 5px 9px !important;
+    font-size: 12px !important;
+    border-radius: 7px !important;
+  }
+  body[data-ngw-ui="modern"] .form-control,
+  body[data-ngw-ui="modern"] input[type="text"],
+  body[data-ngw-ui="modern"] input[type="password"],
+  body[data-ngw-ui="modern"] input[type="search"],
+  body[data-ngw-ui="modern"] input[type="number"],
+  body[data-ngw-ui="modern"] select {
+    height: 34px !important;
+    padding: 5px 8px !important;
+    font-size: 12.5px !important;
+    border-radius: 7px !important;
+  }
+  body[data-ngw-ui="modern"] .table:not(.ngw-mobile-card-table) th,
+  body[data-ngw-ui="modern"] .table:not(.ngw-mobile-card-table) td {
+    padding: 5px 7px !important;
+    font-size: 11.5px !important;
+  }
+  body[data-ngw-ui="modern"] .ngw-rfilter-btn {
+    height: 30px !important;
+    padding: 3px 8px !important;
+    font-size: 11.5px !important;
+  }
+  body[data-ngw-ui="modern"] .ngw-rfilter-clear {
+    height: 30px !important;
+    width: 26px !important;
+  }
+  body[data-ngw-ui="modern"] .ngw-rfilter-menu {
+    right: 0 !important;
+    left: auto !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+  body[data-ngw-ui="modern"] .ngw-profile-dropdown-card {
+    top: 50px !important;
+    right: 6px !important;
+    max-width: calc(100vw - 12px) !important;
+  }
+}
+
+@media screen and (max-width: 560px) {
+  body[data-ngw-ui="modern"] #navbar.navbar .ngw-brand-text,
+  body[data-ngw-ui="modern"] #navbar.navbar .ngw-profile-trigger-name,
+  body[data-ngw-ui="modern"] #navbar.navbar .navbar-right > a[title^="Idle Timeout"] {
+    display: none !important;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-brand {
+    padding: 18px 16px 14px !important;
+  }
+  body[data-ngw-ui="modern"] .ngw-auth-form-pane {
+    padding: 18px 16px 20px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-ngw-ui="modern"] *,
+  body[data-ngw-ui="modern"] *::before,
+  body[data-ngw-ui="modern"] *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- 15. Nova Command UI (data-ngw-variant="compact") ---------- */
+/*
+ * 100% distinct architectural design — shares ZERO visual identity with Classic or Modern Studio:
+ * - Diagonal drafting hairline grid canvas + custom warm-carbon / ivory-ink / indigo / emerald / coral palettes
+ * - Floating inset pill top command dock (detached with outer margins + glowing accent baseline)
+ * - Double-bordered command rail with inverted SOLID accent active pills
+ * - Editorial offset-shadow cards with uppercase tracked headers + left vertical ribbon bar
+ * - Full-height vibrant left-band Bento KPI & Router tiles (zero resemblance to Classic bricks or Modern top-bars)
+ * - Alternating zebra data tables + crisp chamfered pill controls
+ * - Centered floating Command Monolith login screen
+ */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] {
+  --ngw-canvas: #09090b;
+  --ngw-grid-line: rgba(245, 158, 11, 0.055);
+  --ngw-nav-bg: #111115;
+  --ngw-nav-border: rgba(245, 158, 11, 0.34);
+  --ngw-nav-text: #fafaf9;
+  --ngw-nav-muted: #a1a1aa;
+
+  --ngw-side-bg: #111115;
+  --ngw-side-border: rgba(255, 255, 255, 0.11);
+  --ngw-side-text: #d4d4d8;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(245, 158, 11, 0.12);
+  --ngw-side-active-bg: #f59e0b;
+  --ngw-side-active-border: #fbbf24;
+  --ngw-side-active-text: #09090b;
+  --ngw-side-icon-bg: rgba(255, 255, 255, 0.06);
+  --ngw-side-icon-active-bg: rgba(9, 9, 11, 0.22);
+  --ngw-side-sub-bg: #0c0c0f;
+  --ngw-side-sub-line: rgba(245, 158, 11, 0.45);
+  --ngw-side-shadow: 4px 4px 0 rgba(245, 158, 11, 0.14);
+
+  --ngw-card-bg: #121216;
+  --ngw-card-header-bg: #18181d;
+  --ngw-surface-2: #1b1b22;
+  --ngw-surface-hover: rgba(245, 158, 11, 0.09);
+  --ngw-border: rgba(255, 255, 255, 0.13);
+  --ngw-border-subtle: rgba(255, 255, 255, 0.08);
+  --ngw-border-strong: rgba(245, 158, 11, 0.36);
+  --ngw-card-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+
+  --ngw-text: #fafaf9;
+  --ngw-text-secondary: #d4d4d8;
+  --ngw-text-muted: #a1a1aa;
+  --ngw-link: #fbbf24;
+
+  --ngw-input-bg: #0c0c0f;
+  --ngw-input-border: rgba(255, 255, 255, 0.18);
+  --ngw-input-text: #fafaf9;
+  --ngw-input-placeholder: #71717a;
+  --ngw-focus-ring: rgba(245, 158, 11, 0.28);
+
+  --ngw-accent: #f59e0b;
+  --ngw-accent-hover: #d97706;
+  --ngw-accent-soft: rgba(245, 158, 11, 0.16);
+  --ngw-accent-text: #fbbf24;
+  --ngw-accent-contrast: #09090b;
+
+  --ngw-dropdown-bg: #16161b;
+  --ngw-dropdown-border: rgba(245, 158, 11, 0.34);
+  --ngw-dropdown-shadow: 6px 6px 0 rgba(0, 0, 0, 0.65);
+
+  --ngw-radius-xs: 4px;
+  --ngw-radius-sm: 6px;
+  --ngw-radius-md: 10px;
+  --ngw-radius-lg: 14px;
+
+  background-color: var(--ngw-canvas) !important;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 18px,
+    var(--ngw-grid-line) 18px,
+    var(--ngw-grid-line) 19px
+  ) !important;
+  background-size: auto !important;
+}
+
+/* Nova Command — Light Theme (Warm Ivory Editorial + Burnt Terracotta + Crisp Ink) */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"][data-ngw-theme="light"] {
+  --ngw-canvas: #f5f1e8;
+  --ngw-grid-line: rgba(24, 24, 27, 0.045);
+  --ngw-nav-bg: #ffffff;
+  --ngw-nav-border: #18181b;
+  --ngw-nav-text: #18181b;
+  --ngw-nav-muted: #52525b;
+
+  --ngw-side-bg: #ffffff;
+  --ngw-side-border: #18181b;
+  --ngw-side-text: #27272a;
+  --ngw-side-text-hover: #09090b;
+  --ngw-side-hover-bg: #f5efe6;
+  --ngw-side-active-bg: #dc4a1c;
+  --ngw-side-active-border: #18181b;
+  --ngw-side-active-text: #ffffff;
+  --ngw-side-icon-bg: #f4f1ea;
+  --ngw-side-icon-active-bg: rgba(255, 255, 255, 0.22);
+  --ngw-side-sub-bg: #faf7f0;
+  --ngw-side-sub-line: #dc4a1c;
+  --ngw-side-shadow: 4px 4px 0 rgba(24, 24, 27, 0.14);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #faf7f0;
+  --ngw-surface-2: #f4efe4;
+  --ngw-surface-hover: #f7f1e5;
+  --ngw-border: rgba(24, 24, 27, 0.22);
+  --ngw-border-subtle: rgba(24, 24, 27, 0.1);
+  --ngw-border-strong: #18181b;
+  --ngw-card-shadow: 4px 4px 0 rgba(24, 24, 27, 0.12);
+
+  --ngw-text: #18181b;
+  --ngw-text-secondary: #3f3f46;
+  --ngw-text-muted: #63636e;
+  --ngw-link: #dc4a1c;
+
+  --ngw-input-bg: #ffffff;
+  --ngw-input-border: rgba(24, 24, 27, 0.34);
+  --ngw-input-text: #18181b;
+  --ngw-input-placeholder: #71717a;
+  --ngw-focus-ring: rgba(220, 74, 28, 0.22);
+
+  --ngw-accent: #dc4a1c;
+  --ngw-accent-hover: #b83912;
+  --ngw-accent-soft: rgba(220, 74, 28, 0.12);
+  --ngw-accent-text: #c2410c;
+  --ngw-accent-contrast: #ffffff;
+
+  --ngw-dropdown-bg: #ffffff;
+  --ngw-dropdown-border: #18181b;
+  --ngw-dropdown-shadow: 5px 5px 0 rgba(24, 24, 27, 0.18);
+}
+
+/* Nova Command — Blue Theme (Deep Indigo Cyber-Deck) */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"][data-ngw-theme="blue"] {
+  --ngw-canvas: #edf0fa;
+  --ngw-grid-line: rgba(79, 70, 229, 0.06);
+  --ngw-nav-bg: #ffffff;
+  --ngw-nav-border: rgba(79, 70, 229, 0.34);
+  --ngw-nav-text: #11132b;
+  --ngw-nav-muted: #4b5079;
+
+  --ngw-side-bg: #131638;
+  --ngw-side-border: rgba(129, 140, 248, 0.3);
+  --ngw-side-text: #c7d2fe;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(129, 140, 248, 0.15);
+  --ngw-side-active-bg: #6366f1;
+  --ngw-side-active-border: #a5b4fc;
+  --ngw-side-active-text: #ffffff;
+  --ngw-side-icon-bg: rgba(129, 140, 248, 0.14);
+  --ngw-side-icon-active-bg: rgba(255, 255, 255, 0.22);
+  --ngw-side-sub-bg: #0c0e28;
+  --ngw-side-sub-line: #818cf8;
+  --ngw-side-shadow: 4px 4px 0 rgba(19, 22, 56, 0.22);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #f5f7ff;
+  --ngw-surface-2: #eef1fc;
+  --ngw-surface-hover: #eaeefa;
+  --ngw-border: rgba(79, 70, 229, 0.22);
+  --ngw-border-subtle: rgba(79, 70, 229, 0.1);
+  --ngw-border-strong: #4f46e5;
+  --ngw-card-shadow: 4px 4px 0 rgba(79, 70, 229, 0.12);
+
+  --ngw-text: #11132b;
+  --ngw-text-secondary: #373c63;
+  --ngw-text-muted: #5f658d;
+  --ngw-link: #4f46e5;
+  --ngw-accent: #4f46e5;
+  --ngw-accent-hover: #4338ca;
+  --ngw-accent-soft: rgba(79, 70, 229, 0.12);
+  --ngw-accent-text: #4338ca;
+  --ngw-accent-contrast: #ffffff;
+}
+
+/* Nova Command — Green Theme (Forest Telemetry Deck) */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"][data-ngw-theme="green"] {
+  --ngw-canvas: #ebf4ee;
+  --ngw-grid-line: rgba(21, 128, 61, 0.06);
+  --ngw-nav-bg: #ffffff;
+  --ngw-nav-border: rgba(21, 128, 61, 0.34);
+  --ngw-nav-text: #0b2217;
+  --ngw-nav-muted: #426654;
+
+  --ngw-side-bg: #0a1f16;
+  --ngw-side-border: rgba(74, 222, 128, 0.28);
+  --ngw-side-text: #bbf7d0;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(74, 222, 128, 0.14);
+  --ngw-side-active-bg: #16a34a;
+  --ngw-side-active-border: #86efac;
+  --ngw-side-active-text: #ffffff;
+  --ngw-side-icon-bg: rgba(74, 222, 128, 0.12);
+  --ngw-side-icon-active-bg: rgba(255, 255, 255, 0.22);
+  --ngw-side-sub-bg: #06140e;
+  --ngw-side-sub-line: #4ade80;
+  --ngw-side-shadow: 4px 4px 0 rgba(10, 31, 22, 0.22);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #f3faf5;
+  --ngw-surface-2: #eaf5ee;
+  --ngw-surface-hover: #e4f3e9;
+  --ngw-border: rgba(21, 128, 61, 0.22);
+  --ngw-border-subtle: rgba(21, 128, 61, 0.1);
+  --ngw-border-strong: #15803d;
+  --ngw-card-shadow: 4px 4px 0 rgba(21, 128, 61, 0.12);
+
+  --ngw-text: #0b2217;
+  --ngw-text-secondary: #2b4c3c;
+  --ngw-text-muted: #507262;
+  --ngw-link: #15803d;
+  --ngw-accent: #16a34a;
+  --ngw-accent-hover: #15803d;
+  --ngw-accent-soft: rgba(22, 163, 74, 0.12);
+  --ngw-accent-text: #15803d;
+  --ngw-accent-contrast: #ffffff;
+}
+
+/* Nova Command — Pink Theme (Crimson Coral Command Deck) */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"][data-ngw-theme="pink"] {
+  --ngw-canvas: #faf0f3;
+  --ngw-grid-line: rgba(225, 29, 72, 0.06);
+  --ngw-nav-bg: #ffffff;
+  --ngw-nav-border: rgba(225, 29, 72, 0.34);
+  --ngw-nav-text: #2a0d17;
+  --ngw-nav-muted: #6f4252;
+
+  --ngw-side-bg: #220b15;
+  --ngw-side-border: rgba(251, 113, 133, 0.3);
+  --ngw-side-text: #fecdd3;
+  --ngw-side-text-hover: #ffffff;
+  --ngw-side-hover-bg: rgba(251, 113, 133, 0.14);
+  --ngw-side-active-bg: #e11d48;
+  --ngw-side-active-border: #fda4af;
+  --ngw-side-active-text: #ffffff;
+  --ngw-side-icon-bg: rgba(251, 113, 133, 0.12);
+  --ngw-side-icon-active-bg: rgba(255, 255, 255, 0.22);
+  --ngw-side-sub-bg: #16060d;
+  --ngw-side-sub-line: #fb7185;
+  --ngw-side-shadow: 4px 4px 0 rgba(34, 11, 21, 0.24);
+
+  --ngw-card-bg: #ffffff;
+  --ngw-card-header-bg: #fff5f7;
+  --ngw-surface-2: #fcecef;
+  --ngw-surface-hover: #fae4e9;
+  --ngw-border: rgba(225, 29, 72, 0.22);
+  --ngw-border-subtle: rgba(225, 29, 72, 0.1);
+  --ngw-border-strong: #e11d48;
+  --ngw-card-shadow: 4px 4px 0 rgba(225, 29, 72, 0.12);
+
+  --ngw-text: #2a0d17;
+  --ngw-text-secondary: #542a39;
+  --ngw-text-muted: #7b4e5e;
+  --ngw-link: #e11d48;
+  --ngw-accent: #e11d48;
+  --ngw-accent-hover: #be123c;
+  --ngw-accent-soft: rgba(225, 29, 72, 0.12);
+  --ngw-accent-text: #be123c;
+  --ngw-accent-contrast: #ffffff;
+}
+
+/* Inset Floating Pill Top Command Dock */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar {
+  top: 10px !important;
+  left: 14px !important;
+  right: 14px !important;
+  width: calc(100% - 28px) !important;
+  height: 54px !important;
+  border-radius: 14px !important;
+  border: 1.5px solid var(--ngw-nav-border) !important;
+  background: var(--ngw-nav-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: var(--ngw-card-shadow) !important;
+  padding: 0 12px 0 0 !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar .navbar-left,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar .navbar-right {
+  height: 52px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar a#brand.ngw-brand-logo {
+  width: auto !important;
+  min-width: 190px !important;
+  height: 52px !important;
+  border-radius: 12px 0 0 12px !important;
+  background: var(--ngw-accent-soft) !important;
+  border-right: 1.5px solid var(--ngw-nav-border) !important;
+  padding: 0 12px !important;
+  gap: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar .navbar-left > a#cpage {
+  text-transform: uppercase;
+  font-size: 12px !important;
+  letter-spacing: 0.08em;
+  font-family: var(--ngw-font-mono) !important;
+}
+
+/* Inset Double-Border Command Rail with Solid Inverted Active Pills */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav.sidenav {
+  top: 76px !important;
+  left: 14px !important;
+  bottom: 14px !important;
+  height: calc(100vh - 90px) !important;
+  border-radius: 14px !important;
+  border: 1.5px solid var(--ngw-side-border) !important;
+  box-shadow: var(--ngw-side-shadow) !important;
+  padding: 12px 10px 18px !important;
+}
+
+@media screen and (min-width: 751px) {
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav.sidenav:not([style*="width: 0"]):not([style*="width:0"]) {
+    width: 226px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #main:not([style*="margin-left: 0"]):not([style*="margin-left:0"]) {
+    margin-left: 254px !important;
+  }
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav a.menu,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav .dropdown-btn {
+  border-radius: 999px !important;
+  padding: 7px 12px !important;
+  font-weight: 600 !important;
+  font-size: 12.5px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav a.menu i.fa,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav .dropdown-btn i.fa:first-child {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 999px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav a.menu.active,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav .dropdown-btn.active {
+  background: var(--ngw-side-active-bg) !important;
+  border-color: var(--ngw-side-active-border) !important;
+  color: var(--ngw-side-active-text) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.35);
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav a.menu.active i.fa,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav .dropdown-btn.active i.fa:first-child {
+  background: var(--ngw-side-icon-active-bg) !important;
+  color: var(--ngw-side-active-text) !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] #main {
+  margin-top: 72px !important;
+  padding: 6px 16px 26px 10px !important;
+}
+
+/* Editorial Hard-Shadow Cards with Vertical Accent Ribbon Header */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .card {
+  border: 1.5px solid var(--ngw-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--ngw-card-shadow) !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .card-header {
+  padding: 11px 16px !important;
+  border-bottom: 1.5px solid var(--ngw-border) !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .card-header h3,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .card-header h4 {
+  font-family: var(--ngw-font-mono) !important;
+  font-size: 12.5px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-left: 10px;
+  border-left: 4px solid var(--ngw-accent);
+}
+
+/* Full-Height Vibrant Left-Band Bento Router & KPI Tiles */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box {
+  border: 1.5px solid var(--ngw-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--ngw-card-shadow) !important;
+  padding: 0 !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box::before {
+  display: none !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box:hover {
+  transform: translate(-1px, -2px);
+  border-color: var(--tile-accent) !important;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.25) !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box-group {
+  align-items: stretch !important;
+  gap: 0 !important;
+  min-height: 86px;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box-group-icon {
+  width: 64px !important;
+  min-width: 64px !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: var(--tile-accent) !important;
+  color: #ffffff !important;
+  font-size: 22px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box-group-area {
+  padding: 12px 14px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box .box-group-area span.connect.pointer,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box .box-group-area a.connect {
+  background: var(--tile-accent) !important;
+  color: #ffffff !important;
+  border-radius: 999px !important;
+  padding: 4px 12px !important;
+}
+
+/* Alternating Zebra Tables with Strong Monospace Header Band */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .table thead th {
+  font-family: var(--ngw-font-mono) !important;
+  font-size: 10.5px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: var(--ngw-card-header-bg) !important;
+  border-bottom: 2px solid var(--ngw-border-strong) !important;
+  padding: 9px 11px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .table tbody tr:nth-child(even) {
+  background: var(--ngw-surface-2);
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .btn.bg-primary,
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .btn-login.bg-primary {
+  background: var(--ngw-accent) !important;
+  color: var(--ngw-accent-contrast, #ffffff) !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .btn {
+  border-radius: 999px !important;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-profile-trigger {
+  border-radius: 999px !important;
+  border: 1.5px solid var(--ngw-border-strong) !important;
+}
+
+/* Centered Floating Command Monolith Login Screen (Nova Command) */
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-nova-login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-nova-login-card {
+  width: 100%;
+  max-width: 416px;
+  background: var(--ngw-card-bg);
+  border: 2px solid var(--ngw-border-strong);
+  border-radius: 16px;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-nova-banner {
+  padding: 18px 22px;
+  background: var(--ngw-side-bg);
+  color: #ffffff;
+  border-bottom: 3px solid var(--ngw-accent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"][data-ngw-theme="light"] .ngw-nova-banner {
+  background: #18181b;
+  color: #ffffff;
+}
+
+body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-nova-body {
+  padding: 22px 24px 26px;
+}
+
+@media screen and (max-width: 750px) {
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar {
+    top: 5px !important;
+    left: 5px !important;
+    right: 5px !important;
+    width: calc(100% - 10px) !important;
+    height: 45px !important;
+    border-radius: 9px !important;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35) !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar .navbar-left,
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar .navbar-right {
+    height: 45px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar a#brand.ngw-brand-logo {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 45px !important;
+    padding: 0 6px !important;
+    border-radius: 9px 0 0 9px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar a#brand.ngw-brand-logo img.ngw-brand-wide-img {
+    display: none !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #navbar.navbar a#brand.ngw-brand-logo img.ngw-brand-square-img {
+    display: block !important;
+    width: 28px !important;
+    height: 28px !important;
+    border: none !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav.sidenav {
+    top: 55px !important;
+    left: 5px !important;
+    height: calc(100vh - 61px) !important;
+    border-radius: 10px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav.sidenav[style*="width: 210px"],
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #sidenav.sidenav[style*="width:210px"] {
+    width: 236px !important;
+    padding: 12px 10px 18px !important;
+    border-width: 1.5px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] #main {
+    margin-top: 55px !important;
+    padding: 4px 4px 18px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] .card {
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.38) !important;
+    border-radius: 9px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] .box {
+    padding: 8px 10px !important;
+    border-radius: 9px !important;
+    border-left-width: 4px !important;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.32) !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-nova-banner {
+    padding: 16px 16px 14px !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] .ngw-nova-body {
+    padding: 18px 16px 20px !important;
+  }
+}
+
+/* ---------- 16. Assign Routers Picker Popup Integration (Modern Studio & Nova Command) ---------- */
+body[data-ngw-ui="modern"] .ngw-rpicker-dialog {
+  background: var(--ngw-card-bg) !important;
+  color: var(--ngw-text) !important;
+  border: 1px solid var(--ngw-dropdown-border) !important;
+  border-radius: var(--ngw-radius-lg) !important;
+  box-shadow: var(--ngw-dropdown-shadow) !important;
+  font-family: var(--ngw-font-body);
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-header,
+body[data-ngw-ui="modern"] .ngw-rpicker-footer {
+  background: var(--ngw-card-header-bg) !important;
+  border-color: var(--ngw-border-subtle) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-controls {
+  border-color: var(--ngw-border-subtle) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-icon {
+  background: var(--ngw-accent-soft) !important;
+  color: var(--ngw-accent-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-title {
+  font-family: var(--ngw-font-display);
+  color: var(--ngw-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-search-input,
+body[data-ngw-ui="modern"] .ngw-rpicker-group-select {
+  background: var(--ngw-input-bg) !important;
+  color: var(--ngw-input-text) !important;
+  border-color: var(--ngw-input-border) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-tab.is-active {
+  background: var(--ngw-accent) !important;
+  color: var(--ngw-accent-contrast, #ffffff) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-card {
+  background: var(--ngw-surface-2) !important;
+  border-color: var(--ngw-border) !important;
+  color: var(--ngw-text) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-card:hover {
+  border-color: var(--ngw-accent) !important;
+  background: var(--ngw-surface-hover) !important;
+}
+
+/* ---------- 17. Mobile Card-Table Styling for Modern Studio (UI 2) & Nova Command (UI 3) — <= 767px ONLY ---------- */
+@media screen and (max-width: 767px) {
+  body[data-ngw-ui="modern"] table.ngw-mobile-card-table tbody tr {
+    background: var(--ngw-surface-2) !important;
+    border: 1px solid var(--ngw-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14) !important;
+    padding: 11px 13px !important;
+  }
+  body[data-ngw-ui="modern"] table.ngw-mobile-card-table tbody tr:hover {
+    background: var(--ngw-surface-2) !important;
+  }
+  body[data-ngw-ui="modern"] table.ngw-mobile-card-table tbody tr td {
+    border-bottom-color: var(--ngw-border-subtle) !important;
+    color: var(--ngw-text) !important;
+  }
+  body[data-ngw-ui="modern"] table.ngw-mobile-card-table tbody tr td.ngw-mc-head {
+    border-bottom-color: var(--ngw-border) !important;
+  }
+  body[data-ngw-ui="modern"] table.ngw-mobile-card-table tbody tr td.ngw-mc-actions {
+    border-top-color: var(--ngw-border-subtle) !important;
+  }
+  body[data-ngw-ui="modern"] table.ngw-mobile-card-table tbody tr td[data-label]::before {
+    color: var(--ngw-text-muted) !important;
+    opacity: 1 !important;
+  }
+
+  /* Nova Command (UI 3): crisp offset-shadow bordered card with vertical accent bar */
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] table.ngw-mobile-card-table tbody tr {
+    background: var(--ngw-card-bg) !important;
+    border: 1.5px solid var(--ngw-border) !important;
+    border-left: 4px solid var(--ngw-accent) !important;
+    border-radius: 10px !important;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35) !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] table.ngw-mobile-card-table tbody tr:nth-child(even) {
+    background: var(--ngw-card-bg) !important;
+  }
+  body[data-ngw-ui="modern"][data-ngw-variant="compact"] table.ngw-mobile-card-table tbody tr td[data-label]::before {
+    font-family: var(--ngw-font-mono) !important;
+    font-size: 10px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-card.is-selected {
+  border-color: var(--ngw-accent) !important;
+  background: var(--ngw-accent-soft) !important;
+}
+body[data-ngw-ui="modern"] .ngw-rpicker-card.is-selected .ngw-rpicker-card-ico {
+  background: var(--ngw-accent) !important;
+  color: var(--ngw-accent-contrast, #ffffff) !important;
+}
+body[data-ngw-ui="modern"] .ngw-router-preview-item {
+  background: var(--ngw-accent-soft) !important;
+  border-color: var(--ngw-border-strong) !important;
+  color: var(--ngw-accent-text) !important;
+}
+
+
+

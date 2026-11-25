@@ -1,0 +1,70 @@
+{
+  "id": "/",
+  "name": "NextGan WiFi",
+  "short_name": "NextGan WiFi",
+  "description": "NextGan WiFi Solution — High-speed MikroTik Hotspot, PPPoE & Voucher Management App",
+  "start_url": "/admin.php?id=sessions",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["utilities", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/img/pwa/pwa-192x192.png?v=20261125e",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa/pwa-512x512.png?v=20261125e",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa/pwa-maskable-512x512.png?v=20261125e",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/img/pwa/icon.svg?v=20261125e",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Router List",
+      "short_name": "Routers",
+      "description": "Open MikroTik router sessions",
+      "url": "/admin.php?id=sessions",
+      "icons": [
+        {
+          "src": "/img/pwa/pwa-192x192.png?v=20261125e",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Reset Voucher",
+      "short_name": "Voucher",
+      "description": "Open fast voucher reset tool",
+      "url": "/admin.php?id=reset-voucher",
+      "icons": [
+        {
+          "src": "/img/pwa/pwa-192x192.png?v=20261125e",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

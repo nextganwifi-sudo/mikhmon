@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03254a">
+  <title>NextGan WiFi — Offline</title>
+  <style>
+    :root {
+      --bg: #021226;
+      --card: rgba(8, 28, 56, 0.88);
+      --border: rgba(56, 248, 255, 0.24);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --accent-dark: #0284c7;
+      --warn-bg: rgba(245, 158, 11, 0.14);
+      --warn-border: rgba(245, 158, 11, 0.36);
+      --warn-text: #fde68a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hind Siliguri", sans-serif;
+      background: radial-gradient(circle at 50% 20%, #083363 0%, #021226 68%, #010914 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .ngw-offline-card {
+      width: 100%;
+      max-width: 440px;
+      background: linear-gradient(170deg, rgba(10, 34, 66, 0.96), rgba(4, 18, 38, 0.98));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px 24px;
+      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      text-align: center;
+    }
+    .ngw-offline-emblem {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 16px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(34, 211, 238, 0.16), rgba(14, 165, 233, 0.08));
+      border: 1px solid rgba(56, 248, 255, 0.32);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ngw-offline-brand {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+    p {
+      margin: 0 0 18px;
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .ngw-offline-notice {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: var(--warn-text);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .ngw-offline-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ngw-btn-primary, .ngw-btn-secondary {
+      flex: 1 1 140px;
+      height: 44px;
+      border-radius: 11px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.12s ease, opacity 0.15s ease;
+    }
+    .ngw-btn-primary {
+      background: linear-gradient(135deg, #06b6d4, #0284c7);
+      color: #ffffff;
+      box-shadow: 0 8px 22px rgba(6, 182, 212, 0.28);
+    }
+    .ngw-btn-secondary {
+      background: rgba(148, 163, 184, 0.14);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+    }
+    .ngw-btn-primary:active, .ngw-btn-secondary:active {
+      transform: scale(0.98);
+    }
+    .ngw-lang-switch {
+      display: inline-flex;
+      gap: 6px;
+      margin-top: 18px;
+      padding: 4px;
+      border-radius: 9px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .ngw-lang-switch button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .ngw-lang-switch button.is-active {
+      background: #0284c7;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <main class="ngw-offline-card" role="main">
+    <div class="ngw-offline-emblem" aria-hidden="true">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <circle cx="12" cy="20" r="1" fill="#38bdf8"/>
+      </svg>
+    </div>
+    <div class="ngw-offline-brand">NextGan WiFi</div>
+    <h1 id="ngwOffTitle">No Internet Connection</h1>
+    <p id="ngwOffDesc">Your device cannot reach the NextGan WiFi server right now. Check mobile data or Wi-Fi and try again.</p>
+    <div class="ngw-offline-notice" id="ngwOffHint">
+      Waiting for network signal — this screen will reconnect automatically as soon as internet comes back.
+    </div>
+    <div class="ngw-offline-actions">
+      <button type="button" class="ngw-btn-primary" id="ngwRetryBtn">Reconnect Now</button>
+      <button type="button" class="ngw-btn-secondary" id="ngwLoginBtn">Login Page</button>
+    </div>
+    <div class="ngw-lang-switch" aria-label="Language">
+      <button type="button" id="ngwLangEn">EN</button>
+      <button type="button" id="ngwLangBn">বাংলা</button>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var copy = {
+        en: {
+          title: 'No Internet Connection',
+          desc: 'Your device cannot reach the NextGan WiFi server right now. Check mobile data or Wi-Fi and try again.',
+          hint: 'Waiting for network signal — this page will reconnect automatically as soon as internet returns.',
+          retry: 'Reconnect Now',
+          login: 'Login Page',
+          checking: 'Checking connection...'
+        },
+        bn: {
+          title: 'ইন্টারনেট সংযোগ নেই',
+          desc: 'আপনার ডিভাইসটি বর্তমানে NextGan WiFi সার্ভারের সাথে যুক্ত হতে পারছে না। মোবাইল ডেটা বা ওয়াই-ফাই চেক করে আবার চেষ্টা করুন।',
+          hint: 'ইন্টারনেট ফিরে আসা মাত্রই অ্যাপটি স্বয়ংক্রিয়ভাবে পুনরায় সংযুক্ত হবে।',
+          retry: 'আবার চেষ্টা করুন',
+          login: 'লগইন পেজ',
+          checking: 'সংযোগ পরীক্ষা করা হচ্ছে...'
+        }
+      };
+
+      var lang = 'en';
+      try {
+        var saved = localStorage.getItem('ngw_pwa_lang');
+        if (saved === 'bn' || (!saved && (navigator.language || '').toLowerCase().indexOf('bn') === 0)) {
+          lang = 'bn';
+        }
+      } catch (e) {}
+
+      var titleEl = document.getElementById('ngwOffTitle');
+      var descEl = document.getElementById('ngwOffDesc');
+      var hintEl = document.getElementById('ngwOffHint');
+      var retryBtn = document.getElementById('ngwRetryBtn');
+      var loginBtn = document.getElementById('ngwLoginBtn');
+      var enBtn = document.getElementById('ngwLangEn');
+      var bnBtn = document.getElementById('ngwLangBn');
+
+      function applyLang(nextLang) {
+        lang = nextLang === 'bn' ? 'bn' : 'en';
+        try { localStorage.setItem('ngw_pwa_lang', lang); } catch (e) {}
+        var t = copy[lang];
+        titleEl.textContent = t.title;
+        descEl.textContent = t.desc;
+        hintEl.textContent = t.hint;
+        retryBtn.textContent = t.retry;
+        loginBtn.textContent = t.login;
+        enBtn.classList.toggle('is-active', lang === 'en');
+        bnBtn.classList.toggle('is-active', lang === 'bn');
+      }
+
+      function tryReconnect(targetUrl) {
+        retryBtn.textContent = copy[lang].checking;
+        fetch('/manifest.webmanifest', { cache: 'no-store' })
+          .then(function (r) {
+            if (r && r.ok) {
+              if (targetUrl) {
+                window.location.replace(targetUrl);
+              } else {
+                window.location.reload();
+              }
+            } else {
+              retryBtn.textContent = copy[lang].retry;
+            }
+          })
+          .catch(function () {
+            retryBtn.textContent = copy[lang].retry;
+          });
+      }
+
+      enBtn.addEventListener('click', function () { applyLang('en'); });
+      bnBtn.addEventListener('click', function () { applyLang('bn'); });
+      retryBtn.addEventListener('click', function () { tryReconnect(); });
+      loginBtn.addEventListener('click', function () { tryReconnect('/admin.php?id=login'); });
+      window.addEventListener('online', function () { tryReconnect(); });
+
+      applyLang(lang);
+    })();
+  </script>
+</body>
+</html>

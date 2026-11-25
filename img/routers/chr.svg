@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 84" width="120" height="84" role="img" aria-label="MikroTik CHR Cloud Hosted Router">
+  <defs>
+    <linearGradient id="chrCloud" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="chrBlade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="60" cy="74" rx="46" ry="4.5" fill="#020617" opacity="0.32"/>
+  <!-- Cloud Node Silhouette -->
+  <path d="M40 38 H82 C88 38 92 33.5 92 28.5 C92 24 88.5 20.2 84 19.7 C82.5 13.5 76.8 9 70 9 C64.2 9 59.2 12.2 56.8 17 C55.5 16.4 54 16 52.3 16 C46.8 16 42.3 20.3 42 25.7 C37.2 26.3 33.5 30.2 33.5 35 C33.5 36.8 36.3 38 40 38 Z" fill="url(#chrCloud)" opacity="0.92"/>
+  <path d="M51 24 L60 18 L69 24 L60 30 Z" fill="none" stroke="#e0f2fe" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Virtual Server Blade -->
+  <rect x="16" y="42" width="88" height="27" rx="5" fill="url(#chrBlade)" stroke="#38bdf8" stroke-width="1.2"/>
+  <rect x="23" y="51" width="44" height="9" rx="2" fill="#020617" stroke="#334155" stroke-width="0.8"/>
+  <rect x="26" y="54" width="16" height="3" rx="1.2" fill="#38bdf8"/>
+  <rect x="46" y="54" width="10" height="3" rx="1.2" fill="#22c55e"/>
+  <circle cx="80" cy="55.5" r="2.2" fill="#22c55e"/>
+  <circle cx="88" cy="55.5" r="2.2" fill="#38bdf8"/>
+  <circle cx="96" cy="55.5" r="2.2" fill="#38bdf8" opacity="0.55"/>
+  <text x="98" y="48.2" text-anchor="end" font-family="sans-serif" font-size="6.4" font-weight="800" fill="#7dd3fc">CHR</text>
+</svg>

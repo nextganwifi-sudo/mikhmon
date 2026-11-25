@@ -1,0 +1,169 @@
+{
+    "tcp_ports": "3478,4244,5222,5223,5228,5242,5288,5349,8443,50318,59234",
+    "udp_ports": "3478,19302-19309,34784,45395,50000-50059,50318,59234",
+    "users": [
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Al Fahad New",
+            "added_at": "2026-11-20 21:17:53",
+            "source": "manual",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 592,
+            "last_ports": "TCP:5228, TCP:5223, TCP:5222"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Rasel 1",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 1919,
+            "last_ports": "TCP:5228, TCP:5223, TCP:5222, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Old Cam",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 1278,
+            "last_ports": "TCP:5228, TCP:5223, TCP:5222, UDP:3478, TCP:5242"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Foysal 1",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 946,
+            "last_ports": "TCP:5228, TCP:5223, TCP:5222"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Masud",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 813,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Ali-2",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 776,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Foysal 2",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 769,
+            "last_ports": "TCP:5228, TCP:5223, TCP:5222, UDP:3478, TCP:4244"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Hospital 6",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 657,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "RCE-1",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 538,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Kamrul-2",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 467,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Hospital 3+4",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 450,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Hospital 1+2",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 432,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Mostak",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 305,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223, UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Binladen",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 275,
+            "last_ports": "TCP:5228, TCP:5223, TCP:5222"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Maruf",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 104,
+            "last_ports": "TCP:5228, TCP:5222, TCP:5223"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Hospital 5",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 27,
+            "last_ports": "TCP:5228, TCP:5223, UDP:3478, TCP:5222"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Tarikul 1",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 11,
+            "last_ports": "UDP:3478"
+        },
+        {
+            "vpn_id": "vpn_1793059413",
+            "username": "Ali-1",
+            "added_at": "2026-11-20 21:21:33",
+            "source": "detected",
+            "last_seen": "2026-11-20 21:21:33",
+            "last_flows": 6,
+            "last_ports": "UDP:3478"
+        }
+    ],
+    "dismissed": []
+}

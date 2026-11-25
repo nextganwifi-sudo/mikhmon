@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NextGan WiFi Solution Logo">
+  <defs>
+    <linearGradient id="ngwBlue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#003d8f"/>
+    </linearGradient>
+    <linearGradient id="ngwGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#65c917"/>
+      <stop offset="100%" stop-color="#0f6b24"/>
+    </linearGradient>
+    <linearGradient id="ngwSwoosh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0052b4"/>
+      <stop offset="52%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#2ea043"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#ffffff"/>
+  <!-- WiFi Arcs above G -->
+  <path d="M276 112 C324 72, 396 72, 444 112" fill="none" stroke="#0284c7" stroke-width="24" stroke-linecap="round"/>
+  <path d="M298 148 C334 118, 386 118, 422 148" fill="none" stroke="#0ea5e9" stroke-width="22" stroke-linecap="round"/>
+  <path d="M322 184 C346 164, 376 164, 400 184" fill="none" stroke="#0284c7" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="360" cy="212" r="14" fill="#0284c7"/>
+  <!-- Bold N -->
+  <path d="M84 366 V168 H134 L218 294 V168 H266 V366 H216 L132 240 V366 Z" fill="url(#ngwBlue)"/>
+  <!-- Bold G -->
+  <path d="M416 258 H332 V298 H378 C370 330, 344 350, 308 350 C266 350, 236 318, 236 274 C236 228, 268 196, 314 196 C346 196, 370 210, 386 230 L424 198 C398 166, 360 148, 312 148 C240 148, 188 202, 188 274 C188 346, 238 398, 308 398 C382 398, 424 352, 424 276 C424 268, 422 262, 416 258 Z" fill="url(#ngwGreen)"/>
+  <!-- Blue-Green Swoosh Underline -->
+  <path d="M60 326 C88 412, 290 434, 434 338 C312 400, 128 386, 60 326 Z" fill="url(#ngwSwoosh)"/>
+</svg>

@@ -1,0 +1,46 @@
+{
+    "admin_id:adm_1": {
+        "lang": "en",
+        "updated_at": "2026-11-25 01:15:00",
+        "theme": "dark",
+        "themecolor": "#3a4149"
+    },
+    "admin_user:mikhmon": {
+        "lang": "en",
+        "updated_at": "2026-11-25 01:15:00",
+        "theme": "dark",
+        "themecolor": "#3a4149"
+    },
+    "admin_id:adm_2": {
+        "lang": "en",
+        "updated_at": "2026-11-17 00:38:05"
+    },
+    "admin_user:admin1": {
+        "lang": "en",
+        "updated_at": "2026-11-17 00:38:05"
+    },
+    "admin_id:test_verify_admin": {
+        "lang": "en",
+        "updated_at": "2026-11-17 01:23:36"
+    },
+    "admin_user:__verify_admin": {
+        "lang": "en",
+        "updated_at": "2026-11-17 01:23:36"
+    },
+    "admin_id:adm_tpl_a": {
+        "lang": "bn",
+        "updated_at": "2026-11-21 21:05:31"
+    },
+    "admin_user:admin_alpha": {
+        "lang": "bn",
+        "updated_at": "2026-11-21 21:05:31"
+    },
+    "admin_id:adm_tpl_b": {
+        "lang": "en",
+        "updated_at": "2026-11-21 21:05:31"
+    },
+    "admin_user:admin_beta": {
+        "lang": "en",
+        "updated_at": "2026-11-21 21:05:31"
+    }
+}
