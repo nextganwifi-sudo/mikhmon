@@ -163,6 +163,16 @@ if (!isset($_SESSION["mikhmon"])) {
     $_SESSION['ubn'] = "";
   } elseif ($hotspot == "add-user") {
     $_SESSION['hua'] = "";
+  } elseif ($hotspot == "users" && $prof == "all") {
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "";
+  } elseif ($hotspot == "users" && $prof != "") {
+    $_SESSION['ubp'] = $prof;
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "";
   } elseif ($hotspot == "users" && $comm != "") {
     $_SESSION['ubc'] = $comm;
     $_SESSION['hua'] = "";
@@ -377,6 +387,26 @@ if (!isset($_SESSION["mikhmon"])) {
     requireResellerPermission('add_user', $defRedirect);
     $_SESSION['hua'] = "";
     include_once('./hotspot/adduser.php');
+  }
+
+// hotspot users
+  elseif ($hotspot == "users" && $prof == "all") {
+    requireResellerPermission('view_users', $defRedirect);
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "";
+    include_once('./hotspot/users.php');
+  }
+
+// hotspot users filter by profile
+  elseif ($hotspot == "users" && $prof != "") {
+    requireResellerPermission('view_users', $defRedirect);
+    $_SESSION['ubp'] = $prof;
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
+    $_SESSION['vcr'] = "";
+    include_once('./hotspot/users.php');
   }
 
 // hotspot users filter by comment

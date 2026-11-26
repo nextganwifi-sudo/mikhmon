@@ -73,7 +73,7 @@ if ($deletedCount > 0 && function_exists('ngwRecordActivity')) {
 if (session_status() !== PHP_SESSION_ACTIVE) {
   @session_start();
 }
-$_SESSION['ubp'] = "";
+$_SESSION['ubp'] = $expProfile;
 $_SESSION['ubc'] = "";
 $isBnNotice = (isset($langid) && $langid === 'bn');
 if ($deletedCount > 0) {
@@ -89,8 +89,13 @@ $_SESSION['ngw_hotspot_users_notice'] = array(
   'type' => 'success',
   'message' => $noticeMsg,
 );
+$ubpRedirect = $_SESSION['ubp'];
 @session_write_close();
 
-echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
+if ($ubpRedirect != "") {
+  echo "<script>window.location='./?hotspot=users&profile=" . rawurlencode($ubpRedirect) . "&session=" . rawurlencode($session) . "'</script>";
+} else {
+  echo "<script>window.location='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'</script>";
+}
 
 ?>

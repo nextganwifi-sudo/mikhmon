@@ -283,7 +283,7 @@ if (!$isLogoutReq) {
     if (!$isDashboardRoot && !$isResetOnlyHome && !empty($session)) {
       $sesEnc = rawurlencode((string)$session);
       if ($userbyname != "" || $hotspotuser == "add" || $hotspotuser == "generate") {
-        $ngwBackUrl = './?hotspot=users&session=' . $sesEnc;
+        $ngwBackUrl = './?hotspot=users&profile=all&session=' . $sesEnc;
       } elseif ($userprofile == "add" || $userprofilebyname != "") {
         $ngwBackUrl = './?hotspot=user-profiles&session=' . $sesEnc;
       } elseif ($pppoe == "add-user" || $pppoe == "addsecret" || $pppoe == "user" || $pppoe == "secret" || $pppoe_user != "" || $pppoe == "reset") {
@@ -701,7 +701,7 @@ $(document).ready(function(){
   </div>
   <div class="dropdown-container <?= $umenu; ?>">
     <?php if (hasResellerPermission('view_users')) { ?>
-    <a href="./?hotspot=users&session=<?= $session; ?>" class="<?= $susersl; ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-list "></i> <?= $_user_list ?> </a>
+    <a href="./?hotspot=users&profile=all&session=<?= $session; ?>" class="<?= $susersl; ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-list "></i> <?= $_user_list ?> </a>
     <?php } ?>
     <?php if (hasResellerPermission('add_user')) { ?>
     <a href="./?hotspot-user=add&session=<?= $session; ?>" class="<?= $sadduser; ?>"> &nbsp;&nbsp;&nbsp;<i class="fa fa-user-plus "></i> <?= $_add_user ?> </a>

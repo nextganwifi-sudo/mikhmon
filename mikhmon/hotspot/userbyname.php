@@ -76,7 +76,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
   if ($uname == "") {
     echo "<b>User not found redirect to user list...</b>";
-    echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
+    echo "<script>window.location='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'</script>";
   }
 
   include_once('./include/ros_version.php');
@@ -369,17 +369,19 @@ include('./voucher/printbt.php');
 <div class="card-body">
 <form autocomplete="new-password" method="post" action="">
   <div>
-    <?php if (!empty($_SESSION['ubc'])) {
+    <?php if (!empty($_SESSION['ubp'])) {
+      echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=" . rawurlencode((string)$_SESSION['ubp']) . "&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
+    } elseif (!empty($_SESSION['ubc'])) {
       echo "    <a class='btn bg-warning' href='./?hotspot=users&comment=" . rawurlencode((string)$_SESSION['ubc']) . "&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
     } elseif (!empty($_SESSION['hua'])) {
       $_SESSION['ubn'] = "";
       echo "    <a class='btn bg-warning' href='./?hotspot=active&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
       $_SESSION['hua'] = "";
     } elseif (!empty($_SESSION['ubn'])) {
-      echo "    <a class='btn bg-warning' href='./?hotspot=users&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
+      echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
       $_SESSION['ubn'] = "";
     } else {
-      echo "    <a class='btn bg-warning' href='./?hotspot=users&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
+      echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
     }
     ?>
     <?php if (hasResellerPermission('edit_user')) { ?>

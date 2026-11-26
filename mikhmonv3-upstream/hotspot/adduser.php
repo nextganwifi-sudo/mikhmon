@@ -139,8 +139,11 @@ if (!isset($_SESSION["mikhmon"])) {
   <?php } ?>
 <form autocomplete="off" method="post" action="">  
   <div>
-  <?php
-    echo "    <a class='btn bg-warning' href='./?hotspot=users&session=" . rawurlencode($session) . "'> <i class='fa fa-close'></i> ".$_close."</a>";
+  <?php if ($_SESSION['ubp'] != "") {
+    echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";
+  } else {
+    echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";
+  }
   ?>
     <button type="submit" onclick="loader()" class="btn bg-primary" name="save"><i class="fa fa-save"></i> <?= $_save ?></button>
   </div>

@@ -2685,7 +2685,7 @@ function getResellerDefaultFallbackUrl($session = '') {
             return './?session=' . urlencode($safeSession);
         }
         if (hasResellerPermission('view_users')) {
-            return './?hotspot=users&session=' . urlencode($safeSession);
+            return './?hotspot=users&profile=all&session=' . urlencode($safeSession);
         }
         if (hasResellerPermission('generate_voucher')) {
             return './?hotspot-user=generate&session=' . urlencode($safeSession);

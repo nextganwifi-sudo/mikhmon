@@ -35,6 +35,7 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
   $exp = isset($_GET['exp']) ? $_GET['exp'] : '';
+  $profVal = (isset($prof) && $prof !== '') ? (string)$prof : 'all';
   if ($exp != "") {
     $getuser6 = $API->comm("/ip/hotspot/user/print", array(
       "?limit-uptime" => "1s",
@@ -51,6 +52,12 @@ if (!isset($_SESSION["mikhmon"])) {
     ));
     $TotalReg = is_array($getuser) ? count($getuser) : 0;
     $counttuser = $TotalReg;
+  } elseif ($profVal != "all") {
+    $getuser = $API->comm("/ip/hotspot/user/print", array(
+      "?profile" => "$profVal",
+    ));
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
   } else {
     $getuser = $API->comm("/ip/hotspot/user/print");
     $TotalReg = is_array($getuser) ? count($getuser) : 0;
@@ -59,6 +66,8 @@ if (!isset($_SESSION["mikhmon"])) {
       ngwSyncVoucherHistorySnapshot($API, $session, $getuser, null, $tzSync['now_ts'], 10);
     }
   }
+  $getprofile = $API->comm("/ip/hotspot/user/profile/print");
+  $TotalReg2 = is_array($getprofile) ? count($getprofile) : 0;
 
   $nowRouterTs = (isset($tzSync['now_ts']) && (int)$tzSync['now_ts'] > 946684800) ? (int)$tzSync['now_ts'] : time();
   $nowRouterLabel = date('Y-m-d H:i:s', $nowRouterTs);
@@ -415,11 +424,24 @@ body[data-ngw-theme="pink"] .ngw-user-notice {
   <div class="row">
    <div class="col-6 pd-t-5 pd-b-5">
   <div class="input-group">
-    <div class="input-group-6 col-box-6">
+    <div class="input-group-4 col-box-4">
       <input id="filterTable" type="text" style="padding:5.8px;" class="group-item group-item-l" placeholder="<?= $_search ?>">
     </div>
-    <div class="input-group-6 col-box-6">
-      <select style="padding:5px;" class="group-item group-item-r" id="comment" name="comment" onchange="if(this.value===''){location='./?hotspot=users&session=<?= rawurlencode($session); ?>';}else{location='./?hotspot=users&comment='+ encodeURIComponent(this.value) +'&session=<?= rawurlencode($session); ?>';} loader();">
+    <div class="input-group-4 col-box-4">
+      <select style="padding:5px;" class="group-item group-item-m" id="ngwProfileFilter" onchange="if(this.value){location = this.value; loader();}" title="Filter by Profile">
+        <option value="./?hotspot=users&profile=all&session=<?= rawurlencode($session); ?>" <?= ($profVal == 'all' && $comm == '') ? 'selected' : ''; ?>><?= $_show_all ?></option>
+      <?php
+      for ($i = 0; $i < $TotalReg2; $i++) {
+        $profile = $getprofile[$i];
+        if (!is_array($profile) || !isset($profile['name']) || $profile['name'] === '') continue;
+        $pSel = ($profVal == $profile['name'] && $comm == '') ? 'selected' : '';
+        echo "<option value='./?hotspot=users&profile=" . rawurlencode($profile['name']) . "&session=" . rawurlencode($session) . "' " . $pSel . ">" . htmlspecialchars($profile['name'], ENT_QUOTES, 'UTF-8') . "</option>";
+      }
+      ?>
+      </select>
+    </div>
+    <div class="input-group-4 col-box-4">
+      <select style="padding:5px;" class="group-item group-item-r" id="comment" name="comment" onchange="if(this.value===''){location='./?hotspot=users&profile=all&session=<?= rawurlencode($session); ?>';}else{location='./?hotspot=users&comment='+ encodeURIComponent(this.value) +'&session=<?= rawurlencode($session); ?>';} loader();">
       <?php
       echo "<option value=''>" . $_comment . "</option>";
       $TotalReg = count($getuser);
@@ -485,7 +507,7 @@ body[data-ngw-theme="pink"] .ngw-user-notice {
     }}
   </script>
   <?php
-  $showBatchPrintBtn = ($comm !== '');
+  $showBatchPrintBtn = ($comm !== '' || ($profVal !== '' && $profVal !== 'all'));
   if (hasResellerPermission('print_voucher') && $showBatchPrintBtn) { ?>
   <button class="btn bg-primary" title="Print" onclick="printV('qr','no');"><i class="fa fa-print"></i> <?= isset($_print) ? $_print : 'Print' ?></button>
   <?php } ?>
@@ -506,7 +528,7 @@ body[data-ngw-theme="pink"] .ngw-user-notice {
       <i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?>
       <?php
       $canResetMac = (hasResellerPermission('reset_mac_address') || hasResellerPermission('edit_user') || hasResellerPermission('enable_disable_user') || hasResellerPermission('reset_voucher'));
-      $resetMacUrl = "./?reset-hotspot-macs=1&comment=" . rawurlencode($comm) . "&exp=" . rawurlencode($exp) . "&session=" . rawurlencode($session);
+      $resetMacUrl = "./?reset-hotspot-macs=1&profile=" . rawurlencode($profVal !== '' ? $profVal : 'all') . "&comment=" . rawurlencode($comm) . "&exp=" . rawurlencode($exp) . "&session=" . rawurlencode($session);
       if ($canResetMac) {
       ?>
       <button type="button" class="btn bg-warning" style="padding:1px 6px; font-size:11px; margin-left:5px; line-height:1.3; font-weight:600; border-radius:3px; cursor:pointer;" onclick="event.stopPropagation(); ngwOpenResetMacModal();" title="<?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস রিসেট করুন' : 'Reset MAC Addresses'; ?>">
@@ -654,7 +676,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
   } else if (substr($ucommentClean,0,3) == "vc-" || substr($ucommentClean,0,3) == "up-") {
     echo "<a href=./?hotspot=users&comment=" . rawurlencode($ucommentClean) . "&session=" . $session . " title='Filter by " . htmlspecialchars($ucommentClean, ENT_QUOTES) . "'><i class='fa fa-search'></i> ". htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
   } else if ($utimelimit == ' expired') {
-    echo "<a href=./?hotspot=users&exp=1&session=" . rawurlencode($session) . " title='Filter by expired'><i class='fa fa-search'></i> " . htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
+    echo "<a href=./?hotspot=users&profile=all&exp=1&session=" . rawurlencode($session) . " title='Filter by expired'><i class='fa fa-search'></i> " . htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
   }else{
     echo htmlspecialchars($ucommentClean).' ';
   }

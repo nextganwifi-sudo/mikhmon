@@ -157,7 +157,7 @@ if ($removehotspotusers != "") {
 if (session_status() !== PHP_SESSION_ACTIVE) {
 	@session_start();
 }
-$_SESSION['ubp'] = "";
+$ubpRedirect = isset($_SESSION['ubp']) ? (string)$_SESSION['ubp'] : '';
 $ubcRedirect = isset($_SESSION['ubc']) ? (string)$_SESSION['ubc'] : '';
 if ($deletedCount === 1 && $deletedPreviewName !== '') {
 	$noticeMsg = $isBnNotice
@@ -178,9 +178,11 @@ $_SESSION['ngw_hotspot_users_notice'] = array(
 );
 @session_write_close();
 
-if ($ubcRedirect !== "") {
+if ($ubpRedirect !== "") {
+	echo "<script>window.location='./?hotspot=users&profile=" . rawurlencode($ubpRedirect) . "&session=" . rawurlencode($session) . "'</script>";
+} elseif ($ubcRedirect !== "") {
 	echo "<script>window.location='./?hotspot=users&comment=" . rawurlencode($ubcRedirect) . "&session=" . rawurlencode($session) . "'</script>";
 } else {
-	echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
+	echo "<script>window.location='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'</script>";
 }
 ?>
