@@ -174,7 +174,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $ssett = "active";
     $settmenu = "menu-open";
     $mpage = ($langid === 'bn') ? "ইউআই স্টাইল" : "UI Style";
-  } elseif ($id == "settings" && $session == "new") {
+  } elseif ($id == "settings" && ($session == "new" || strpos((string)$session, 'new-') === 0 || explode("-", (string)$router)[0] == "new")) {
     $snsettings = "active";
     $mpage = $_add_router;
   } elseif ($id == "settings" || $id == "connect") {
@@ -478,7 +478,7 @@ $ngwUiConfig = array(
   <a href="./admin.php?id=logout" class="menu"><i class="fa fa-sign-out"></i> <?= $_logout ?></a>
   <a href="javascript:void(0)" id="ngw-pwa-sidebar-install" class="menu ngw-pwa-sidebar-btn"><i class="fa fa-download"></i> <?= $ngwInstallAppLabel ?></a>
 <?php } else { ?>
-<?php if (($id == "settings" && $session == "new") || $id == "settings" && $router == "new") {
+<?php if ($id == "settings" && ($session == "new" || strpos((string)$session, 'new-') === 0 || explode("-", (string)$router)[0] == "new")) {
 }else if (($id == "settings" || $id == "connect") && !empty($session)){
 ?>  
   <?php $dispSettingsSession = function_exists('getRouterDisplaySessionName') ? getRouterDisplaySessionName((string)$session) : (string)$session; ?>
@@ -491,9 +491,6 @@ $ngwUiConfig = array(
   <a href="./admin.php?id=sessions" class="menu <?= $ssesslist; ?>"><i class="fa fa-server"></i> <?= isset($_router_menu_label) ? $_router_menu_label : 'Router'; ?></a>
   <?php if (hasResellerPermission('reset_voucher')) { ?>
   <a href="./admin.php?id=reset-voucher<?= !empty($session) && $session !== 'new' ? '&session=' . urlencode($session) : ''; ?>" class="menu <?= $sresetvoucher; ?>"><i class="fa fa-refresh"></i> <?= isset($_reset_voucher) ? $_reset_voucher : 'Reset Voucher'; ?></a>
-  <?php } ?>
-  <?php if (hasResellerPermission('manage_router_settings') && !(function_exists('ngwResolveActiveUiStyle') && ngwResolveActiveUiStyle() === 'aurora')) { ?>
-  <a href="./admin.php?id=settings&router=new-<?= rand(1111,9999) ?>" class="menu <?= $snsettings ?>"><i class="fa fa-plus"></i> <?= $_add_router ?></a>
   <?php } ?>
   <?php if (isMikhmonAdmin()) { ?>
   <?php if (hasResellerPermission('view_resellers') || hasResellerPermission('manage_resellers')) { ?>

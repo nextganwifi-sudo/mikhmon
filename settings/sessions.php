@@ -57,9 +57,14 @@ if (!isset($_SESSION["mikhmon"])) {
     if ($value === "" || $value === "mikhmon" || !canAccessRouterSession($value)) {
       continue;
     }
+    $rawIpCheck = (isset($data[$value][1]) && strpos($data[$value][1], '!') !== false) ? trim((string)explode('!', $data[$value][1], 2)[1]) : '';
+    $rawUsrCheck = (isset($data[$value][2]) && strpos($data[$value][2], '@|@') !== false) ? trim((string)explode('@|@', $data[$value][2], 2)[1]) : '';
     $hsName = (isset($data[$value][4]) && strpos($data[$value][4], '%') !== false)
       ? explode('%', $data[$value][4])[1]
       : $value;
+    if (($value === 'new' || preg_match('/^new-\d+$/', $value)) && $rawIpCheck === '' && $rawUsrCheck === '' && trim((string)$hsName) === '') {
+      continue;
+    }
     if ($hsName === '') {
       $hsName = $value;
     }
@@ -289,6 +294,45 @@ $ngwCntBg = $ngwIsDarkTheme ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 23, 42, 0.
     right: 0;
   }
 }
+.ngw-sessions-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.ngw-sessions-header .card-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ngw-add-router-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 13px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  border-radius: 6px !important;
+  white-space: nowrap;
+  text-decoration: none !important;
+  flex-shrink: 0;
+}
+.ngw-sessions-empty {
+  width: 100%;
+  text-align: center;
+  padding: 28px 16px;
+  border-radius: 8px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  margin: 4px 0 8px;
+}
+@media screen and (max-width: 575px) {
+  .ngw-add-router-btn {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+  }
+}
 </style>
 <?php
 $ngwIsGlassOs = (function_exists('ngwResolveActiveUiStyle') && ngwResolveActiveUiStyle() === 'aurora');
@@ -316,7 +360,7 @@ $isBnSessions = (isset($langid) && $langid === 'bn');
         <span><?= $isBnSessions ? 'রিলোড' : 'Refresh'; ?></span>
       </button>
       <?php if ($canManageRtr) { ?>
-      <a href="./admin.php?id=settings&router=new-<?= rand(1111,9999); ?>" class="ngw-glass-btn is-primary">
+      <a href="./admin.php?id=settings&session=new" class="ngw-glass-btn is-primary">
         <i class="fa fa-plus" aria-hidden="true"></i>
         <span><?= $_add_router ?></span>
       </a>
@@ -371,7 +415,7 @@ $isBnSessions = (isset($langid) && $langid === 'bn');
       <h3 style="margin:0 0 6px;font-size:17px;"><?= $isBnSessions ? 'এখনও কোনো রাউটার যুক্ত করা হয়নি' : 'No routers configured yet'; ?></h3>
       <p style="margin:0 0 16px;font-size:13px;opacity:0.75;"><?= $isBnSessions ? 'শুরু করতে নিচের বাটনে ক্লিক করে আপনার প্রথম MikroTik রাউটার যুক্ত করুন।' : 'Add your first MikroTik router to start managing hotspot users and vouchers.'; ?></p>
       <?php if ($canManageRtr) { ?>
-      <a href="./admin.php?id=settings&router=new-<?= rand(1111,9999); ?>" class="ngw-glass-btn is-primary">
+      <a href="./admin.php?id=settings&session=new" class="ngw-glass-btn is-primary">
         <i class="fa fa-plus"></i> <?= $_add_router ?>
       </a>
       <?php } ?>
@@ -449,7 +493,7 @@ $isBnSessions = (isset($langid) && $langid === 'bn');
 <div class="row">
   <div class="col-12">
     <div class="card">
-      <div class="card-header">
+      <div class="card-header ngw-sessions-header">
         <h3 class="card-title" style="display:flex; flex-wrap:wrap; align-items:center; gap:4px;"><i class="fa fa-server"></i> <?= $_router_list ?> <small id="router-count" style="font-size:12px;font-weight:normal;">(<?= (int)$totalRoutersCount; ?>)</small> &nbsp;|&nbsp; <i onclick="location.reload();" class="fa fa-refresh pointer" title="<?= ($langid === 'bn') ? 'রিলোড করুন' : 'Reload data'; ?>"></i>
           <input type="search" id="router-search" placeholder="<?= ($langid === 'bn') ? 'অনুসন্ধান করুন...' : 'Search'; ?>" aria-label="Search routers" style="display:inline-block;width:165px;max-width:42%;margin-left:6px;padding:4px 7px;font-size:13px;font-weight:normal;">
           <?php if (!empty($sessionGroups)) { ?>
@@ -478,6 +522,12 @@ $isBnSessions = (isset($langid) && $langid === 'bn');
           </span>
           <?php } ?>
         </h3>
+        <?php if ($canManageRtr) { ?>
+        <a href="./admin.php?id=settings&session=new" class="btn bg-primary ngw-add-router-btn">
+          <i class="fa fa-plus" aria-hidden="true"></i>
+          <span><?= $_add_router ?></span>
+        </a>
+        <?php } ?>
       </div>
       <div class="card-body">
         <?php if (!empty($_SESSION['router_settings_notice'])) { ?>
@@ -485,6 +535,19 @@ $isBnSessions = (isset($langid) && $langid === 'bn');
             <?= htmlspecialchars($_SESSION['router_settings_notice'], ENT_QUOTES, 'UTF-8'); ?>
           </div>
           <?php unset($_SESSION['router_settings_notice']); ?>
+        <?php } ?>
+        <?php if (empty($routerCards)) { ?>
+          <div class="ngw-sessions-empty">
+            <div style="font-size:28px;margin-bottom:8px;opacity:0.75;"><i class="fa fa-server"></i></div>
+            <h4 style="margin:0 0 6px;"><?= $isBnSessions ? 'এখনও কোনো রাউটার যুক্ত করা হয়নি' : 'No routers configured yet'; ?></h4>
+            <p style="margin:0 0 14px;opacity:0.78;font-size:13px;"><?= $isBnSessions ? 'শুরু করতে নিচের বাটনে ক্লিক করে আপনার প্রথম রাউটার যুক্ত করুন।' : 'Click below to add your first MikroTik router.'; ?></p>
+            <?php if ($canManageRtr) { ?>
+            <a href="./admin.php?id=settings&session=new" class="btn bg-primary ngw-add-router-btn">
+              <i class="fa fa-plus" aria-hidden="true"></i>
+              <span><?= $_add_router ?></span>
+            </a>
+            <?php } ?>
+          </div>
         <?php } ?>
         <div class="row">
           <?php

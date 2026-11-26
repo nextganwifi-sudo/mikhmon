@@ -31,6 +31,3 @@ $data['my'] = array ('1'=>'my!Mehedi.nextganwifi.xyz:4540','my@|@admin1','my#|#i
 $data['Maruf'] = array ('1'=>'Maruf!dubai.nextganwifi.xyz:8041','Maruf@|@admin2','Maruf#|#iJKlq2JkaWRy','Maruf%Maruf','Maruf^login.net','Maruf&SR','Maruf*10','Maruf(1','Maruf)','new-9863=10','Maruf@!@disable');
 $data['Azharul'] = array ('1'=>'Azharul!Mehedi.nextganwifi.xyz:4041','Azharul@|@admin2','Azharul#|#iJKlq2JkaWRy','Azharul%Azharul','Azharul^login.net','Azharul&SR','Azharul*10','Azharul(1','Azharul)','new-5684=10','Azharul@!@disable');
 $data['AlMidda2'] = array ('1'=>'AlMidda2!mehedi.nextganwifi.xyz:250','AlMidda2@|@admin1','AlMidda2#|#ipqfmWJjbWZy','AlMidda2%Al Midda_2','AlMidda2^nextgan.wifi','AlMidda2&RS','AlMidda2*10','AlMidda2(1','AlMidda2)','new-3551=10','AlMidda2@!@disable');
-$data['new'] = array ('1'=>'new!','new@|@','new#|#','new%','new^','new&Tk','new*10','new(1','new)','new=10','new@!@disable');
-$data['new-1234'] = array ('1'=>'new-1234!','new-1234@|@','new-1234#|#','new-1234%','new-1234^','new-1234&Tk','new-1234*10','new-1234(1','new-1234)','new-1234=10','new-1234@!@disable');
-$data['new-1'] = array ('1'=>'new-1!','new-1@|@','new-1#|#','new-1%','new-1^','new-1&Tk','new-1*10','new-1(1','new-1)','new-1=10','new-1@!@disable');

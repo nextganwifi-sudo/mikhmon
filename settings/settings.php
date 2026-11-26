@@ -43,51 +43,56 @@ if (!isset($_SESSION["mikhmon"])) {
     include_once('./include/data_recovery.php');
   }
 
-  if ($id == "settings" && explode("-", (string)$router)[0] == "new") {
-    $router = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$router);
-    if ($router === '') {
-      $router = 'new-' . rand(1111, 9999);
-    }
-    $placeholderLine = "\$data['" . $router . "'] = array ('1'=>'" . $router . "!','" . $router . "@|@','" . $router . "#|#','" . $router . "%','" . $router . "^','" . $router . "&Tk','" . $router . "*10','" . $router . "(1','" . $router . ")','" . $router . "=10','" . $router . "@!@disable');";
-    if (function_exists('ngwSaveRouterSessionToConfig')) {
-      ngwSaveRouterSessionToConfig($router, $router, $placeholderLine, './include/config.php');
-    } else {
-      $f = @fopen('./include/config.php', 'a');
-      if ($f) {
-        fwrite($f, "\n" . $placeholderLine . "\n");
-        fclose($f);
-      }
-      if (function_exists('recordRouterOwnerOnCreateOrRename')) {
-        recordRouterOwnerOnCreateOrRename($router, $router);
-      }
-    }
-    if (!isMikhmonAdmin() && isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers']) && !in_array('*', $_SESSION['mikhmon_routers'], true)) {
-      if (!in_array($router, $_SESSION['mikhmon_routers'], true)) {
-        $_SESSION['mikhmon_routers'][] = $router;
-      }
-    }
-    session_write_close();
-    echo "<script>window.location.replace('./admin.php?id=settings&session=" . rawurlencode($router) . "')</script>";
-    exit;
-  }
-
-  // Always reload config.php & readcfg.php with OPcache invalidated so $idleto and all fields reflect disk state
+  // Always reload config.php with OPcache invalidated so $data reflects disk state
   if (function_exists('ngwInvalidatePhpFileCache')) {
     ngwInvalidatePhpFileCache('./include/config.php');
   }
   if (is_file('./include/config.php')) {
     include('./include/config.php');
   }
-  if (is_file('./include/readcfg.php')) {
-    include('./include/readcfg.php');
+
+  // Legacy GET links using ?id=settings&router=new-XXXX should never pre-create blank routers in config.php
+  if ($id == "settings" && explode("-", (string)$router)[0] == "new" && !isset($_POST['save'])) {
+    session_write_close();
+    echo "<script>window.location.replace('./admin.php?id=settings&session=new')</script>";
+    exit;
   }
+
+  $isNewRouterMode = ($id == "settings" && (
+    (string)$session === 'new' ||
+    explode('-', (string)$router)[0] === 'new' ||
+    (explode('-', (string)$session)[0] === 'new' && !isset($data[$session]))
+  ));
+  if (!$isNewRouterMode && isset($session) && (string)$session !== '' && !canAccessRouterSession((string)$session)) {
+    http_response_code(403);
+    exit('Access denied.');
+  }
+
+  if (!$isNewRouterMode && isset($data[$session]) && is_file('./include/readcfg.php')) {
+    include('./include/readcfg.php');
+  } else {
+    $iphost = '';
+    $userhost = '';
+    $passwdhost = '';
+    $hotspotname = '';
+    $dnsname = '';
+    $currency = '';
+    $areload = '';
+    $iface = '';
+    $infolp = '';
+    $idleto = '';
+    $livereport = '';
+  }
+
+  $settingsSaveError = '';
+  $postedDisplaySession = null;
+  $postedPassPlain = null;
 
   if (isset($_POST['save'])) {
     if (!ngwValidateCsrf(isset($_POST['csrf_token']) ? (string)$_POST['csrf_token'] : '', 'ngw_settings_csrf')) {
-      $csrfErrMsg = (isset($langid) && $langid === 'bn')
+      $settingsSaveError = (isset($langid) && $langid === 'bn')
         ? 'সিকিউরিটি টোকেন অবৈধ বা মেয়াদোত্তীর্ণ। পেজটি রিলোড করে আবার চেষ্টা করুন।'
         : 'Security token expired or invalid. Reload this page and try again.';
-      echo "<div class='alert alert-danger'>" . htmlspecialchars($csrfErrMsg, ENT_QUOTES, 'UTF-8') . "</div>";
     } else {
     $raw_ipmik = preg_replace('/\s+/', '', isset($_POST['ipmik']) ? (string)$_POST['ipmik'] : '');
     $siphost = str_replace("'", '', $raw_ipmik);
@@ -98,7 +103,8 @@ if (!isset($_SESSION["mikhmon"])) {
       }
     }
     $suserhost = str_replace("'", '', isset($_POST['usermik']) ? trim((string)$_POST['usermik']) : '');
-    $spasswdhost = encrypt(isset($_POST['passmik']) ? (string)$_POST['passmik'] : '');
+    $rawPassPost = isset($_POST['passmik']) ? (string)$_POST['passmik'] : '';
+    $spasswdhost = encrypt($rawPassPost);
     $shotspotname = str_replace("'", '', isset($_POST['hotspotname']) ? trim((string)$_POST['hotspotname']) : '');
     $sdnsname = str_replace("'", '', isset($_POST['dnsname']) ? trim((string)$_POST['dnsname']) : '');
     $scurrency = str_replace("'", '', isset($_POST['currency']) ? trim((string)$_POST['currency']) : 'Tk');
@@ -118,7 +124,7 @@ if (!isset($_SESSION["mikhmon"])) {
     if ($sidleto === '') {
       $sidleto = '10';
     }
-    $rawDisplaySes = trim(isset($_POST['sessname']) ? (string)$_POST['sessname'] : (string)$session);
+    $rawDisplaySes = trim(isset($_POST['sessname']) ? (string)$_POST['sessname'] : ($isNewRouterMode ? '' : (string)$session));
     $rawDisplaySes = str_replace(array("'", '"', "\\", "\r", "\n", "<", ">"), '', $rawDisplaySes);
     $rawDisplaySes = preg_replace('/\s+/', ' ', $rawDisplaySes);
     if (function_exists('mb_substr')) {
@@ -126,26 +132,59 @@ if (!isset($_SESSION["mikhmon"])) {
     } else {
       $rawDisplaySes = substr($rawDisplaySes, 0, 60);
     }
-    $currentDisplaySes = function_exists('getRouterDisplaySessionName') ? getRouterDisplaySessionName((string)$session) : (string)$session;
-    if ($rawDisplaySes === '' || strtolower($rawDisplaySes) === 'mikhmon') {
-      $rawDisplaySes = $currentDisplaySes !== '' ? $currentDisplaySes : (string)$session;
-    }
+    $currentDisplaySes = (!$isNewRouterMode && function_exists('getRouterDisplaySessionName')) ? getRouterDisplaySessionName((string)$session) : ($isNewRouterMode ? '' : (string)$session);
 
     $slivereport = str_replace("'", '', isset($_POST['livereport']) ? trim((string)$_POST['livereport']) : (isset($livereport) && $livereport !== '' ? (string)$livereport : 'disable'));
     if ($slivereport === '') {
       $slivereport = 'disable';
     }
 
+    // Preserve posted values in case validation or write fails
+    $postedDisplaySession = $rawDisplaySes;
+    $postedPassPlain = $rawPassPost;
+    $iphost = $siphost;
+    $userhost = $suserhost;
+    $hotspotname = $shotspotname;
+    $dnsname = $sdnsname;
+    $currency = $scurrency;
+    $areload = (string)$sreload;
+    $iface = $siface;
+    $idleto = $sidleto;
+    $livereport = $slivereport;
+
+    if ($isNewRouterMode) {
+      if ($rawDisplaySes === '' || strtolower($rawDisplaySes) === 'mikhmon' || strtolower($rawDisplaySes) === 'new' || preg_match('/^new-\d+$/i', $rawDisplaySes)) {
+        $settingsSaveError = (isset($langid) && $langid === 'bn')
+          ? 'অনুগ্রহ করে একটি সঠিক সেশন নাম লিখুন (খালি, "new" বা "mikhmon" দেওয়া যাবে না)।'
+          : 'Please enter a valid Session Name (cannot be empty, "new", or "mikhmon").';
+      } elseif ($siphost === '' || $suserhost === '' || $rawPassPost === '' || $shotspotname === '' || $sdnsname === '') {
+        $settingsSaveError = (isset($langid) && $langid === 'bn')
+          ? 'রাউটার সেভ করতে আইপি, ইউজারনেম, পাসওয়ার্ড, হটস্পট নাম ও ডিএনএস নাম সঠিকভাবে পূরণ করুন।'
+          : 'Please fill in IP, Username, Password, Hotspot Name, and DNS Name before saving.';
+      }
+    } else {
+      if ($rawDisplaySes === '' || strtolower($rawDisplaySes) === 'mikhmon') {
+        $rawDisplaySes = $currentDisplaySes !== '' ? $currentDisplaySes : (string)$session;
+        $postedDisplaySession = $rawDisplaySes;
+      }
+      if ($siphost === '' || $suserhost === '' || $shotspotname === '' || $sdnsname === '') {
+        $settingsSaveError = (isset($langid) && $langid === 'bn')
+          ? 'রাউটারের আইপি, ইউজারনেম, হটস্পট নাম ও ডিএনএস নাম খালি রাখা যাবে না।'
+          : 'Router IP, Username, Hotspot Name, and DNS Name cannot be empty.';
+      }
+    }
+
+    if ($settingsSaveError === '') {
     // Determine collision-free internal key for config.php while allowing identical Display Session Names (groups)
     $existingDataKeys = (isset($data) && is_array($data)) ? array_keys($data) : array();
-    $isNewPlaceholder = (explode('-', (string)$session)[0] === 'new');
+    $oldSessionArg = $isNewRouterMode ? '' : (string)$session;
     $desiredAsciiKey = preg_replace('/\s+/', '-', $rawDisplaySes);
     $isCleanAsciiDesired = (bool)preg_match('/^[a-zA-Z0-9_-]{1,50}$/', $desiredAsciiKey) && strtolower($desiredAsciiKey) !== 'mikhmon';
 
     $keyTakenByOther = false;
     if ($isCleanAsciiDesired) {
       foreach ($existingDataKeys as $existingKey) {
-        if ($existingKey === 'mikhmon' || strcasecmp((string)$existingKey, (string)$session) === 0) {
+        if ($existingKey === 'mikhmon' || (!$isNewRouterMode && strcasecmp((string)$existingKey, (string)$session) === 0)) {
           continue;
         }
         if (strcasecmp((string)$existingKey, $desiredAsciiKey) === 0) {
@@ -155,11 +194,11 @@ if (!isset($_SESSION["mikhmon"])) {
       }
     }
 
-    if ($isNewPlaceholder) {
+    if ($isNewRouterMode) {
       // Brand new router: pick a unique internal key (e.g. Shahin, Shahin_2, Shahin_3...) without ever overwriting existing routers
       $sesname = function_exists('generateUniqueRouterSessionKey')
-        ? generateUniqueRouterSessionKey($rawDisplaySes, $existingDataKeys, (string)$session)
-        : ($isCleanAsciiDesired && !$keyTakenByOther ? $desiredAsciiKey : (string)$session);
+        ? generateUniqueRouterSessionKey($rawDisplaySes, $existingDataKeys, '')
+        : ($isCleanAsciiDesired && !$keyTakenByOther ? $desiredAsciiKey : ('router_' . time()));
     } elseif ($rawDisplaySes === $currentDisplaySes) {
       // Existing router saved with same display session name: keep its unique internal key intact
       $sesname = (string)$session;
@@ -177,7 +216,7 @@ if (!isset($_SESSION["mikhmon"])) {
     $configPath = './include/config.php';
     $savedOk = false;
     if (function_exists('ngwSaveRouterSessionToConfig')) {
-      $savedOk = ngwSaveRouterSessionToConfig($session, $sesname, $newRouterLine, $configPath);
+      $savedOk = ngwSaveRouterSessionToConfig($oldSessionArg, $sesname, $newRouterLine, $configPath);
     } else {
       $content = @file_get_contents($configPath);
       if ($content !== false) {
@@ -185,10 +224,10 @@ if (!isset($_SESSION["mikhmon"])) {
         $outLines = array();
         $found = false;
         foreach ($lines as $ln) {
-          if (strpos($ln, "\$data['" . $session . "']") !== false || strpos($ln, '$data["' . $session . '"]') !== false) {
+          if ($oldSessionArg !== '' && (strpos($ln, "\$data['" . $oldSessionArg . "']") !== false || strpos($ln, '$data["' . $oldSessionArg . '"]') !== false)) {
             $outLines[] = $newRouterLine;
             $found = true;
-          } elseif ($sesname !== $session && (strpos($ln, "\$data['" . $sesname . "']") !== false || strpos($ln, '$data["' . $sesname . '"]') !== false)) {
+          } elseif ($sesname !== $oldSessionArg && (strpos($ln, "\$data['" . $sesname . "']") !== false || strpos($ln, '$data["' . $sesname . '"]') !== false)) {
             continue;
           } else {
             $outLines[] = $ln;
@@ -199,17 +238,16 @@ if (!isset($_SESSION["mikhmon"])) {
         }
         $savedOk = (@file_put_contents($configPath, implode("\n", $outLines) . "\n", LOCK_EX) !== false);
         if ($savedOk && function_exists('recordRouterOwnerOnCreateOrRename')) {
-          recordRouterOwnerOnCreateOrRename($session, $sesname);
+          recordRouterOwnerOnCreateOrRename($oldSessionArg, $sesname);
         }
       }
     }
 
     if (!$savedOk) {
       $_SESSION['connect'] = "";
-      $errMsg = (isset($langid) && $langid === 'bn')
+      $settingsSaveError = (isset($langid) && $langid === 'bn')
         ? 'রাউটার সেটিংস সেভ করা যায়নি: config.php রাইটেবল নয়।'
         : 'Could not save router settings: config.php is not writable.';
-      echo "<div class='alert alert-danger'>" . $errMsg . "</div>";
     } else {
       if (function_exists('setRouterDisplaySessionName')) {
         setRouterDisplaySessionName($sesname, $rawDisplaySes);
@@ -230,6 +268,7 @@ if (!isset($_SESSION["mikhmon"])) {
       session_write_close();
       echo '<script>window.location.replace(' . json_encode('./admin.php?id=settings&session=' . rawurlencode($sesname), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')</script>';
       exit;
+    }
     }
     }
   }
@@ -278,10 +317,14 @@ if (!isset($_SESSION["mikhmon"])) {
 <?php
 $ngwIsGlassOsSettings = (function_exists('ngwResolveActiveUiStyle') && ngwResolveActiveUiStyle() === 'aurora');
 $isBnSettings = (isset($langid) && $langid === 'bn');
-$isNewRouterMode = (explode('-', (string)$session)[0] === 'new');
-$inputDisplaySession = $isNewRouterMode
-  ? ''
-  : (function_exists('getRouterDisplaySessionName') ? getRouterDisplaySessionName((string)$session) : (string)$session);
+$inputDisplaySession = ($postedDisplaySession !== null)
+  ? $postedDisplaySession
+  : ($isNewRouterMode
+      ? ''
+      : (function_exists('getRouterDisplaySessionName') ? getRouterDisplaySessionName((string)$session) : (string)$session));
+$inputPassPlain = ($postedPassPlain !== null)
+  ? $postedPassPlain
+  : ($isNewRouterMode ? '' : decrypt($passwdhost));
 $existingGroupSuggestions = array();
 if (isset($data) && is_array($data)) {
   foreach (array_keys($data) as $candKey) {
@@ -324,6 +367,12 @@ if (isset($data) && is_array($data)) {
       </button>
     </div>
   </div>
+
+  <?php if ($settingsSaveError !== '') { ?>
+    <div class="alert alert-danger" role="alert">
+      <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> <?= htmlspecialchars($settingsSaveError, ENT_QUOTES, 'UTF-8'); ?>
+    </div>
+  <?php } ?>
 
   <?php if (!empty($_SESSION['router_settings_notice'])) { ?>
     <div class="alert alert-success" role="status">
@@ -386,7 +435,7 @@ if (isset($data) && is_array($data)) {
           <div class="ngw-gl-fgroup">
             <label for="passmk"><i class="fa fa-key" aria-hidden="true"></i> <?= $_password ?></label>
             <div class="ngw-gl-input-unit">
-              <input class="form-control" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= htmlspecialchars(decrypt($passwdhost), ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
+              <input class="form-control" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= htmlspecialchars($inputPassPlain, ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
               <button type="button" class="ngw-glass-btn" style="height:42px;width:44px;padding:0;flex-shrink:0;" onclick="PassMk()" title="Show/Hide Password" aria-label="Show/Hide Password">
                 <i class="fa fa-eye" aria-hidden="true"></i>
               </button>
@@ -494,6 +543,16 @@ if (isset($data) && is_array($data)) {
             <span><?= $_save ?></span>
           </button>
           <div class="ngw-gl-action-row">
+            <?php if ($isNewRouterMode) { ?>
+            <button type="button" class="ngw-glass-btn" disabled style="height:38px;opacity:0.5;cursor:not-allowed;" title="<?= htmlspecialchars($isBnSettings ? 'প্রথমে রাউটার সেভ করুন' : 'Save router settings first', ENT_QUOTES, 'UTF-8'); ?>">
+              <i class="fa fa-external-link" aria-hidden="true"></i>
+              <span><?= $isBnSettings ? 'ওপেন' : 'Open'; ?></span>
+            </button>
+            <button type="button" class="ngw-glass-btn" id="ping_test" disabled style="height:38px;opacity:0.5;cursor:not-allowed;" title="<?= htmlspecialchars($isBnSettings ? 'প্রথমে রাউটার সেভ করুন' : 'Save router settings first', ENT_QUOTES, 'UTF-8'); ?>">
+              <i class="fa fa-signal" aria-hidden="true"></i>
+              <span><?= isset($_ping) ? $_ping : 'Ping'; ?></span>
+            </button>
+            <?php } else { ?>
             <button type="button" class="ngw-glass-btn is-success connect" id="<?= htmlspecialchars($session, ENT_QUOTES, 'UTF-8'); ?>&c=settings" style="height:38px;">
               <i class="fa fa-external-link" aria-hidden="true"></i>
               <span><?= $isBnSettings ? 'ওপেন' : 'Open'; ?></span>
@@ -502,6 +561,7 @@ if (isset($data) && is_array($data)) {
               <i class="fa fa-signal" aria-hidden="true"></i>
               <span><?= isset($_ping) ? $_ping : 'Ping'; ?></span>
             </button>
+            <?php } ?>
           </div>
         </div>
       </div>
@@ -514,10 +574,14 @@ if (isset($data) && is_array($data)) {
 <div class="row">
 	<div class="col-12">
   		<div class="card" >
-  			<div class="card-header">
-  				<h3 class="card-title"><i class="fa fa-gear"></i> <?= $_session_settings ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer " title="Reload data"></i></h3>
+  			<div class="card-header" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;">
+  				<h3 class="card-title"><i class="fa <?= $isNewRouterMode ? 'fa-plus-circle' : 'fa-gear'; ?>"></i> <?= $isNewRouterMode ? $_add_router : $_session_settings ?> &nbsp; | &nbsp;&nbsp;<i onclick="location.reload();" class="fa fa-refresh pointer " title="Reload data"></i></h3>
+          <a href="./admin.php?id=sessions" class="btn btn-sm bg-secondary" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;"><i class="fa fa-arrow-left"></i> <?= $_router_list ?></a>
   			</div>
         <div class="card-body">
+          <?php if ($settingsSaveError !== '') { ?>
+          <div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-triangle"></i> <?= htmlspecialchars($settingsSaveError, ENT_QUOTES, 'UTF-8'); ?></div>
+          <?php } ?>
           <?php if (!empty($_SESSION['router_settings_notice'])) { ?>
           <div class="alert alert-success" role="status"><?= htmlspecialchars($_SESSION['router_settings_notice'], ENT_QUOTES, 'UTF-8'); ?></div>
           <?php unset($_SESSION['router_settings_notice']); } ?>
@@ -570,7 +634,7 @@ if (isset($data) && is_array($data)) {
 						<td class="align-middle"><?= $_password ?>  </td><td>
 							<div class="input-group">
 								<div class="input-group-11 col-box-10">
-        						<input class="group-item group-item-l" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= htmlspecialchars(decrypt($passwdhost), ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
+        						<input class="group-item group-item-l" id="passmk" type="password" name="passmik" title="Password MikroTik" value="<?= htmlspecialchars($inputPassPlain, ENT_QUOTES, 'UTF-8'); ?>" required="1"/>
         						</div>
             					<div class="input-group-1 col-box-2">
             						<div class="group-item group-item-r pd-2p5 text-center align-middle">
@@ -586,10 +650,18 @@ if (isset($data) && is_array($data)) {
 									<input class="group-item group-item-l" type="submit" style="cursor: pointer;" name="save" value="<?= $_save ?>"/>
 								</div>
 								<div class="input-group-4">	
+                  <?php if ($isNewRouterMode) { ?>
+                  <span class="group-item group-item-md pd-2p5 text-center align-middle" style="opacity:0.5;cursor:not-allowed;" title="<?= htmlspecialchars($isBnSettings ? 'প্রথমে রাউটার সেভ করুন' : 'Save router settings first', ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-external-link"></i> <?= (isset($langid) && $langid === 'bn') ? 'ওপেন' : 'Open' ?></span>
+                  <?php } else { ?>
                   <span class="connect pointer group-item group-item-md pd-2p5 text-center align-middle" id="<?= htmlspecialchars($session, ENT_QUOTES, 'UTF-8'); ?>&c=settings"><i class="fa fa-external-link"></i> <?= (isset($langid) && $langid === 'bn') ? 'ওপেন' : 'Open' ?></span>
+                  <?php } ?>
 								</div>
 								<div class="input-group-3">	
+                  <?php if ($isNewRouterMode) { ?>
+                  <span class="group-item group-item-md pd-2p5 text-center align-middle" id="ping_test" style="opacity:0.5;cursor:not-allowed;" title="<?= htmlspecialchars($isBnSettings ? 'প্রথমে রাউটার সেভ করুন' : 'Save router settings first', ENT_QUOTES, 'UTF-8'); ?>"><?= isset($_ping) ? $_ping : 'Ping' ?></span>
+                  <?php } else { ?>
                   <span class="pointer group-item group-item-md pd-2p5 text-center align-middle" id="ping_test"><?= isset($_ping) ? $_ping : 'Ping' ?></span>
+                  <?php } ?>
               	</div>
               	<div class="input-group-1">	
 									<div style="cursor: pointer;" class="group-item group-item-r pd-2p5 text-center" onclick="location.reload();" title="Reload Data"><i class="fa fa-refresh"></i></div>
@@ -681,9 +753,11 @@ if (isset($data) && is_array($data)) {
 <script type="text/javascript">
 (function () {
   var actualSessionKey = <?= json_encode((string)$session, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+  var isNewRouterMode = <?= $isNewRouterMode ? 'true' : 'false'; ?>;
   var pingBtn = document.getElementById('ping_test');
   if (pingBtn) {
     pingBtn.onclick = function () {
+      if (isNewRouterMode || !actualSessionKey || actualSessionKey === 'new') return;
       if (window.jQuery) {
         window.jQuery('#ping').load('./status/ping-test.php?ping&session=' + encodeURIComponent(actualSessionKey));
       }

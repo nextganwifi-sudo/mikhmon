@@ -43,6 +43,29 @@ if (!function_exists('ngwParseConfigPhpRouters')) {
     }
 }
 
+if (!function_exists('ngwIsBlankPlaceholderRouter')) {
+    /**
+     * Detect empty placeholder router entries (e.g. legacy `new` or `new-1234` rows with blank host/user/hotspot/dns)
+     */
+    function ngwIsBlankPlaceholderRouter($sessKey, $rawLine = '') {
+        $sessKey = trim((string)$sessKey);
+        if ($sessKey === '' || ($sessKey !== 'new' && !preg_match('/^new-\d+$/', $sessKey))) {
+            return false;
+        }
+        $rawLine = trim((string)$rawLine);
+        if ($rawLine === '') {
+            return true;
+        }
+        $q = preg_quote($sessKey, '/');
+        $hasHost = !preg_match("/'" . $q . "!'/", $rawLine);
+        $hasUser = !preg_match("/'" . $q . "@\\|@'/", $rawLine);
+        $hasPass = !preg_match("/'" . $q . "#\\|#'/", $rawLine);
+        $hasHs   = !preg_match("/'" . $q . "%'/", $rawLine);
+        $hasDns  = !preg_match("/'" . $q . "\\^'/", $rawLine);
+        return (!$hasHost && !$hasUser && !$hasPass && !$hasHs && !$hasDns);
+    }
+}
+
 if (!function_exists('ngwBuildConfigPhpContent')) {
     /**
      * Build valid include/config.php content from admin line and routers map
@@ -208,12 +231,14 @@ if (!function_exists('ngwSaveRouterSessionToConfig')) {
                 $k = $m[1];
                 if ($k === 'mikhmon') {
                     $adminLine = $trimmed;
-                } elseif ($k === $oldSession) {
+                } elseif ($oldSession !== '' && $k === $oldSession) {
                     $routerEntries[$newSession] = $newRouterLine;
                     $replacedInPlace = true;
                 } elseif ($k === $newSession) {
                     $routerEntries[$newSession] = $newRouterLine;
                     $replacedInPlace = true;
+                } elseif (ngwIsBlankPlaceholderRouter($k, $trimmed)) {
+                    continue;
                 } else {
                     $routerEntries[$k] = $trimmed;
                 }
@@ -244,19 +269,28 @@ if (!function_exists('ngwSaveRouterSessionToConfig')) {
             }
         }
 
-        // If router session was renamed (or converted from new-XXXX), update reseller allowed_routers and current session
-        if ($oldSession !== '' && $oldSession !== $newSession) {
+        // Update reseller allowed_routers and current session when creating a new router or renaming an existing one
+        if ($oldSession === '' || $oldSession !== $newSession) {
             $resFile = $appRoot . '/include/resellers.json';
+            $isResellerActor = isset($_SESSION['mikhmon_role']) && $_SESSION['mikhmon_role'] === 'reseller';
+            $actorResellerId = isset($_SESSION['mikhmon_reseller_id']) ? trim((string)$_SESSION['mikhmon_reseller_id']) : '';
             if (is_file($resFile)) {
                 $resList = @json_decode((string)@file_get_contents($resFile), true);
                 if (is_array($resList)) {
                     $resChanged = false;
                     foreach ($resList as $idx => $r) {
-                        if (isset($r['allowed_routers']) && is_array($r['allowed_routers'])) {
+                        if ($oldSession !== '' && isset($r['allowed_routers']) && is_array($r['allowed_routers'])) {
                             $pos = array_search($oldSession, $r['allowed_routers'], true);
                             if ($pos !== false) {
                                 $resList[$idx]['allowed_routers'][$pos] = $newSession;
                                 $resList[$idx]['allowed_routers'] = array_values(array_unique($resList[$idx]['allowed_routers']));
+                                $resChanged = true;
+                            }
+                        } elseif ($oldSession === '' && $isResellerActor && $actorResellerId !== '' && isset($r['id']) && (string)$r['id'] === $actorResellerId) {
+                            $curAllowed = (isset($r['allowed_routers']) && is_array($r['allowed_routers'])) ? $r['allowed_routers'] : array();
+                            if (!in_array('*', $curAllowed, true) && !in_array($newSession, $curAllowed, true)) {
+                                $curAllowed[] = $newSession;
+                                $resList[$idx]['allowed_routers'] = array_values(array_unique($curAllowed));
                                 $resChanged = true;
                             }
                         }
@@ -268,12 +302,14 @@ if (!function_exists('ngwSaveRouterSessionToConfig')) {
                 }
             }
             if (isset($_SESSION['mikhmon_routers']) && is_array($_SESSION['mikhmon_routers'])) {
-                $sPos = array_search($oldSession, $_SESSION['mikhmon_routers'], true);
+                $sPos = ($oldSession !== '') ? array_search($oldSession, $_SESSION['mikhmon_routers'], true) : false;
                 if ($sPos !== false) {
                     $_SESSION['mikhmon_routers'][$sPos] = $newSession;
                     $_SESSION['mikhmon_routers'] = array_values(array_unique($_SESSION['mikhmon_routers']));
-                } elseif (!in_array('*', $_SESSION['mikhmon_routers'], true) && strpos($oldSession, 'new-') === 0) {
-                    $_SESSION['mikhmon_routers'][] = $newSession;
+                } elseif (!in_array('*', $_SESSION['mikhmon_routers'], true) && ($oldSession === '' || strpos($oldSession, 'new-') === 0)) {
+                    if (!in_array($newSession, $_SESSION['mikhmon_routers'], true)) {
+                        $_SESSION['mikhmon_routers'][] = $newSession;
+                    }
                 }
             }
         }
@@ -717,6 +753,9 @@ if (!function_exists('ngwPerformDeepDataRecoveryAndMerge')) {
                 $configModified = true;
             }
             foreach ($parsed['routers'] as $sessName => $rLine) {
+                if (ngwIsBlankPlaceholderRouter($sessName, $rLine)) {
+                    continue;
+                }
                 if (!isset($mergedRouters[$sessName])) {
                     $mergedRouters[$sessName] = $rLine;
                     $report['routers_recovered'][] = $sessName;
