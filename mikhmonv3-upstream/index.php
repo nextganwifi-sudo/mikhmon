@@ -163,20 +163,15 @@ if (!isset($_SESSION["mikhmon"])) {
     $_SESSION['ubn'] = "";
   } elseif ($hotspot == "add-user") {
     $_SESSION['hua'] = "";
-  } elseif ($hotspot == "users" && $prof == "all") {
-    $_SESSION['ubp'] = "";
-    $_SESSION['hua'] = "";
-    $_SESSION['ubc'] = "";
-    $_SESSION['vcr'] = "";
-  } elseif ($hotspot == "users" && $prof != "") {
-    $_SESSION['ubp'] = $prof;
-    $_SESSION['hua'] = "";
-    $_SESSION['ubc'] = "";
-    $_SESSION['vcr'] = "";
   } elseif ($hotspot == "users" && $comm != "") {
     $_SESSION['ubc'] = $comm;
     $_SESSION['hua'] = "";
     $_SESSION['ubp'] = "";
+    $_SESSION['vcr'] = "";
+  } elseif ($hotspot == "users") {
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
     $_SESSION['vcr'] = "";
   } elseif ($hotspot == "users-by-profile") {
     $_SESSION['ubp'] = "";
@@ -197,6 +192,12 @@ if (!isset($_SESSION["mikhmon"])) {
   $pagehotspot = array('users','hosts','ipbinding','cookies','log','dhcp-leases');
   $pageppp = array('secrets','profiles','active',);
   $pagereport = array('userlog','selling');
+
+  $ngwHotspotUsersNotice = null;
+  if ($hotspot == "users" && !empty($_SESSION['ngw_hotspot_users_notice']) && is_array($_SESSION['ngw_hotspot_users_notice'])) {
+    $ngwHotspotUsersNotice = $_SESSION['ngw_hotspot_users_notice'];
+    unset($_SESSION['ngw_hotspot_users_notice']);
+  }
 
   // CRITICAL FOR FAST NAVIGATION: Release PHP session file lock before connecting
   // to remote MikroTik RouterOS API so rapid page switching never blocks!
@@ -378,32 +379,22 @@ if (!isset($_SESSION["mikhmon"])) {
     include_once('./hotspot/adduser.php');
   }
 
-// hotspot users
-  elseif ($hotspot == "users" && $prof == "all") {
-    requireResellerPermission('view_users', $defRedirect);
-    $_SESSION['ubp'] = "";
-    $_SESSION['hua'] = "";
-    $_SESSION['ubc'] = "";
-    $_SESSION['vcr'] = "";
-    include_once('./hotspot/users.php');
-  }
-
-// hotspot users filter by profile
-  elseif ($hotspot == "users" && $prof != "") {
-    requireResellerPermission('view_users', $defRedirect);
-    $_SESSION['ubp'] = $prof;
-    $_SESSION['hua'] = "";
-    $_SESSION['ubc'] = "";
-    $_SESSION['vcr'] = "";
-    include_once('./hotspot/users.php');
-  }
-
 // hotspot users filter by comment
   elseif ($hotspot == "users" && $comm != "") {
     requireResellerPermission('view_users', $defRedirect);
     $_SESSION['ubc'] = $comm;
     $_SESSION['hua'] = "";
     $_SESSION['ubp'] = "";
+    $_SESSION['vcr'] = "";
+    include_once('./hotspot/users.php');
+  }
+
+// hotspot users
+  elseif ($hotspot == "users") {
+    requireResellerPermission('view_users', $defRedirect);
+    $_SESSION['ubp'] = "";
+    $_SESSION['hua'] = "";
+    $_SESSION['ubc'] = "";
     $_SESSION['vcr'] = "";
     include_once('./hotspot/users.php');
   }

@@ -22,7 +22,7 @@ if (!isset($API) || !is_object($API)) {
 require_once __DIR__ . '/../include/security.php';
 ngwConfigureSecureSession();
 if (session_status() !== PHP_SESSION_ACTIVE) {
-  session_start();
+  @session_start();
 }
 // hide all error
 error_reporting(0);
@@ -47,28 +47,50 @@ if ($TotalReg > 0) {
   ngwMarkVouchersRemoved($session, $getuser, 'expired_auto_removed', $routerNowTs);
 }
 
-$_SESSION['ubp'] = isset($getuser[0]['profile']) ? $getuser[0]['profile'] : "";
-$_SESSION['ubc'] = "";
+$expProfile = isset($getuser[0]['profile']) ? (string)$getuser[0]['profile'] : '';
+$deletedCount = 0;
 
 for ($i = 0; $i < $TotalReg; $i++) {
   $userdetails = $getuser[$i];
+  if (!is_array($userdetails) || empty($userdetails['.id'])) continue;
+  $uname = isset($userdetails['name']) ? (string)$userdetails['name'] : '';
+  if ($uname === 'default-trial') continue;
   $uid = $userdetails['.id'];
 
   $API->comm("/ip/hotspot/user/remove", array(
     ".id" => "$uid",
   ));
+  $deletedCount++;
 }
-if ($TotalReg > 0 && function_exists('ngwRecordActivity')) {
+if ($deletedCount > 0 && function_exists('ngwRecordActivity')) {
   ngwRecordActivity('hotspot_expired_deleted', array(
     'router' => (string)$session,
-    'quantity' => (string)$TotalReg,
-    'profile' => ($_SESSION['ubp'] !== '' ? (string)$_SESSION['ubp'] : ''),
+    'quantity' => (string)$deletedCount,
+    'profile' => $expProfile,
   ));
 }
-if ($_SESSION['ubp'] != "") {
-  echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
-} else {
-  echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  @session_start();
 }
+$_SESSION['ubp'] = "";
+$_SESSION['ubc'] = "";
+$isBnNotice = (isset($langid) && $langid === 'bn');
+if ($deletedCount > 0) {
+  $noticeMsg = $isBnNotice
+    ? ($deletedCount . 'টি মেয়াদোত্তীর্ণ ইউজার সফলভাবে ডিলিট হয়েছে।')
+    : ('Successfully deleted ' . $deletedCount . ' expired user(s).');
+} else {
+  $noticeMsg = $isBnNotice
+    ? 'ডিলিট করার মতো কোনো মেয়াদোত্তীর্ণ ইউজার পাওয়া যায়নি।'
+    : 'No expired users found to delete.';
+}
+$_SESSION['ngw_hotspot_users_notice'] = array(
+  'type' => 'success',
+  'message' => $noticeMsg,
+);
+@session_write_close();
+
+echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
 
 ?>

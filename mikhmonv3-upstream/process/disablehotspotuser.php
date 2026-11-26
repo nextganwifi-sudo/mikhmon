@@ -46,12 +46,10 @@ if (function_exists('ngwRecordActivity')) {
 		'profile' => $uDisProf,
 	));
 }
-if ($_SESSION['ubp'] != "") {
-	echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
-} elseif ($_SESSION['ubc'] != "") {
-	echo "<script>window.location='./?hotspot=users&comment=" . $_SESSION['ubc'] . "&session=" . $session . "'</script>";
+if (!empty($_SESSION['ubc'])) {
+	echo "<script>window.location='./?hotspot=users&comment=" . rawurlencode((string)$_SESSION['ubc']) . "&session=" . rawurlencode($session) . "'</script>";
 } else {
-	echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
+	echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
 }
 
 

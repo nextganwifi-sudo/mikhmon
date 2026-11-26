@@ -35,36 +35,6 @@ if (!isset($_SESSION["mikhmon"])) {
   }
 
   $exp = isset($_GET['exp']) ? $_GET['exp'] : '';
-  if ($prof == "all" && $comm == "" && $exp == "") {
-    $getuser = $API->comm("/ip/hotspot/user/print");
-    $TotalReg = is_array($getuser) ? count($getuser) : 0;
-    $counttuser = $TotalReg;
-    if (!empty($API->connected) && is_array($getuser)) {
-      ngwSyncVoucherHistorySnapshot($API, $session, $getuser, null, $tzSync['now_ts'], 10);
-    }
-  } elseif ($prof == "all") {
-    $getuser = $API->comm("/ip/hotspot/user/print");
-    $TotalReg = is_array($getuser) ? count($getuser) : 0;
-    $counttuser = $TotalReg;
-
-  } elseif ($prof != "all") {
-    $getuser = $API->comm("/ip/hotspot/user/print", array(
-      "?profile" => "$prof",
-    ));
-    $TotalReg = is_array($getuser) ? count($getuser) : 0;
-    $counttuser = $TotalReg;
-
-  }
-  if ($comm != "") {
-    $getuser = $API->comm("/ip/hotspot/user/print", array(
-      "?comment" => "$comm",
-    //"?uptime" => "00:00:00"
-    ));
-    $TotalReg = is_array($getuser) ? count($getuser) : 0;
-    $counttuser = $TotalReg;
-    
-  }
-  $exp = $_GET['exp'];
   if ($exp != "") {
     $getuser6 = $API->comm("/ip/hotspot/user/print", array(
       "?limit-uptime" => "1s",
@@ -75,9 +45,20 @@ if (!isset($_SESSION["mikhmon"])) {
     $getuser = array_merge(is_array($getuser6) ? $getuser6 : array(), is_array($getuser7) ? $getuser7 : array());
     $TotalReg = count($getuser);
     $counttuser = $TotalReg;
+  } elseif ($comm != "") {
+    $getuser = $API->comm("/ip/hotspot/user/print", array(
+      "?comment" => "$comm",
+    ));
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
+  } else {
+    $getuser = $API->comm("/ip/hotspot/user/print");
+    $TotalReg = is_array($getuser) ? count($getuser) : 0;
+    $counttuser = $TotalReg;
+    if (!empty($API->connected) && is_array($getuser)) {
+      ngwSyncVoucherHistorySnapshot($API, $session, $getuser, null, $tzSync['now_ts'], 10);
+    }
   }
-  $getprofile = $API->comm("/ip/hotspot/user/profile/print");
-  $TotalReg2 = is_array($getprofile) ? count($getprofile) : 0;
 
   $nowRouterTs = (isset($tzSync['now_ts']) && (int)$tzSync['now_ts'] > 946684800) ? (int)$tzSync['now_ts'] : time();
   $nowRouterLabel = date('Y-m-d H:i:s', $nowRouterTs);
@@ -299,6 +280,96 @@ if (!isset($_SESSION["mikhmon"])) {
   font-weight: 700;
   opacity: 0.78;
 }
+/* Compact deletion notice & deleting pill across all 4 UIs */
+.ngw-user-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.14);
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  transition: opacity 0.2s ease;
+}
+body[data-ngw-theme="light"] .ngw-user-notice,
+body[data-ngw-theme="blue"] .ngw-user-notice,
+body[data-ngw-theme="green"] .ngw-user-notice,
+body[data-ngw-theme="pink"] .ngw-user-notice {
+  background: rgba(22, 163, 74, 0.12);
+  border-color: rgba(22, 163, 74, 0.38);
+  color: #15803d;
+}
+.ngw-user-notice-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ngw-user-notice-main span {
+  overflow-wrap: anywhere;
+}
+.ngw-user-notice-close {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 3px;
+  cursor: pointer;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+.ngw-user-notice-close:hover {
+  opacity: 1;
+}
+.ngw-user-del-pill {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 9500;
+  display: none;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  max-width: calc(100vw - 24px);
+  pointer-events: none;
+}
+.ngw-user-del-pill.is-shown {
+  display: inline-flex;
+}
+.ngw-user-del-pill i {
+  color: #f87171;
+}
+@media screen and (max-width: 767px) {
+  .ngw-user-notice {
+    padding: 5px 8px;
+    font-size: 11.5px;
+    margin-bottom: 6px;
+  }
+  .ngw-user-del-pill {
+    top: 56px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 11px;
+    font-size: 11.5px;
+  }
+}
 </style>
 
 <div class="row">
@@ -307,10 +378,6 @@ if (!isset($_SESSION["mikhmon"])) {
 <div class="card-header">
     <h3><i class="fa fa-users"></i> <?= $_users ?>
       <span style="font-size: 14px">
-        <?php
-        if ($counttuser == 0 && $prof != "all" && $prof != "") {
-          echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
-        } ?>
          <?php if (hasResellerPermission('add_user')) { ?>
          &nbsp; | &nbsp; <a href="./?hotspot-user=add&session=<?= $session; ?>" title="Add User"><i class="fa fa-user-plus"></i> <?= $_add ?></a>
          <?php } ?>
@@ -336,53 +403,49 @@ if (!isset($_SESSION["mikhmon"])) {
     
 </div>
 <div class="card-body">
+  <?php if (!empty($ngwHotspotUsersNotice) && !empty($ngwHotspotUsersNotice['message'])) { ?>
+  <div id="ngwUserDeleteNotice" class="ngw-user-notice" role="status">
+    <div class="ngw-user-notice-main">
+      <i class="fa fa-check-circle" aria-hidden="true"></i>
+      <span><?= htmlspecialchars((string)$ngwHotspotUsersNotice['message'], ENT_QUOTES, 'UTF-8'); ?></span>
+    </div>
+    <button type="button" class="ngw-user-notice-close" onclick="var n=document.getElementById('ngwUserDeleteNotice');if(n)n.style.display='none';" aria-label="Close">&times;</button>
+  </div>
+  <?php } ?>
   <div class="row">
    <div class="col-6 pd-t-5 pd-b-5">
   <div class="input-group">
-    <div class="input-group-4 col-box-4">
+    <div class="input-group-6 col-box-6">
       <input id="filterTable" type="text" style="padding:5.8px;" class="group-item group-item-l" placeholder="<?= $_search ?>">
     </div>
-    <div class="input-group-4 col-box-4">
-      <select style="padding:5px;" class="group-item group-item-m" onchange="location = this.value; loader()" title="Filter by Profile">
-        <option><?= $_profile ?> </option>
-        <option value="./?hotspot=users&profile=all&session=<?= $session; ?>" <?= ($prof == 'all' && $comm == '') ? 'selected' : ''; ?>><?= $_show_all ?></option>
+    <div class="input-group-6 col-box-6">
+      <select style="padding:5px;" class="group-item group-item-r" id="comment" name="comment" onchange="if(this.value===''){location='./?hotspot=users&session=<?= rawurlencode($session); ?>';}else{location='./?hotspot=users&comment='+ encodeURIComponent(this.value) +'&session=<?= rawurlencode($session); ?>';} loader();">
       <?php
-      for ($i = 0; $i < $TotalReg2; $i++) {
-        $profile = $getprofile[$i];
-        $pSel = ($prof == $profile['name'] && $comm == '') ? 'selected' : '';
-        echo "<option value='./?hotspot=users&profile=" . rawurlencode($profile['name']) . "&session=" . $session . "' " . $pSel . ">" . htmlspecialchars($profile['name']) . "</option>";
+      echo "<option value=''>" . $_comment . "</option>";
+      $TotalReg = count($getuser);
+      for ($i = 0; $i < $TotalReg; $i++) {
+        $ucomment = $getuser[$i]['comment'];
+        $uprofile = $getuser[$i]['profile'];
+        $acomment .= ",".$ucomment."#". $uprofile;
       }
+
+      $ocomment=  explode(",",$acomment);
+      
+      $comments=array_count_values($ocomment) ;
+      foreach ($comments as $tcomment=>$value) {
+
+        if (preg_match('/^(?:vc|up)-/i', $tcomment)) {
+          $cVal = explode("#", $tcomment)[0];
+          $cProf = explode("#", $tcomment)[1] ?? '';
+          $cSel = ($comm !== '' && $comm === $cVal) ? 'selected' : '';
+          echo "<option value='" . htmlspecialchars($cVal, ENT_QUOTES) . "' " . $cSel . ">" . htmlspecialchars($cVal) . " " . htmlspecialchars($cProf) . " [" . $value . "]</option>";
+        }
+   
+      }
+
       ?>
-    </select>
-  </div>
-  <div class="input-group-4 col-box-4">
-    <select style="padding:5px;" class="group-item group-item-r" id="comment" name="comment" onchange="if(this.value===''){location='./?hotspot=users&profile=all&session=<?= $session;?>';}else{location='./?hotspot=users&comment='+ encodeURIComponent(this.value) +'&session=<?= $session;?>';} loader();">
-    <?php
-    echo "<option value=''>" . $_comment . "</option>";
-    $TotalReg = count($getuser);
-    for ($i = 0; $i < $TotalReg; $i++) {
-      $ucomment = $getuser[$i]['comment'];
-      $uprofile = $getuser[$i]['profile'];
-      $acomment .= ",".$ucomment."#". $uprofile;
-    }
-
-    $ocomment=  explode(",",$acomment);
-    
-    $comments=array_count_values($ocomment) ;
-    foreach ($comments as $tcomment=>$value) {
-
-      if (preg_match('/^(?:vc|up)-/i', $tcomment)) {
-        $cVal = explode("#", $tcomment)[0];
-        $cProf = explode("#", $tcomment)[1] ?? '';
-        $cSel = ($comm !== '' && $comm === $cVal) ? 'selected' : '';
-        echo "<option value='" . htmlspecialchars($cVal, ENT_QUOTES) . "' " . $cSel . ">" . htmlspecialchars($cVal) . " " . htmlspecialchars($cProf) . " [" . $value . "]</option>";
-      }
- 
-    }
-
-    ?>
-    </select>
-  </div>
+      </select>
+    </div>
   </div>
   </div>
  
@@ -393,10 +456,13 @@ if (!isset($_SESSION["mikhmon"])) {
         ? "আপনি কি নিশ্চিত যে এই ব্যাচের ($comm) সকল ইউজার ডিলিট করতে চান?"
         : "Are you sure you want to delete all users in batch ($comm)?";
       $delBatchUrl = "./?remove-hotspot-user-by-comment=" . rawurlencode($comm) . "&session=" . rawurlencode($session);
+      $delBatchStatus = ($langid === 'bn') ? 'ব্যাচ ডিলিট হচ্ছে...' : 'Deleting batch...';
     ?>
-  <button class="btn bg-red" onclick='if(confirm(<?= json_encode($delBatchConfirm); ?>)){loadpage(<?= json_encode($delBatchUrl); ?>);loader();}' title="Delete users in batch <?= htmlspecialchars($comm, ENT_QUOTES); ?>">  <i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'ডিলিট ইউজার' : 'Delete User'; ?></button>
-    <?php } else if ($exp == "1") { ?>
-  <button class="btn bg-red" onclick="if(confirm('<?= ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে সকল মেয়াদোত্তীর্ণ ইউজার ডিলিট করতে চান?' : 'Are you sure to delete users?'; ?>')){loadpage('./?remove-hotspot-user-expired=1&session=<?= $session; ?>');loader();}else{}" title="Remove user expired">  <i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'মেয়াদোত্তীর্ণ ইউজার ডিলিট' : 'Expired Users'; ?></button>
+  <button type="button" class="btn bg-red" onclick='if(confirm(<?= json_encode($delBatchConfirm); ?>)){ngwRunHotspotDelete(<?= json_encode($delBatchUrl); ?>, <?= json_encode($delBatchStatus); ?>, this);}' title="Delete users in batch <?= htmlspecialchars($comm, ENT_QUOTES); ?>">  <i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'ডিলিট ইউজার' : 'Delete User'; ?></button>
+    <?php } else if ($exp == "1") {
+      $delExpStatus = ($langid === 'bn') ? 'মেয়াদোত্তীর্ণ ইউজার ডিলিট হচ্ছে...' : 'Deleting expired users...';
+    ?>
+  <button type="button" class="btn bg-red" onclick='if(confirm(<?= json_encode(($langid === 'bn') ? "আপনি কি নিশ্চিত যে সকল মেয়াদোত্তীর্ণ ইউজার ডিলিট করতে চান?" : "Are you sure to delete users?"); ?>)){ngwRunHotspotDelete("./?remove-hotspot-user-expired=1&session=<?= rawurlencode($session); ?>", <?= json_encode($delExpStatus); ?>, this);}' title="Remove user expired">  <i class="fa fa-trash"></i> <?= ($langid === 'bn') ? 'মেয়াদোত্তীর্ণ ইউজার ডিলিট' : 'Expired Users'; ?></button>
       <?php } ?>
     <?php } ?>
   <script>
@@ -419,7 +485,7 @@ if (!isset($_SESSION["mikhmon"])) {
     }}
   </script>
   <?php
-  $showBatchPrintBtn = ($comm !== '' || ($prof !== '' && $prof !== 'all'));
+  $showBatchPrintBtn = ($comm !== '');
   if (hasResellerPermission('print_voucher') && $showBatchPrintBtn) { ?>
   <button class="btn bg-primary" title="Print" onclick="printV('qr','no');"><i class="fa fa-print"></i> <?= isset($_print) ? $_print : 'Print' ?></button>
   <?php } ?>
@@ -440,7 +506,7 @@ if (!isset($_SESSION["mikhmon"])) {
       <i class="fa fa-sort"></i> <?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস' : 'Mac Address'; ?>
       <?php
       $canResetMac = (hasResellerPermission('reset_mac_address') || hasResellerPermission('edit_user') || hasResellerPermission('enable_disable_user') || hasResellerPermission('reset_voucher'));
-      $resetMacUrl = "./?reset-hotspot-macs=1&profile=" . rawurlencode($prof != '' ? $prof : 'all') . "&comment=" . rawurlencode($comm) . "&exp=" . rawurlencode($exp) . "&session=" . rawurlencode($session);
+      $resetMacUrl = "./?reset-hotspot-macs=1&comment=" . rawurlencode($comm) . "&exp=" . rawurlencode($exp) . "&session=" . rawurlencode($session);
       if ($canResetMac) {
       ?>
       <button type="button" class="btn bg-warning" style="padding:1px 6px; font-size:11px; margin-left:5px; line-height:1.3; font-weight:600; border-radius:3px; cursor:pointer;" onclick="event.stopPropagation(); ngwOpenResetMacModal();" title="<?= ($langid === 'bn') ? 'ম্যাক অ্যাড্রেস রিসেট করুন' : 'Reset MAC Addresses'; ?>">
@@ -493,8 +559,10 @@ for ($i = 0; $i < $TotalReg; $i++) {
   <td style='text-align:center;'>
   <?php if (hasResellerPermission('delete_user')) { 
     $delUserMsg = ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?';
+    $delSingleUrl = './?remove-hotspot-user=' . urlencode($uid) . '&session=' . urlencode($session);
+    $delSingleStatus = ($langid === 'bn') ? 'ডিলিট হচ্ছে...' : 'Deleting...';
   ?>
-  <i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delUserMsg); ?>)){loadpage("./?remove-hotspot-user=<?= urlencode($uid); ?>&session=<?= urlencode($session); ?>")}else{}' title='Remove <?= htmlspecialchars($uname, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;
+  <i class='fa fa-minus-square text-danger pointer' onclick='if(confirm(<?= json_encode($delUserMsg); ?>)){ngwRunHotspotDelete(<?= json_encode($delSingleUrl); ?>, <?= json_encode($delSingleStatus); ?>, this);}' title='Remove <?= htmlspecialchars($uname, ENT_QUOTES); ?>'></i>&nbsp;&nbsp;&nbsp;
   <?php } ?>
   <?php
   if (hasResellerPermission('enable_disable_user')) {
@@ -586,7 +654,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
   } else if (substr($ucommentClean,0,3) == "vc-" || substr($ucommentClean,0,3) == "up-") {
     echo "<a href=./?hotspot=users&comment=" . rawurlencode($ucommentClean) . "&session=" . $session . " title='Filter by " . htmlspecialchars($ucommentClean, ENT_QUOTES) . "'><i class='fa fa-search'></i> ". htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
   } else if ($utimelimit == ' expired') {
-    echo "<a href=./?hotspot=users&profile=all&exp=1&session=" . $session . " title='Filter by expired'><i class='fa fa-search'></i> " . htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
+    echo "<a href=./?hotspot=users&exp=1&session=" . rawurlencode($session) . " title='Filter by expired'><i class='fa fa-search'></i> " . htmlspecialchars($ucommentClean)." ". $udatalimit ." ".$utimelimit . "</a>";
   }else{
     echo htmlspecialchars($ucommentClean).' ';
   }
@@ -600,6 +668,11 @@ for ($i = 0; $i < $TotalReg; $i++) {
 </div>
 </div>
 </div>
+</div>
+
+<div id="ngwUserDeletingPill" class="ngw-user-del-pill" role="status" aria-live="polite">
+  <i class="fa fa-circle-o-notch fa-spin" aria-hidden="true"></i>
+  <span id="ngwUserDeletingText"><?= ($langid === 'bn') ? 'ডিলিট হচ্ছে...' : 'Deleting...'; ?></span>
 </div>
 
 <!-- Compact Warning Detail Modal -->
@@ -749,17 +822,62 @@ for ($i = 0; $i < $TotalReg; $i++) {
     if (modal) modal.classList.remove('open');
   };
 
+  var ngwDeleteInFlight = false;
+  window.ngwRunHotspotDelete = function(delUrl, statusLabel, triggerEl) {
+    if (!delUrl || ngwDeleteInFlight) return;
+    ngwDeleteInFlight = true;
+    if (triggerEl && triggerEl.tagName === 'BUTTON') {
+      triggerEl.disabled = true;
+    }
+    if (typeof loader === 'function') loader();
+    var pill = document.getElementById('ngwUserDeletingPill');
+    var pillTxt = document.getElementById('ngwUserDeletingText');
+    if (pill && pill.parentNode !== document.body) {
+      document.body.appendChild(pill);
+    }
+    if (pillTxt && statusLabel) {
+      pillTxt.textContent = statusLabel;
+    }
+    if (pill) {
+      pill.classList.add('is-shown');
+    }
+    if (window.jQuery && jQuery('#temp').length) {
+      jQuery('#temp').load(delUrl, function(resp, status) {
+        if (status === 'error') {
+          ngwDeleteInFlight = false;
+          if (triggerEl && triggerEl.tagName === 'BUTTON') triggerEl.disabled = false;
+          var ldr = document.getElementById('loader');
+          if (ldr) ldr.style.display = 'none';
+          if (pill && pillTxt) {
+            pillTxt.textContent = <?= json_encode(($langid === 'bn') ? 'ডিলিট ব্যর্থ হয়েছে, আবার চেষ্টা করুন।' : 'Delete failed. Please try again.'); ?>;
+            setTimeout(function() { if (pill) pill.classList.remove('is-shown'); }, 3500);
+          }
+        }
+      });
+    } else if (typeof loadpage === 'function') {
+      loadpage(delUrl);
+    } else {
+      window.location = delUrl;
+    }
+  };
+
   window.ngwDeleteWarnUser = function() {
     if (!activeDelUrl) return;
     if (confirm(activeDelMsg)) {
       ngwCloseUserWarnModal();
-      if (typeof loadpage === 'function') {
-        loadpage(activeDelUrl);
-      } else {
-        window.location = activeDelUrl;
-      }
+      ngwRunHotspotDelete(activeDelUrl, <?= json_encode(($langid === 'bn') ? 'ডিলিট হচ্ছে...' : 'Deleting...'); ?>);
     }
   };
+
+  var noticeEl = document.getElementById('ngwUserDeleteNotice');
+  if (noticeEl) {
+    setTimeout(function() {
+      noticeEl.style.opacity = '0';
+      setTimeout(function() {
+        if (noticeEl && noticeEl.parentNode) noticeEl.style.display = 'none';
+      }, 220);
+    }, 6500);
+  }
 
   var resetMacBaseUrl = <?= json_encode(isset($resetMacUrl) ? $resetMacUrl : '', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 

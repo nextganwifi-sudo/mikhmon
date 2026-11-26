@@ -94,7 +94,7 @@ try {
         $job['users'] = array();
         $_SESSION['voucher_generation_cache'][$router]['summary'] = $job['summary'];
         $_SESSION['voucher_generation_cache'][$router]['completed'] = $job['completed'];
-        $_SESSION['ubp'] = $job['profile'];
+        $_SESSION['ubp'] = '';
     }
     voucherBatchReply(array('job'=>$id, 'completed'=>$job['completed'], 'total'=>$job['total'], 'done'=>$done,
         'redirect'=>'./?hotspot-user=generate&session=' . rawurlencode($router) . '&voucher-result=1'));

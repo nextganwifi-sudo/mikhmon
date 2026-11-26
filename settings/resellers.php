@@ -739,6 +739,7 @@ foreach ($resellers as $r) {
     opacity: 0.58;
     font-size: 12.5px;
     pointer-events: none;
+    z-index: 2;
 }
 .ngw-rpicker-search-input {
     width: 100%;
@@ -865,7 +866,7 @@ foreach ($resellers as $r) {
     gap: 9px;
 }
 .ngw-rpicker-card {
-    display: flex !important;
+    display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
@@ -876,6 +877,9 @@ foreach ($resellers as $r) {
     cursor: pointer;
     transition: border-color 0.14s ease, background-color 0.14s ease, transform 0.12s ease;
     user-select: none;
+}
+.ngw-rpicker-card.is-hidden-card {
+    display: none !important;
 }
 .ngw-rpicker-card:hover {
     border-color: rgba(59, 130, 246, 0.6);
@@ -959,6 +963,22 @@ foreach ($resellers as $r) {
     gap: 8px;
 }
 @media (max-width: 640px) {
+    .ngw-rpicker-backdrop {
+        padding: 10px 8px;
+    }
+    .ngw-rpicker-dialog {
+        max-height: 92vh;
+    }
+    .ngw-rpicker-header,
+    .ngw-rpicker-footer {
+        padding: 10px 12px;
+    }
+    .ngw-rpicker-controls {
+        padding: 10px 12px 8px;
+    }
+    .ngw-rpicker-body {
+        padding: 10px 12px;
+    }
     .ngw-rpicker-grid {
         grid-template-columns: 1fr;
     }
@@ -1538,7 +1558,8 @@ function applyRouterPickerFilters() {
     var clearBtn = document.getElementById('ngwRouterPickerSearchClear');
     var grpEl = document.getElementById('ngwRouterPickerGroupFilter');
     var q = searchEl ? searchEl.value.trim().toLowerCase() : '';
-    var grp = grpEl ? grpEl.value : '';
+    var qTokens = q !== '' ? q.split(/\s+/).filter(Boolean) : [];
+    var grp = grpEl ? String(grpEl.value || '').trim().toLowerCase() : '';
     if (clearBtn) {
         clearBtn.classList.toggle('is-shown', q !== '');
     }
@@ -1548,16 +1569,29 @@ function applyRouterPickerFilters() {
         var card = cards[i];
         var cb = card.querySelector('.ngw-router-checkbox');
         var isChecked = cb ? !!cb.checked : false;
-        var hay = (card.getAttribute('data-search') || '').toLowerCase();
-        var cGrp = card.getAttribute('data-group') || '';
-        var okSearch = (q === '' || hay.indexOf(q) !== -1);
+        var hay = ((card.getAttribute('data-search') || '') + ' ' + (card.textContent || '')).toLowerCase();
+        var cGrp = String(card.getAttribute('data-group') || '').trim().toLowerCase();
+        var okSearch = true;
+        if (qTokens.length > 0) {
+            for (var t = 0; t < qTokens.length; t++) {
+                if (hay.indexOf(qTokens[t]) === -1) {
+                    okSearch = false;
+                    break;
+                }
+            }
+        }
         var okGroup = (grp === '' || cGrp === grp);
         var okTab = (NGW_ROUTER_PICKER_TAB === 'all') ||
                     (NGW_ROUTER_PICKER_TAB === 'selected' && isChecked) ||
                     (NGW_ROUTER_PICKER_TAB === 'unselected' && !isChecked);
         var vis = okSearch && okGroup && okTab;
-        card.style.display = vis ? '' : 'none';
-        if (vis) shown++;
+        card.classList.toggle('is-hidden-card', !vis);
+        if (vis) {
+            card.style.removeProperty('display');
+            shown++;
+        } else {
+            card.style.setProperty('display', 'none', 'important');
+        }
     }
     var emptyEl = document.getElementById('ngwRouterPickerEmpty');
     if (emptyEl) {
@@ -1589,7 +1623,7 @@ function routerPickerBulkAction(action) {
         if (!cb) continue;
         if (action === 'clear_all') {
             cb.checked = false;
-        } else if (cards[i].style.display !== 'none') {
+        } else if (!cards[i].classList.contains('is-hidden-card') && cards[i].style.display !== 'none') {
             cb.checked = (action === 'select_visible');
         }
     }
@@ -1597,10 +1631,43 @@ function routerPickerBulkAction(action) {
     applyRouterPickerFilters();
 }
 
+function ensureRouterPickerModalPortaled() {
+    var modal = document.getElementById('ngwRouterPickerModal');
+    if (modal && document.body && modal.parentNode !== document.body) {
+        document.body.appendChild(modal);
+    }
+    return modal;
+}
+
+function bindRouterPickerListeners() {
+    var searchEl = document.getElementById('ngwRouterPickerSearch');
+    if (searchEl && !searchEl.getAttribute('data-ngw-bound')) {
+        searchEl.setAttribute('data-ngw-bound', '1');
+        ['input', 'keyup', 'search', 'change'].forEach(function(evtName) {
+            searchEl.addEventListener(evtName, applyRouterPickerFilters);
+        });
+    }
+    var grpEl = document.getElementById('ngwRouterPickerGroupFilter');
+    if (grpEl && !grpEl.getAttribute('data-ngw-bound')) {
+        grpEl.setAttribute('data-ngw-bound', '1');
+        ['change', 'input'].forEach(function(evtName) {
+            grpEl.addEventListener(evtName, applyRouterPickerFilters);
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindRouterPickerListeners);
+} else {
+    bindRouterPickerListeners();
+}
+
 function openRouterPickerModal(ev) {
     if (ev) ev.stopPropagation();
     NGW_ROUTER_PICKER_MODE = 'form';
     NGW_ROUTER_PICKER_QUICK_ID = '';
+    var modal = ensureRouterPickerModalPortaled();
+    bindRouterPickerListeners();
     var titleEl = document.getElementById('ngwRpickerTitle');
     if (titleEl) {
         titleEl.textContent = <?= json_encode($isBn ? 'রাউটার অ্যাসাইন করুন' : 'Assign Routers'); ?>;
@@ -1611,7 +1678,6 @@ function openRouterPickerModal(ev) {
     if (saveQuickBtn) saveQuickBtn.style.display = 'none';
     resetRouterPickerFilters();
     updateRouterDropdownLabel();
-    var modal = document.getElementById('ngwRouterPickerModal');
     if (modal) {
         modal.classList.add('is-open');
         var searchEl = document.getElementById('ngwRouterPickerSearch');
@@ -1627,6 +1693,8 @@ function openQuickRouterAssignModal(id) {
     if (!r) return;
     NGW_ROUTER_PICKER_MODE = 'quick';
     NGW_ROUTER_PICKER_QUICK_ID = String(r.id);
+    var modal = ensureRouterPickerModalPortaled();
+    bindRouterPickerListeners();
     var titleEl = document.getElementById('ngwRpickerTitle');
     if (titleEl) {
         titleEl.textContent = <?= json_encode($isBn ? 'রাউটার অ্যাসাইন: ' : 'Assign Routers: '); ?> + (r.name || r.username);
@@ -1642,7 +1710,6 @@ function openQuickRouterAssignModal(id) {
     if (saveQuickBtn) saveQuickBtn.style.display = 'inline-flex';
     resetRouterPickerFilters();
     updateRouterDropdownLabel();
-    var modal = document.getElementById('ngwRouterPickerModal');
     if (modal) {
         modal.classList.add('is-open');
         var searchEl = document.getElementById('ngwRouterPickerSearch');

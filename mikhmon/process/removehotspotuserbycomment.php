@@ -22,7 +22,7 @@ if (!isset($API) || !is_object($API)) {
 require_once __DIR__ . '/../include/security.php';
 ngwConfigureSecureSession();
 if (session_status() !== PHP_SESSION_ACTIVE) {
-  session_start();
+  @session_start();
 }
 // hide all error
 error_reporting(0);
@@ -65,8 +65,8 @@ if ($TotalReg > 0) {
   ngwMarkVouchersRemoved($session, $getuser, 'manual_batch_delete', $routerNowTs);
 }
 
-$_SESSION['ubp'] = ($TotalReg > 0 && isset($getuser[0]['profile'])) ? $getuser[0]['profile'] : '';
-$_SESSION['ubc'] = "";
+$deletedCount = 0;
+$batchProfile = ($TotalReg > 0 && isset($getuser[0]['profile'])) ? (string)$getuser[0]['profile'] : '';
 
 for ($i = 0; $i < $TotalReg; $i++) {
   $userdetails = $getuser[$i];
@@ -78,21 +78,39 @@ for ($i = 0; $i < $TotalReg; $i++) {
   $API->comm("/ip/hotspot/user/remove", array(
     ".id" => "$uid",
   ));
+  $deletedCount++;
 }
 
-if ($TotalReg > 0 && function_exists('ngwRecordActivity')) {
+if ($deletedCount > 0 && function_exists('ngwRecordActivity')) {
   ngwRecordActivity('hotspot_users_batch_deleted', array(
     'router' => (string)$session,
     'target' => $targetBatch,
-    'profile' => ($_SESSION['ubp'] !== '' ? (string)$_SESSION['ubp'] : ''),
-    'quantity' => (string)$TotalReg,
+    'profile' => $batchProfile,
+    'quantity' => (string)$deletedCount,
   ));
 }
 
-if ($_SESSION['ubp'] != "") {
-  echo "<script>window.location='./?hotspot=users&profile=" . rawurlencode($_SESSION['ubp']) . "&session=" . rawurlencode($session) . "'</script>";
-} else {
-  echo "<script>window.location='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'</script>";
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  @session_start();
 }
+$_SESSION['ubp'] = "";
+$_SESSION['ubc'] = "";
+$isBnNotice = (isset($langid) && $langid === 'bn');
+if ($deletedCount > 0) {
+  $noticeMsg = $isBnNotice
+    ? ('ব্যাচ (' . $targetBatch . ') থেকে ' . $deletedCount . 'টি ইউজার সফলভাবে ডিলিট হয়েছে।')
+    : ('Successfully deleted ' . $deletedCount . ' user(s) from batch (' . $targetBatch . ').');
+} else {
+  $noticeMsg = $isBnNotice
+    ? ('ব্যাচ (' . $targetBatch . ') এ ডিলিট করার মতো কোনো ইউজার পাওয়া যায়নি।')
+    : ('No users found to delete in batch (' . $targetBatch . ').');
+}
+$_SESSION['ngw_hotspot_users_notice'] = array(
+  'type' => 'success',
+  'message' => $noticeMsg,
+);
+@session_write_close();
+
+echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
 
 ?>

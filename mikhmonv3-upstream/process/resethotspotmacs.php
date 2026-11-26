@@ -25,7 +25,6 @@ if (!isset($_SESSION["mikhmon"])) {
 
 include_once __DIR__ . '/../include/ros_version.php';
 
-$targetProf = isset($_GET['profile']) ? trim((string)$_GET['profile']) : (isset($prof) ? trim((string)$prof) : 'all');
 $targetComm = isset($_GET['comment']) ? trim((string)$_GET['comment']) : (isset($comm) ? trim((string)$comm) : '');
 $targetExp  = isset($_GET['exp']) ? trim((string)$_GET['exp']) : (isset($exp) ? trim((string)$exp) : '');
 $macScope   = isset($_GET['mac_scope']) ? strtolower(trim((string)$_GET['mac_scope'])) : 'all';
@@ -55,13 +54,6 @@ if ($targetComm !== '') {
   $u6 = $API->comm("/ip/hotspot/user/print", array("?limit-uptime" => "1s"));
   $u7 = $API->comm("/ip/hotspot/user/print", array("?limit-uptime" => "00:00:01"));
   $getuser = array_merge(is_array($u6) ? $u6 : array(), is_array($u7) ? $u7 : array());
-} elseif ($targetProf !== '' && $targetProf !== 'all') {
-  $byProf = $API->comm("/ip/hotspot/user/print", array(
-    "?profile" => $targetProf,
-  ));
-  if (is_array($byProf)) {
-    $getuser = $byProf;
-  }
 } else {
   $allU = $API->comm("/ip/hotspot/user/print");
   if (is_array($allU)) {
@@ -123,7 +115,7 @@ if (!empty($resetNames)) {
 if (function_exists('ngwRecordActivity')) {
   ngwRecordActivity('hotspot_bulk_reset_mac', array(
     'router' => $session,
-    'profile' => $targetProf,
+    'profile' => '',
     'batch' => $targetComm,
     'mac_scope' => $macScope,
     'count' => $resetCount
@@ -133,10 +125,8 @@ if (function_exists('ngwRecordActivity')) {
 if ($targetComm !== '') {
   echo "<script>window.location='./?hotspot=users&comment=" . rawurlencode($targetComm) . "&session=" . rawurlencode($session) . "'</script>";
 } elseif ($targetExp !== '') {
-  echo "<script>window.location='./?hotspot=users&profile=all&exp=" . rawurlencode($targetExp) . "&session=" . rawurlencode($session) . "'</script>";
-} elseif ($targetProf !== '' && $targetProf !== 'all') {
-  echo "<script>window.location='./?hotspot=users&profile=" . rawurlencode($targetProf) . "&session=" . rawurlencode($session) . "'</script>";
+  echo "<script>window.location='./?hotspot=users&exp=" . rawurlencode($targetExp) . "&session=" . rawurlencode($session) . "'</script>";
 } else {
-  echo "<script>window.location='./?hotspot=users&profile=all&session=" . rawurlencode($session) . "'</script>";
+  echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
 }
 ?>

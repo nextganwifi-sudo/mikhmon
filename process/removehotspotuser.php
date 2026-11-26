@@ -22,7 +22,7 @@ if (!isset($API) || !is_object($API)) {
 require_once __DIR__ . '/../include/security.php';
 ngwConfigureSecureSession();
 if (session_status() !== PHP_SESSION_ACTIVE) {
-	session_start();
+	@session_start();
 }
 // hide all error
 error_reporting(0);
@@ -34,6 +34,9 @@ include_once('./include/ros_version.php');
 include_once('./include/voucher_history.php');
 $tzSync = ngwSyncRouterTimezone($API);
 $routerNowTs = $tzSync['now_ts'];
+$isBnNotice = (isset($langid) && $langid === 'bn');
+$deletedCount = 0;
+$deletedPreviewName = '';
 
 if ($removehotspotusers != "") {
 	$uids = explode("~", $removehotspotusers);
@@ -42,41 +45,48 @@ if ($removehotspotusers != "") {
 	$removedUsersList = array();
 
 	for ($i = 0; $i < $nuids; $i++) {
+		$curUid = trim((string)$uids[$i]);
+		if ($curUid === '') continue;
 
 		$getuname = $API->comm("/ip/hotspot/user/print", array(
-			"?.id" => "$uids[$i]",
+			"?.id" => $curUid,
 		));
 
 		if (is_array($getuname) && !empty($getuname[0]) && !empty($getuname[0]['name'])) {
 			$removedUsersList[] = $getuname[0];
+			if ($deletedPreviewName === '') {
+				$deletedPreviewName = (string)$getuname[0]['name'];
+			}
 		}
 
-		$name = $getuname[0]['name'];
+		$name = (is_array($getuname) && !empty($getuname[0]['name'])) ? (string)$getuname[0]['name'] : '';
 
-		$getscr = $API->comm("/system/script/print", array(
-			"?name" => "$name",
-		));
+		if ($name !== '') {
+			$getscr = $API->comm("/system/script/print", array(
+				"?name" => "$name",
+			));
+			$scr = (is_array($getscr) && !empty($getscr[0]['.id'])) ? (string)$getscr[0]['.id'] : '';
+			if ($scr !== '') {
+				$API->comm("/system/script/remove", array(
+					".id" => "$scr",
+				));
+			}
 
-		$scr = $getscr[0]['.id'];
-
-		$getsch = $API->comm("/system/scheduler/print", array(
-			"?name" => "$name",
-		));
-
-		$sch = $getsch[0]['.id'];
-
-		$API->comm("/system/script/remove", array(
-			".id" => "$scr",
-		));
-
-		$API->comm("/system/scheduler/remove", array(
-			".id" => "$sch",
-		));
+			$getsch = $API->comm("/system/scheduler/print", array(
+				"?name" => "$name",
+			));
+			$sch = (is_array($getsch) && !empty($getsch[0]['.id'])) ? (string)$getsch[0]['.id'] : '';
+			if ($sch !== '') {
+				$API->comm("/system/scheduler/remove", array(
+					".id" => "$sch",
+				));
+			}
+		}
 
 		$API->comm("/ip/hotspot/user/remove", array(
-			".id" => "$uids[$i]",
+			".id" => $curUid,
 		));
-
+		$deletedCount++;
 	}
 
 	if (!empty($removedUsersList)) {
@@ -95,15 +105,6 @@ if ($removehotspotusers != "") {
 		}
 	}
 
-	if ($_SESSION['ubp'] != "") {
-		echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
-	} elseif ($_SESSION['ubc'] != "") {
-		echo "<script>window.location='./?hotspot=users&comment=" . $_SESSION['ubc'] . "&session=" . $session . "'</script>";
-	} else {
-		echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
-	}
-
-
 } else {
 	$getuname = $API->comm("/ip/hotspot/user/print", array(
 		"?.id" => "$removehotspotuser",
@@ -111,33 +112,37 @@ if ($removehotspotusers != "") {
 
 	if (is_array($getuname) && !empty($getuname[0]) && !empty($getuname[0]['name'])) {
 		ngwMarkVouchersRemoved($session, array($getuname[0]), 'manual_delete', $routerNowTs);
+		$deletedPreviewName = (string)$getuname[0]['name'];
 	}
 
-	$name = $getuname[0]['name'];
+	$name = (is_array($getuname) && !empty($getuname[0]['name'])) ? (string)$getuname[0]['name'] : '';
 
-	$getscr = $API->comm("/system/script/print", array(
-		"?name" => "$name",
-	));
+	if ($name !== '') {
+		$getscr = $API->comm("/system/script/print", array(
+			"?name" => "$name",
+		));
+		$scr = (is_array($getscr) && !empty($getscr[0]['.id'])) ? (string)$getscr[0]['.id'] : '';
+		if ($scr !== '') {
+			$API->comm("/system/script/remove", array(
+				".id" => "$scr",
+			));
+		}
 
-	$scr = $getscr[0]['.id'];
-
-	$getsch = $API->comm("/system/scheduler/print", array(
-		"?name" => "$name",
-	));
-
-	$sch = $getsch[0]['.id'];
-
-	$API->comm("/system/script/remove", array(
-		".id" => "$scr",
-	));
-
-	$API->comm("/system/scheduler/remove", array(
-		".id" => "$sch",
-	));
+		$getsch = $API->comm("/system/scheduler/print", array(
+			"?name" => "$name",
+		));
+		$sch = (is_array($getsch) && !empty($getsch[0]['.id'])) ? (string)$getsch[0]['.id'] : '';
+		if ($sch !== '') {
+			$API->comm("/system/scheduler/remove", array(
+				".id" => "$sch",
+			));
+		}
+	}
 
 	$API->comm("/ip/hotspot/user/remove", array(
 		".id" => "$removehotspotuser",
 	));
+	$deletedCount = 1;
 
 	if (function_exists('ngwRecordActivity')) {
 		ngwRecordActivity('hotspot_user_deleted', array(
@@ -147,14 +152,35 @@ if ($removehotspotusers != "") {
 			'profile' => (is_array($getuname) && !empty($getuname[0]['profile'])) ? (string)$getuname[0]['profile'] : '',
 		));
 	}
+}
 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+	@session_start();
+}
+$_SESSION['ubp'] = "";
+$ubcRedirect = isset($_SESSION['ubc']) ? (string)$_SESSION['ubc'] : '';
+if ($deletedCount === 1 && $deletedPreviewName !== '') {
+	$noticeMsg = $isBnNotice
+		? ('ইউজার (' . $deletedPreviewName . ') সফলভাবে ডিলিট হয়েছে।')
+		: ('User (' . $deletedPreviewName . ') deleted successfully.');
+} elseif ($deletedCount > 0) {
+	$noticeMsg = $isBnNotice
+		? ($deletedCount . 'টি ইউজার সফলভাবে ডিলিট হয়েছে।')
+		: ('Successfully deleted ' . $deletedCount . ' user(s).');
+} else {
+	$noticeMsg = $isBnNotice
+		? 'ইউজার সফলভাবে ডিলিট হয়েছে।'
+		: 'User deleted successfully.';
+}
+$_SESSION['ngw_hotspot_users_notice'] = array(
+	'type' => 'success',
+	'message' => $noticeMsg,
+);
+@session_write_close();
 
-	if ($_SESSION['ubp'] != "") {
-		echo "<script>window.location='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'</script>";
-	} elseif ($_SESSION['ubc'] != "") {
-		echo "<script>window.location='./?hotspot=users&comment=" . $_SESSION['ubc'] . "&session=" . $session . "'</script>";
-	} else {
-		echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
-	}
+if ($ubcRedirect !== "") {
+	echo "<script>window.location='./?hotspot=users&comment=" . rawurlencode($ubcRedirect) . "&session=" . rawurlencode($session) . "'</script>";
+} else {
+	echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
 }
 ?>

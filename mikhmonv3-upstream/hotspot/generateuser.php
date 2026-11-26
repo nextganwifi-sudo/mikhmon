@@ -169,26 +169,14 @@ date_default_timezone_set($_SESSION['timezone']);
 	<div class="card-body">
 <form id="voucher-generate-form" autocomplete="off" method="post" action="./?hotspot-user=generate&amp;session=<?= htmlspecialchars(rawurlencode($session), ENT_QUOTES, 'UTF-8') ?>">
 	<div>
-		<?php if ($_SESSION['ubp'] != "") {
-		echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";
-	} elseif ($_SESSION['vcr'] = "active") {
-		echo "    <a class='btn bg-warning' href='./?hotspot=users-by-profile&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";
+		<?php if (!empty($_SESSION['vcr']) && $_SESSION['vcr'] == "active") {
+		echo "    <a class='btn bg-warning' href='./?hotspot=users-by-profile&session=" . rawurlencode($session) . "'> <i class='fa fa-close'></i> ".$_close."</a>";
 	} else {
-		echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . $session . "'> <i class='fa fa-close'></i> ".$_close."</a>";
+		echo "    <a class='btn bg-warning' href='./?hotspot=users&session=" . rawurlencode($session) . "'> <i class='fa fa-close'></i> ".$_close."</a>";
 	}
 
 	?>
-	<a class="btn bg-pink" title="Open User List by Profile 
-<?php if ($_SESSION['ubp'] == "") {
-	echo "all";
-} else {
-	echo $uprofile;
-} ?>" href="./?hotspot=users&profile=
-<?php if ($_SESSION['ubp'] == "") {
-	echo "all";
-} else {
-	echo $uprofile;
-} ?>&session=<?= $session; ?>"> <i class="fa fa-users"></i> <?= $_user_list ?></a>
+	<a class="btn bg-pink" title="<?= htmlspecialchars($_user_list, ENT_QUOTES); ?>" href="./?hotspot=users&session=<?= rawurlencode($session); ?>"> <i class="fa fa-users"></i> <?= $_user_list ?></a>
     <button type="submit" name="save" class="btn bg-primary" title="Generate User"> <i class="fa fa-save"></i> <?= $_generate ?></button>
 </div>
 <div id="voucher-batch-status" role="status" aria-live="polite" style="margin:12px 0;"></div>

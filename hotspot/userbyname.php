@@ -76,7 +76,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
   if ($uname == "") {
     echo "<b>User not found redirect to user list...</b>";
-    echo "<script>window.location='./?hotspot=users&profile=all&session=" . $session . "'</script>";
+    echo "<script>window.location='./?hotspot=users&session=" . rawurlencode($session) . "'</script>";
   }
 
   include_once('./include/ros_version.php');
@@ -369,19 +369,17 @@ include('./voucher/printbt.php');
 <div class="card-body">
 <form autocomplete="new-password" method="post" action="">
   <div>
-    <?php if ($_SESSION['ubp'] != "") {
-      echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=" . $_SESSION['ubp'] . "&session=" . $session . "'><i class='fa fa-close'></i> ".$_close."</a>";
-    } elseif ($_SESSION['ubc'] != "") {
-      echo "    <a class='btn bg-warning' href='./?hotspot=users&comment=" . $_SESSION['ubc'] . "&session=" . $session . "'><i class='fa fa-close'></i> ".$_close."</a>";
-    } elseif ($_SESSION['hua'] != "") {
+    <?php if (!empty($_SESSION['ubc'])) {
+      echo "    <a class='btn bg-warning' href='./?hotspot=users&comment=" . rawurlencode((string)$_SESSION['ubc']) . "&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
+    } elseif (!empty($_SESSION['hua'])) {
       $_SESSION['ubn'] = "";
-      echo "    <a class='btn bg-warning' href='./?hotspot=active&session=" . $session . "'><i class='fa fa-close'></i> ".$_close."</a>";
+      echo "    <a class='btn bg-warning' href='./?hotspot=active&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
       $_SESSION['hua'] = "";
-    } elseif ($_SESSION['ubn'] != "") {
-      echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . $session . "'><i class='fa fa-close'></i> ".$_close."</a>";
+    } elseif (!empty($_SESSION['ubn'])) {
+      echo "    <a class='btn bg-warning' href='./?hotspot=users&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
       $_SESSION['ubn'] = "";
     } else {
-      echo "    <a class='btn bg-warning' href='./?hotspot=users&profile=all&session=" . $session . "'><i class='fa fa-close'></i> ".$_close."</a>";
+      echo "    <a class='btn bg-warning' href='./?hotspot=users&session=" . rawurlencode($session) . "'><i class='fa fa-close'></i> ".$_close."</a>";
     }
     ?>
     <?php if (hasResellerPermission('edit_user')) { ?>
@@ -389,8 +387,10 @@ include('./voucher/printbt.php');
     <?php } ?>
     <?php if (hasResellerPermission('delete_user')) { 
       $delUnameMsg = ($langid === 'bn') ? 'আপনি কি নিশ্চিত যে এই ইউজার (' . $uname . ') ডিলিট করতে চান?' : 'Are you sure to delete username (' . $uname . ')?';
+      $delUnameUrl = './?remove-hotspot-user=' . rawurlencode($uid) . '&session=' . rawurlencode($session);
+      $delUnameBusy = ($langid === 'bn') ? 'ডিলিট হচ্ছে...' : 'Deleting...';
     ?>
-    <div class="btn bg-danger" onclick='if(confirm(<?= json_encode($delUnameMsg); ?>)){loadpage("./?remove-hotspot-user=<?= urlencode($uid); ?>&session=<?= urlencode($session); ?>")}else{}' title='Remove <?= htmlspecialchars($uname, ENT_QUOTES); ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></div>
+    <button type="button" class="btn bg-danger" onclick='if(confirm(<?= json_encode($delUnameMsg); ?>)){this.disabled=true;this.innerHTML="<i class=\"fa fa-circle-o-notch fa-spin\"></i> "+<?= json_encode($delUnameBusy); ?>;loadpage(<?= json_encode($delUnameUrl); ?>);}' title='Remove <?= htmlspecialchars($uname, ENT_QUOTES); ?>'><i class='fa fa-minus-square'></i> <?= $_remove ?></button>
     <?php } ?>
     <?php if (hasResellerPermission('enable_disable_user') && ($utimelimit == "1s" || $utimelimit == "00:00:01")) {
       echo '<a class="btn bg-info"  href="./?reset-hotspot-user=' . $uid . '&session=' . $session . '"> <i class="fa fa-retweet"></i> ' . $_reset . '</a>';
